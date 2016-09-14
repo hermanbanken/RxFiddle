@@ -4,11 +4,11 @@ import jdk.internal.org.objectweb.asm.ClassVisitor;
 import jdk.internal.org.objectweb.asm.MethodVisitor;
 import jdk.internal.org.objectweb.asm.Opcodes;
 
-public class LibraryClassVisitor extends ClassVisitor
+class LibraryClassVisitor extends ClassVisitor
 {
     private String className;
 
-    public LibraryClassVisitor(ClassVisitor cv)
+    LibraryClassVisitor(ClassVisitor cv)
     {
         super(Opcodes.ASM5, cv);
     }
@@ -16,6 +16,7 @@ public class LibraryClassVisitor extends ClassVisitor
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
+        System.out.printf("\nInstrumenting %s\n", className);
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
@@ -23,16 +24,14 @@ public class LibraryClassVisitor extends ClassVisitor
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions)
     {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-
-        if(name.equals("<init>")) return mv;
-        if(name.equals("<cinit>")) return mv;
-
+//        if(name.equals("<init>")) return mv;
+//        if(name.equals("<cinit>")) return mv;
         boolean isStatic = (access & Opcodes.ACC_STATIC) != 0;
         return new LibraryClassMethodVisitor(mv, className, name, isStatic);
     }
 }
 
-class LibraryClassMethodVisitor extends MethodVisitor implements Opcodes
+class LibraryClassMethodVisitor extends MethodVisitor
 {
     private final String className;
     private final String method;
@@ -50,6 +49,7 @@ class LibraryClassMethodVisitor extends MethodVisitor implements Opcodes
     public void visitCode()
     {
         super.visitCode();
+        System.out.printf("Instrumenting %s %s\n", className, method);
 
         // Call hook:
         if(isStatic) {
@@ -60,13 +60,13 @@ class LibraryClassMethodVisitor extends MethodVisitor implements Opcodes
                     Hook.Static.HOOK_METHOD_NAME,
                     Hook.Static.HOOK_METHOD_DESC, false);
         } else {
-            super.visitVarInsn(ALOAD, 0); // add `this` to stack
+            super.visitVarInsn(Opcodes.ALOAD, 0); // add `this` to stack
             super.visitLdcInsn(className);  // add `visitedClass` to stack
             super.visitLdcInsn(method);  // add `visitedMethod` to stack
             super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                    Hook.HOOK_OWNER_NAME,
-                    Hook.HOOK_METHOD_NAME,
-                    Hook.HOOK_METHOD_DESC, false);
+                    Hook.Instance.HOOK_OWNER_NAME,
+                    Hook.Instance.HOOK_METHOD_NAME,
+                    Hook.Instance.HOOK_METHOD_DESC, false);
         }
     }
 }

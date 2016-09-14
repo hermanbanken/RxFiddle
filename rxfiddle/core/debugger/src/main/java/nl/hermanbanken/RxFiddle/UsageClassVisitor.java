@@ -5,10 +5,9 @@ import jdk.internal.org.objectweb.asm.Label;
 import jdk.internal.org.objectweb.asm.MethodVisitor;
 import jdk.internal.org.objectweb.asm.Opcodes;
 
-public class UsageClassVisitor extends ClassVisitor
+class UsageClassVisitor extends ClassVisitor
 {
     private String className;
-    private String fileName;
 
     UsageClassVisitor(ClassVisitor cv) {
         super(Opcodes.ASM5, cv);
@@ -22,7 +21,6 @@ public class UsageClassVisitor extends ClassVisitor
 
     @Override
     public void visitSource(String file, String debug) {
-        this.fileName = file;
         super.visitSource(file, debug);
     }
 
@@ -30,47 +28,55 @@ public class UsageClassVisitor extends ClassVisitor
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions)
     {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-        boolean isStatic = (access & Opcodes.ACC_STATIC) != 0;
-        return new UsageClassMethodVisitor(mv, fileName, className, name, isStatic);
+        return new UsageClassMethodVisitor(mv, className, name);
     }
 }
 
 class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
 {
-    private final String fileName;
     private final String visitedClass;
     private final String visitedMethod;
     private int lineNumber;
 
-    UsageClassMethodVisitor(MethodVisitor mv, String fileName, String visitedClass, String visitedMethod, boolean isStatic)
+    UsageClassMethodVisitor(MethodVisitor mv, String visitedClass, String visitedMethod)
     {
         super(Opcodes.ASM5, mv);
-        this.fileName = fileName;
         this.visitedClass = visitedClass;
         this.visitedMethod = visitedMethod;
     }
 
     @Override
-    public void visitLineNumber(int i, Label label) {
-        lineNumber = i;
-        super.visitLineNumber(i, label);
+    public void visitLineNumber(int line, Label label) {
+        lineNumber = line;
+        super.visitLineNumber(line, label);
     }
 
     @Override
     public void visitMethodInsn(int access, String ownerClass, String method, String signature, boolean isInterface) {
+        // Set caller
         if(ownerClass.contains("rx/")) {
-            System.out.printf("prepending to visitMethodInsn(%s, %s, %s, %b) @ %s.%s:%d\n",
-                    ownerClass, method, signature, isInterface,
+            System.out.printf("prepending to visitMethodInsn(%s, %s) @ %s.%s:%d\n",
+                    ownerClass, method,
                     visitedClass, visitedMethod, lineNumber);
-            super.visitLdcInsn(fileName);
+
             super.visitLdcInsn(visitedClass);
             super.visitLdcInsn(visitedMethod);
             super.visitLdcInsn(lineNumber);
+
             super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                    Hook.ACCESS_OWNER_NAME,
-                    Hook.ACCESS_METHOD_NAME,
-                    Hook.ACCESS_METHOD_DESC, false);
+                    Hook.Access.ACCESS_OWNER_NAME,
+                    Hook.Access.ACCESS_METHOD_NAME,
+                    Hook.Access.ACCESS_METHOD_DESC, false);
         }
+
         super.visitMethodInsn(access, ownerClass, method, signature, isInterface);
+
+        // Reset caller
+        if(ownerClass.contains("rx/")) {
+            super.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    Hook.Access.ACCESS_OWNER_NAME,
+                    Hook.Access.RESET_METHOD_NAME,
+                    Hook.Access.RESET_METHOD_DESC, false);
+        }
     }
 }
