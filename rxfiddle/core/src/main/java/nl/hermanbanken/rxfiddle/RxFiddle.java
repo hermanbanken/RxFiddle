@@ -1,6 +1,5 @@
 package nl.hermanbanken.rxfiddle;
 
-import org.example.Test;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 
@@ -17,12 +16,5 @@ public class RxFiddle {
                 .take(2)
                 .subscribe(next -> System.out.println("Next: "+next));
         System.in.read();
-        Test t = new Test();
-        t.test1();
-        t.test2();
-        t.test3();
-        t.test4();
-        t.test5();
-        t.test6();
     }
 }
