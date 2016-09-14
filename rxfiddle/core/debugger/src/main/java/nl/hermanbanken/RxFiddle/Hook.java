@@ -13,50 +13,49 @@ import jdk.internal.org.objectweb.asm.Type;
 public class Hook {
 
     public static class Instance {
-        static final String HOOK_OWNER_NAME = Type.getInternalName(Hook.Instance.class);
-        static final String HOOK_METHOD_NAME = "hook";
-        static final String HOOK_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String)V";
+        static final String HOOK_OWNER_NAME = Type.getInternalName(Hook.class);
+        static final String HOOK_METHOD_NAME = "hook1";
+        static final String HOOK_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V";
+    }
 
-        public static void hook(Object subject, String className, String methodName) {
-            if(Access.access_className != null) {
-                System.out.printf("access: %s %s %d\n", Access.access_className, Access.access_methodName, Access.access_lineNumber);
-                System.out.printf("%s.%s() @ %s\n", className, methodName, subject);
-            } else System.out.printf(".");
+    public static void hook1(Object subject, String className, String methodName) {
+        if(access_className != null) {
+            System.out.printf("%s.%s() @ %s\n", className, methodName, subject);
+            System.out.printf("\tat %s.%s:%d\n", access_className, access_methodName, access_lineNumber);
         }
     }
 
     public static class Static {
-        static final String HOOK_OWNER_NAME = Type.getInternalName(Hook.Static.class);
-        static final String HOOK_METHOD_NAME = "hook";
-        static final String HOOK_METHOD_DESC = "(Ljava/lang/String;Ljava/lang/String)V";
+        static final String HOOK_OWNER_NAME = Type.getInternalName(Hook.class);
+        static final String HOOK_METHOD_NAME = "hook2";
+        static final String HOOK_METHOD_DESC = "(Ljava/lang/String;Ljava/lang/String;)V";
+    }
 
-        public static void hook(String className, String methodName) {
-            if(Access.access_className != null) {
-                System.out.printf("access: %s %s %d\n", Access.access_className, Access.access_methodName, Access.access_lineNumber);
-                System.out.printf("%s.%s() @ static\n", className, methodName);
-            } else System.out.printf(".");
+    public static void hook2(String className, String methodName) {
+        if(access_className != null) {
+            System.out.printf("%s.%s() @ static\n", className, methodName);
+            System.out.printf("\tat %s.%s:%d\n", access_className, access_methodName, access_lineNumber);
         }
     }
 
-    public static class Access {
         private static String access_className = null;
         private static String access_methodName = null;
         private static int access_lineNumber = 0;
 
-        static final String ACCESS_OWNER_NAME = Type.getInternalName(Hook.Access.class);
+    public static class Access {
+        static final String ACCESS_OWNER_NAME = Type.getInternalName(Hook.class);
         static final String ACCESS_METHOD_NAME = "access";
         static final String ACCESS_METHOD_DESC = "(Ljava/lang/String;Ljava/lang/String;I)V";
         static final String RESET_METHOD_NAME = "reset";
         static final String RESET_METHOD_DESC = "()V";
-
-        public static void access(String className, String methodName, int lineNumber) {
-            access_className = className;
-            access_methodName = methodName;
-            access_lineNumber = lineNumber;
-        }
-
-        public static void reset() {
-        }
     }
 
+    public static void access(String className, String methodName, int lineNumber) {
+        access_className = className;
+        access_methodName = methodName;
+        access_lineNumber = lineNumber;
+    }
+
+    public static void reset() {
+    }
 }

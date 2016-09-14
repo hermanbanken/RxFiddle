@@ -16,7 +16,6 @@ class LibraryClassVisitor extends ClassVisitor
     @Override
     public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
         this.className = name;
-        System.out.printf("\nInstrumenting %s\n", className);
         super.visit(version, access, name, signature, superName, interfaces);
     }
 
@@ -24,8 +23,6 @@ class LibraryClassVisitor extends ClassVisitor
     public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions)
     {
         MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
-//        if(name.equals("<init>")) return mv;
-//        if(name.equals("<cinit>")) return mv;
         boolean isStatic = (access & Opcodes.ACC_STATIC) != 0;
         return new LibraryClassMethodVisitor(mv, className, name, isStatic);
     }
@@ -49,24 +46,27 @@ class LibraryClassMethodVisitor extends MethodVisitor
     public void visitCode()
     {
         super.visitCode();
-        System.out.printf("Instrumenting %s %s\n", className, method);
-
-        // Call hook:
-        if(isStatic) {
-            super.visitLdcInsn(className);  // add `visitedClass` to stack
-            super.visitLdcInsn(method);  // add `visitedMethod` to stack
-            super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                    Hook.Static.HOOK_OWNER_NAME,
-                    Hook.Static.HOOK_METHOD_NAME,
-                    Hook.Static.HOOK_METHOD_DESC, false);
-        } else {
-            super.visitVarInsn(Opcodes.ALOAD, 0); // add `this` to stack
-            super.visitLdcInsn(className);  // add `visitedClass` to stack
-            super.visitLdcInsn(method);  // add `visitedMethod` to stack
-            super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                    Hook.Instance.HOOK_OWNER_NAME,
-                    Hook.Instance.HOOK_METHOD_NAME,
-                    Hook.Instance.HOOK_METHOD_DESC, false);
+        try {
+            // Call hook:
+            if (isStatic || method.equals("<init>") || method.equals("<clinit>") || method.equals("<cinit>")) {
+                super.visitLdcInsn(className);  // add `visitedClass` to stack
+                super.visitLdcInsn(method);  // add `visitedMethod` to stack
+                super.visitMethodInsn(Opcodes.INVOKESTATIC,
+                        Hook.Static.HOOK_OWNER_NAME,
+                        Hook.Static.HOOK_METHOD_NAME,
+                        Hook.Static.HOOK_METHOD_DESC, false);
+            } else {
+                super.visitVarInsn(Opcodes.ALOAD, 0); // add `this` to stack
+                super.visitLdcInsn(className);  // add `visitedClass` to stack
+                super.visitLdcInsn(method);  // add `visitedMethod` to stack
+                super.visitMethodInsn(Opcodes.INVOKESTATIC,
+                        Hook.Instance.HOOK_OWNER_NAME,
+                        Hook.Instance.HOOK_METHOD_NAME,
+                        Hook.Instance.HOOK_METHOD_DESC, false);
+            }
+            super.visitEnd();
+        } catch (Exception e) {
+            System.err.println("Printing otherwise silenced error "+e);
         }
     }
 }
