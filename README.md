@@ -18,7 +18,8 @@ syntax and instrument (compiled) code to collect the lifecycle of Observables:
 Existing collectors:
 
 - [x] [JVM](rxfiddle-jvm-collector) for RxJava, RxKotlin and RxScala
-- [x] [JavaScript](rxfiddle-js-collector) for RxJS
+- [ ] [JavaScript](rxfiddle-js-collector) for RxJS
+- [ ] [Dalvik](rxfiddle-android-collector) for Rx on Android
 - [ ] [Swift](rxfiddle-swift-collector) for RxSwift
 
 ### Contribute
