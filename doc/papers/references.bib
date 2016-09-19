@@ -1,0 +1,183 @@
+% Encoding: UTF-8
+
+@InProceedings{Strand2015,
+  author = {Christian Strand and Young},
+  title  = {Functional Reactive Programming on the Web A Practical Evaluation},
+  year   = {2015},
+  file   = {:Functional Reactive Programming on the Web, A Practical Evaluation - Christian Strand Young.pdf:PDF},
+}
+
+@InProceedings{Uustalu2005,
+  author   = {Tarmo Uustalu and Varmo Vene},
+  title    = {The Essence of Dataﬂow Programming},
+  year     = {2005},
+  abstract = {Wepropose a novel, comonadic approach to dataﬂow (stream-
+based) computation. This is based on the observation that both general
+and causal stream functions can be characterized as coKleisli arrows of
+comonads and on the intuition that comonads in general must be a good
+means to structure context-dependent computation. In particular, we de-
+velop a generic comonadic interpreter of languages for context-dependent
+computation and instantiate it for stream-based computation. We also
+discuss distributive laws of a comonad over a monad as a means to struc-
+ture combinations of eﬀectful and context-dependent computation.
+We apply the latter to analyse clocked dataﬂow (partial stream based)
+computation.},
+  file     = {:Essence of DataFlow Programming.pdf:PDF},
+}
+
+@InProceedings{Pawlak2015,
+  author = {Renaud Pawlak and renaud.pawlak@jsweet.org},
+  title  = {JSweet: insights on motivations and design A transpiler from Java to JavaScript},
+  year   = {2015},
+  file   = {:JSweet-insights-on-motivations-and-design-Renaud-Pawlak.pdf:PDF},
+}
+
+@InProceedings{kunz1995visualizing,
+  author    = {Kunz, Thomas and Taylor, David J},
+  title     = {Visualizing PVM executions},
+  booktitle = {Proceedings of the 3rd PVM Users' Group Meeting, Pittsburgh},
+  year      = {1995},
+  file      = {:visualizing-pvm-executions.pdf:PDF},
+}
+
+@InProceedings{consens1993debugging,
+  author       = {Consens, Mariano and Hasan, Masum and Mendelzon, Alberto},
+  title        = {Debugging distributed programs by visualizing and querying event traces},
+  booktitle    = {Proceedings of the 3rd ACM/ONR Workshop on Parallel and Distributed Debugging},
+  year         = {1993},
+  pages        = {181--183},
+  organization = {Citeseer},
+  file         = {:Debugging distributed programs by visualizing and querying event traces.pdf:PDF},
+}
+
+@InProceedings{weck2016visualizing,
+  author       = {Weck, Tobias and Tichy, Matthias},
+  title        = {Visualizing Data-Flows in Functional Programs},
+  booktitle    = {2016 IEEE 23rd International Conference on Software Analysis, Evolution, and Reengineering (SANER)},
+  year         = {2016},
+  volume       = {1},
+  pages        = {293--303},
+  month        = {mar},
+  organization = {IEEE},
+  publisher    = {Institute of Electrical \& Electronics Engineers ({IEEE})},
+  doi          = {10.1109/saner.2016.82},
+  file         = {:visualizing data flows in FP.pdf:PDF},
+  url          = {http://dx.doi.org/10.1109/SANER.2016.82},
+}
+
+@InProceedings{Mysore2008,
+  author    = {Shashidhar Mysore and Bita Mazloom and Banit Agrawal and Timothy Sherwood and Department of Computer Science and University of California and Santa Barbara},
+  title     = {Understanding and Visualizing Full Systems with Data Flow Tomography},
+  year      = {2008},
+  volume    = {42},
+  number    = {2},
+  pages     = {211--221},
+  publisher = {ACM},
+  abstract  = {erating systems, network services, third-party libraries, helper pro-
+It is not uncommon for modern systems to be composed of a variety cesses, and middleware, are all conveniently hidden behind a vari-
+of interacting services, running across multiple machines in such a ety of interfaces. While this is necessary to the very idea of abstrac-
+way that most developers do not really understand the whole sys- tion, the fact of the matter is that few people designing the system,
+tem. As abstraction is layered atop abstraction, developers gain the and even fewer of those responsible for maintaining it, understand
+ability to compose systems of extraordinary complexity with rela- how all the pieces of the puzzle fit together.
+tive ease. However, many software properties, especially those that While control graphs (call graphs, control flow graphs, and the
+cut across abstraction layers, become very difficult to understand like) are very useful, they are inherently tied to a single state – the
+in such compositions. The communication patterns involved, the program counter. With multiple services running at the same time,
+privacy of critical data, and the provenance of information, can be control flow can tell you about temporal ordering, but it is difficult
+difficult to find and understand, even with access to all of the source to find true causation (e.g Packet 1 caused Packet 2 to be sent over
+code. The goal of Data Flow Tomography is to use the inherent in- the network). The relationships between data-in and data-out are
+formation flow of such systems to help visualize the interactions quickly lost, even in extremely simple network programs such as
+between complex and interwoven components across multiple lay- the one shown in Figure 1. By visualizing the full system data
+ers of abstraction. In the same way that the injection of short-lived flow, we can be certain to identify only true dependencies between
+radioactive isotopes help doctors trace problems in the cardiovas- events.
+cular system, the use of “data tagging” can help developers slice Our goal is to develop techniques that aid in the understand-
+through the extraneous layers of software and pin-point those por- ing of complex software systems, that go beyond static code vi-
+tions of the system interacting with the data of interest. To demon- sualizations, to shed light on exactly how a system is consuming,
+strate the feasibility of this approach we have developed a proto- operating on, and propagating data throughout. We draw our inspi-
+type system in which tags are tracked both through the machine ration from Positron Emission Tomography, in which a short-lived
+and in between machines over the network, and from which novel radioactive isotope is injected into a patient and the flow of the iso-
+visualizations of the whole system can be derived. We describe the tope is monitored through an ensemble of sensors. The resulting
+system-level challenges in creating a working system tomography 3D image serves as a diagnostic map of the functional processes
+tool and we qualitatively evaluate our system by examining several in the body. Rather than an isotope coursing through the veins of a
+example real world scenarios. human, we make use of various data information-flow tags running},
+  file      = {:dataflow-tomography.pdf:PDF},
+  journal   = {ACM SIGOPS Operating Systems Review},
+  keywords  = {Data Flow Tracking, Tomography Understanding related to the data in question},
+}
+
+@Misc{msdn_rx,
+  author       = {Microsoft},
+  title        = {{Reactive Extensions (Rx)}},
+  howpublished = {\url{https://msdn.microsoft.com/en-us/data/gg577609.aspx}},
+  note         = {Online; Accessed September 2016},
+  url          = {https://msdn.microsoft.com/en-us/data/gg577609.aspx},
+}
+
+@Misc{reactivex,
+  title        = {{ReactiveX.io}},
+  howpublished = {\url{http://reactivex.io/}},
+  note         = {Online; Accessed September 2016},
+  url          = {http://reactivex.io/},
+}
+
+@Misc{c9_marblediagrams,
+  author       = {Wes Dyer, Erik Meijer and Jeffrey van Gogh},
+  title        = {{Reactive Extensions} {API} in depth: marble diagrams, select \& where},
+  howpublished = {\url{https://channel9.msdn.com/blogs/j.van.gogh/reactive-extensions-api-in-depth-marble-diagrams-select--where}},
+  note         = {Online; Accessed September 2016},
+  abstract     = {Wes Dyer, Erik Meijer and Jeffrey van Gogh explain a graphical method called "Marble Diagrams" that helps to reason about Rx API. 
+
+We use these "Marble Diagrams" to describe how the Rx Select and Where operators behave.},
+  timestamp    = {2009-11-19},
+  url          = {https://channel9.msdn.com/blogs/j.van.gogh/reactive-extensions-api-in-depth-marble-diagrams-select--where},
+}
+
+@InProceedings{quickcheck,
+  author   = {Claessen, Koen; Hughes, John},
+  title    = {QuickCheck: A Lightweight Tool for Random Testing of Haskell and Programs},
+  year     = {2000},
+  abstract = {monad are hard to test), and so testing can be done at a
+ne grain.},
+  doi      = {ng},
+  file     = {:quickcheck.pdf:PDF},
+}
+
+@InProceedings{bell2014phosphor,
+  author       = {Bell, Jonathan and Kaiser, Gail},
+  title        = {Phosphor: Illuminating Dynamic Data Flow in Commodity JVMs},
+  booktitle    = {ACM SIGPLAN Notices},
+  year         = {2014},
+  volume       = {49},
+  number       = {10},
+  pages        = {83--101},
+  organization = {ACM},
+  abstract     = {1. Introduction
+Dynamic taint analysis is a well-known information flow Dynamic taint analysis (also referred to as dynamic informa-
+analysis problem with many possible applications. Taint tion flow tracking) is a powerful form of information flow
+tracking allows for analysis of application data flow by analysis useful for identifying the origin of data during ex-
+assigning labels to data, and then propagating those la- ecution. Inputs to an application are “tainted,” or labeled
+bels through data flow. Taint tracking systems traditionally with a tag. As computations are performed, these labels are
+compromise among performance, precision, soundness, and propagated through the system such that any new values de-
+portability. Performance can be critical, as these systems rived from a tagged value also carry a tag derived from these
+are often intended to be deployed to production environ- source input tags. In this way, we can inspect any object and
+ments, and hence must have low overhead. To be deployed determine if it is derived from a tainted input by inspecting
+in security-conscious settings, taint tracking must also be its label. By maintaining a precise mapping from objects to
+sound and precise. Dynamic taint tracking must be portable labels, we can enable a broad range of analyses, for such
+in order to be easily deployed and adopted for real world purposes as end-user privacy testing [16], fine-grained data
+purposes, without requiring recompilation of the operating security [3, 10, 27, 31], detection of code-injection attacks
+system or language interpreter, and without requiring access [22, 33, 35] and improved debugging [17, 25].
+to application source code. Taint tracking systems typically face challenges in both},
+  file         = {:oopsla2014-phosphor-preprint.pdf:PDF},
+  keywords     = {Taint Tracking, Dataflow Analysis modifications to client systems (e.g. specialized operating},
+}
+
+@InProceedings{bell2015dynamic,
+  author       = {Bell, Jonathan and Kaiser, Gail},
+  title        = {Dynamic taint tracking for Java with phosphor},
+  booktitle    = {Proceedings of the 2015 International Symposium on Software Testing and Analysis},
+  year         = {2015},
+  pages        = {409--413},
+  organization = {ACM},
+  file         = {:Dynamic Taint Tracking for Java with Phosphor (Demo).pdf:PDF},
+}
+
+@Comment{jabref-meta: databaseType:bibtex;}

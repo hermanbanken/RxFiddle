@@ -1,10 +1,15 @@
+# Mac
 .DS_Store
+
+# Java
 .idea
 build/
 out/
 *.iml
 .gradle
-
 gradlew
 gradlew.bat
 gradle/wrapper/
+
+# Latex
+.texpadtmp
