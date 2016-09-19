@@ -9,12 +9,16 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unused")
 public class RxFiddle {
     public static void main(String[] args) throws IOException {
-        Observable
-                .interval(0L, 1L, TimeUnit.SECONDS, Schedulers.io())
+        randomObs()
                 .map(number -> (char) ('a' + (number.intValue() % ('z' - 'a' + 1))))
                 .flatMap(Observable::just)
                 .take(2)
                 .subscribe(next -> System.out.println("Next: "+next));
         System.in.read();
+    }
+
+    private static Observable<Long> randomObs() {
+        return Observable
+                .interval(0L, 1L, TimeUnit.SECONDS, Schedulers.io());
     }
 }

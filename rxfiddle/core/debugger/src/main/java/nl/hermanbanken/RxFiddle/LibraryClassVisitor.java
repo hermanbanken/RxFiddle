@@ -49,21 +49,16 @@ class LibraryClassMethodVisitor extends MethodVisitor
         try {
             // Call hook:
             if (isStatic || method.equals("<init>") || method.equals("<clinit>") || method.equals("<cinit>")) {
-                super.visitLdcInsn(className);  // add `visitedClass` to stack
-                super.visitLdcInsn(method);  // add `visitedMethod` to stack
-                super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                        Hook.Static.HOOK_OWNER_NAME,
-                        Hook.Static.HOOK_METHOD_NAME,
-                        Hook.Static.HOOK_METHOD_DESC, false);
+                super.visitInsn(Opcodes.ACONST_NULL); // add `null` to stack
             } else {
                 super.visitVarInsn(Opcodes.ALOAD, 0); // add `this` to stack
-                super.visitLdcInsn(className);  // add `visitedClass` to stack
-                super.visitLdcInsn(method);  // add `visitedMethod` to stack
-                super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                        Hook.Instance.HOOK_OWNER_NAME,
-                        Hook.Instance.HOOK_METHOD_NAME,
-                        Hook.Instance.HOOK_METHOD_DESC, false);
             }
+            super.visitLdcInsn(className);  // add `visitedClass` to stack
+            super.visitLdcInsn(method);  // add `visitedMethod` to stack
+            super.visitMethodInsn(Opcodes.INVOKESTATIC,
+                    Hook.Constants.HOOK_CLASS_NAME,
+                    Hook.Constants.HOOK_METHOD_NAME,
+                    Hook.Constants.HOOK_METHOD_DESC, false);
             super.visitEnd();
         } catch (Exception e) {
             System.err.println("Printing otherwise silenced error "+e);

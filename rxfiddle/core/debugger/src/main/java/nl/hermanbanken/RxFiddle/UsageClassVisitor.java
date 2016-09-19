@@ -92,8 +92,8 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
         super.visitLdcInsn(methodName);
         super.visitMethodInsn(Opcodes.INVOKESTATIC,
                 Hook.HOOK_CLASS_NAME,
-                Hook.Access.ACCESS_METHOD_NAME,
-                Hook.Access.ACCESS_METHOD_DESC, false);
+                Hook.Constants.ACCESS_METHOD_NAME,
+                Hook.Constants.ACCESS_METHOD_DESC, false);
 
         // Revert swap, if necessary
         if(access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1) {
@@ -102,6 +102,15 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
 
         // Call actual method
         super.visitMethodInsn(access, className, methodName, signature, isInterface);
+    }
+
+    @SuppressWarnings("UnusedParameters")
+    private static Boolean isInteresting(String className, String methodName, String signature) {
+        return
+                signature.endsWith("Lrx/Observable;") ||
+                signature.endsWith("Lrx/Blocking;") ||
+                signature.endsWith("Lrx/Single;") ||
+                signature.endsWith("Lrx/Subscription;");
     }
 
     /**
@@ -122,24 +131,24 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
     @Override
     public void visitMethodInsn(int access, String className, String methodName, String signature, boolean isInterface) {
         try {
-            if (className.contains("rx/")) {
+            if (isInteresting(className, methodName, signature)) {
                 // Trace ENTER
                 super.visitLdcInsn(visitedClass);
                 super.visitLdcInsn(visitedMethod);
                 super.visitLdcInsn(lineNumber);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                        Hook.HOOK_CLASS_NAME,
-                        Hook.Access.ENTER_METHOD_NAME,
-                        Hook.Access.ENTER_METHOD_DESC, false);
+                        Hook.Constants.HOOK_CLASS_NAME,
+                        Hook.Constants.ENTER_METHOD_NAME,
+                        Hook.Constants.ENTER_METHOD_DESC, false);
 
                 visitMethodInternal(access, className, methodName, signature, isInterface);
 
                 // Trace LEAVE
                 super.visitInsn(Opcodes.DUP);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                        Hook.HOOK_CLASS_NAME,
-                        Hook.Access.LEAVE_METHOD_NAME,
-                        Hook.Access.LEAVE_METHOD_DESC, false);
+                        Hook.Constants.HOOK_CLASS_NAME,
+                        Hook.Constants.LEAVE_METHOD_NAME,
+                        Hook.Constants.LEAVE_METHOD_DESC, false);
             } else {
                 // Call actual method
                 super.visitMethodInsn(access, className, methodName, signature, isInterface);
