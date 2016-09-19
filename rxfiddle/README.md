@@ -1,6 +1,6 @@
 # rxfiddle-jvm-collector
 
-A collector for RxFiddle to run inside a JVM. The plugin consists of several pieces:
+A collector for [RxFiddle](..) to run inside a JVM. The plugin consists of several pieces:
 
 - [ ] AST parser which logs the structure of in-source Observables.
 - [x] ByteCode instrumentation (BCI) which inserts logging of the creation of, subscription on and data flow through Observables.
