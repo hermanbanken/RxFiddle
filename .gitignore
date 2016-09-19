@@ -13,3 +13,6 @@ gradle/wrapper/
 
 # Latex
 .texpadtmp
+
+# Editors
+.vscode
