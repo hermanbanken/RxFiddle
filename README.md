@@ -28,6 +28,6 @@ creating custom collectors for your favorite Rx-library.
 ... more here on what a collector must do...
 
 ## Footnote
-RxFiddle is part of my [Masters thesis](../thesis).
+RxFiddle is part of my [Masters thesis](doc).
 
 Herman Banken
