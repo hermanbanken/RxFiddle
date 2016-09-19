@@ -1,0 +1,18 @@
+{
+  "name": "rxfiddle-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app/start.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron-prebuilt": "^1.4.0"
+  },
+  "dependencies": {
+    "vue": "^1.0.26"
+  }
+}
