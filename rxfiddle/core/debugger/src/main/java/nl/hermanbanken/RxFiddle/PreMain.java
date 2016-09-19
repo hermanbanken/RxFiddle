@@ -1,5 +1,7 @@
 package nl.hermanbanken.RxFiddle;
 
+import nl.hermanbanken.RxFiddle.rewriting.Transformer;
+
 import java.lang.instrument.Instrumentation;
 
 @SuppressWarnings("unused")

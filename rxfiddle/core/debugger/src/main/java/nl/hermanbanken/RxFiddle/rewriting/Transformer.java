@@ -1,4 +1,4 @@
-package nl.hermanbanken.RxFiddle;
+package nl.hermanbanken.RxFiddle.rewriting;
 
 import jdk.internal.org.objectweb.asm.ClassReader;
 import jdk.internal.org.objectweb.asm.ClassVisitor;
@@ -7,10 +7,10 @@ import jdk.internal.org.objectweb.asm.ClassWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
-class Transformer implements ClassFileTransformer {
+public class Transformer implements ClassFileTransformer {
     private final String targetPackage;
 
-    Transformer(String targetPackage) {
+    public Transformer(String targetPackage) {
         this.targetPackage = targetPackage;
     }
 

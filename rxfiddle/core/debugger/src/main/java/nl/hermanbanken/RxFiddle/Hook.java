@@ -1,76 +1,13 @@
 package nl.hermanbanken.RxFiddle;
 
 import jdk.internal.org.objectweb.asm.Type;
+import nl.hermanbanken.RxFiddle.data.Invoke;
+import nl.hermanbanken.RxFiddle.data.InvokeResult;
+import nl.hermanbanken.RxFiddle.data.Label;
+import nl.hermanbanken.RxFiddle.visualiser.StdOutVisualizer;
+import nl.hermanbanken.RxFiddle.visualiser.Visualizer;
 
 import java.util.*;
-
-class Label {
-    private final String className;
-    private final String methodName;
-    private final int lineNumber;
-
-    Label(String className, String methodName, int lineNumber) {
-        this.className = className;
-        this.methodName = methodName;
-        this.lineNumber = lineNumber;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj instanceof Label && Objects.deepEquals(this, obj);
-    }
-
-    @Override
-    public String toString() {
-        return String.format("%s.%s:%d", className.replace('/', '.'), methodName, lineNumber);
-    }
-}
-
-@SuppressWarnings({"FieldCanBeLocal", "unused"})
-class Invoke {
-    private final Object target;
-    private final String className;
-    private final String methodName;
-    private final Label label;
-
-    Invoke(Object target, String className, String methodName, Label label) {
-        this.target = target;
-        this.className = className;
-        this.methodName = methodName;
-        this.label = label;
-    }
-
-    public static String objectToString(Object object) {
-        return String.format("(%s %s)", object.getClass().getName(), Integer.toHexString(object.hashCode()));
-    }
-
-    @Override
-    public String toString() {
-        return target == null
-                ? String.format("static[%s::%s], %s", className.replace('/', '.'), methodName, label)
-                : String.format("%s[%s::%s], %s",
-                    objectToString(target),
-                    className.replace('/', '.'), methodName,
-                    label);
-    }
-}
-
-@SuppressWarnings({"FieldCanBeLocal", "unused"})
-class InvokeResult {
-    private final Invoke invoke;
-    private final Object result;
-
-    InvokeResult(Invoke invoke, Object result) {
-        this.invoke = invoke;
-        this.result = result;
-    }
-
-    @Override
-    public String toString() {
-        return String.format("%s => %s", invoke, Invoke.objectToString(result));
-    }
-}
-
 
 /**
  * Hook for instrumented classes
@@ -97,16 +34,16 @@ public class Hook {
     }
 
     public static class Constants {
-        static final String CLASS_NAME = Type.getInternalName(Hook.class);
+        public static final String CLASS_NAME = Type.getInternalName(Hook.class);
 
-        static final String HOOK_METHOD_NAME = "libraryHook";
-        static final String HOOK_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V";
+        public static final String HOOK_METHOD_NAME = "libraryHook";
+        public static final String HOOK_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V";
 
-        static final String LEAVE_METHOD_NAME = "leave";
-        static final String LEAVE_METHOD_DESC = "(Ljava/lang/Object;)V";
+        public static final String LEAVE_METHOD_NAME = "leave";
+        public static final String LEAVE_METHOD_DESC = "(Ljava/lang/Object;)V";
 
-        static final String ENTER_METHOD_NAME = "enter";
-        static final String ENTER_METHOD_DESC = "(Ljava/lang/String;Ljava/lang/String;I)V";
+        public static final String ENTER_METHOD_NAME = "enter";
+        public static final String ENTER_METHOD_DESC = "(Ljava/lang/String;Ljava/lang/String;I)V";
     }
 
     /** Usage of Rx **/
@@ -129,41 +66,5 @@ public class Hook {
     public static void leave(Object target) {
         labels.pop();
         visualizer.logResult(new InvokeResult(invokes.isEmpty() ? null : invokes.pop(), target));
-    }
-}
-
-interface Visualizer {
-    void logRun(Object identifier);
-    void logInvoke(Invoke invoke);
-    void logResult(InvokeResult result);
-}
-
-class StdOutVisualizer implements Visualizer {
-
-    @Override
-    public void logRun(Object identifier) {
-        System.out.println("fiddle run "+identifier);
-    }
-
-    @Override
-    public void logInvoke(Invoke invoke) {
-        System.out.println("fiddle setup "+invoke);
-    }
-
-    @Override
-    public void logResult(InvokeResult result) {
-        System.out.println("fiddle setup "+result);
-    }
-
-    static {
-        new Thread(() -> {
-            try {
-                Thread.sleep(4000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            System.err.println(Hook.results);
-        }).start();
     }
 }
