@@ -1,7 +1,18 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage{graphicx}
 \usepackage{url}
+\usepackage{hyperref}
 \usepackage[top=1.25in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=cyan,
+    filecolor=cyan,      
+    urlcolor=cyan,
+    citecolor=cyan,
+}
+ 
+\urlstyle{same}
 
 \begin{document}
 
@@ -41,12 +52,20 @@ The scope of this thesis will be Reactive Extensions (Rx)~\cite{msdn_rx}, one of
 In this master's thesis we will focus on creating complete and interactive Marble Diagrams for full data flows, automatically, from sources and from running applications.
 
 \subsection{Observable structure analysis}
-The template for the data flows, encapsulated in Observable in Rx, are contained in code. By analysing the source code or bytecode these templates can be extracted. Observables are created by calling several factory methods on the Observable-class. After creation they can be passed as variables and can be transformed by applying operators which generate a new, extended Observable structure. Since Observables are (immutable) value types they can be used multiple times as a basis to create new structures, therefore possibly creating a tree of related Observable structures. This structure is the basis for the visualisation.
+The templates for the data flows, encapsulated in Observable in Rx, are contained in code. By analysing the source code or bytecode these templates can be extracted. Observables are created by calling several factory methods on the Observable-class. After creation they can be passed as variables and can be transformed by applying operators which generate a new, extended Observable structure. Since Observables are (immutable) value types they can be used multiple times as a basis to create new structures, therefore possibly creating a tree of related Observable structures. This structure is the basis for the visualisation.
 
 \subsection{Run-time analysis}
-By analysing the structure we already know through which operators possible future data will flow. During run-time we can detect this propagation of data through operators. In Rx the methods onNext, onError and onComplete propagate data, which can be instrumented to log the invocation to the visualisation engine. Every event then gets shown as a marble in the correct Observable axis.
+By analysing the structure one can know in advance through which operators possible future data will flow. During run-time this propagation of data through operators can be detected. In Rx the methods onNext, onError and onComplete propagate data, which can be instrumented to log the invocation to the visualisation engine. Every event then gets shown as a marble in the correct Observable axis.
 
 AspectJ: AOP
+
+\subsection{Visualisation}
+The de-facto standard to visualise Observables is called a Marble Diagram. The ReactiveX documentation contains these diagrams, for single operators. These diagrams originate from RxJava and are drawn in \href{https://www.omnigroup.com/omnigraffle}{Omnigraffle}.
+
+While the diagrams in the official documentation are static, some efforts exist to generate these diagrams automatically. \href{http://RxMarbles.com}{RxMarbles.com} is a website which allows the user to drag and reorder events in for almost all Observable operators, live updating the corresponding diagram.
+\href{https://github.com/jaredly/rxvision}{RxVision} on the other hand visualises full structures. It offers a code editor where one can type JavaScript using RxJs and RxVision will visualise the structure created in the editor. RxVision injects code into the RxJS source which extracts the structure, subscriptions and flowing data. While RxVision is a great step in the right direction, it does not integrate into development environments as of September 2016: it requires the code to be placed in the online editor.
+
+At some time Microsoft offered a ``Marble Diagram Generator", which was a Windows application which - looking at Google'd images - had a catalogus of standard operators and a sandbox to generate custom diagrams. However, the source of this tool is not available and the download link is broken.
 
 \subsection{Generating data}
 Testing tools like QuickCheck~\cite{quickcheck} automate test generation by producing arbitrary input, and by finding test cases that falsify the test conditions. When a falsification is found QuickCheck tries to simplify the test data, pruning data which does not attribute to the tests failure. An equally advanced test tool for data flows would be interesting, but is not in scope. Generating data however can be interesting. Visualising the behaviour of Observables without running the actual program, based solely on the data flow structure and generated data could provide valuable insight. Learning from QuickCheck, reducing to pivotal data can show the various edge cases of how a data flow can evaluate while keeping the amount of cases to be considered (and interpreted by humans) at a minimum.
