@@ -7,20 +7,15 @@ import java.util.HashMap;
 import java.util.Objects;
 import java.util.Stack;
 
-@SuppressWarnings("FieldCanBeLocal")
 class Trace {
-    private Trace parent;
     private final String className;
     private final String methodName;
     private final int lineNumber;
+
     Trace(String className, String methodName, int lineNumber) {
         this.className = className;
         this.methodName = methodName;
         this.lineNumber = lineNumber;
-    }
-
-    void setParent(Trace parent) {
-        this.parent = parent;
     }
 
     @Override
@@ -34,12 +29,13 @@ class Trace {
     }
 }
 
-@SuppressWarnings("FieldCanBeLocal")
+@SuppressWarnings({"FieldCanBeLocal", "unused"})
 class Invoke {
     private final Object subject;
     private final String className;
     private final String methodName;
     private Object result;
+
     Invoke(Object subject, String className, String methodName) {
         this.subject = subject;
         this.className = className;
@@ -83,17 +79,14 @@ public class Hook {
         }).start();
     }
 
-    public static Stack<Trace> traces = new Stack<>();
+    public static final Stack<Trace> traces = new Stack<>();
     public static HashMap<Trace,ArrayList<Invoke>> results = new HashMap<>();
 
     public static class Constants {
-        static final String HOOK_CLASS_NAME = Type.getInternalName(Hook.class);
+        static final String CLASS_NAME = Type.getInternalName(Hook.class);
 
-        static final String HOOK_METHOD_NAME = "instanceHook";
+        static final String HOOK_METHOD_NAME = "libraryHook";
         static final String HOOK_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V";
-
-        static final String ACCESS_METHOD_NAME = "access";
-        static final String ACCESS_METHOD_DESC = "(Ljava/lang/Object;Ljava/lang/String;Ljava/lang/String;)V";
 
         static final String LEAVE_METHOD_NAME = "leave";
         static final String LEAVE_METHOD_DESC = "(Ljava/lang/Object;)V";
@@ -102,28 +95,20 @@ public class Hook {
         static final String ENTER_METHOD_DESC = "(Ljava/lang/String;Ljava/lang/String;I)V";
     }
 
-    /** Inside Rx hooks **/
-    public static void instanceHook(Object subject, String className, String methodName) {
+    /** Usage of Rx **/
+    public static void libraryHook(Object subject, String className, String methodName) {
         if(className.startsWith("rx/plugins")) return;
-        if(traces.isEmpty()) return;
-        ArrayList<Invoke> list = results.get(traces.peek());
-        if(list.size() > 0) return;
-        list.add(new Invoke(subject, className, methodName));
-    }
-
-    /** Usage of Rx hooks **/
-    public static void access(Object subject, String className, String methodName) {
-        if(!traces.isEmpty()) {
-            results.get(traces.peek()).add(new Invoke(subject, className, methodName));
+        synchronized (traces) {
+            if (traces.isEmpty()) return;
+            ArrayList<Invoke> list = results.get(traces.peek());
+            if (list.size() > 0) return;
+            list.add(new Invoke(subject, className, methodName));
         }
     }
 
     /** Tracing **/
     public static void enter(String className, String methodName, int lineNumber) {
         Trace trace = new Trace(className, methodName, lineNumber);
-        if(!traces.isEmpty()) {
-            trace.setParent(traces.peek());
-        }
         traces.add(trace);
         results.put(trace, new ArrayList<>());
     }

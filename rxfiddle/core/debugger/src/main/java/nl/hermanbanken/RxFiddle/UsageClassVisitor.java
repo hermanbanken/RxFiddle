@@ -91,9 +91,9 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
         super.visitLdcInsn(className);
         super.visitLdcInsn(methodName);
         super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                Hook.HOOK_CLASS_NAME,
-                Hook.Constants.ACCESS_METHOD_NAME,
-                Hook.Constants.ACCESS_METHOD_DESC, false);
+                Hook.Constants.CLASS_NAME,
+                Hook.Constants.HOOK_METHOD_NAME,
+                Hook.Constants.HOOK_METHOD_DESC, false);
 
         // Revert swap, if necessary
         if(access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1) {
@@ -137,7 +137,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
                 super.visitLdcInsn(visitedMethod);
                 super.visitLdcInsn(lineNumber);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                        Hook.Constants.HOOK_CLASS_NAME,
+                        Hook.Constants.CLASS_NAME,
                         Hook.Constants.ENTER_METHOD_NAME,
                         Hook.Constants.ENTER_METHOD_DESC, false);
 
@@ -146,7 +146,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
                 // Trace LEAVE
                 super.visitInsn(Opcodes.DUP);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC,
-                        Hook.Constants.HOOK_CLASS_NAME,
+                        Hook.Constants.CLASS_NAME,
                         Hook.Constants.LEAVE_METHOD_NAME,
                         Hook.Constants.LEAVE_METHOD_DESC, false);
             } else {
