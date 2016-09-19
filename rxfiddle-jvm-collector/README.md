@@ -10,11 +10,37 @@ The ByteCode instrumentation appends logic before and after each method call ret
 This logs the creation of the Observable sequences.
 Next the ClassVisitors map all subscribe, onNext, onError and onComplete calls.
 
+### Building
+Create the agent jar by running:
+
+````bash
+gradle jar
+````
+
 ### Running
 To run the ByteCode instrumentation as an agent start with the following JVM arguments:
 
 ````bash
--javaagent:<some-build-dir>/rxfiddle-java-collector-0.1-SNAPSHOT.jar
+-javaagent:build/libs/rxfiddle-java-collector-0.1-SNAPSHOT.jar
+````
+
+This JVM argument can be added to specific Gradle tasks. 
+In [samples/simple](samples/simple) the argument is configured in [build.gradle](samples/simple/build.gradle) to always run:
+
+````
+# samples/simple/build.gradle
+task(runJavaExecNormal, dependsOn: 'classes', type: JavaExec) {
+    main = "rxfiddle.samples.simple.Main"
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-javaagent:../../build/libs/rxfiddle-jvm-collector-0.1-SNAPSHOT.jar'
+}
+````
+
+so you can just run the following and see the debug output on the command line:
+
+````bash
+cd samples/simple
+gradle run
 ````
 
 ### References
