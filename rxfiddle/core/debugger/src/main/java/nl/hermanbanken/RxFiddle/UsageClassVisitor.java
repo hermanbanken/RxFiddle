@@ -44,7 +44,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
     }
 
     @Override
-    public void visitLineNumber(int line, Label label) {
+    public void visitLineNumber(int line, jdk.internal.org.objectweb.asm.Label label) {
         lineNumber = line;
         super.visitLineNumber(line, label);
     }
@@ -116,7 +116,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
     /**
      * visitMethodInstruction hook
      *
-     * This method traces:
+     * This method labels:
      * - the execution, by logging the class/method/line of the caller
      *
      * and by delegation to {@link #visitMethodInternal(int, String, String, String, boolean)}:
@@ -132,7 +132,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
     public void visitMethodInsn(int access, String className, String methodName, String signature, boolean isInterface) {
         try {
             if (isInteresting(className, methodName, signature)) {
-                // Trace ENTER
+                // Label ENTER
                 super.visitLdcInsn(visitedClass);
                 super.visitLdcInsn(visitedMethod);
                 super.visitLdcInsn(lineNumber);
@@ -143,7 +143,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes
 
                 visitMethodInternal(access, className, methodName, signature, isInterface);
 
-                // Trace LEAVE
+                // Label LEAVE
                 super.visitInsn(Opcodes.DUP);
                 super.visitMethodInsn(Opcodes.INVOKESTATIC,
                         Hook.Constants.CLASS_NAME,

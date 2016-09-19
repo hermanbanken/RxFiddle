@@ -2,17 +2,14 @@ package nl.hermanbanken.RxFiddle;
 
 import jdk.internal.org.objectweb.asm.Type;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.Stack;
+import java.util.*;
 
-class Trace {
+class Label {
     private final String className;
     private final String methodName;
     private final int lineNumber;
 
-    Trace(String className, String methodName, int lineNumber) {
+    Label(String className, String methodName, int lineNumber) {
         this.className = className;
         this.methodName = methodName;
         this.lineNumber = lineNumber;
@@ -20,39 +17,60 @@ class Trace {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof Trace && Objects.deepEquals(this, obj);
+        return obj instanceof Label && Objects.deepEquals(this, obj);
     }
 
     @Override
     public String toString() {
-        return String.format("%s.%s:%d", className, methodName, lineNumber);
+        return String.format("%s.%s:%d", className.replace('/', '.'), methodName, lineNumber);
     }
 }
 
 @SuppressWarnings({"FieldCanBeLocal", "unused"})
 class Invoke {
-    private final Object subject;
+    private final Object target;
     private final String className;
     private final String methodName;
-    private Object result;
+    private final Label label;
 
-    Invoke(Object subject, String className, String methodName) {
-        this.subject = subject;
+    Invoke(Object target, String className, String methodName, Label label) {
+        this.target = target;
         this.className = className;
         this.methodName = methodName;
+        this.label = label;
     }
 
-    void setResult(Object result) {
+    public static String objectToString(Object object) {
+        return String.format("(%s %s)", object.getClass().getName(), Integer.toHexString(object.hashCode()));
+    }
+
+    @Override
+    public String toString() {
+        return target == null
+                ? String.format("static[%s::%s], %s", className.replace('/', '.'), methodName, label)
+                : String.format("%s[%s::%s], %s",
+                    objectToString(target),
+                    className.replace('/', '.'), methodName,
+                    label);
+    }
+}
+
+@SuppressWarnings({"FieldCanBeLocal", "unused"})
+class InvokeResult {
+    private final Invoke invoke;
+    private final Object result;
+
+    InvokeResult(Invoke invoke, Object result) {
+        this.invoke = invoke;
         this.result = result;
     }
 
     @Override
     public String toString() {
-        return subject == null
-                ? String.format("%s.%s() @ static", className, methodName)
-                : String.format("%s.%s() @ %s", className, methodName, subject);
+        return String.format("%s => %s", invoke, Invoke.objectToString(result));
     }
 }
+
 
 /**
  * Hook for instrumented classes
@@ -64,23 +82,19 @@ class Invoke {
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class Hook {
 
+    public static Visualizer visualizer = new StdOutVisualizer();
+    public static final Stack<Label> labels = new Stack<>();
+    public static final Queue<Label> labelsForGrab = new PriorityQueue<>();
+    public static final Stack<Invoke> invokes = new Stack<>();
+
+    public static volatile Label currentLabel = null;
+    public static volatile Invoke currentInvoke = null;
+
+    public static HashMap<Label,ArrayList<Invoke>> results = new HashMap<>();
+
     static {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(4000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                System.err.println(results);
-            }
-        }).start();
+        visualizer.logRun(System.nanoTime());
     }
-
-    public static final Stack<Trace> traces = new Stack<>();
-    public static HashMap<Trace,ArrayList<Invoke>> results = new HashMap<>();
 
     public static class Constants {
         static final String CLASS_NAME = Type.getInternalName(Hook.class);
@@ -98,25 +112,58 @@ public class Hook {
     /** Usage of Rx **/
     public static void libraryHook(Object subject, String className, String methodName) {
         if(className.startsWith("rx/plugins")) return;
-        synchronized (traces) {
-            if (traces.isEmpty()) return;
-            ArrayList<Invoke> list = results.get(traces.peek());
-            if (list.size() > 0) return;
-            list.add(new Invoke(subject, className, methodName));
-        }
+
+        if(labelsForGrab.isEmpty()) return;
+        Invoke invoke = new Invoke(subject, className, methodName, labelsForGrab.poll());
+        invokes.push(invoke);
+        visualizer.logInvoke(invoke);
     }
 
     /** Tracing **/
     public static void enter(String className, String methodName, int lineNumber) {
-        Trace trace = new Trace(className, methodName, lineNumber);
-        traces.add(trace);
-        results.put(trace, new ArrayList<>());
+        Label label = new Label(className, methodName, lineNumber);
+        labels.add(label);
+        labelsForGrab.offer(label);
     }
 
-    public static void leave(Object subject) {
-        ArrayList<Invoke> invokes = results.get(traces.pop());
-        if(invokes.size() > 0) {
-            invokes.get(0).setResult(subject);
-        }
+    public static void leave(Object target) {
+        labels.pop();
+        visualizer.logResult(new InvokeResult(invokes.isEmpty() ? null : invokes.pop(), target));
+    }
+}
+
+interface Visualizer {
+    void logRun(Object identifier);
+    void logInvoke(Invoke invoke);
+    void logResult(InvokeResult result);
+}
+
+class StdOutVisualizer implements Visualizer {
+
+    @Override
+    public void logRun(Object identifier) {
+        System.out.println("fiddle run "+identifier);
+    }
+
+    @Override
+    public void logInvoke(Invoke invoke) {
+        System.out.println("fiddle setup "+invoke);
+    }
+
+    @Override
+    public void logResult(InvokeResult result) {
+        System.out.println("fiddle setup "+result);
+    }
+
+    static {
+        new Thread(() -> {
+            try {
+                Thread.sleep(4000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.err.println(Hook.results);
+        }).start();
     }
 }

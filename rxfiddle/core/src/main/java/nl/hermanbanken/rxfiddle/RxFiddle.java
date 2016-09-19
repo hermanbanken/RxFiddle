@@ -2,6 +2,7 @@ package nl.hermanbanken.rxfiddle;
 
 import rx.Observable;
 import rx.schedulers.Schedulers;
+import rx.subjects.BehaviorSubject;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -9,11 +10,13 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unused")
 public class RxFiddle {
     public static void main(String[] args) throws IOException {
+        BehaviorSubject<Character> subj = BehaviorSubject.create();
         randomObs()
                 .map(number -> (char) ('a' + (number.intValue() % ('z' - 'a' + 1))))
                 .flatMap(Observable::just)
                 .take(2)
-                .subscribe(next -> System.out.println("Next: "+next));
+                .publish()
+                .subscribe(subj::onNext);
         System.in.read();
     }
 
