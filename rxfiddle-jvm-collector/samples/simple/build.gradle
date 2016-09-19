@@ -1,0 +1,22 @@
+group 'rxfiddle.samples'
+version '0.1-SNAPSHOT'
+
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    compile 'io.reactivex:rxjava:1.1.7'
+    compile project(":collector")
+}
+
+task(runJavaExecNormal, dependsOn: 'classes', type: JavaExec) {
+    main = "rxfiddle.samples.simple.Main"
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs '-javaagent:../../build/libs/rxfiddle-jvm-collector-0.1-SNAPSHOT.jar'
+}
+
+println "Running RxFiddle sample: simple"

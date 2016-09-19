@@ -1,0 +1,4 @@
+rootProject.name = 'rxfiddle-samples-simple'
+
+include ":collector"
+project(":collector").projectDir = file("../..")

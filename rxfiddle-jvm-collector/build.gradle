@@ -1,0 +1,43 @@
+group 'nl.hermanbanken.rxfiddle'
+version '0.1-SNAPSHOT'
+
+apply plugin: 'java'
+
+repositories {
+    mavenCentral()
+}
+
+uploadArchives {
+    repositories {
+        flatDir {
+            dirs 'repos'
+        }
+    }
+}
+
+// make a fatjar otherwise it's painful getting the boot-class-path correct when deploying
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'RxFiddle JVM collector',
+                   'Implementation-Version': version,
+                   'Can-Redefine-Classes': true,
+                   'Can-Retransform-Classes': true,
+                   'Premain-Class': 'nl.hermanbanken.rxfiddle.PreMain'
+    }
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+defaultTasks 'clean', 'jar'
+
+dependencies {
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+    testCompile 'io.reactivex:rxjava:1.1.7'
+    compile 'org.javassist:javassist:3.19+'
+}
+
+// https://discuss.gradle.org/t/java-compiler-ignore-symbol-file/8774
+compileJava {
+    options.fork = true
+    options.forkOptions.executable = 'javac'
+    options.compilerArgs << "-XDignore.symbol.file"
+}
