@@ -8,23 +8,28 @@ import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
 public class Transformer implements ClassFileTransformer {
-    private final String targetPackage;
+  private final String targetPackage;
 
-    public Transformer(String targetPackage) {
-        this.targetPackage = targetPackage;
+  public Transformer(String targetPackage) {
+    this.targetPackage = targetPackage;
+  }
+
+  public byte[] transform(
+      ClassLoader loader,
+      String className,
+      Class<?> classBeingRedefined,
+      ProtectionDomain protectionDomain,
+      byte[] classfileBuffer) {
+    ClassReader cr = new ClassReader(classfileBuffer);
+    ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
+
+    ClassVisitor cv;
+    if (!className.startsWith(targetPackage)) {
+      cv = new UsageClassVisitor(cw);
+    } else {
+      cv = new LibraryClassVisitor(cw);
     }
-
-    public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined, ProtectionDomain protectionDomain, byte[] classfileBuffer) {
-        ClassReader cr = new ClassReader(classfileBuffer);
-        ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-
-        ClassVisitor cv;
-        if(!className.startsWith(targetPackage)) {
-            cv = new UsageClassVisitor(cw);
-        } else {
-            cv = new LibraryClassVisitor(cw);
-        }
-        cr.accept(cv, 0);
-        return cw.toByteArray();
-    }
+    cr.accept(cv, 0);
+    return cw.toByteArray();
+  }
 }
