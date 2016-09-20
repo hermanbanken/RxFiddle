@@ -1,41 +1,4 @@
-\documentclass[11pt,a4paper]{article}
-\usepackage{graphicx}
-\usepackage{url}
-\usepackage{hyperref}
-\usepackage[top=1.25in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
-
-\hypersetup{ colorlinks=true, linkcolor=cyan, filecolor=cyan,
-urlcolor=cyan, citecolor=cyan, } \urlstyle{same}
-
-\def\sectionautorefname{section}
-
-\begin{document}
-
-\title{ Thesis Proposal \\
-Visualizing Data-Flows in Reactive Programs }
-\author{ Herman Banken - 4078624
-\vspace{1cm} \\
-TU Delft, Department of Electrical Engineering, \\
-Mathematics and Computer Science }
-\date{\today}
-
-\vfill
-
-\begin{figure}[!bp]
-    \centering
-    \begin{minipage}[b]
-        {0.4\textwidth} \includegraphics[width=\textwidth,trim={0 12cm 0
-        10cm 0},clip]{images/tudelft.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]
-        {0.4\textwidth} \includegraphics[width=\textwidth]{images/ordina.png}
-    \end{minipage}
-\end{figure}
-
-\maketitle
-
-\clearpage
+\include{preamble}
 
 \section{Introduction}%
 \label{sec:intro} Reactive Programming has been around for many years,
@@ -360,25 +323,4 @@ will provide valuable input where possible.
 {}
 \bibliographystyle{plain}
 
-%Visualizing Data-Flows in Functional Programs
-%http://doi.ieeecomputersociety.org/10.1109/SANER.2016.82
-%
-%Reactive Extensions, Microsoft
-%https://msdn.microsoft.com/en-us/data/gg577609.aspx
-%
-%Platform independent Reactive Extensions documentation
-%https://reactivex.io
-%
-%Marble Diagrams explained in Channel9 video, Microsoft
-%https://channel9.msdn.com/blogs/j.van.gogh/reactive-extensions-api-in-depth-marble-diagrams-select--where
-%
-%QuickCheck
-%http://www.cs.tufts.edu/~nr/cs257/archive/john-hughes/quick.pdf
-%
-%Dynamic Taint Tracking for Java with Phosphor
-%https://mice.cs.columbia.edu/getTechreport.php?techreportID=1601
-%
-%Phosphor on Github
-%https://github.com/Programming-Systems-Lab/phosphor
-
-\end{document}
+\include{postamble}
