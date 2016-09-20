@@ -16,3 +16,7 @@ gradle/wrapper/
 
 # Editors
 .vscode
+
+# fmt
+google-java-format-1.0-all-deps.jar
+texpty
