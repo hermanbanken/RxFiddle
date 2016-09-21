@@ -8,8 +8,10 @@ import nl.hermanbanken.rxfiddle.data.RuntimeEvent;
 import nl.hermanbanken.rxfiddle.visualiser.StdOutVisualizer;
 import nl.hermanbanken.rxfiddle.visualiser.Visualizer;
 
-import java.util.*;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Stack;
 
 /**
  * Hook for instrumented classes
@@ -23,7 +25,7 @@ public class Hook {
 
   public static Visualizer visualizer = new StdOutVisualizer();
   public static final Stack<Label> labels = new Stack<>();
-  public static final Queue<Label> labelsForGrab = new ArrayBlockingQueue<>(1000);
+  public static final Stack<Label> labelsForGrab = new Stack<>();
   public static final Stack<Invoke> invokes = new Stack<>();
 
   public static volatile Label currentLabel = null;
@@ -84,7 +86,7 @@ public class Hook {
     // Setup events
     if (labelsForGrab.isEmpty()) return;
     if (subject != null) follow(subject);
-    Invoke invoke = new Invoke(subject, className, methodName, labelsForGrab.poll());
+    Invoke invoke = new Invoke(subject, className, methodName, labelsForGrab.peek());
     invokes.push(invoke);
     visualizer.logInvoke(invoke);
   }
@@ -93,7 +95,7 @@ public class Hook {
   public static void enter(String className, String methodName, int lineNumber) {
     Label label = new Label(className, methodName, lineNumber);
     labels.add(label);
-    labelsForGrab.offer(label);
+    labelsForGrab.add(label);
   }
 
   public static void leave(Object result) {

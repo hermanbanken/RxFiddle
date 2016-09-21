@@ -67,8 +67,12 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   private void logUsageWithSubject(
       int access, String className, String methodName, String signature) {
     // Try to fetch methodName invoke target
-    if (access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1) {
+    boolean canSwap =
+        access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1;
+    if (canSwap) {
+      runtimeLog("swap start");
       super.visitInsn(Opcodes.SWAP); // swap to get self argument
+      runtimeLog("swap done");
       super.visitInsn(Opcodes.DUP);
     } else {
       super.visitInsn(Opcodes.ACONST_NULL);
@@ -87,9 +91,18 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
         false);
 
     // Revert swap, if necessary
-    if (access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1) {
+    if (canSwap) {
+      runtimeLog("swap back");
       super.visitInsn(Opcodes.SWAP);
+      runtimeLog("swap back done");
     }
+  }
+
+  private void runtimeLog(String log) {
+    mv.visitFieldInsn(GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
+    mv.visitLdcInsn(log);
+    mv.visitMethodInsn(
+        INVOKEVIRTUAL, "java/io/PrintStream", "println", "(Ljava/lang/String;)V", false);
   }
 
   /**
