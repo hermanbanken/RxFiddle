@@ -12,7 +12,7 @@ public class Main {
     BehaviorSubject<Character> subj = BehaviorSubject.create();
     randomObs()
         .map(number -> (char) ('a' + (number.intValue() % ('z' - 'a' + 1))))
-        .flatMap(Observable::just)
+        .flatMap(c -> Observable.just(c).startWith('_'))
         .take(2)
         .publish()
         .subscribe(subj::onNext);

@@ -50,8 +50,8 @@ public class Hook {
   /** Usage of Rx **/
   public static void libraryHook(Object subject, String className, String methodName) {
     if (className.startsWith("rx/plugins")) return;
-
     if (labelsForGrab.isEmpty()) return;
+
     Invoke invoke = new Invoke(subject, className, methodName, labelsForGrab.poll());
     invokes.push(invoke);
     visualizer.logInvoke(invoke);
