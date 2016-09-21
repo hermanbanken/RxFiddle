@@ -24,14 +24,14 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
     this.visitedAccess = visitedAccess;
   }
 
-  private static Boolean shouldLog(String className, String methodName, String signature) {
-    return false
-        //        methodName.equals("request")
+  private Boolean shouldLog(String className, String methodName, String signature) {
+    if (!className.startsWith("rx/")) return false;
+    return methodName.equals("request")
         || methodName.equals("subscribe")
         || methodName.equals("unsafeSubscribe")
         || methodName.equals("unsubscribe")
         || methodName.equals("onNext")
-        //        || methodName.equals("onError")
+        || methodName.equals("onError")
         || methodName.equals("onComplete")
         || shouldTrace(className, methodName, signature);
   }
