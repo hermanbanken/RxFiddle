@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 public class HookFollowTest {
 
   @BeforeClass
@@ -37,10 +39,12 @@ public class HookFollowTest {
   @Test
   public void testSimple() {
     Observable.just(1).subscribe(System.out::println);
-    shouldContain(1, Hook.followed, o -> o instanceof Subscriber && !(o instanceof ActionSubscriber), "Subscriber");
+
+    Predicate<Object> ourSubs = o -> o instanceof Subscriber && !(o instanceof ActionSubscriber);
+    shouldContain(1, Hook.followed, ourSubs, "Subscriber");
     shouldContain(1, Hook.followed, o -> o instanceof Observable, "Observable");
     // TODO figure out why it also contains a ActionSubscriber
-    Assert.assertEquals(2+1, Hook.followed.size());
+    Assert.assertEquals(2 + 1, Hook.followed.size());
   }
 
   @Test
@@ -54,10 +58,11 @@ public class HookFollowTest {
         .take(2)
         .subscribe(System.out::println);
 
-    shouldContain(3, Hook.followed, o -> o instanceof Subscriber && !(o instanceof ActionSubscriber), "Subscriber");
+    Predicate<Object> ourSubs = o -> o instanceof Subscriber && !(o instanceof ActionSubscriber);
+    shouldContain(3, Hook.followed, ourSubs, "Subscriber");
     shouldContain(3, Hook.followed, o -> o instanceof Observable, "Observable");
     // TODO figure out why it also contains a ActionSubscriber
-    Assert.assertEquals(6+1, Hook.followed.size());
+    Assert.assertEquals(6 + 1, Hook.followed.size());
   }
 
   @Test(timeout = 300)
@@ -68,9 +73,7 @@ public class HookFollowTest {
     new Thread(
             () ->
                 s[0] =
-                    Observable.interval(0, 1, TimeUnit.MILLISECONDS, Schedulers.io())
-                        .take(3)
-                        .subscribe(ts))
+                    Observable.interval(0, 1, MILLISECONDS, Schedulers.io()).take(3).subscribe(ts))
         .start();
 
     ts.awaitTerminalEvent();
