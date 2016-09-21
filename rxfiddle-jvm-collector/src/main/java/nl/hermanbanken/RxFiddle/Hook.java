@@ -25,7 +25,6 @@ public class Hook {
 
   public static Visualizer visualizer = new StdOutVisualizer();
   public static final Stack<Label> labels = new Stack<>();
-  public static final Stack<Label> labelsForGrab = new Stack<>();
   public static final Stack<Invoke> invokes = new Stack<>();
 
   public static volatile Label currentLabel = null;
@@ -38,7 +37,6 @@ public class Hook {
   public static void reset() {
     visualizer = new StdOutVisualizer();
     labels.clear();
-    labelsForGrab.clear();
     invokes.clear();
     currentLabel = null;
     currentInvoke = null;
@@ -84,9 +82,9 @@ public class Hook {
     }
 
     // Setup events
-    if (labelsForGrab.isEmpty()) return;
+    if (labels.isEmpty()) return;
     if (subject != null) follow(subject);
-    Invoke invoke = new Invoke(subject, className, methodName, labelsForGrab.peek());
+    Invoke invoke = new Invoke(subject, className, methodName, labels.peek());
     invokes.push(invoke);
     visualizer.logInvoke(invoke);
   }
@@ -95,7 +93,6 @@ public class Hook {
   public static void enter(String className, String methodName, int lineNumber) {
     Label label = new Label(className, methodName, lineNumber);
     labels.add(label);
-    labelsForGrab.add(label);
   }
 
   public static void leave(Object result) {

@@ -19,6 +19,7 @@ public class HookFollowTest {
 
   @BeforeClass
   public static void ensureClassesLoaded() {
+    Hook.reset();
     // Just run something which uses (most of) the classes used below
     Observable.just(1)
         .delay(0, TimeUnit.MICROSECONDS, Schedulers.newThread())
