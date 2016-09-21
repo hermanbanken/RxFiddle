@@ -6,6 +6,9 @@ import jdk.internal.org.objectweb.asm.Opcodes;
 import jdk.internal.org.objectweb.asm.Type;
 import nl.hermanbanken.rxfiddle.Hook;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @SuppressWarnings("UnusedParameters")
 class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   private final String visitedClass;
@@ -67,13 +70,18 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
    */
   private void logUsageWithSubject(
       int access, String className, String methodName, String signature) {
-    // Try to fetch methodName invoke target
+    Type[] args = Type.getArgumentTypes(signature);
+
+    // Find out if we can SWAP
+    // Opcodes.SWAP cannot be used on Long or Doubles (as those use 2 stack entries)
     boolean canSwap =
-        access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1;
+        access == Opcodes.INVOKEVIRTUAL
+            && args.length == 1
+            && !args[0].equals(Type.LONG_TYPE)
+            && !args[0].equals(Type.DOUBLE_TYPE);
+
     if (canSwap) {
-      runtimeLog("swap start");
       super.visitInsn(Opcodes.SWAP); // swap to get self argument
-      runtimeLog("swap done");
       super.visitInsn(Opcodes.DUP);
     } else {
       super.visitInsn(Opcodes.ACONST_NULL);
@@ -93,12 +101,15 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
 
     // Revert swap, if necessary
     if (canSwap) {
-      runtimeLog("swap back");
       super.visitInsn(Opcodes.SWAP);
-      runtimeLog("swap back done");
     }
   }
 
+  /**
+   * Convenience method to debug log text at runtime: very handy to trace a VerifyError
+   * @param log text to print
+   */
+  @SuppressWarnings("unused")
   private void runtimeLog(String log) {
     mv.visitFieldInsn(GETSTATIC, "java/lang/System", "err", "Ljava/io/PrintStream;");
     mv.visitLdcInsn(log);
@@ -399,11 +410,18 @@ class OpcodeLogDecorator {
         break;
     }
 
+    List<String> bits = new ArrayList<>();
+    bits.add("" + opcode);
     String[] opts = pool.split(";");
     for (String opt : opts) {
-      if (new Integer(opt.split("=")[1].trim()) == opcode) return opt;
+      int i = new Integer(opt.split("=")[1].trim());
+      if (i == opcode) return opt;
+      if ((i & opcode) > 0) bits.add(opt.split(" =")[0]);
     }
 
+    if (bits.size() > 1) {
+      return bits.toString();
+    }
     return "not found";
   }
 }
