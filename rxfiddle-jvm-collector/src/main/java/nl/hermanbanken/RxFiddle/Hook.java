@@ -54,7 +54,7 @@ public class Hook {
   /** Usage of Rx **/
   public static void libraryHook(
       Object subject, String className, String methodName, boolean fromLambda) {
-    if (className.startsWith("rx/plugins")) return;
+    if (className.startsWith("rx/plugins") || className.startsWith("rx/internal")) return;
 
     // Runtime events
     if (followed.contains(subject)
@@ -91,7 +91,11 @@ public class Hook {
   }
 
   public static void follow(Object obj) {
-    if (obj != null && followed.add(obj)) {
+    if (obj == null) return;
+    if (obj.getClass().getName().startsWith("rx/internal")
+        || obj.getClass().getName().startsWith("rx.internal")) {
+      //      System.out.printf("Not following %s", obj.getClass().getName());
+    } else if (followed.add(obj)) {
       System.out.printf("Following %s\n", obj);
     }
   }
