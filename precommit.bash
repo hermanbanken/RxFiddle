@@ -1,5 +1,8 @@
 #!/bin/bash
 
+subject=$(pwd)
+cd $(dirname $0)
+
 ####
 # Google Style Guide formatting for Java
 # https://github.com/google/google-java-format
@@ -11,7 +14,7 @@ if [ ! -f google-java-format-1.0-all-deps.jar ]; then
 fi
 
 javafmt="java -jar google-java-format-1.0-all-deps.jar --replace"
-find . -name "*.java" -exec $javafmt {} +
+find $subject -name "*.java" -exec $javafmt {} +
 
 ####
 # LaTeX formatter texpretty: TeX prettyprinter
@@ -50,5 +53,5 @@ function texfmt() {
   ./texpty --no-comment-banner < $1 > $1.tmp && mv $1.tmp $1
 }
 export -f texfmt
-find . -name "*.tex" -exec bash -c 'texfmt "$@"' bash {} \;
+find $subject -name "*.tex" -exec bash -c 'texfmt "$@"' bash {} \;
 # latexindent.pl -w **/*.tex
