@@ -33,8 +33,20 @@ public class Hook {
 
   public static HashSet<Object> followed = new HashSet<>();
 
-  static {
+  public static void reset() {
+    visualizer = new StdOutVisualizer();
+    labels.clear();
+    labelsForGrab.clear();
+    invokes.clear();
+    currentLabel = null;
+    currentInvoke = null;
+    results.clear();
+    followed.clear();
     visualizer.logRun(System.nanoTime());
+  }
+
+  static {
+    reset();
   }
 
   public static class Constants {
@@ -92,10 +104,7 @@ public class Hook {
 
   public static void follow(Object obj) {
     if (obj == null) return;
-    if (obj.getClass().getName().startsWith("rx/internal")
-        || obj.getClass().getName().startsWith("rx.internal")) {
-      //      System.out.printf("Not following %s", obj.getClass().getName());
-    } else if (followed.add(obj)) {
+    if (followed.add(obj)) {
       System.out.printf("Following %s\n", obj);
     }
   }
