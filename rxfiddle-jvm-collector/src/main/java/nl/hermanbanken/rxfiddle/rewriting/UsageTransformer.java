@@ -7,13 +7,7 @@ import jdk.internal.org.objectweb.asm.ClassWriter;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
-public class Transformer implements ClassFileTransformer {
-  private final String targetPackage;
-
-  public Transformer(String targetPackage) {
-    this.targetPackage = targetPackage;
-  }
-
+public class UsageTransformer implements ClassFileTransformer {
   public byte[] transform(
       ClassLoader loader,
       String className,
@@ -22,13 +16,7 @@ public class Transformer implements ClassFileTransformer {
       byte[] classfileBuffer) {
     ClassReader cr = new ClassReader(classfileBuffer);
     ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-
-    ClassVisitor cv;
-    if (!className.startsWith(targetPackage)) {
-      cv = new UsageClassVisitor(cw);
-    } else {
-      cv = new LibraryClassVisitor(cw);
-    }
+    ClassVisitor cv = new UsageClassVisitor(cw);
     cr.accept(cv, 0);
     return cw.toByteArray();
   }

@@ -1,6 +1,6 @@
 package nl.hermanbanken.rxfiddle;
 
-import nl.hermanbanken.rxfiddle.rewriting.Transformer;
+import nl.hermanbanken.rxfiddle.rewriting.UsageTransformer;
 
 import java.lang.instrument.Instrumentation;
 
@@ -8,6 +8,6 @@ import java.lang.instrument.Instrumentation;
 public class PreMain {
 
   public static void premain(String args, Instrumentation inst) {
-    inst.addTransformer(new Transformer("rx/"));
+    inst.addTransformer(new UsageTransformer());
   }
 }

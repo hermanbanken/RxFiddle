@@ -6,6 +6,7 @@ import jdk.internal.org.objectweb.asm.Opcodes;
 import jdk.internal.org.objectweb.asm.Type;
 import nl.hermanbanken.rxfiddle.Hook;
 
+@SuppressWarnings("UnusedParameters")
 class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   private final String visitedClass;
   private final String visitedMethod;
@@ -20,8 +21,18 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
     this.visitedAccess = visitedAccess;
   }
 
-  @SuppressWarnings("UnusedParameters")
-  private static Boolean isInteresting(String className, String methodName, String signature) {
+  private static Boolean shouldLog(String className, String methodName, String signature) {
+    return methodName.equals("request")
+        || methodName.equals("subscribe")
+        || methodName.equals("unsafeSubscribe")
+        || methodName.equals("unsubscribe")
+        || methodName.equals("onNext")
+        || methodName.equals("onError")
+        || methodName.equals("onComplete")
+        || shouldTrace(className, methodName, signature);
+  }
+
+  private static Boolean shouldTrace(String className, String methodName, String signature) {
     String returned = signature.substring(signature.lastIndexOf(')') + 1);
     return returned.equals("Lrx/Blocking;")
         || returned.equals("Lrx/Single;")
@@ -53,7 +64,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
    * @param methodName which method
    * @param signature with which signature
    */
-  private void traceUsageWithSubject(
+  private void logUsageWithSubject(
       int access, String className, String methodName, String signature) {
     // Try to fetch methodName invoke target
     if (access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1) {
@@ -115,7 +126,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
    * This method labels:
    * - the execution, by logging the class/method/line of the caller
    *
-   * and by delegation to {@link #traceUsageWithSubject(int, String, String, String)}:
+   * and by delegation to {@link #logUsageWithSubject(int, String, String, String)}:
    * - the invoke, by logging the class/method and optionally the target (if not static method) of the invoked
    *
    * @param access which visitMethod, from {@link Opcodes}
@@ -128,15 +139,16 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   public void visitMethodInsn(
       int access, String className, String methodName, String signature, boolean isInterface) {
     try {
-      if (isInteresting(className, methodName, signature)) {
-        traceEntry();
-        traceUsageWithSubject(access, className, methodName, signature);
-        // Call actual method
-        super.visitMethodInsn(access, className, methodName, signature, isInterface);
-        traceExit();
-      } else {
-        super.visitMethodInsn(access, className, methodName, signature, isInterface);
-      }
+      boolean shouldTrace = shouldTrace(className, methodName, signature);
+      boolean shouldLog = shouldLog(className, methodName, signature);
+
+      if (shouldTrace) traceEntry();
+      if (shouldLog) logUsageWithSubject(access, className, methodName, signature);
+
+      // Call actual method
+      super.visitMethodInsn(access, className, methodName, signature, isInterface);
+
+      if (shouldTrace) traceExit();
     } catch (Exception e) {
       System.out.println("Error " + e);
     }
