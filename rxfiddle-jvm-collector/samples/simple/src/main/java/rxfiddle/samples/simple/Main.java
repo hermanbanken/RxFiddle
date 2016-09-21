@@ -14,7 +14,6 @@ public class Main {
         .map(number -> (char) ('a' + (number.intValue() % ('z' - 'a' + 1))))
         .flatMap(c -> Observable.just(c).startWith('_'))
         .take(2)
-        .publish()
         .subscribe(subj::onNext);
     System.in.read();
   }

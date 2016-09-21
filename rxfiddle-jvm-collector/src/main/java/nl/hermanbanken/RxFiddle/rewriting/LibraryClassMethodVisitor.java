@@ -31,6 +31,7 @@ class LibraryClassMethodVisitor extends MethodVisitor {
       }
       super.visitLdcInsn(className); // add `visitedClass` to stack
       super.visitLdcInsn(method); // add `visitedMethod` to stack
+      super.visitInsn(Opcodes.ICONST_1);
       super.visitMethodInsn(
           Opcodes.INVOKESTATIC,
           Hook.Constants.CLASS_NAME,

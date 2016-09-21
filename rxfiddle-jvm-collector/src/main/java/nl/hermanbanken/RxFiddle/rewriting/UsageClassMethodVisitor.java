@@ -9,27 +9,25 @@ import nl.hermanbanken.rxfiddle.Hook;
 class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   private final String visitedClass;
   private final String visitedMethod;
+  private int visitedAccess;
   private int lineNumber;
 
-  UsageClassMethodVisitor(MethodVisitor mv, String visitedClass, String visitedMethod, int access) {
+  UsageClassMethodVisitor(
+      MethodVisitor mv, String visitedClass, String visitedMethod, int visitedAccess) {
     super(Opcodes.ASM5, mv);
     this.visitedClass = visitedClass;
     this.visitedMethod = visitedMethod;
-    if ((access & Opcodes.ACC_SYNTHETIC) > 0) {
-      System.out.printf("Method Visitor for synthetic %s %s\n", visitedClass, visitedMethod);
-    }
+    this.visitedAccess = visitedAccess;
   }
 
   @SuppressWarnings("UnusedParameters")
   private static Boolean isInteresting(String className, String methodName, String signature) {
-    return signature.endsWith("Lrx/Observable;")
-        || signature.endsWith("Lrx/observables/ConnectableObservable;")
-        || signature.endsWith("Lrx/observables/AsyncObservable;")
-        || signature.endsWith("Lrx/observables/BlockingObservable;")
-        || signature.endsWith("Lrx/observables/GroupedObservable;")
-        || signature.endsWith("Lrx/Blocking;")
-        || signature.endsWith("Lrx/Single;")
-        || signature.endsWith("Lrx/Subscription;");
+    String returned = signature.substring(signature.lastIndexOf(')') + 1);
+    return returned.equals("Lrx/Blocking;")
+        || returned.equals("Lrx/Single;")
+        || returned.equals("Lrx/Subscription;")
+        || (returned.startsWith("Lrx/") && returned.endsWith("Observable;"))
+        || (returned.startsWith("Lrx/") && returned.endsWith("Subscriber;"));
   }
 
   @Override
@@ -42,9 +40,6 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   public void visitInvokeDynamicInsn(
       String method, String signature, Handle handle, Object... objects) {
     super.visitInvokeDynamicInsn(method, signature, handle, objects);
-    if (isInteresting("", method, signature)) {
-      System.out.printf("interesting %s %s", method, signature);
-    }
   }
 
   /**
@@ -61,7 +56,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   private void traceUsageWithSubject(
       int access, String className, String methodName, String signature) {
     // Try to fetch methodName invoke target
-    if ((access & Opcodes.INVOKEVIRTUAL) != 0 && Type.getArgumentTypes(signature).length == 1) {
+    if (access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1) {
       super.visitInsn(Opcodes.SWAP); // swap to get self argument
       super.visitInsn(Opcodes.DUP);
     } else {
@@ -69,8 +64,10 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
     }
 
     // Annotate Rx ACCESS
+    boolean fromLambda = (visitedAccess & Opcodes.ACC_SYNTHETIC) > 0;
     super.visitLdcInsn(className);
     super.visitLdcInsn(methodName);
+    super.visitInsn(fromLambda ? ICONST_1 : ICONST_0);
     super.visitMethodInsn(
         Opcodes.INVOKESTATIC,
         Hook.Constants.CLASS_NAME,
@@ -79,7 +76,7 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
         false);
 
     // Revert swap, if necessary
-    if ((access & Opcodes.INVOKEVIRTUAL) != 0 && Type.getArgumentTypes(signature).length == 1) {
+    if (access == Opcodes.INVOKEVIRTUAL && Type.getArgumentTypes(signature).length == 1) {
       super.visitInsn(Opcodes.SWAP);
     }
   }

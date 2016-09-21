@@ -4,6 +4,7 @@ import nl.hermanbanken.rxfiddle.*;
 import nl.hermanbanken.rxfiddle.data.Invoke;
 import nl.hermanbanken.rxfiddle.data.InvokeResult;
 import nl.hermanbanken.rxfiddle.data.Label;
+import nl.hermanbanken.rxfiddle.data.RuntimeEvent;
 
 public class StdOutVisualizer implements Visualizer {
 
@@ -20,6 +21,11 @@ public class StdOutVisualizer implements Visualizer {
   @Override
   public void logResult(InvokeResult result) {
     System.out.println("fiddle setup " + toString(result));
+  }
+
+  @Override
+  public void logRuntime(RuntimeEvent runtimeEvent) {
+    System.out.println("fiddle runtime " + toString(runtimeEvent));
   }
 
   private static String toString(Label label) {
@@ -42,8 +48,19 @@ public class StdOutVisualizer implements Visualizer {
             toString(invoke.label));
   }
 
+  private static String toString(RuntimeEvent event) {
+    return event.target == null
+        ? String.format("static[%s::%s]", event.className.replace('/', '.'), event.methodName)
+        : String.format(
+            "%s[%s::%s]",
+            objectToString(event.target),
+            event.className.replace('/', '.'),
+            event.methodName);
+  }
+
   private static String toString(InvokeResult ir) {
-    return String.format("%s => %s", toString(ir.invoke), objectToString(ir.result));
+    return String.format(
+        "%s => %s", ir.invoke == null ? "null" : toString(ir.invoke), objectToString(ir.result));
   }
 
   private static String objectToString(Object object) {
@@ -61,6 +78,7 @@ public class StdOutVisualizer implements Visualizer {
               }
 
               System.err.println(Hook.results);
+              System.err.println(Hook.followed);
             })
         .start();
   }
