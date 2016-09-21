@@ -2,6 +2,7 @@ package nl.hermanbanken.rxfiddle;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import rx.Observable;
 import rx.Subscriber;
@@ -15,6 +16,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 public class HookFollowTest {
+
+  @BeforeClass
+  public static void ensureClassesLoaded() {
+    // Just run something which uses (most of) the classes used below
+    Observable.just(1)
+        .delay(0, TimeUnit.MICROSECONDS, Schedulers.newThread())
+        .flatMap(Observable::just)
+        .buffer(1)
+        .subscribe();
+  }
 
   @Before
   public void setup() {
