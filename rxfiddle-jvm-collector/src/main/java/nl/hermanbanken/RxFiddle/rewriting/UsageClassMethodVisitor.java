@@ -22,12 +22,13 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   }
 
   private static Boolean shouldLog(String className, String methodName, String signature) {
-    return methodName.equals("request")
+    return false
+        //        methodName.equals("request")
         || methodName.equals("subscribe")
         || methodName.equals("unsafeSubscribe")
         || methodName.equals("unsubscribe")
         || methodName.equals("onNext")
-        || methodName.equals("onError")
+        //        || methodName.equals("onError")
         || methodName.equals("onComplete")
         || shouldTrace(className, methodName, signature);
   }
