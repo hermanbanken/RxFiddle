@@ -19,35 +19,40 @@
 package nl.hermanbanken.rxfiddle;
 
 import nl.hermanbanken.rxfiddle.data.*;
-import nl.hermanbanken.rxfiddle.visualiser.Visualizer;
+import nl.hermanbanken.rxfiddle.visualiser.StdOutVisualizer;
 
 import java.util.LinkedList;
 
-public class CaptureVisualizer implements Visualizer {
+public class CaptureVisualizer extends StdOutVisualizer {
   LinkedList<RxFiddleEvent> events = new LinkedList<>();
 
   @Override
   public void logRun(Object identifier) {
     events.clear();
+    super.logRun(identifier);
   }
 
   @Override
   public void logInvoke(Invoke invoke) {
     events.add(invoke);
+    super.logInvoke(invoke);
   }
 
   @Override
   public void logResult(InvokeResult result) {
     events.add(result);
+    super.logResult(result);
   }
 
   @Override
   public void logRuntime(RuntimeEvent runtimeEvent) {
     events.add(runtimeEvent);
+    super.logRuntime(runtimeEvent);
   }
 
   @Override
   public void logFollow(Follow follow) {
     events.add(follow);
+    super.logFollow(follow);
   }
 }
