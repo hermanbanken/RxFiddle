@@ -21,7 +21,6 @@ package nl.hermanbanken.rxfiddle;
 import nl.hermanbanken.rxfiddle.data.Follow;
 import nl.hermanbanken.rxfiddle.data.Invoke;
 import nl.hermanbanken.rxfiddle.data.InvokeResult;
-import nl.hermanbanken.rxfiddle.data.RxFiddleEvent;
 import org.junit.*;
 import rx.Observable;
 import rx.Subscriber;
@@ -35,6 +34,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
@@ -62,9 +63,7 @@ public class HookFollowTest {
   @After
   public void after() {
     System.out.println("================================");
-    for (RxFiddleEvent event : log.events) {
-      System.out.println(event);
-    }
+    log.events.forEach(System.out::println);
     System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
   }
 
@@ -72,14 +71,18 @@ public class HookFollowTest {
   public void testSimple() {
     Observable.just(1).subscribe(System.out::println);
 
-    Predicate<Object> ourSubs = o -> o instanceof Subscriber && !(o instanceof ActionSubscriber);
-    shouldContain(1, Hook.followed, ourSubs, "Subscriber");
+    shouldContain(
+        1,
+        Hook.followed,
+        Subscriber.class,
+        (Subscriber e) -> !(e instanceof ActionSubscriber),
+        "OurSubs");
     shouldContain(1, Hook.followed, o -> o instanceof Observable, "Observable");
     assertLength(2, Hook.followed);
   }
 
   @Test
-  public void testMultiple() {
+  public void testMultipleOperators() {
     Observable
         // 1
         .just(0, 1, 3, 4, 5)
@@ -89,10 +92,14 @@ public class HookFollowTest {
         .take(2)
         .subscribe(System.out::println);
 
-    shouldContain(3, log.events, e -> e instanceof Invoke && ((Invoke) e).kind == Invoke.Kind.Setup, "invokes");
-
-    Predicate<Object> ourSubs = o -> o instanceof Subscriber && !(o instanceof ActionSubscriber);
-    shouldContain(3, Hook.followed, ourSubs, "Subscriber");
+    shouldContain(
+        3, log.events, Invoke.class, (Invoke i) -> i.kind == Invoke.Kind.Setup, "invokes");
+    shouldContain(
+        3,
+        Hook.followed,
+        Subscriber.class,
+        (Subscriber e) -> !(e instanceof ActionSubscriber),
+        "OurSubs");
     shouldContain(3, Hook.followed, o -> o instanceof Observable, "Observable");
     assertLength(6, Hook.followed);
   }
@@ -111,20 +118,20 @@ public class HookFollowTest {
     ts.awaitTerminalEvent();
     ts.assertCompleted();
 
-    shouldContain(2, Hook.followed, o -> o instanceof Subscriber, "Subscriber");
-    shouldContain(1, Hook.followed, o -> o.equals(s[0]), "TestSubscription");
-    shouldContain(2, Hook.followed, o -> o instanceof Observable, "Observable");
-    shouldContain(3, Hook.followed, o -> o instanceof ScheduledAction, "ScheduledAction");
+    shouldContain(2, Hook.followed, e -> e instanceof Subscriber, "Subscriber");
+    shouldContain(
+        1, Hook.followed, Subscription.class, (Subscription e) -> e == s[0], "TestSubscription");
+    shouldContain(2, Hook.followed, e -> e instanceof Observable, "Observable");
+    shouldContain(3, Hook.followed, e -> e instanceof ScheduledAction, "ScheduledAction");
   }
 
   @Test
   public void testRetrieveTarget() {
     Hook.visualizer = log;
     Observable<Integer> o = Observable.just(0, 1, 3, 4, 5);
-    shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == null, "");
-    shouldContain(
-        1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
-    shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
+    shouldContain(1, log.events, Invoke.class, (Invoke e) -> e.target == null, "");
+    shouldContain(1, log.events, InvokeResult.class, (InvokeResult e) -> e.result == o, "");
+    shouldContain(1, log.events, Follow.class, (Follow e) -> e.target == o, "");
     assertLength(3, log.events);
   }
 
@@ -134,10 +141,9 @@ public class HookFollowTest {
     log.events.clear();
     Observable<Observable<Integer>> o = s.map(Observable::just);
 
-    shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == s, "");
-    shouldContain(
-        1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
-    shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
+    shouldContain(1, log.events, Invoke.class, (Invoke e) -> e.target == s, "");
+    shouldContain(1, log.events, InvokeResult.class, (InvokeResult e) -> e.result == o, "");
+    shouldContain(1, log.events, Follow.class, (Follow e) -> e.target == o, "");
     assertLength(3, log.events);
 
     log.events.clear();
@@ -147,10 +153,9 @@ public class HookFollowTest {
     l.awaitTerminalEvent();
 
     assertLength(3, log.events);
-    shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == s, "");
-    shouldContain(
-        1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
-    shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
+    shouldContain(1, log.events, Invoke.class, (Invoke e) -> e.target == s, "");
+    shouldContain(1, log.events, InvokeResult.class, (InvokeResult e) -> e.result == o, "");
+    shouldContain(1, log.events, Follow.class, (Follow e) -> e.target == o, "");
   }
 
   private static <T> void assertLength(int length, Collection<T> input) {
@@ -171,8 +176,24 @@ public class HookFollowTest {
     }
   }
 
-  private static <T> void shouldContain(
-      int count, Collection<T> input, Predicate<Object> matcher, String typeDescription) {
+  private static <R, T> void shouldContain(
+      int count,
+      Collection<R> input,
+      Class<T> klass,
+      Predicate<T> matcher,
+      String typeDescription) {
+    shouldContain(
+        count,
+        input
+            .stream()
+            .flatMap(o -> klass.isInstance(o) ? Stream.of(klass.cast(o)) : Stream.empty())
+            .collect(Collectors.toList()),
+        matcher,
+        typeDescription);
+  }
+
+  private static <O, T extends O> void shouldContain(
+      int count, Collection<T> input, Predicate<O> matcher, String typeDescription) {
     Collection<T> copy = Collections.unmodifiableCollection(input);
     long actual = copy.stream().filter(matcher).count();
     if (actual != count) {
@@ -187,7 +208,7 @@ public class HookFollowTest {
         s.append("]");
       } else {
         s.append("All: [\n");
-        for (Object item : copy) {
+        for (O item : copy) {
           s.append('\t');
           s.append(matcher.test(item));
           s.append('\t');
