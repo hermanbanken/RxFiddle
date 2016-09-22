@@ -2,7 +2,7 @@ package nl.hermanbanken.rxfiddle.data;
 
 import java.util.Objects;
 
-public class Label {
+public class Label implements RxFiddleEvent {
   public final String className;
   public final String methodName;
   public final int lineNumber;

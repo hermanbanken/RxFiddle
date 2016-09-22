@@ -1,5 +1,6 @@
 package nl.hermanbanken.rxfiddle.visualiser;
 
+import nl.hermanbanken.rxfiddle.data.Follow;
 import nl.hermanbanken.rxfiddle.data.Invoke;
 import nl.hermanbanken.rxfiddle.data.InvokeResult;
 import nl.hermanbanken.rxfiddle.data.RuntimeEvent;
@@ -12,4 +13,6 @@ public interface Visualizer {
   void logResult(InvokeResult result);
 
   void logRuntime(RuntimeEvent runtimeEvent);
+
+  void logFollow(Follow follow);
 }

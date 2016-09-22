@@ -1,10 +1,7 @@
 package nl.hermanbanken.rxfiddle.visualiser;
 
 import nl.hermanbanken.rxfiddle.*;
-import nl.hermanbanken.rxfiddle.data.Invoke;
-import nl.hermanbanken.rxfiddle.data.InvokeResult;
-import nl.hermanbanken.rxfiddle.data.Label;
-import nl.hermanbanken.rxfiddle.data.RuntimeEvent;
+import nl.hermanbanken.rxfiddle.data.*;
 
 public class StdOutVisualizer implements Visualizer {
 
@@ -26,6 +23,11 @@ public class StdOutVisualizer implements Visualizer {
   @Override
   public void logRuntime(RuntimeEvent runtimeEvent) {
     System.out.println("fiddle runtime " + toString(runtimeEvent));
+  }
+
+  @Override
+  public void logFollow(Follow follow) {
+    System.out.println("fiddle follow " + objectToString(follow.target));
   }
 
   private static String toString(Label label) {

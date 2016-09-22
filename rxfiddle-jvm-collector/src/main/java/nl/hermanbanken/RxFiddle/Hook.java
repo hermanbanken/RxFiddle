@@ -1,10 +1,7 @@
 package nl.hermanbanken.rxfiddle;
 
 import jdk.internal.org.objectweb.asm.Type;
-import nl.hermanbanken.rxfiddle.data.Invoke;
-import nl.hermanbanken.rxfiddle.data.InvokeResult;
-import nl.hermanbanken.rxfiddle.data.Label;
-import nl.hermanbanken.rxfiddle.data.RuntimeEvent;
+import nl.hermanbanken.rxfiddle.data.*;
 import nl.hermanbanken.rxfiddle.visualiser.StdOutVisualizer;
 import nl.hermanbanken.rxfiddle.visualiser.Visualizer;
 
@@ -104,6 +101,7 @@ public class Hook {
   public static void follow(Object obj) {
     if (obj == null) return;
     if (followed.add(obj)) {
+      visualizer.logFollow(new Follow(obj));
       System.out.printf("Following %s\n", obj);
     }
   }

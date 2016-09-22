@@ -1,6 +1,6 @@
 package nl.hermanbanken.rxfiddle.data;
 
-public class InvokeResult {
+public class InvokeResult implements RxFiddleEvent {
   public final Invoke invoke;
   public final Object result;
 
