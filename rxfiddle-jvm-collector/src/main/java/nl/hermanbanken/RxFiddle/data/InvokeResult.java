@@ -29,7 +29,7 @@ public class InvokeResult implements RxFiddleEvent {
 
   @Override
   public String toString() {
-    if(invoke == null) {
+    if (invoke == null) {
       return String.format("result without invoke %s", result);
     }
     return String.format(
@@ -38,6 +38,7 @@ public class InvokeResult implements RxFiddleEvent {
             invoke.className.replace('/', '.'),
             invoke.methodName,
             Utils.objectToString(result),
-            invoke.label == null ? "" : invoke.label).trim();
+            invoke.label == null ? "" : invoke.label)
+        .trim();
   }
 }

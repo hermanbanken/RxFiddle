@@ -42,11 +42,12 @@ public class Invoke implements RxFiddleEvent {
   @Override
   public String toString() {
     return String.format(
-      "%s[%s::%s] %s\n%s",
-      target == null ? "static" : Utils.objectToString(target),
-      className.replace('/', '.'),
-      methodName,
-      kind,
-      label == null ? "" : label).trim();
+            "%s[%s::%s] %s\n%s",
+            target == null ? "static" : Utils.objectToString(target),
+            className.replace('/', '.'),
+            methodName,
+            kind,
+            label == null ? "" : label)
+        .trim();
   }
 }

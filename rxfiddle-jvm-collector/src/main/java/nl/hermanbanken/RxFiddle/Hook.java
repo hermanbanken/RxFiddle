@@ -79,7 +79,8 @@ public class Hook {
         "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V";
   }
 
-  public static Predicate<String> RUNTIME = Pattern.compile("request|subscribe|unsafeSubscribe|on(Next|Error|Complete)").asPredicate();
+  public static Predicate<String> RUNTIME =
+      Pattern.compile("request|subscribe|unsafeSubscribe|on(Next|Error|Complete)").asPredicate();
 
   /** Usage of Rx **/
   public static void libraryHook(
@@ -89,14 +90,20 @@ public class Hook {
     Invoke invoke;
     // Runtime events
     if (followed.contains(subject) && RUNTIME.test(methodName)) {
-      invoke = new Invoke(subject, className, methodName, labels.size() > 0 ? labels.peek() : null, Kind.Runtime);
+      invoke =
+          new Invoke(
+              subject,
+              className,
+              methodName,
+              labels.size() > 0 ? labels.peek() : null,
+              Kind.Runtime);
     }
     // Static setup events
-    else if(!labels.isEmpty() && subject == null && className.contains("Observable")) {
+    else if (!labels.isEmpty() && subject == null && className.contains("Observable")) {
       invoke = new Invoke(null, className, methodName, labels.peek(), Kind.Setup);
     }
     // Instance setup events
-    else if(!labels.isEmpty() && subject != null && followed.contains(subject)) {
+    else if (!labels.isEmpty() && subject != null && followed.contains(subject)) {
       follow(subject);
       invoke = new Invoke(subject, className, methodName, labels.peek(), Kind.Setup);
     } else {

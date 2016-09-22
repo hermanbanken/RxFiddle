@@ -40,7 +40,9 @@ class UsageClassVisitor extends ClassVisitor {
       String[] interfaces) {
     this.className = name;
     try {
-      this.fileName = name.substring(name.lastIndexOf('/')+1, name.indexOf('$', name.lastIndexOf('/'))) + ".java";
+      this.fileName =
+          name.substring(name.lastIndexOf('/') + 1, name.indexOf('$', name.lastIndexOf('/')))
+              + ".java";
     } catch (Exception e) {
       this.fileName = "unknown";
     }

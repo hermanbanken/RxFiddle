@@ -27,6 +27,6 @@ public class Follow implements RxFiddleEvent {
 
   @Override
   public String toString() {
-    return "Follow("+target.toString()+")";
+    return "Follow(" + target.toString() + ")";
   }
 }

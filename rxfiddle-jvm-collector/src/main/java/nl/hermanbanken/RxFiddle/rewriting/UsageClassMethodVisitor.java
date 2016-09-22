@@ -201,4 +201,3 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
     }
   }
 }
-
