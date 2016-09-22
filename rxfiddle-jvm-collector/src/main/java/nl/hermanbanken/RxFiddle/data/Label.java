@@ -32,6 +32,11 @@ public class Label implements RxFiddleEvent {
   }
 
   @Override
+  public String toString() {
+    return String.format("%s.%s:%d", className.replace('/', '.'), methodName, lineNumber);
+  }
+
+  @Override
   public boolean equals(Object obj) {
     return obj instanceof Label && Objects.deepEquals(this, obj);
   }

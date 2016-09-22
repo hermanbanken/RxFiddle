@@ -18,18 +18,9 @@
 
 package nl.hermanbanken.rxfiddle.data;
 
-public class InvokeResult implements RxFiddleEvent {
-  public final Invoke invoke;
-  public final Object result;
-
-  public InvokeResult(Invoke invoke, Object result) {
-    this.invoke = invoke;
-    this.result = result;
-  }
-
-  @Override
-  public String toString() {
+public class Utils {
+  public static String objectToString(Object object) {
     return String.format(
-        "%s => %s", invoke == null ? "null" : invoke.toString(), Utils.objectToString(result));
+        "(%s %s)", object.getClass().getName(), Integer.toHexString(object.hashCode()));
   }
 }

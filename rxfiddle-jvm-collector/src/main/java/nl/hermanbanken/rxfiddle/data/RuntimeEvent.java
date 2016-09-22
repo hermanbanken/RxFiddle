@@ -28,4 +28,12 @@ public class RuntimeEvent implements RxFiddleEvent {
     this.className = className;
     this.methodName = methodName;
   }
+
+  @Override
+  public String toString() {
+    return target == null
+        ? String.format("static[%s::%s]", className.replace('/', '.'), methodName)
+        : String.format(
+            "%s[%s::%s]", Utils.objectToString(target), className.replace('/', '.'), methodName);
+  }
 }

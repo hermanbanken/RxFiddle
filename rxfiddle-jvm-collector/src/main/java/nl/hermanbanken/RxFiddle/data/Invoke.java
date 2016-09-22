@@ -30,4 +30,17 @@ public class Invoke implements RxFiddleEvent {
     this.methodName = methodName;
     this.label = label;
   }
+
+  @Override
+  public String toString() {
+    return target == null
+        ? String.format(
+            "static[%s::%s], %s", className.replace('/', '.'), methodName, label)
+        : String.format(
+            "%s[%s::%s], %s",
+            Utils.objectToString(target),
+            className.replace('/', '.'),
+            methodName,
+            label);
+  }
 }
