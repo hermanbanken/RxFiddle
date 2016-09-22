@@ -1,205 +1,86 @@
-Introduction {#sec:intro}
+Introduction
 ============
 
-Reactive Programming has been around for many years, and recently
-several implementations have surfaced that are now incorporated into
-widely used frameworks and in use for many production applications.
-However, adapting to the paradigm of Reactive Programming as a developer
-is known to take some time. Furthermore, even with basic or advanced
-knowledge of an implementation it takes longer to understand existing
-Reactive code than simple sequential code. What can really help to
-understand the created data flows are diagrams [@weck2016visualizing]
-which show how data is received, transformed and emitted at each step.
+Reactive Programming has been around for many years, and recently several implementations have surfaced that are now incorporated into widely used frameworks and in use for many production applications. However, adapting to the paradigm of Reactive Programming as a developer is known to take some time. Furthermore, even with basic or advanced knowledge of an implementation it takes longer to understand existing Reactive code than simple sequential code. What can really help to understand the created data flows are diagrams (Weck and Tichy [2016](#ref-weck2016visualizing)) which show how data is received, transformed and emitted at each step.
 
-The scope of this thesis will be Reactive Extensions (Rx) [@msdn_rx],
-one of the libraries implementing Reactive Programming which has
-implementations in almost every programming language. The main
-documentation of Rx [@reactivex] uses Marble
-Diagrams [@c9_marblediagrams] for each operator to show the behaviour of
-this single operator. These diagrams really complement the name of the
-operator and its description, allowing the developer to work-out the
-nitty details and pick the right operator for it’s use. They are however
-only generated per operator, and are not combined for complete data
-flows, showing the full flow through many operators.
+The scope of this thesis will be Reactive Extensions (Rx) (Microsoft, n.d.), one of the libraries implementing Reactive Programming which has implementations in almost every programming language. The main documentation of Rx (“ReactiveX.io,” n.d.) uses Marble Diagrams (Wes Dyer and Gogh, n.d.) for each operator to show the behaviour of this single operator. These diagrams really complement the name of the operator and its description, allowing the developer to work-out the nitty details and pick the right operator for it’s use. They are however only generated per operator, and are not combined for complete data flows, showing the full flow through many operators.
 
-In this master’s thesis we will focus on creating complete and
-interactive Marble Diagrams for full data flows, automatically, from
-sources and from running applications.
+In this master’s thesis we will focus on creating complete and interactive Marble Diagrams for full data flows, automatically, from sources and from running applications.
 
 Observable structure analysis
 -----------------------------
 
-The templates for the data flows, encapsulated in Observable in Rx, are
-contained in code. By analysing the source code or bytecode these
-templates can be extracted. Observables are created by calling several
-factory methods on the Observable-class. After creation they can be
-passed as variables and can be transformed by applying operators which
-generate a new, extended Observable structure. Since Observables are
-(immutable) value types they can be used multiple times as a basis to
-create new structures, therefore possibly creating a tree of related
-Observable structures. This structure is the basis for the
-visualisation.
+The templates for the data flows, encapsulated in Observable in Rx, are contained in code. By analysing the source code or bytecode these templates can be extracted. Observables are created by calling several factory methods on the Observable-class. After creation they can be passed as variables and can be transformed by applying operators which generate a new, extended Observable structure. Since Observables are (immutable) value types they can be used multiple times as a basis to create new structures, therefore possibly creating a tree of related Observable structures. This structure is the basis for the visualisation.
 
 Run-time analysis
 -----------------
 
-By analysing the structure one can know in advance through which
-operators possible future data will flow. During run-time this
-propagation of data through operators can be detected. In Rx the methods
-onNext, onError and onComplete propagate data, which can be instrumented
-to log the invocation to the visualisation engine. Every event then gets
-shown as a marble in the correct Observable axis.
+By analysing the structure one can know in advance through which operators possible future data will flow. During run-time this propagation of data through operators can be detected. In Rx the methods onNext, onError and onComplete propagate data, which can be instrumented to log the invocation to the visualisation engine. Every event then gets shown as a marble in the correct Observable axis.
 
-To instrument code several technologies are available, for Java: For
-example
-[ASM](http://asm.ow2.org) [@bruneton2002asm; @kuleshov2007using], which
-offers very low level bytecode rewriting, or
-[AspectJ](http://www.eclipse.org/aspectj/) [@kiczales2001overview] which
-leverages AOP [@kiczales1997aspect] to provide a high level interface to
-add logic to existing methods. Either of these libraries will be used to
-setup the run-time analysis, depending on which enables our requirements
-and is the easiest to implement.
+To instrument code several technologies are available, for Java: For example [ASM](http://asm.ow2.org) (Bruneton, Lenglet, and Coupaye [2002](#ref-bruneton2002asm); Kuleshov [2007](#ref-kuleshov2007using)), which offers very low level bytecode rewriting, or [AspectJ](http://www.eclipse.org/aspectj/) (Kiczales et al. [2001](#ref-kiczales2001overview)) which leverages AOP (Kiczales et al. [1997](#ref-kiczales1997aspect)) to provide a high level interface to add logic to existing methods. Either of these libraries will be used to setup the run-time analysis, depending on which enables our requirements and is the easiest to implement.
 
 Visualisation
 -------------
 
-The de-facto standard to visualise Observables is called a Marble
-Diagram. The ReactiveX documentation contains these diagrams, for single
-operators. These diagrams originate from RxJava and are drawn in
-[Omnigraffle](https://www.omnigroup.com/omnigraffle).
+The de-facto standard to visualise Observables is called a Marble Diagram. The ReactiveX documentation contains these diagrams, for single operators. These diagrams originate from RxJava and are drawn in [Omnigraffle](https://www.omnigroup.com/omnigraffle).
 
-While the diagrams in the official documentation are static, some
-efforts exist to generate these diagrams automatically.
-[RxMarbles.com](http://RxMarbles.com) is a website which allows the user
-to drag and reorder events in for almost all Observable operators, live
-updating the corresponding diagram.
-[RxVision](https://github.com/jaredly/rxvision) on the other hand
-visualises full structures. It offers a code editor where one can type
-JavaScript using RxJs and RxVision will visualise the structure created
-in the editor. RxVision injects code into the RxJS source which extracts
-the structure, subscriptions and flowing data. While RxVision is a great
-step in the right direction, it does not integrate into development
-environments as of September 2016: it requires the code to be placed in
-the online editor.
+While the diagrams in the official documentation are static, some efforts exist to generate these diagrams automatically. [RxMarbles.com](http://RxMarbles.com) is a website which allows the user to drag and reorder events in for almost all Observable operators, live updating the corresponding diagram. [RxVision](https://github.com/jaredly/rxvision) on the other hand visualises full structures. It offers a code editor where one can type JavaScript using RxJs and RxVision will visualise the structure created in the editor. RxVision injects code into the RxJS source which extracts the structure, subscriptions and flowing data. While RxVision is a great step in the right direction, it does not integrate into development environments as of September 2016: it requires the code to be placed in the online editor.
 
-At some time Microsoft offered a “Marble Diagram Generator" and
-[RxSandbox](http://mnajder.blogspot.nl/2010/03/rxsandbox-v1.html), which
-were Windows applications which - looking at Google’d images - had a
-catalogus of standard operators and a sandbox to generate custom
-diagrams. However, the source of these tools is not available and the
-download links are broken.
+At some time Microsoft offered a “Marble Diagram Generator" and [RxSandbox](http://mnajder.blogspot.nl/2010/03/rxsandbox-v1.html), which were Windows applications which - looking at Google’d images - had a catalogus of standard operators and a sandbox to generate custom diagrams. However, the source of these tools is not available and the download links are broken.
 
-Generating data {#sec:gen-data}
+Generating data
 ---------------
 
-Testing tools like QuickCheck [@quickcheck] automate test generation by
-producing arbitrary input, and by finding test cases that falsify the
-test conditions. When a falsification is found QuickCheck tries to
-simplify the test data, pruning data which does not attribute to the
-tests failure. An equally advanced test tool for data flows would be
-interesting, but is not in scope. Generating data however can be
-interesting. Visualising the behaviour of Observables without running
-the actual program, based solely on the data flow structure and
-generated data could provide valuable insight. Learning from QuickCheck,
-reducing to pivotal data can show the various edge cases of how a data
-flow can evaluate while keeping the amount of cases to be considered
-(and interpreted by humans) at a minimum.
+Testing tools like QuickCheck (Claessen [2000](#ref-quickcheck)) automate test generation by producing arbitrary input, and by finding test cases that falsify the test conditions. When a falsification is found QuickCheck tries to simplify the test data, pruning data which does not attribute to the tests failure. An equally advanced test tool for data flows would be interesting, but is not in scope. Generating data however can be interesting. Visualising the behaviour of Observables without running the actual program, based solely on the data flow structure and generated data could provide valuable insight. Learning from QuickCheck, reducing to pivotal data can show the various edge cases of how a data flow can evaluate while keeping the amount of cases to be considered (and interpreted by humans) at a minimum.
 
 Tainting
 --------
 
-When looking at the values bubbling through an Observable structure,
-values might be produced which are not directly relatable to their
-sources. With pointwise transformations the developer can trace each
-output back to a single point of input. However, operations that fold
-over time might both use new and reuse older values. The relation
-between these variables might not be clear over time. One existing
-solution to track dependencies between variables is called
-tainting [@bell2015dynamic]: by applying a taint to a variable,
-dependent variables either get the same taint or a mixture of all the
-taints of it’s dependencies. Implementations of tainting like
-Phosphor [@bell2014phosphor] can be evaluated and might be interesting
-to integrate.
+When looking at the values bubbling through an Observable structure, values might be produced which are not directly relatable to their sources. With pointwise transformations the developer can trace each output back to a single point of input. However, operations that fold over time might both use new and reuse older values. The relation between these variables might not be clear over time. One existing solution to track dependencies between variables is called tainting (Bell and Kaiser [2015](#ref-bell2015dynamic)): by applying a taint to a variable, dependent variables either get the same taint or a mixture of all the taints of it’s dependencies. Implementations of tainting like Phosphor (Bell and Kaiser [2014](#ref-bell2014phosphor)) can be evaluated and might be interesting to integrate.
 
-Research Questions {#sec:questions}
+Research Questions
 ==================
 
 The main research question is:
 
-> Does visualising Reactive Extensions help developers comprehend their
-> code and ease the debugging of Observables?
+> Does visualising Reactive Extensions help developers comprehend their code and ease the debugging of Observables?
 
 Several smaller questions must be answered to answer the main question:
 
 1.  Structures:
 
-    1.  Can Observables structures be represented in an abstract
-        fashion?
+    1.  Can Observables structures be represented in an abstract fashion?
 
-    2.  Can Observable structures be extracted from source code or
-        bytecode?
+    2.  Can Observable structures be extracted from source code or bytecode?
 
-    3.  Can run-time behaviour of Observables be extracted such that it
-        is appropriate input to a visualizer / simulation?
+    3.  Can run-time behaviour of Observables be extracted such that it is appropriate input to a visualizer / simulation?
 
-    4.  Can ‘smart’ ( \[sec:gen-data\]) test input data for Observable
-        structures be generated?
+    4.  Can ‘smart’ ( \[sec:gen-data\]) test input data for Observable structures be generated?
 
 2.  Visualisation:
 
-    1.  Can Marble Diagrams effectively convey structures containing
-        more than 1 operator?
+    1.  \[qstn:marble\] Can Marble Diagrams effectively convey structures containing more than 1 operator?
 
 3.  Debugger Usability:
 
-    1.  Can our tool (fully) replace traditional print-debugging in
-        practice?
+    1.  \[qstn:println\] Can our tool (fully) replace traditional print-debugging in practice?
 
-    2.  Do developers use automated test data in practice?
+    2.  \[qstn:autogen\] Do developers use automated test data in practice?
 
-    3.  Does our tool improve the development experience when working
-        with Rx?
+    3.  \[qstn:experience\] Does our tool improve the development experience when working with Rx?
 
 Motivation
 ==========
 
-Reactive Programming is a different programming model than sequential
-programming. Traditional development tools are not completely adequate
-for this model: just like Async Programming now has async call stacks in
-Chrome, Reactive Programming also needs more tools to make developing
-with the technology easier and less painful.
+Reactive Programming is a different programming model than sequential programming. Traditional development tools are not completely adequate for this model: just like Async Programming now has async call stacks in Chrome, Reactive Programming also needs more tools to make developing with the technology easier and less painful.
 
-Anecdotal evidence and personal experience suggest developers tend to
-just add print and debug statements through the reactive code to get a
-sense of the ordering and effects of events over time. This style of
-debugging requires constantly changing the source code, adding and
-removing print statements on the go. When using dynamic languages this
-can be a little annoying, but when using statically typed languages the
-recompilation can take long and the process slows down the development.
+Anecdotal evidence and personal experience suggest developers tend to just add print and debug statements through the reactive code to get a sense of the ordering and effects of events over time. This style of debugging requires constantly changing the source code, adding and removing print statements on the go. When using dynamic languages this can be a little annoying, but when using statically typed languages the recompilation can take long and the process slows down the development.
 
-Another approach - which might be preferable to print-debugging - is
-creating tests. However, in large Observable structures there might be
-many variation points which would require exponentially many variations
-of (minimal) input events to be tested or even to be considered. After a
-bug occurs it might be impossible to know in which state the full
-Observable was. Therefore exploring the different scenarios in a visual
-way might help to reproduce the bug. Especially when giving instant
-feedback on how a small change in input changes the output over time, by
-using virtual time schedulers.
+Another approach - which might be preferable to print-debugging - is creating tests. However, in large Observable structures there might be many variation points which would require exponentially many variations of (minimal) input events to be tested or even to be considered. After a bug occurs it might be impossible to know in which state the full Observable was. Therefore exploring the different scenarios in a visual way might help to reproduce the bug. Especially when giving instant feedback on how a small change in input changes the output over time, by using virtual time schedulers.
 
-Sidenote: the above paragraph also presents another option: keeping
-track of the state (in a smart & efficient way) and being able to dump
-this when something unexpected happens. One problem with this solution
-is that something unexpected can also be the absence of an occurrence,
-which is not necessarily detectable.
+Sidenote: the above paragraph also presents another option: keeping track of the state (in a smart & efficient way) and being able to dump this when something unexpected happens. One problem with this solution is that something unexpected can also be the absence of an occurrence, which is not necessarily detectable.
 
-A reason for scoping this to Rx is how wide Rx is used but mainly how
-mature it is. The implementation of Rx dates back before 2010 and is
-very well thought through while newer frameworks like Reactive Streams
-and Bacon.js lack these backgrounds. Rx is very stable and structured,
-simplifying the implementation of the prototype. When completed, it can
-then be easily extended to many other Reactive Programming
-implementations.
+A reason for scoping this to Rx is how wide Rx is used but mainly how mature it is. The implementation of Rx dates back before 2010 and is very well thought through while newer frameworks like Reactive Streams and Bacon.js lack these backgrounds. Rx is very stable and structured, simplifying the implementation of the prototype. When completed, it can then be easily extended to many other Reactive Programming implementations.
 
 Planning
 ========
@@ -209,41 +90,37 @@ Scheme
 
 A preliminary planning is defined as:
 
-  **What**                      **When**
-  ----------------------------- -------------------------
-  Start of project, at Ordina   12th of September, 2016
-  Research Proposal ready       25th of September, 2016
-  Test prototype 1              2nd of December, 2016
-  User test 1                   5th of December, 2016
-  Test prototype 2              20th of Januari, 2017
-  User test 2                   23th of Januari, 2017
-  Draft of final report         15th of March, 2017
-  Thesis Defense                15th of April, 2017
+| **What**                    | **When**                |
+|:----------------------------|:------------------------|
+| Start of project, at Ordina | 12th of September, 2016 |
+| Research Proposal ready     | 25th of September, 2016 |
+| Test prototype 1            | 2nd of December, 2016   |
+| User test 1                 | 5th of December, 2016   |
+| Test prototype 2            | 20th of Januari, 2017   |
+| User test 2                 | 23th of Januari, 2017   |
+| Draft of final report       | 15th of March, 2017     |
+| Thesis Defense              | 15th of April, 2017     |
 
 Contact
 -------
 
-  | **Student** |
-  |---------------------------------|
-  | Herman Banken |
-  | Balthasar van der Polweg, Delft |
-  | 06 - 38 94 37 30       |
-  | hermanbanken@gmail.com |
+| **Student**                     |
+|:--------------------------------|
+| Herman Banken                   |
+| Balthasar van der Polweg, Delft |
+| 06 - 38 94 37 30                |
+| hermanbanken@gmail.com          |
 
-  **Ordina**               |  **University**     |  **University**
-  -------------------------|---------------------|-------------------------
-  Joost de Vries           |  Georgios Gousios   |  Prof.dr. H.J.M. Meijer
-  Ringwade 1, Nieuwegein   |  EWI HB08.xxx       |  EWI HB08.060 / SV
-  Joost.de.Vries@ordina.nl |  gousiosg@gmail.com |  H.J.M.Meijer@tudelft.nl
+| **Ordina**               | **University**     | **University**          |
+|:-------------------------|:-------------------|:------------------------|
+| Joost de Vries           | Georgios Gousios   | Prof.dr. H.J.M. Meijer  |
+| Ringwade 1, Nieuwegein   | EWI HB08.xxx       | EWI HB08.060 / SV       |
+| Joost.de.Vries@ordina.nl | gousiosg@gmail.com | H.J.M.Meijer@tudelft.nl |
 
 Supervision details
 -------------------
 
-The thesis project will take place mainly at Ordina, and partly at the
-Delft Technical University. Ordina provides a working place, computer
-for the thesis, as well as sparring partners in the form of other
-students and colleagues of Joost from Code Star and SMART on the same
-floor.
+The thesis project will take place mainly at Ordina, and partly at the Delft Technical University. Ordina provides a working place, computer for the thesis, as well as sparring partners in the form of other students and colleagues of Joost from Code Star and SMART on the same floor.
 
 To discuss the progress several meetings are scheduled:
 
@@ -263,43 +140,76 @@ Furthermore some ’user’ (developer) tests will need to be executed,
 
 -   or to measure satisfaction with the new tools
 
-for which it would also be very convenient if some employees of Ordina
-could volunteer.
+for which it would also be very convenient if some employees of Ordina could volunteer.
 
 Risk analysis
 -------------
 
 The project is subject to several risks, discussed here.
 
-The first risks are internal to the project. The scope described in
-and \[sec:questions\] is quite challenging. The visualisation part could
-be a thesis topic on it’s own. However, due to previous and available
-work in projects like RxVision and RxMarbles, the time required for
-implementation is at least limited. The existing visualisation of
-RxVision might prove to be not ideal, and RxMarbles is not as complete
-as RxVision, so some additional work might be required to create an
-optimal visualisation. This would be perfecting the tool however, and
-does not need be part of the academic thesis.
+The first risks are internal to the project. The scope described in and \[sec:questions\] is quite challenging. The visualisation part could be a thesis topic on it’s own. However, due to previous and available work in projects like RxVision and RxMarbles, the time required for implementation is at least limited. The existing visualisation of RxVision might prove to be not ideal, and RxMarbles is not as complete as RxVision, so some additional work might be required to create an optimal visualisation. This would be perfecting the tool however, and does not need be part of the academic thesis.
 
-Secondly the project needs a case study and user test to fully test the
-effectiveness of the debug methodology. User studies are a risk since
-the organisation of the test event depends on many people. By doing the
-thesis at Ordina this risk is at least limited, as there are many
-developers present, on location, of which only a subset needs to be
-available.
+Secondly the project needs a case study and user test to fully test the effectiveness of the debug methodology. User studies are a risk since the organisation of the test event depends on many people. By doing the thesis at Ordina this risk is at least limited, as there are many developers present, on location, of which only a subset needs to be available.
 
-External risks are other courses that need to be finished. As of
-September 2016 only 7 ECTS need to be completed, not regarding the 45
-ECTS of the thesis itself. I’m currently still working on ‘IN4306
-Literature Study’ (10 ECTS) on a somewhat related but more general
-subject of ‘Reactive Programming’. The remaining work is limited, but -
-at the very latest - needs to be completed before the defense. The
-literature study will not take up time from the thesis, as I plan to do
-this in the weekend and evenings.
+External risks are other courses that need to be finished. As of September 2016 only 7 ECTS need to be completed, not regarding the 45 ECTS of the thesis itself. I’m currently still working on ‘IN4306 Literature Study’ (10 ECTS) on a somewhat related but more general subject of ‘Reactive Programming’. The remaining work is limited, but - at the very latest - needs to be completed before the defense. The literature study will not take up time from the thesis, as I plan to do this in the weekend and evenings.
 
-Finally, a risk is the time of the people involved, especially professor
-Meijer. Meijer works a full-time job at Facebook, as of September 2016,
-and his professorship is only part-time. To remedy this risk an
-additional supervisor in the person of Georgios Gousios was contacted.
-Georgios will function as the default university contact, while Meijer
-will provide valuable input where possible.
+Finally, a risk is the time of the people involved, especially professor Meijer. Meijer works a full-time job at Facebook, as of September 2016, and his professorship is only part-time. To remedy this risk an additional supervisor in the person of Georgios Gousios was contacted. Georgios will function as the default university contact, while Meijer will provide valuable input where possible.
+
+User tests and prototypes
+-------------------------
+
+The research question in general, and specifically subquestions\[qstn:marble\],\[qstn:println\],\[qstn:autogen\] and\[qstn:experience\] touch the man-machine-interaction and psychology sides of Computer Science. The appropriate way to answer these questions would be (one or more) case studies and user tests.
+
+The planning mentions the completion of two prototypes and subsequent user tests. The final feature-set of these prototypes can not yet be determined, but a preliminary specification is given here.
+
+### User tests
+
+To evaluate questions\[qstn:println\] and\[qstn:experience\] the tool needs to be working on all levels of the implementation. Both the gathering of data as visualisation need to work. Not every feature of Rx needs to be supported, but to test the experience at least common use cases - that developers can relate to - should be fully debuggable. As this requires the bulk of work, these questions will be addressed in the second test.
+
+Question\[qstn:marble\] can be tested using the visualisation part only. Building on the existing [RxMarbles.com](http://rxmarbles.com) the visualisation will be created for some scripted examples. A user test can then verify that the visualisation is comprehensible and clear. To test the debugging usability of the visualisation a bug can be introduced in code, and the corresponding visualisation should then be used to localise the bug. The visualisation part is the only requirement for the test, so this question will be addressed in the first test.
+
+The last question\[qstn:autogen\] is self-contained, and builds upon the visualiser. Depending on the progress made, the implementation of auto-generation of tests can be considered or postponed. Preferably this feature would be part of prototype 1, to better distribute the tests.
+
+### Prototypes
+
+The list of features for the prototypes then becomes:
+
+1.  1.  Visualiser for Observable sequence with multiple subsequent operations
+
+    2.  Interactive input sequences
+
+    3.  Live updating events in subsequent sequences
+
+    4.  Optionally, ‘smart’ test event generation
+
+2.  1.  Static analysis collector for structures in code
+
+    2.  Runtime analysis collector for events in Observable sequences
+
+    3.  Interface to select ‘root’ Observable: which Observable to use as starting point for the visualisation
+
+    4.  Interface to switch between runtime events and (interactive/generated) test events
+
+    5.  ‘Smart’ test event generation, if not done in prototype 1.
+
+Bell, Jonathan, and Gail Kaiser. 2014. “Phosphor: Illuminating Dynamic Data Flow in Commodity Jvms.” In *ACM Sigplan Notices*, 49:83–101. 10. ACM.
+
+———. 2015. “Dynamic Taint Tracking for Java with Phosphor.” In *Proceedings of the 2015 International Symposium on Software Testing and Analysis*, 409–13. ACM.
+
+Bruneton, Eric, Romain Lenglet, and Thierry Coupaye. 2002. “ASM: A Code Manipulation Tool to Implement Adaptable Systems.” *Adaptable and Extensible Component Systems* 30: 19.
+
+Claessen, John, Koen; Hughes. 2000. “QuickCheck: A Lightweight Tool for Random Testing of Haskell and Programs.” In. doi:[ng](https://doi.org/ng).
+
+Kiczales, Gregor, Erik Hilsdale, Jim Hugunin, Mik Kersten, Jeffrey Palm, and William G Griswold. 2001. “An Overview of Aspectj.” In *European Conference on Object-Oriented Programming*, 327–54. Springer.
+
+Kiczales, Gregor, John Lamping, Anurag Mendhekar, Chris Maeda, Cristina Lopes, Jean-Marc Loingtier, and John Irwin. 1997. “Aspect-Oriented Programming.” In *European Conference on Object-Oriented Programming*, 220–42. Springer.
+
+Kuleshov, Eugene. 2007. “Using the Asm Framework to Implement Common Java Bytecode Transformation Patterns.” *Aspect-Oriented Software Development*.
+
+Microsoft. n.d. “Reactive Extensions (Rx).” <https://msdn.microsoft.com/en-us/data/gg577609.aspx>. <https://msdn.microsoft.com/en-us/data/gg577609.aspx>.
+
+“ReactiveX.io.” n.d. <http://reactivex.io/>. <http://reactivex.io/>.
+
+Weck, Tobias, and Matthias Tichy. 2016. “Visualizing Data-Flows in Functional Programs.” In *2016 Ieee 23rd International Conference on Software Analysis, Evolution, and Reengineering (Saner)*, 1:293–303. IEEE; Institute of Electrical & Electronics Engineers (IEEE). doi:[10.1109/saner.2016.82](https://doi.org/10.1109/saner.2016.82).
+
+Wes Dyer, Erik Meijer, and Jeffrey van Gogh. n.d. “Reactive Extensions API in Depth: Marble Diagrams, Select & Where.” <https://channel9.msdn.com/blogs/j.van.gogh/reactive-extensions-api-in-depth-marble-diagrams-select--where>. <https://channel9.msdn.com/blogs/j.van.gogh/reactive-extensions-api-in-depth-marble-diagrams-select--where>.
