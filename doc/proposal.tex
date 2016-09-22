@@ -1,4 +1,4 @@
-\section{Introduction}
+\section{Introduction}%
 \label{sec:intro} Reactive Programming has been around for many years,
 and recently several implementations have surfaced that are now
 incorporated into widely used frameworks and in use for many production
@@ -117,7 +117,6 @@ might be interesting to integrate.
 Several smaller questions must be answered to answer the main question:
 
 \begin{enumerate}
-
     \item
         Structures:
         \begin{enumerate}
@@ -141,30 +140,32 @@ Several smaller questions must be answered to answer the main question:
         Visualisation:
         \begin{enumerate}
             \item
-                Can Marble Diagrams effectively convey structures
-                containing more than 1 operator?
+                \label{qstn:marble} Can Marble Diagrams effectively
+                convey structures containing more than 1 operator?
         \end{enumerate}
 
     \item
         Debugger Usability:
         \begin{enumerate}
             \item
-                Can our tool (fully) replace traditional print-debugging
-                in practice?
+                \label{qstn:println} Can our tool (fully) replace
+                traditional print-debugging in practice?
             \item
-                Do developers use automated test data in practice?
+                \label{qstn:autogen} Do developers use automated test
+                data in practice?
             \item
-                Does our tool improve the development experience when
-                working with Rx?
+                \label{qstn:experience} Does our tool improve the
+                development experience when working with Rx?
         \end{enumerate}
 
 \end{enumerate}
 
-\section{Motivation} Reactive Programming is a different programming
-model than sequential programming.  Traditional development tools are
-not completely adequate for this model:  just like Async Programming now
-has async call stacks in Chrome, Reactive Programming also needs more
-tools to make developing with the technology easier and less painful.
+\section{Motivation}%
+Reactive Programming is a different programming model than sequential
+programming.  Traditional development tools are not completely adequate
+for this model:  just like Async Programming now has async call stacks
+in Chrome, Reactive Programming also needs more tools to make developing
+with the technology easier and less painful.
 
 Anecdotal evidence and personal experience suggest developers tend to
 just add print and debug statements through the reactive code to get a
@@ -316,6 +317,80 @@ and his professorship is only part-time.  To remedy this risk an
 additional supervisor in the person of Georgios Gousios was contacted.
 Georgios will function as the default university contact, while Meijer
 will provide valuable input where possible.
+
+\subsection{User tests and prototypes} The research question in general,
+and specifically subquestions%
+\ref{qstn:marble},%
+\ref{qstn:println},%
+\ref{qstn:autogen} and%
+\ref{qstn:experience} touch the man-machine-interaction and psychology
+sides of Computer Science.  The appropriate way to answer these
+questions would be (one or more) case studies and user tests.
+
+The planning mentions the completion of two prototypes and subsequent
+user tests.  The final feature-set of these prototypes can not yet be
+determined, but a preliminary specification is given here.
+
+\subsubsection{User tests} To evaluate questions%
+\ref{qstn:println} and%
+\ref{qstn:experience} the tool needs to be working on all levels of the
+implementation.  Both the gathering of data as visualisation need to
+work.  Not every feature of Rx needs to be supported, but to test the
+experience at least common use cases - that developers can relate to -
+should be fully debuggable.  As this requires the bulk of work, these
+questions will be addressed in the second test.
+
+Question%
+\ref{qstn:marble} can be tested using the visualisation part only.
+Building on the existing \href{http://rxmarbles.com}{RxMarbles.com} the
+visualisation will be created for some scripted examples.  A user test
+can then verify that the visualisation is comprehensible and clear.  To
+test the debugging usability of the visualisation a bug can be
+introduced in code, and the corresponding visualisation should then be
+used to localise the bug.  The visualisation part is the only
+requirement for the test, so this question will be addressed in the
+first test.
+
+The last question%
+\ref{qstn:autogen} is self-contained, and builds upon the visualiser.
+Depending on the progress made, the implementation of auto-generation of
+tests can be considered or postponed.  Preferably this feature would be
+part of prototype 1, to better distribute the tests.
+
+\subsubsection{Prototypes} The list of features for the prototypes then
+becomes:
+
+\begin{enumerate}
+    \item[Prototype 1]
+        \begin{enumerate}
+            \item
+                Visualiser for Observable sequence with multiple
+                subsequent operations
+            \item
+                Interactive input sequences
+            \item
+                Live updating events in subsequent sequences
+            \item
+                Optionally, `smart' test event generation
+        \end{enumerate}
+    \item[Prototype 2]
+        \begin{enumerate}
+            \item
+                Static analysis collector for structures in code
+            \item
+                Runtime analysis collector for events in Observable
+                sequences
+            \item
+                Interface to select `root' Observable:  which Observable
+                to use as starting point for the visualisation
+            \item
+                Interface to switch between runtime events and (interactive/generated)
+                test events
+            \item
+                `Smart' test event generation, if not done in prototype
+                1.
+        \end{enumerate}
+\end{enumerate}
 
 \bibliography{papers/references}
 {}
