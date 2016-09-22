@@ -24,6 +24,8 @@ import jdk.internal.org.objectweb.asm.Opcodes;
 import jdk.internal.org.objectweb.asm.Type;
 import nl.hermanbanken.rxfiddle.Hook;
 
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 @SuppressWarnings("UnusedParameters")
 class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   private final String visitedClass;
@@ -45,25 +47,21 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
     this.visitedAccess = visitedAccess;
   }
 
+  private static Pattern METHOD_REGEX =
+      Pattern.compile("^(request|(un)?subscribe|unsafeSubscribe|on(Next|Error|Complete))$");
+  private static Predicate<String> METHOD_PREDICATE = METHOD_REGEX.asPredicate();
+
+  private static Pattern RETURN_TYPE_REGEX =
+    Pattern.compile(".*\\)Lrx/(Blocking|Single|Subscription|.*(Observable|Subscriber));$");
+  private static Predicate<String> RETURN_TYPE_PREDICATE = RETURN_TYPE_REGEX.asPredicate();
+
   private Boolean shouldLog(String className, String methodName, String signature) {
     return shouldTrace(className, methodName, signature)
-        || className.startsWith("rx/")
-            && (methodName.equals("request")
-                || methodName.equals("subscribe")
-                || methodName.equals("unsafeSubscribe")
-                || methodName.equals("unsubscribe")
-                || methodName.equals("onNext")
-                || methodName.equals("onError")
-                || methodName.equals("onComplete"));
+        || className.startsWith("rx/") && (METHOD_PREDICATE.test(methodName));
   }
 
   private static Boolean shouldTrace(String className, String methodName, String signature) {
-    String returned = signature.substring(signature.lastIndexOf(')') + 1);
-    return returned.equals("Lrx/Blocking;")
-        || returned.equals("Lrx/Single;")
-        || returned.equals("Lrx/Subscription;")
-        || (returned.startsWith("Lrx/") && returned.endsWith("Observable;"))
-        || (returned.startsWith("Lrx/") && returned.endsWith("Subscriber;"));
+    return RETURN_TYPE_PREDICATE.test(signature);
   }
 
   @Override
