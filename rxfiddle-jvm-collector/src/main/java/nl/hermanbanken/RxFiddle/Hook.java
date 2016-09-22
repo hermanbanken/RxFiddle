@@ -121,7 +121,6 @@ public class Hook {
     if (obj == null) return;
     if (followed.add(obj)) {
       visualizer.logFollow(new Follow(obj));
-      System.out.printf("Following %s\n", obj);
     }
   }
 }

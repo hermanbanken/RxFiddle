@@ -114,7 +114,8 @@ public class HookFollowTest {
     Hook.visualizer = log;
     Observable<Integer> o = Observable.just(0, 1, 3, 4, 5);
     shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == null, "");
-    shouldContain(1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
+    shouldContain(
+        1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
     shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
     assertLength(3, log.events);
   }
@@ -126,7 +127,8 @@ public class HookFollowTest {
     Observable<Observable<Integer>> o = s.map(Observable::just);
 
     shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == s, "");
-    shouldContain(1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
+    shouldContain(
+        1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
     shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
     assertLength(3, log.events);
 
