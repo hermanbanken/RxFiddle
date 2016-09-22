@@ -43,15 +43,15 @@ class UsageClassMethodVisitor extends MethodVisitor implements Opcodes {
   }
 
   private Boolean shouldLog(String className, String methodName, String signature) {
-    if (!className.startsWith("rx/")) return false;
-    return methodName.equals("request")
-        || methodName.equals("subscribe")
-        || methodName.equals("unsafeSubscribe")
-        || methodName.equals("unsubscribe")
-        || methodName.equals("onNext")
-        || methodName.equals("onError")
-        || methodName.equals("onComplete")
-        || shouldTrace(className, methodName, signature);
+    return shouldTrace(className, methodName, signature)
+        || className.startsWith("rx/")
+            && (methodName.equals("request")
+                || methodName.equals("subscribe")
+                || methodName.equals("unsafeSubscribe")
+                || methodName.equals("unsubscribe")
+                || methodName.equals("onNext")
+                || methodName.equals("onError")
+                || methodName.equals("onComplete"));
   }
 
   private static Boolean shouldTrace(String className, String methodName, String signature) {
