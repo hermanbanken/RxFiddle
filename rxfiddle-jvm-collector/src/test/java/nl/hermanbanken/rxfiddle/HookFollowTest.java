@@ -1,5 +1,8 @@
 package nl.hermanbanken.rxfiddle;
 
+import nl.hermanbanken.rxfiddle.data.Follow;
+import nl.hermanbanken.rxfiddle.data.Invoke;
+import nl.hermanbanken.rxfiddle.data.InvokeResult;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -12,6 +15,7 @@ import rx.internal.util.ActionSubscriber;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -19,6 +23,8 @@ import java.util.function.Predicate;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class HookFollowTest {
+
+  private CaptureVisualizer log = new CaptureVisualizer();
 
   @BeforeClass
   public static void ensureClassesLoaded() {
@@ -44,7 +50,7 @@ public class HookFollowTest {
     shouldContain(1, Hook.followed, ourSubs, "Subscriber");
     shouldContain(1, Hook.followed, o -> o instanceof Observable, "Observable");
     // TODO figure out why it also contains a ActionSubscriber
-    Assert.assertEquals(2 + 1, Hook.followed.size());
+    assertLength(2 + 1, Hook.followed);
   }
 
   @Test
@@ -62,7 +68,7 @@ public class HookFollowTest {
     shouldContain(3, Hook.followed, ourSubs, "Subscriber");
     shouldContain(3, Hook.followed, o -> o instanceof Observable, "Observable");
     // TODO figure out why it also contains a ActionSubscriber
-    Assert.assertEquals(6 + 1, Hook.followed.size());
+    assertLength(6 + 1, Hook.followed);
   }
 
   @Test(timeout = 300)
@@ -85,8 +91,52 @@ public class HookFollowTest {
     shouldContain(3, Hook.followed, o -> o instanceof ScheduledAction, "ScheduledAction");
   }
 
-  private static void shouldContain(
-      int count, Collection<Object> input, Predicate<Object> matcher, String typeDescription) {
+  @Test
+  public void testRetrieveTarget() {
+    Hook.visualizer = log;
+    Observable<Integer> o = Observable.just(0, 1, 3, 4, 5);
+    shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == null, "");
+    shouldContain(1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
+    shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
+    assertLength(3, log.events);
+  }
+
+  @Test
+  public void testTargetsOutOfOrder() {
+    Observable<Integer> s = Observable.just(0);
+    Hook.visualizer = log;
+    Observable<Observable<Integer>> o = s.map(Observable::just);
+
+    shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == s, "");
+    shouldContain(1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
+    shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
+    assertLength(3, log.events);
+
+    log.events.clear();
+
+    TestSubscriber<Observable<Integer>> l = new TestSubscriber<>();
+    o.subscribe(l);
+    l.awaitTerminalEvent();
+
+    assertLength(3, log.events);
+    shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == s, "");
+    shouldContain(1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
+    shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
+  }
+
+  private static <T> void assertLength(int length, Collection<T> input) {
+    if(input.size() != length) {
+      Assert.fail(String.format("expected:<%d> but was:<%d>\nExpected\t:%d\nActual\t:%s",
+        length,
+        input.size(),
+        length,
+        Arrays.toString(input.toArray())
+        ));
+    }
+  }
+
+  private static <T> void shouldContain(
+      int count, Collection<T> input, Predicate<Object> matcher, String typeDescription) {
     long actual = input.stream().filter(matcher).count();
     if (actual != count) {
       StringBuilder s = new StringBuilder();
