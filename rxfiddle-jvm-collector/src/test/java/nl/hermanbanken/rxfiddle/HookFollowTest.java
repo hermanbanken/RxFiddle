@@ -140,29 +140,38 @@ public class HookFollowTest {
 
     assertLength(3, log.events);
     shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == s, "");
-    shouldContain(1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
+    shouldContain(
+        1, log.events, e -> e instanceof InvokeResult && ((InvokeResult) e).result == o, "");
     shouldContain(1, log.events, e -> e instanceof Follow && ((Follow) e).target == o, "");
   }
 
   private static <T> void assertLength(int length, Collection<T> input) {
-    if(input.size() != length) {
-      Assert.fail(String.format("expected:<%d> but was:<%d>\nExpected\t:%d\nActual\t:%s",
-        length,
-        input.size(),
-        length,
-        Arrays.toString(input.toArray())
-        ));
+    if (input.size() != length) {
+      StringBuilder s = new StringBuilder();
+      for (Object item : input.toArray()) {
+        s.append(item);
+        s.append('\n');
+      }
+
+      Assert.fail(
+          String.format(
+              "expected:<%d> but was:<%d>\nExpected\t:%d\nActual\t:[\n%s]",
+              length,
+              input.size(),
+              length,
+              s));
     }
   }
 
   private static <T> void shouldContain(
       int count, Collection<T> input, Predicate<Object> matcher, String typeDescription) {
-    long actual = input.stream().filter(matcher).count();
+    Collection<T> copy = Collections.unmodifiableCollection(input);
+    long actual = copy.stream().filter(matcher).count();
     if (actual != count) {
       StringBuilder s = new StringBuilder();
       if (actual > count) {
         s.append("Matches: [\n");
-        for (Object item : input.stream().filter(matcher).toArray()) {
+        for (Object item : copy.stream().filter(matcher).toArray()) {
           s.append('\t');
           s.append(item);
           s.append('\n');
@@ -170,7 +179,7 @@ public class HookFollowTest {
         s.append("]");
       } else {
         s.append("All: [\n");
-        for (Object item : input) {
+        for (Object item : copy) {
           s.append('\t');
           s.append(matcher.test(item));
           s.append('\t');
