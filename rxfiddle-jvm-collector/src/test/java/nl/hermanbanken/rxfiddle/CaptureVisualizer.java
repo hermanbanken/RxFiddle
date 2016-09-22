@@ -45,12 +45,6 @@ public class CaptureVisualizer extends StdOutVisualizer {
   }
 
   @Override
-  public void logRuntime(RuntimeEvent runtimeEvent) {
-    events.add(runtimeEvent);
-    super.logRuntime(runtimeEvent);
-  }
-
-  @Override
   public void logFollow(Follow follow) {
     events.add(follow);
     super.logFollow(follow);

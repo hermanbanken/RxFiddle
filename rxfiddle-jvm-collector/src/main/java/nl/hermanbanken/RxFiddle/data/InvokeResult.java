@@ -32,19 +32,12 @@ public class InvokeResult implements RxFiddleEvent {
     if(invoke == null) {
       return String.format("result without invoke %s", result);
     }
-    return invoke.target == null
-        ? String.format(
-            "static[%s::%s] => %s\n%s",
-            invoke.className.replace('/', '.'),
-            invoke.methodName,
-            Utils.objectToString(result),
-            invoke.label)
-        : String.format(
+    return String.format(
             "%s[%s::%s] => %s\n%s",
-            Utils.objectToString(invoke.target),
+            invoke.target == null ? "static" : Utils.objectToString(invoke.target),
             invoke.className.replace('/', '.'),
             invoke.methodName,
             Utils.objectToString(result),
-            invoke.label);
+            invoke.label == null ? "" : invoke.label).trim();
   }
 }

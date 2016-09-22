@@ -19,27 +19,34 @@
 package nl.hermanbanken.rxfiddle.data;
 
 public class Invoke implements RxFiddleEvent {
+
+  public static enum Kind {
+    Setup,
+    Runtime
+  }
+
   public final Object target;
   final String className;
   final String methodName;
   final Label label;
+  public Kind kind;
 
-  public Invoke(Object target, String className, String methodName, Label label) {
+  public Invoke(Object target, String className, String methodName, Label label, Kind kind) {
     this.target = target;
     this.className = className;
     this.methodName = methodName;
     this.label = label;
+    this.kind = kind;
   }
 
   @Override
   public String toString() {
-    return target == null
-        ? String.format("static[%s::%s]\n%s", className.replace('/', '.'), methodName, label)
-        : String.format(
-            "%s[%s::%s]\n%s",
-            Utils.objectToString(target),
-            className.replace('/', '.'),
-            methodName,
-            label);
+    return String.format(
+      "%s[%s::%s] %s\n%s",
+      target == null ? "static" : Utils.objectToString(target),
+      className.replace('/', '.'),
+      methodName,
+      kind,
+      label == null ? "" : label).trim();
   }
 }

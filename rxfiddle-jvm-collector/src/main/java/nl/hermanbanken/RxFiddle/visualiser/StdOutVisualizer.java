@@ -30,17 +30,12 @@ public class StdOutVisualizer implements Visualizer {
 
   @Override
   public void logInvoke(Invoke invoke) {
-    System.out.println("fiddle setup " + invoke);
+    System.out.println("fiddle invoke " + invoke);
   }
 
   @Override
   public void logResult(InvokeResult result) {
-    System.out.println("fiddle setup " + result);
-  }
-
-  @Override
-  public void logRuntime(RuntimeEvent runtimeEvent) {
-    System.out.println("fiddle runtime " + runtimeEvent);
+    System.out.println("fiddle result " + result);
   }
 
   @Override

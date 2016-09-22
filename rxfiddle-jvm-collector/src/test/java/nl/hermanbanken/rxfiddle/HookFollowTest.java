@@ -21,10 +21,8 @@ package nl.hermanbanken.rxfiddle;
 import nl.hermanbanken.rxfiddle.data.Follow;
 import nl.hermanbanken.rxfiddle.data.Invoke;
 import nl.hermanbanken.rxfiddle.data.InvokeResult;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import nl.hermanbanken.rxfiddle.data.RxFiddleEvent;
+import org.junit.*;
 import rx.Observable;
 import rx.Subscriber;
 import rx.Subscription;
@@ -58,6 +56,16 @@ public class HookFollowTest {
   @Before
   public void setup() {
     Hook.reset();
+    Hook.visualizer = log;
+  }
+
+  @After
+  public void after() {
+    System.out.println("================================");
+    for (RxFiddleEvent event : log.events) {
+      System.out.println(event);
+    }
+    System.out.println("^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^");
   }
 
   @Test
@@ -67,8 +75,7 @@ public class HookFollowTest {
     Predicate<Object> ourSubs = o -> o instanceof Subscriber && !(o instanceof ActionSubscriber);
     shouldContain(1, Hook.followed, ourSubs, "Subscriber");
     shouldContain(1, Hook.followed, o -> o instanceof Observable, "Observable");
-    // TODO figure out why it also contains a ActionSubscriber
-    assertLength(2 + 1, Hook.followed);
+    assertLength(2, Hook.followed);
   }
 
   @Test
@@ -82,11 +89,12 @@ public class HookFollowTest {
         .take(2)
         .subscribe(System.out::println);
 
+    shouldContain(3, log.events, e -> e instanceof Invoke && ((Invoke) e).kind == Invoke.Kind.Setup, "invokes");
+
     Predicate<Object> ourSubs = o -> o instanceof Subscriber && !(o instanceof ActionSubscriber);
     shouldContain(3, Hook.followed, ourSubs, "Subscriber");
     shouldContain(3, Hook.followed, o -> o instanceof Observable, "Observable");
-    // TODO figure out why it also contains a ActionSubscriber
-    assertLength(6 + 1, Hook.followed);
+    assertLength(6, Hook.followed);
   }
 
   @Test(timeout = 300)
@@ -103,7 +111,7 @@ public class HookFollowTest {
     ts.awaitTerminalEvent();
     ts.assertCompleted();
 
-    shouldContain(3, Hook.followed, o -> o instanceof Subscriber, "Subscriber");
+    shouldContain(2, Hook.followed, o -> o instanceof Subscriber, "Subscriber");
     shouldContain(1, Hook.followed, o -> o.equals(s[0]), "TestSubscription");
     shouldContain(2, Hook.followed, o -> o instanceof Observable, "Observable");
     shouldContain(3, Hook.followed, o -> o instanceof ScheduledAction, "ScheduledAction");
@@ -123,7 +131,7 @@ public class HookFollowTest {
   @Test
   public void testTargetsOutOfOrder() {
     Observable<Integer> s = Observable.just(0);
-    Hook.visualizer = log;
+    log.events.clear();
     Observable<Observable<Integer>> o = s.map(Observable::just);
 
     shouldContain(1, log.events, e -> e instanceof Invoke && ((Invoke) e).target == s, "");

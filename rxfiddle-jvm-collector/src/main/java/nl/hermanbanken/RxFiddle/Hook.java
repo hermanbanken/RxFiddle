@@ -20,13 +20,13 @@ package nl.hermanbanken.rxfiddle;
 
 import jdk.internal.org.objectweb.asm.Type;
 import nl.hermanbanken.rxfiddle.data.*;
+import nl.hermanbanken.rxfiddle.data.Invoke.Kind;
 import nl.hermanbanken.rxfiddle.visualiser.StdOutVisualizer;
 import nl.hermanbanken.rxfiddle.visualiser.Visualizer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Stack;
+import java.util.*;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 /**
  * Hook for instrumented classes
@@ -79,28 +79,30 @@ public class Hook {
         "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V";
   }
 
+  public static Predicate<String> RUNTIME = Pattern.compile("request|subscribe|unsafeSubscribe|on(Next|Error|Complete)").asPredicate();
+
   /** Usage of Rx **/
   public static void libraryHook(
       Object subject, String className, String methodName, boolean fromLambda) {
     if (className.startsWith("rx/plugins") || className.startsWith("rx/internal")) return;
 
+    Invoke invoke;
     // Runtime events
-    if (followed.contains(subject)
-        && (methodName.equals("request")
-            || methodName.startsWith("subscribe")
-            || methodName.startsWith("on"))) {
-      System.out.printf("On followed subject %s: %s\n", subject, methodName);
-      visualizer.logRuntime(new RuntimeEvent(subject, className, methodName));
-    } else if (methodName.startsWith("subscribe")
-        || methodName.startsWith("on")
-        || methodName.startsWith("unsubscribe")) {
-      System.err.printf("Ignored runtime event %s %s %s\n", subject, className, methodName);
+    if (followed.contains(subject) && RUNTIME.test(methodName)) {
+      invoke = new Invoke(subject, className, methodName, labels.size() > 0 ? labels.peek() : null, Kind.Runtime);
     }
-
-    // Setup events
-    if (labels.isEmpty()) return;
-    if (subject != null) follow(subject);
-    Invoke invoke = new Invoke(subject, className, methodName, labels.peek());
+    // Static setup events
+    else if(!labels.isEmpty() && subject == null && className.contains("Observable")) {
+      invoke = new Invoke(null, className, methodName, labels.peek(), Kind.Setup);
+    }
+    // Instance setup events
+    else if(!labels.isEmpty() && subject != null && followed.contains(subject)) {
+      follow(subject);
+      invoke = new Invoke(subject, className, methodName, labels.peek(), Kind.Setup);
+    } else {
+      System.err.printf("Ignored %s %s %s %b\n", subject, className, methodName, fromLambda);
+      return;
+    }
     invokes.push(invoke);
     visualizer.logInvoke(invoke);
   }
