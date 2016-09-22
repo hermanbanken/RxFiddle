@@ -20,9 +20,9 @@ package nl.hermanbanken.rxfiddle.data;
 
 public class Invoke implements RxFiddleEvent {
   public final Object target;
-  public final String className;
-  public final String methodName;
-  public final Label label;
+  final String className;
+  final String methodName;
+  final Label label;
 
   public Invoke(Object target, String className, String methodName, Label label) {
     this.target = target;
@@ -34,10 +34,9 @@ public class Invoke implements RxFiddleEvent {
   @Override
   public String toString() {
     return target == null
-        ? String.format(
-            "static[%s::%s], %s", className.replace('/', '.'), methodName, label)
+        ? String.format("static[%s::%s]\n%s", className.replace('/', '.'), methodName, label)
         : String.format(
-            "%s[%s::%s], %s",
+            "%s[%s::%s]\n%s",
             Utils.objectToString(target),
             className.replace('/', '.'),
             methodName,

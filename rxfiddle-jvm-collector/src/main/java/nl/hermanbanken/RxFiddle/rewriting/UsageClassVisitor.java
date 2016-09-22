@@ -24,6 +24,7 @@ import jdk.internal.org.objectweb.asm.Opcodes;
 
 class UsageClassVisitor extends ClassVisitor {
   private String className;
+  private String fileName = "unknown";
 
   UsageClassVisitor(ClassVisitor cv) {
     super(Opcodes.ASM5, cv);
@@ -38,7 +39,18 @@ class UsageClassVisitor extends ClassVisitor {
       String superName,
       String[] interfaces) {
     this.className = name;
+    try {
+      this.fileName = name.substring(name.lastIndexOf('/')+1, name.indexOf('$', name.lastIndexOf('/'))) + ".java";
+    } catch (Exception e) {
+      this.fileName = "unknown";
+    }
     super.visit(version, access, name, signature, superName, interfaces);
+  }
+
+  @Override
+  public void visitSource(String fileName, String debug) {
+    super.visitSource(fileName, debug);
+    this.fileName = fileName;
   }
 
   /**
@@ -68,10 +80,10 @@ class UsageClassVisitor extends ClassVisitor {
 
   @Override
   public MethodVisitor visitMethod(
-      int access, String name, String desc, String signature, String[] exceptions) {
-    MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
+      int access, String methodName, String desc, String signature, String[] exceptions) {
+    MethodVisitor mv = super.visitMethod(access, methodName, desc, signature, exceptions);
     if (ignore(className)) return mv;
-    return new UsageClassMethodVisitor(mv, className, name, access);
+    return new UsageClassMethodVisitor(mv, className, methodName, fileName, access);
   }
 
   private static boolean ignore(String className) {

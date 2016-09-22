@@ -75,7 +75,8 @@ public class Hook {
     public static final String LEAVE_METHOD_DESC = "(Ljava/lang/Object;)V";
 
     public static final String ENTER_METHOD_NAME = "enter";
-    public static final String ENTER_METHOD_DESC = "(Ljava/lang/String;Ljava/lang/String;I)V";
+    public static final String ENTER_METHOD_DESC =
+        "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;I)V";
   }
 
   /** Usage of Rx **/
@@ -105,8 +106,8 @@ public class Hook {
   }
 
   /** Tracing **/
-  public static void enter(String className, String methodName, int lineNumber) {
-    Label label = new Label(className, methodName, lineNumber);
+  public static void enter(String className, String methodName, String file, int lineNumber) {
+    Label label = new Label(className, methodName, file, lineNumber);
     labels.add(label);
   }
 

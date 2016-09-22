@@ -33,8 +33,8 @@ import rx.internal.util.ActionSubscriber;
 import rx.observers.TestSubscriber;
 import rx.schedulers.Schedulers;
 
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 

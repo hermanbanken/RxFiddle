@@ -19,9 +19,9 @@
 package nl.hermanbanken.rxfiddle.data;
 
 public class RuntimeEvent implements RxFiddleEvent {
-  public final Object target;
-  public final String className;
-  public final String methodName;
+  private final Object target;
+  private final String className;
+  private final String methodName;
 
   public RuntimeEvent(Object target, String className, String methodName) {
     this.target = target;

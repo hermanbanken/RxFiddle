@@ -19,7 +19,7 @@
 package nl.hermanbanken.rxfiddle.data;
 
 public class InvokeResult implements RxFiddleEvent {
-  public final Invoke invoke;
+  private final Invoke invoke;
   public final Object result;
 
   public InvokeResult(Invoke invoke, Object result) {
@@ -29,7 +29,22 @@ public class InvokeResult implements RxFiddleEvent {
 
   @Override
   public String toString() {
-    return String.format(
-        "%s => %s", invoke == null ? "null" : invoke.toString(), Utils.objectToString(result));
+    if(invoke == null) {
+      return String.format("result without invoke %s", result);
+    }
+    return invoke.target == null
+        ? String.format(
+            "static[%s::%s] => %s\n%s",
+            invoke.className.replace('/', '.'),
+            invoke.methodName,
+            Utils.objectToString(result),
+            invoke.label)
+        : String.format(
+            "%s[%s::%s] => %s\n%s",
+            Utils.objectToString(invoke.target),
+            invoke.className.replace('/', '.'),
+            invoke.methodName,
+            Utils.objectToString(result),
+            invoke.label);
   }
 }

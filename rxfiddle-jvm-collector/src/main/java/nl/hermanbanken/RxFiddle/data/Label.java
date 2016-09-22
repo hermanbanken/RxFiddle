@@ -21,19 +21,22 @@ package nl.hermanbanken.rxfiddle.data;
 import java.util.Objects;
 
 public class Label implements RxFiddleEvent {
-  public final String className;
-  public final String methodName;
-  public final int lineNumber;
+  private final String className;
+  private final String methodName;
+  private String fileName;
+  private final int lineNumber;
 
-  public Label(String className, String methodName, int lineNumber) {
+  public Label(String className, String methodName, String file, int lineNumber) {
     this.className = className;
     this.methodName = methodName;
+    this.fileName = file;
     this.lineNumber = lineNumber;
   }
 
   @Override
   public String toString() {
-    return String.format("%s.%s:%d", className.replace('/', '.'), methodName, lineNumber);
+    return String.format(
+        "\tat %s.%s(%s:%d)", className.replace('/', '.'), methodName, fileName, lineNumber);
   }
 
   @Override
