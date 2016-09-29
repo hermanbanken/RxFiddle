@@ -18,14 +18,39 @@
 
 package nl.hermanbanken.rxfiddle;
 
+import nl.hermanbanken.rxfiddle.analysis.UsageAnalyser;
 import nl.hermanbanken.rxfiddle.rewriting.UsageTransformer;
+import nl.hermanbanken.rxfiddle.utils.*;
 
+import java.io.*;
+import java.io.File;
 import java.lang.instrument.Instrumentation;
 
 @SuppressWarnings("unused")
-public class PreMain {
+public class RxFiddleAgent {
 
   public static void premain(String args, Instrumentation inst) {
     inst.addTransformer(new UsageTransformer());
+  }
+
+  public static void agentmain(String args, Instrumentation inst) {
+    inst.addTransformer(new UsageTransformer());
+  }
+
+  public static void main(String[] args) throws IOException {
+    if (args.length == 0) {
+      String jar = "rxfiddle-jvm-collector.jar";
+      System.out.println("Usage:");
+      System.out.printf("    java -jar %s [my-project.jar]\n", jar);
+      System.out.printf("    java -jar %s [directory]\n", jar);
+      System.out.printf("    java -cp [classpath] -javaagent:%s [org.example.Main]\n", jar);
+      return;
+    }
+
+    File file = new File(args[0]);
+
+    FileUtils.streamRecursively(file, FileUtils.withExt(".class", ".jar"))
+        .flatMap(FileUtils::toClassInputStream)
+        .forEach(UsageAnalyser::readClassStream);
   }
 }

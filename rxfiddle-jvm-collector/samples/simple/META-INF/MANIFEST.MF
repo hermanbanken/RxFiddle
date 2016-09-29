@@ -1,2 +1,2 @@
 Manifest-Version: 1.0
-Premain-Class: nl.hermanbanken.rxfiddle.PreMain
+Premain-Class: nl.hermanbanken.rxfiddle.RxFiddleAgent

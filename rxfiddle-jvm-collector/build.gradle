@@ -40,7 +40,9 @@ jar {
                    'Implementation-Version': version,
                    'Can-Redefine-Classes': true,
                    'Can-Retransform-Classes': true,
-                   'Premain-Class': 'nl.hermanbanken.rxfiddle.PreMain'
+                   'Premain-Class': 'nl.hermanbanken.rxfiddle.RxFiddleAgent',
+                   'Agentmain-Class': 'nl.hermanbanken.rxfiddle.RxFiddleAgent',
+                   'Main-Class': 'nl.hermanbanken.rxfiddle.RxFiddleAgent'
     }
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 }
