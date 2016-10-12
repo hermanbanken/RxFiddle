@@ -1,0 +1,33 @@
+{
+  "version": "2.1.0-dev.20161007",
+  "compileOnSave": true,
+  "compilerOptions": {
+    "sourceMap": true,
+    "outDir": "dist",
+    "module": "commonjs",
+    "typeRoots": [
+      "node_modules/@types/"
+    ],
+    "types": [
+      "node",
+      "electron",
+      "dagre"
+    ],
+    "target": "ES6",
+    "jsx": "preserve",
+    "removeComments": false,
+    "noImplicitAny": true,
+    "experimentalDecorators": true
+  },
+  "include": [
+    "src/**/*",
+    "src/*",
+    "test/**/*",
+    "test/*",
+    "node_modules/rx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

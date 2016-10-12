@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<style>
+		html,
+		body {
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+	<script>
+      function script(src) {
+        var s = document.createElement("script");
+        s.src = src;
+        s.async = false;
+        document.head.appendChild(s);
+      }
+      if(typeof require == 'undefined') {
+        script('../dist/main.bundle.js');
+      } else {
+        script('../dist/main.js')
+      }
+    </script>
+</head>
+<div id="app"></div>
+<div id="log"></div>
+<script>
+</script>
+<div id="graph">
+	<svg id="svg">
+		<g id="graph-layer"></g>
+	</svg>
+</div>
+
+</html>

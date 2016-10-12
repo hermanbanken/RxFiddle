@@ -2,17 +2,43 @@
   "name": "rxfiddle-app",
   "version": "1.0.0",
   "description": "",
-  "main": "app/start.js",
-  "scripts": {
-    "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "main": "dist/start.js",
   "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "electron-prebuilt": "^1.4.0"
+  "typings": "dist",
+  "scripts": {
+    "compile": "tsc",
+    "watch": "tsc -w --sourceMap | node_modules/.bin/watchify -v -d --noparse rxmarbles dist/main.js -o dist/main.bundle.js",
+    "start": "electron .",
+    "bundle": "browserify -noparse rxmarbles dist/main.js > dist/app.js",
+    "test": "tsc -p . && mocha dist/test",
+    "prepublish": "tsc -p ."
   },
   "dependencies": {
-    "vue": "^1.0.26"
+    "@cycle/dom": "^12.2.5",
+    "@cycle/rx-run": "^7.0.1",
+    "@types/dagre": "^0.7.32",
+    "@types/electron": "^1.4.24",
+    "@types/node": "^6.0.45",
+    "@types/rx": "^2.5.33",
+    "immutable": "^3.8.1",
+    "rx": "^4.1.0",
+    "rxmarbles": "1.4.1",
+    "snabbdom": "^0.5.3",
+    "svg-pan-zoom": "github:ariutta/svg-pan-zoom"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.14.0",
+    "babel-preset-es2015": "^6.14.0",
+    "babel-preset-react": "^6.11.1",
+    "babel-preset-stage-2": "^6.13.0",
+    "babelify": "^7.3.0",
+    "electron-prebuilt": "^1.4.0",
+    "mocha": "^3.1.0",
+    "mocha-typescript": "^1.0.10",
+    "tsify": "^1.0.9",
+    "tslint": "^3.15.1",
+    "typescript": "^2.0.3",
+    "watchify": "^3.7.0"
   }
 }
