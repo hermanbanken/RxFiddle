@@ -21,6 +21,31 @@ export interface ICallRecord {
   returned: any | null;
 }
 
+function centeredRect(width: number, height: number, opts: any = {}): VNode {
+  return h("rect", {
+    attrs: Object.assign({
+      fill: "transparent",
+      stroke: "black",
+      "stroke-width": 2,
+      width,
+      height,
+      x: -width / 2,
+      y: -height / 2,
+    }, opts),
+  });
+}
+function centeredText(text: string, opts: any = {}): VNode {
+  return h("text", {
+    attrs: Object.assign({
+      x: 0,
+      y: 0,
+      "text-anchor": "middle",
+      "alignment-baseline": "middle",
+    }, opts),
+  }, text);
+}
+
+
 const inst_method = "instrumented";
 const inst_file = "rxfiddle-collector.js";
 
@@ -28,34 +53,75 @@ function endsWith(self: string, suffix: string): boolean {
   return self.indexOf(suffix, self.length - suffix.length) !== -1;
 };
 
+// class Identification { 
+//   constructor(public id: string, public frame: StackFrame) { }
+// }
+// class Thing {
+//   constructor(public result: any) { }
+// }
+
+type Identification = string;
+type Result = any;
+
+
 export class Visualizer {
 
   private static isNotRxFiddle(frame: any): boolean {
     return frame.functionName !== inst_method || !endsWith(frame.fileName, inst_file);
   }
 
-  private g = new dagre.graphlib.Graph();
+  private g = new dagre.graphlib.Graph({ compound: true });
   private unrendered: number = 0;
   private svg: HTMLElement;
+
+  private stackLookup: { [id: Identification]: StackFrame } = {};
+  private structure: { [id: Identification]: { operator: StackFrame, result: Result } } = {};
+  private hashLookup: { [hash: string]: { thing: Result } } = {};
+
   constructor() {
     this.g.setGraph({});
     this.g.setDefaultEdgeLabel(() => ({}));
   }
 
+  public id(record: ICallRecord): string {
+    let last = ErrorStackParser.parse(record).slice(1, 2)[0];
+    let id = record.subjectName + "." + record.method + last.source;
+    return id;
+  }
+
   public log(record: ICallRecord) {
-    // if (this.unrendered < 20) {
-    //   var last = ErrorStackParser.parse(record).slice(1, 2)[0];
-    //   var id = record.subjectName + "." + record.method + last.source;
-    //   console.log(record.id, record, id);
-    // }
+    record.stack = ErrorStackParser.parse(record).slice(1, 2)[0];
+
+    if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
+      // let id = this.id(record);
+      this.tag(record.subject);
+      this.tag(record.returned);
+
+      // Something used as Subject before it comes by as Result
+      // Something used as Result, later as Subject
+      this.addNode(record.subject, record.subjectName);
+      this.addNode(record.returned);
+      this.g.setNode(record.stack.source, { height: 1, width: 1, render: () => h("text", record.stack.functionName) });
+      this.g.setParent(record.returned[HASH], record.stack.source);
+      this.link(record.subject, record.method, record.stack, record.returned);
+
+      // this.createdByLookup[record.returned[HASH]] = id;
+      // this.addStructure(id, record.method, record.returned.getName());
+
+      // if (typeof this.createdByLookup[record.subject[HASH]] !== "undefined") {
+      //   this.g.setEdge(this.createdByLookup[record.subject[HASH]], id);
+      // }
+    }
 
     this.unrendered += 1;
+    return;
+
     if (!record.subject[HASH]) {
       if (typeof record.subject[IGNORE] === "undefined") {
-        this.tag(record.subject);
+        this.addNode(record.subject);
       } else {
         record.subject = {};
-        this.tag(record.subject, record.subjectName);
+        this.addNode(record.subject, record.subjectName);
       }
     }
 
@@ -63,7 +129,7 @@ export class Visualizer {
       let operator = this.operator(record.method);
       this.g.setEdge(record.subject[HASH], operator);
 
-      this.tag(record.returned);
+      this.addNode(record.returned);
       this.g.setEdge(operator, record.returned[HASH]);
     }
   }
@@ -125,65 +191,88 @@ export class Visualizer {
       label: name,
       render: () => {
         return [
-          h("rect", {
-            attrs: {
-              fill: "transparent",
-              height: 30,
-              stroke: "black",
-              "stroke-width": 2,
-              width: 100,
-              x: -100 / 2,
-              y: -30 / 2,
-              rx: 10,
-              ry: 10,
-            },
-          }),
-          h("text", {
-            attrs: {
-              x: 0,
-              y: 0,
-              "text-anchor": "middle",
-              "alignment-baseline": "middle",
-            },
-          }, name),
+          centeredRect(100, 30, { rx: 10, ry: 10 }),
+          centeredText(name),
         ];
       },
     });
     return id;
   }
 
-  private tag(subject: any, subjectName: string = null) {
-    if (typeof subject[HASH] !== "undefined") {
+  private addNode(subject: any, subjectName: string = null) {
+    if (typeof subject === "undefined") {
       return;
     }
+    if (typeof subject[HASH] === "undefined") {
+      this.tag(subject);
+    }
 
-    subject[HASH] = performance.now();
     this.g.setNode(subject[HASH], {
       width: 100,
       height: 30,
       render: () => {
         return [
-          h("rect", {
-            attrs: {
-              fill: "transparent",
-              height: 30,
-              stroke: "black",
-              "stroke-width": 2,
-              width: 100,
-              x: -100 / 2,
-              y: -30 / 2,
-            },
-          }),
-          h("text", {
-            attrs: {
-              x: 0,
-              y: 0,
-              "text-anchor": "middle",
-              "alignment-baseline": "middle",
-            },
-          }, subjectName || subject.getName()),
+          centeredRect(100, 30),
+          centeredText(subjectName || subject.getName()),
         ];
       },
     });
+  }
+
+  private addStructure(id: string, operatorName: string, resultName: string) {
+    if (typeof this.structure[id] !== "undefined") { return; }
+    this.structure[id] = {
+      operator: {
+        height: 30,
+        render: () => {
+          return [
+            centeredRect(100, 30, { stroke: "green", rx: 10, ry: 10 }),
+            centeredText(operatorName),
+          ];
+        },
+        width: 100,
+      },
+      result: {
+        height: 30,
+        render: () => {
+          return [
+            centeredRect(100, 30, { stroke: "blue" }),
+            centeredText(resultName),
+          ];
+        },
+        width: 100,
+      },
+    };
+    this.g.setNode(id + "operator", this.structure[id].operator);
+    this.g.setNode(id, this.structure[id].result);
+    this.g.setEdge(id + "operator", id);
+  }
+
+  private tag(subject: any, subjectName: string = null) {
+    if (typeof subject[HASH] !== "undefined") {
+      return;
+    }
+    subject[HASH] = performance.now();
+    this.hashLookup[subject[HASH]] = subject;
+  }
+
+  private link(subject: any, operator: string, stack: StackFrame, result: any): void {
+    if (typeof result === "undefined") { return; }
+    this.g.setNode(result[HASH] + "-creation", {
+      height: 40,
+        render: () => {
+          return [
+            centeredRect(200, 40, { stroke: "green", rx: 10, ry: 10 }),
+            centeredText(operator, { y: -10 }),
+            centeredText(`${stack.functionName}:${stack.lineNumber}:${stack.columnNumber}`, { y: 10 }),
+          ];
+        },
+        width: 200,
+    });
+
+    if (typeof subject !== "undefined") {
+      this.g.setEdge(subject[HASH], result[HASH] + "-creation");
+    }
+    this.g.setEdge(result[HASH] + "-creation", result[HASH]);
   }
 }
