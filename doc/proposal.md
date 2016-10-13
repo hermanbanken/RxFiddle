@@ -1,11 +1,38 @@
+Abstract
+========
+
+TBD
+
 Introduction
 ============
 
-Reactive Programming has been around for many years, and recently several implementations have surfaced that are now incorporated into widely used frameworks and in use for many production applications. However, adapting to the paradigm of Reactive Programming as a developer is known to take some time. Furthermore, even with basic or advanced knowledge of an implementation it takes longer to understand existing Reactive code than simple sequential code. What can really help to understand the created data flows are diagrams (Weck and Tichy [2016](#ref-weck2016visualizing)) which show how data is received, transformed and emitted at each step.
+Software often needs to respond to external events and data flows. For example in interactive applications, for desktop, web and mobile phones, in graphics and in processing sensor data from phones or IoT-devices. We can use Reactive Programming (RP) to express complex reactive behaviour of these applications in a more declarative, intuitive and consise manner than using traditional design patterns. Programs are generally more comprehensible, requiring less programming skills, when created using RP compared to an equal implementation using the Observer design pattern (Johnson et al. [1995](#ref-johnson1995design)), according to Salvaneschi et al. (Salvaneschi et al. [2014](#ref-salvaneschi2014empirical)).
 
-The scope of this thesis will be Reactive Extensions (Rx) (Microsoft, n.d.), one of the libraries implementing Reactive Programming which has implementations in almost every programming language. The main documentation of Rx (“ReactiveX.io,” n.d.) uses Marble Diagrams (Wes Dyer and Gogh, n.d.) for each operator to show the behaviour of this single operator. These diagrams really complement the name of the operator and its description, allowing the developer to work-out the nitty details and pick the right operator for it’s use. They are however only generated per operator, and are not combined for complete data flows, showing the full flow through many operators.
+Equal programs are easier to comprehend in RP style, but more complex programs are also easily created using RP. It could be hard to reason about the full behaviour of these programs, several degrees more complex in behaviour than traditional applications.
 
-In this master’s thesis we will focus on creating complete and interactive Marble Diagrams for full data flows, automatically, from sources and from running applications.
+For example, those complex programs can/will contain faults. Program faults are normally tracked down using two methods: tests and debugging \[find citation\]. \[explain effort for tests & tests alone are not enough\]. When applying a debugger to sequential program execution the premises for control flow are known or computable using the current stack and heap, and the data flow can be followed by traversing down the stack trace. However, in RP events are triggered asynchronously, which resets the stack trace. The reset stack traces can not be traversed back to the previous event. Furthermore, this means previous stack frames containing data related to previous events are not accessible.
+
+Automated analysis to extract information about program structure and execution, and visualisation of the results are widely considered useful for comprehension and Quante et al. (Quante [2008](#ref-quante2008dynamic)) show that using Control Flow Graphs (CFG) is benificial for specific systems.
+
+**Contributions.** In this thesis we will evaluate whether data or control flow graphs aid reactive program comprehension and debugging. Furthermore we present a tool which generates complete and interactive Marble Diagrams for full data flows, automatically, from sources and from running applications.
+
+Motivation
+==========
+
+Reactive Programming is a different programming model than sequential programming.
+
+Reactive Programming has been around for many years, and recently several implementations have surfaced that are now incorporated into widely used frameworks and in use for many production applications. What can really help to understand the created data flows are diagrams (Weck and Tichy [2016](#ref-weck2016visualizing)) which show how data is received, transformed and emitted at each step.
+
+When debugging traditional programs the programmer knows that code above the breakpoint is executed, and code below the breakpoint is yet to be executed. When debugging a reactive program no such guarantees exist: the code below the breakpoint might not get executed until another event occurs.
+
+Anecdotal evidence[1] and personal experience suggest developers tend to add print and debug statements through the reactive code to get a sense of the ordering and effects of events over time. This style of debugging requires constantly changing the source code, adding and removing print statements on the go. When using dynamic languages this can be a pain, but more so when using statically typed languages: the recompilation can take long and the process slows down the development.
+
+Another approach is creating tests. However, in large Observable structures there might be many variation points which would require exponentially many variations of (minimal) input events to be tested or even to be considered. After a bug occurs it might be impossible to know in which state the full Observable was.
+
+The scope for this thesis will be limited to Reactive Extensions (Rx) (Microsoft, n.d.), one of the libraries implementing Reactive Programming which has implementations in almost every programming language. Rx is publicly used by Netflix and Microsoft, in high-scale production applications, but more importantly: it is very mature. The implementation of Rx dates back before 2010 and is very well thought through while newer frameworks like Reactive Streams and Bacon.js lack these backgrounds. Rx is very stable and structured, simplifying the implementation of the prototype. When completed, it can then be easily extended to many other Reactive Programming implementations.
+
+Related Work
+============
 
 Observable structure analysis
 -----------------------------
@@ -22,16 +49,16 @@ To instrument code several technologies are available, for Java: For example [AS
 Visualisation
 -------------
 
-The de-facto standard to visualise Observables is called a Marble Diagram. The ReactiveX documentation contains these diagrams, for single operators. These diagrams originate from RxJava and are drawn in [Omnigraffle](https://www.omnigroup.com/omnigraffle).
+The de-facto standard to visualise Observables is called a Marble Diagram (Wes Dyer and Gogh, n.d.). The ReactiveX documentation (“ReactiveX.io,” n.d.) contains these diagrams, for single operators. These diagrams really complement the name of the operator and its description, allowing the developer to work-out the nitty details and pick the right operator for it’s use. They are however only generated per operator, and are not combined for complete data flows, showing the full flow through many operators. The diagrams in the documentation originate from RxJava and are drawn in [Omnigraffle](https://www.omnigroup.com/omnigraffle).
 
 While the diagrams in the official documentation are static, some efforts exist to generate these diagrams automatically. [RxMarbles.com](http://RxMarbles.com) is a website which allows the user to drag and reorder events in for almost all Observable operators, live updating the corresponding diagram. [RxVision](https://github.com/jaredly/rxvision) on the other hand visualises full structures. It offers a code editor where one can type JavaScript using RxJs and RxVision will visualise the structure created in the editor. RxVision injects code into the RxJS source which extracts the structure, subscriptions and flowing data. While RxVision is a great step in the right direction, it does not integrate into development environments as of September 2016: it requires the code to be placed in the online editor.
 
-At some time Microsoft offered a “Marble Diagram Generator" and [RxSandbox](http://mnajder.blogspot.nl/2010/03/rxsandbox-v1.html), which were Windows applications which - looking at Google’d images - had a catalogus of standard operators and a sandbox to generate custom diagrams. However, the source of these tools is not available and the download links are broken.
+At some time Microsoft offered a “Marble Diagram Generator" and [RxSandbox](http://mnajder.blogspot.nl/2010/03/rxsandbox-v1.html), which were Windows applications which - looking at Google’d images - had a catalogue of standard operators and a sandbox to generate custom diagrams. However, the source of these tools is not available and the download links are broken.
 
 Generating data
 ---------------
 
-Testing tools like QuickCheck (Claessen [2000](#ref-quickcheck)) automate test generation by producing arbitrary input, and by finding test cases that falsify the test conditions. When a falsification is found QuickCheck tries to simplify the test data, pruning data which does not attribute to the tests failure. An equally advanced test tool for data flows would be interesting, but is not in scope. Generating data however can be interesting. Visualising the behaviour of Observables without running the actual program, based solely on the data flow structure and generated data could provide valuable insight. Learning from QuickCheck, reducing to pivotal data can show the various edge cases of how a data flow can evaluate while keeping the amount of cases to be considered (and interpreted by humans) at a minimum.
+Testing tools like QuickCheck (Claessen [2000](#ref-quickcheck)) automate test generation by producing arbitrary input, and by finding test cases that falsify the test conditions. When a falsification is found QuickCheck tries to simplify the test data, pruning data which does not attribute to the tests failure. An equally advanced test tool for data flows would be interesting, and is an interesting further research topic. Generating data however can be interesting. Visualising the behaviour of Observables without running the actual program, based solely on the data flow structure and generated data could provide valuable insight. Learning from QuickCheck, reducing to pivotal data can show the various edge cases of how a data flow can evaluate while keeping the amount of cases to be considered (and interpreted by humans) at a minimum.
 
 Tainting
 --------
@@ -43,13 +70,13 @@ Research Questions
 
 The main research question is:
 
-> Does visualising Reactive Extensions help developers comprehend their code and ease the debugging of Observables?
+> Does visualising reactive programs help developers comprehend their code and ease the debugging of Observables?
 
 Several smaller questions must be answered to answer the main question:
 
 1.  Structures:
 
-    1.  Can Observables structures be represented in an abstract fashion?
+    1.  Can Observable structures be represented in an abstract fashion?
 
     2.  Can Observable structures be extracted from source code or bytecode?
 
@@ -68,19 +95,6 @@ Several smaller questions must be answered to answer the main question:
     2.  \[qstn:autogen\] Do developers use automated test data in practice?
 
     3.  \[qstn:experience\] Does our tool improve the development experience when working with Rx?
-
-Motivation
-==========
-
-Reactive Programming is a different programming model than sequential programming. Traditional development tools are not completely adequate for this model: just like Async Programming now has async call stacks in Chrome, Reactive Programming also needs more tools to make developing with the technology easier and less painful.
-
-Anecdotal evidence and personal experience suggest developers tend to just add print and debug statements through the reactive code to get a sense of the ordering and effects of events over time. This style of debugging requires constantly changing the source code, adding and removing print statements on the go. When using dynamic languages this can be a little annoying, but when using statically typed languages the recompilation can take long and the process slows down the development.
-
-Another approach - which might be preferable to print-debugging - is creating tests. However, in large Observable structures there might be many variation points which would require exponentially many variations of (minimal) input events to be tested or even to be considered. After a bug occurs it might be impossible to know in which state the full Observable was. Therefore exploring the different scenarios in a visual way might help to reproduce the bug. Especially when giving instant feedback on how a small change in input changes the output over time, by using virtual time schedulers.
-
-Sidenote: the above paragraph also presents another option: keeping track of the state (in a smart & efficient way) and being able to dump this when something unexpected happens. One problem with this solution is that something unexpected can also be the absence of an occurrence, which is not necessarily detectable.
-
-A reason for scoping this to Rx is how wide Rx is used but mainly how mature it is. The implementation of Rx dates back before 2010 and is very well thought through while newer frameworks like Reactive Streams and Bacon.js lack these backgrounds. Rx is very stable and structured, simplifying the implementation of the prototype. When completed, it can then be easily extended to many other Reactive Programming implementations.
 
 Planning
 ========
@@ -200,6 +214,8 @@ Bruneton, Eric, Romain Lenglet, and Thierry Coupaye. 2002. “ASM: A Code Manipu
 
 Claessen, John, Koen; Hughes. 2000. “QuickCheck: A Lightweight Tool for Random Testing of Haskell and Programs.” In. doi:[ng](https://doi.org/ng).
 
+Johnson, Ralph, Erich Gamma, Richard Helm, and John Vlissides. 1995. “Design Patterns: Elements of Reusable Object-Oriented Software.” *Boston, Massachusetts: Addison-Wesley*.
+
 Kiczales, Gregor, Erik Hilsdale, Jim Hugunin, Mik Kersten, Jeffrey Palm, and William G Griswold. 2001. “An Overview of Aspectj.” In *European Conference on Object-Oriented Programming*, 327–54. Springer.
 
 Kiczales, Gregor, John Lamping, Anurag Mendhekar, Chris Maeda, Cristina Lopes, Jean-Marc Loingtier, and John Irwin. 1997. “Aspect-Oriented Programming.” In *European Conference on Object-Oriented Programming*, 220–42. Springer.
@@ -208,8 +224,14 @@ Kuleshov, Eugene. 2007. “Using the Asm Framework to Implement Common Java Byte
 
 Microsoft. n.d. “Reactive Extensions (Rx).” <https://msdn.microsoft.com/en-us/data/gg577609.aspx>. <https://msdn.microsoft.com/en-us/data/gg577609.aspx>.
 
+Quante, Jochen. 2008. “Do Dynamic Object Process Graphs Support Program Understanding?-a Controlled Experiment.” In *Program Comprehension, 2008. Icpc 2008. the 16th Ieee International Conference on*, 73–82. IEEE.
+
 “ReactiveX.io.” n.d. <http://reactivex.io/>. <http://reactivex.io/>.
+
+Salvaneschi, Guido, Sven Amann, Sebastian Proksch, and Mira Mezini. 2014. “An Empirical Study on Program Comprehension with Reactive Programming.” In *Proceedings of the 22Nd Acm Sigsoft International Symposium on Foundations of Software Engineering*, 564–75. ACM.
 
 Weck, Tobias, and Matthias Tichy. 2016. “Visualizing Data-Flows in Functional Programs.” In *2016 Ieee 23rd International Conference on Software Analysis, Evolution, and Reengineering (Saner)*, 1:293–303. IEEE; Institute of Electrical & Electronics Engineers (IEEE). doi:[10.1109/saner.2016.82](https://doi.org/10.1109/saner.2016.82).
 
 Wes Dyer, Erik Meijer, and Jeffrey van Gogh. n.d. “Reactive Extensions API in Depth: Marble Diagrams, Select & Where.” <https://channel9.msdn.com/blogs/j.van.gogh/reactive-extensions-api-in-depth-marble-diagrams-select--where>. <https://channel9.msdn.com/blogs/j.van.gogh/reactive-extensions-api-in-depth-marble-diagrams-select--where>.
+
+[1] http://staltz.com/how-to-debug-rxjs-code.html
