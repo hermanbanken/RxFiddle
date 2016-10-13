@@ -1,89 +1,86 @@
-\section{Abstract}
-TBD
+\section{Abstract} TBD
 
 % Reactive programing voor Reactive applicaties
 
 % Duidelijk opschrijven complex reactief gedrag.
 % Reactive programmas beter te begrijpen, aldus Salvaneschi.
 
-% Premissen voor uitvoer van code zijn gebeurtenissen, 
+% Premissen voor uitvoer van code zijn gebeurtenissen,
 % die voldoen aan eventueel opgegeven eisen.
 % Bij traditionele control flow zijn de premissen beschikbaar,
-% bij RP zijn de premissen nog niet beschikbaar. 
+% bij RP zijn de premissen nog niet beschikbaar.
 
 \section{Introduction}%
-\label{sec:intro}
-Software often needs to respond to external events and data flows. For example
-in interactive applications, for desktop, web and mobile phones,
-in graphics and in processing sensor data from phones or IoT-devices.
-We can use Reactive Programming (RP) to express complex reactive behaviour
-of these applications in a more declarative, intuitive and consise manner 
-than using traditional design patterns. 
-Programs are generally more comprehensible, requiring less programming skills,
-when created using RP compared to an equal implementation using the Observer 
-design pattern~\cite{johnson1995design}, according to Salvaneschi et 
-al.~\cite{salvaneschi2014empirical}.
+\label{sec:intro} Software often needs to respond to external events and
+data flows.  For example in interactive applications, for desktop, web
+and mobile phones, in graphics and in processing sensor data from phones
+or IoT-devices.  We can use Reactive Programming (RP) to express complex
+reactive behaviour of these applications in a more declarative,
+intuitive and consise manner than using traditional design patterns.
+Programs are generally more comprehensible, requiring less programming
+skills, when created using RP compared to an equal implementation using
+the Observer design pattern~\cite{johnson1995design}, according to
+Salvaneschi et al.~\cite{salvaneschi2014empirical}.
 
-Equal programs are easier to comprehend in RP style,
-but more complex programs are also easily created using RP.
-It could be hard to reason about the full behaviour of these programs, 
-several degrees more complex in behaviour than traditional applications.
+Equal programs are easier to comprehend in RP style, but more complex
+programs are also easily created using RP.  It could be hard to reason
+about the full behaviour of these programs, several degrees more complex
+in behaviour than traditional applications.
 
-For example, those complex programs can/will contain faults.
-Program faults are normally tracked down using two methods: 
-tests and debugging [find citation].
-[explain effort for tests & tests alone are not enough].
-When applying a debugger to sequential program execution the premises for 
-control flow are known or computable using the current stack and heap,
-and the data flow can be followed by traversing down the stack trace.
-However, in RP events are triggered asynchronously, which resets the stack trace.
-The reset stack traces can not be traversed back to the previous event. Furthermore, 
-this means previous stack frames containing data related to previous events are 
-not accessible.
+For example, those complex programs can/will contain faults.  Program
+faults are normally tracked down using two methods:  tests and debugging
+[find citation].  [explain effort for tests & tests alone are not enough].
+When applying a debugger to sequential program execution the premises
+for control flow are known or computable using the current stack and
+heap, and the data flow can be followed by traversing down the stack
+trace.  However, in RP events are triggered asynchronously, which resets
+the stack trace.  The reset stack traces can not be traversed back to
+the previous event.  Furthermore, this means previous stack frames
+containing data related to previous events are not accessible.
 
-Automated analysis to extract information about program structure and execution,
-and visualisation of the results are widely considered useful for 
-comprehension and Quante et al.~\cite{quante2008dynamic} show that using 
-Control Flow Graphs (CFG) is benificial for specific systems.
+Automated analysis to extract information about program structure and
+execution, and visualisation of the results are widely considered useful
+for comprehension and Quante et al.~\cite{quante2008dynamic} show that
+using Control Flow Graphs (CFG) is benificial for specific systems.
 
 \textbf{Contributions.} In this thesis we will evaluate whether data or
 control flow graphs aid reactive program comprehension and debugging.
-Furthermore we present a tool which generates complete and interactive 
-Marble Diagrams for full data flows, automatically, from sources and 
+Furthermore we present a tool which generates complete and interactive
+Marble Diagrams for full data flows, automatically, from sources and
 from running applications.
 
 \section{Motivation}%
-\label{sec:motiv}
-Reactive Programming is a different programming model than sequential
-programming. 
+\label{sec:motiv} Reactive Programming is a different programming model
+than sequential programming.
 
-Reactive Programming has been around for many years,
-and recently several implementations have surfaced that are now
-incorporated into widely used frameworks and in use for many production
-applications. What can really help to understand the created data flows 
-are diagrams~\cite{weck2016visualizing} which show how data is received, 
-transformed and emitted at each step.
+Reactive Programming has been around for many years, and recently
+several implementations have surfaced that are now incorporated into
+widely used frameworks and in use for many production applications. What
+can really help to understand the created data flows are diagrams~\cite
+{weck2016visualizing} which show how data is received, transformed and
+emitted at each step.
 
-When debugging traditional programs the programmer knows that code 
-above the breakpoint is executed, and code below the breakpoint is yet to be executed.
-When debugging a reactive program no such guarantees exist: 
-the code below the breakpoint might not get executed until another event occurs.
+When debugging traditional programs the programmer knows that code above
+the breakpoint is executed, and code below the breakpoint is yet to be
+executed.  When debugging a reactive program no such guarantees exist:
+the code below the breakpoint might not get executed until another event
+occurs.
 
-Anecdotal evidence\footnote{http://staltz.com/how-to-debug-rxjs-code.html}
-and personal experience suggest developers tend to add print and debug 
-statements through the reactive code to get a sense of the ordering and
-effects of events over time.  This style of debugging requires constantly
-changing the source code, adding and removing print statements on the go.
-When using dynamic languages this can be a pain, but more so when using 
-statically typed languages: the recompilation can take long and the 
+Anecdotal evidence%
+\footnote{http://staltz.com/how-to-debug-rxjs-code.html} and personal
+experience suggest developers tend to add print and debug statements
+through the reactive code to get a sense of the ordering and effects of
+events over time.  This style of debugging requires constantly changing
+the source code, adding and removing print statements on the go.  When
+using dynamic languages this can be a pain, but more so when using
+statically typed languages:  the recompilation can take long and the
 process slows down the development.
 
-Another approach is
-creating tests.  However, in large Observable structures there might be
-many variation points which would require exponentially many variations
-of (minimal) input events to be tested or even to be considered.  After
-a bug occurs it might be impossible to know in which state the full
-Observable was.  
+Another approach is creating tests.  However, in large Observable
+structures there might be many variation points which would require
+exponentially many variations of (minimal) input events to be tested or
+even to be considered.  After a bug occurs it might be impossible to
+know in which state the full Observable was.
 
 %Therefore exploring the different scenarios in a visual
 %way might help to reproduce the bug.  Especially when giving instant
@@ -96,17 +93,16 @@ Observable was.
 %is that something unexpected can also be the absence of an occurrence,
 %which is not necessarily detectable.
 
-The scope for this thesis will be limited to Reactive Extensions (Rx)~\cite{msdn_rx},
-one of the libraries implementing Reactive Programming which has
-implementations in almost every programming language.
-Rx is publicly used by Netflix and Microsoft, in high-scale production applications,
-but more importantly: it is very mature.
-The implementation of Rx dates back before 2010 and is
-very well thought through while newer frameworks like Reactive Streams
-and Bacon.js lack these backgrounds. Rx is very stable and structured,
-simplifying the implementation of the prototype. When completed, it can
-then be easily extended to many other Reactive Programming
-implementations.
+The scope for this thesis will be limited to Reactive Extensions (Rx)~\cite
+{msdn_rx}, one of the libraries implementing Reactive Programming which
+has implementations in almost every programming language.  Rx is
+publicly used by Netflix and Microsoft, in high-scale production
+applications, but more importantly:  it is very mature.  The
+implementation of Rx dates back before 2010 and is very well thought
+through while newer frameworks like Reactive Streams and Bacon.js lack
+these backgrounds.  Rx is very stable and structured, simplifying the
+implementation of the prototype. When completed, it can then be easily
+extended to many other Reactive Programming implementations.
 
 \section{Related Work}
 
@@ -139,15 +135,15 @@ will be used to setup the run-time analysis, depending on which enables
 our requirements and is the easiest to implement.
 
 \subsection{Visualisation} The de-facto standard to visualise
-Observables is called a Marble Diagram~\cite{c9_marblediagrams}.
-The ReactiveX documentation~\cite{reactivex} contains these diagrams, 
-for single operators. These diagrams really complement the name of the 
-operator and its description, allowing the developer to work-out the 
-nitty details and pick the right operator for it's use.  
-They are however only generated per operator, and are not combined for 
-complete data flows, showing the full flow through many operators. 
-The diagrams in the documentation originate from RxJava and are drawn 
-in \href{https://www.omnigroup.com/omnigraffle}{Omnigraffle}.
+Observables is called a Marble Diagram~\cite{c9_marblediagrams}.  The
+ReactiveX documentation~\cite{reactivex} contains these diagrams, for
+single operators.  These diagrams really complement the name of the
+operator and its description, allowing the developer to work-out the
+nitty details and pick the right operator for it's use.  They are
+however only generated per operator, and are not combined for complete
+data flows, showing the full flow through many operators.  The diagrams
+in the documentation originate from RxJava and are drawn in \href{https://www.omnigroup.com/omnigraffle}
+{Omnigraffle}.
 
 While the diagrams in the official documentation are static, some
 efforts exist to generate these diagrams automatically.  \href{http://RxMarbles.com}
@@ -173,14 +169,15 @@ and the download links are broken.
 automate test generation by producing arbitrary input, and by finding
 test cases that falsify the test conditions.  When a falsification is
 found QuickCheck tries to simplify the test data, pruning data which
-does not attribute to the tests failure. An equally advanced test tool
-for data flows would be interesting, and is an interesting further research topic.
-Generating data however can be interesting. Visualising the behaviour of
-Observables without running the actual program, based solely on the data
-flow structure and generated data could provide valuable insight.
-Learning from QuickCheck, reducing to pivotal data can show the various
-edge cases of how a data flow can evaluate while keeping the amount of
-cases to be considered (and interpreted by humans) at a minimum.
+does not attribute to the tests failure.  An equally advanced test tool
+for data flows would be interesting, and is an interesting further
+research topic.  Generating data however can be interesting.
+Visualising the behaviour of Observables without running the actual
+program, based solely on the data flow structure and generated data
+could provide valuable insight.  Learning from QuickCheck, reducing to
+pivotal data can show the various edge cases of how a data flow can
+evaluate while keeping the amount of cases to be considered (and
+interpreted by humans) at a minimum.
 
 \subsection{Tainting} When looking at the values bubbling through an
 Observable structure, values might be produced which are not directly
@@ -200,8 +197,8 @@ might be interesting to integrate.
 
 \begin{quotation}
     \noindent
-    Does visualising reactive programs help developers comprehend
-    their code and ease the debugging of Observables?
+    Does visualising reactive programs help developers comprehend their
+    code and ease the debugging of Observables?
 \end{quotation}
 
 \noindent
