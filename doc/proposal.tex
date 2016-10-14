@@ -19,24 +19,45 @@ reactive behaviour of these applications in a more declarative,
 intuitive and consise manner than using traditional design patterns.
 Programs are generally more comprehensible, requiring less programming
 skills, when created using RP compared to an equal implementation using
-the Observer design pattern~\cite{johnson1995design}, according to
-Salvaneschi et al.~\cite{salvaneschi2014empirical}.
+the Observer design pattern~\cite{johnson1995design,
+salvaneschi2014empirical}.
 
-Equal programs are easier to comprehend in RP style, but more complex
-programs are also easily created using RP.  It could be hard to reason
-about the full behaviour of these programs, several degrees more complex
-in behaviour than traditional applications.
+While the intended behaviour of programs becomes more comprehensible
+using RP, this does not necessarily hold in precense of unintended
+behaviour or faults. To our knownlegde no research exists which
+evaluates the debugability of reactive programming, and anecdotal
+evidence suggests existing tools are not sufficient [quote staltz, and -
+in subsection - reference a lot stack overflow issues].
 
-For example, those complex programs can/will contain faults.  Program
-faults are normally tracked down using two methods:  tests and debugging
-[find citation]. [explain effort for tests \& tests alone are not enough].
-When applying a debugger to sequential program execution the premises
-for control flow are known or computable using the current stack and
-heap, and the data flow can be followed by traversing down the stack
-trace.  However, in RP events are triggered asynchronously, which resets
-the stack trace.  The reset stack traces can not be traversed back to
-the previous event.  Furthermore, this means previous stack frames
-containing data related to previous events are not accessible.
+Traditionally faults are tracked down with the help of debugging:  using
+breakpoints, logs and tests [find citation]. [explain effort for tests
+\& tests alone are not enough]. When applying a debugger to sequential
+program execution the premises for control flow are known or computable
+using the current stack and heap, and the data flow can be followed by
+traversing down the stack trace.  However, in RP events are triggered
+asynchronously, which resets the stack trace.  The reset stack traces
+can not be traversed back to the previous event.  Furthermore, this
+means previous stack frames containing data related to previous events
+are not accessible.
+
+This is especially challenging for more complex programs:  while equal
+programs are easier to comprehend in RP style, more complex programs are
+also easily created, since RP also improves composability~\cite{maier2012deprecating}.
+These programs can be several degrees more complex in behaviour than
+traditional applications.
+
+In summary, tracking down bugs becomes harder for two reasons:
+
+\begin{itemize}
+    \item
+        the search scope widens for larger applications
+    \item
+        existing tools are not sufficient for reactive programs.
+
+\end{itemize}
+
+[Time Traveling debugger] [Hypothese dat debugger een oplossing is voor
+lastigheden] [causaliteit, root cause analysis] -------
 
 Automated analysis to extract information about program structure and
 execution, and visualisation of the results are widely considered useful
@@ -53,10 +74,13 @@ from running applications.
 \label{sec:motiv} Reactive Programming is a different programming model
 than sequential programming.
 
+%Since ``programs must
+%be written for people to read, and only incidentally for machines to execute"
+
 Reactive Programming has been around for many years, and recently
 several implementations have surfaced that are now incorporated into
-widely used frameworks and in use for many production applications. What
-can really help to understand the created data flows are diagrams~\cite
+widely used frameworks and in use for many production applications.
+What can really help to understand the created data flows are diagrams~\cite
 {weck2016visualizing} which show how data is received, transformed and
 emitted at each step.
 
@@ -101,7 +125,7 @@ applications, but more importantly:  it is very mature.  The
 implementation of Rx dates back before 2010 and is very well thought
 through while newer frameworks like Reactive Streams and Bacon.js lack
 these backgrounds.  Rx is very stable and structured, simplifying the
-implementation of the prototype. When completed, it can then be easily
+implementation of the prototype.  When completed, it can then be easily
 extended to many other Reactive Programming implementations.
 
 \section{Related Work}
@@ -171,13 +195,13 @@ test cases that falsify the test conditions.  When a falsification is
 found QuickCheck tries to simplify the test data, pruning data which
 does not attribute to the tests failure.  An equally advanced test tool
 for data flows would be interesting, and is an interesting further
-research topic.  Generating data however can be interesting.
-Visualising the behaviour of Observables without running the actual
-program, based solely on the data flow structure and generated data
-could provide valuable insight.  Learning from QuickCheck, reducing to
-pivotal data can show the various edge cases of how a data flow can
-evaluate while keeping the amount of cases to be considered (and
-interpreted by humans) at a minimum.
+research topic.  Generating data however can be interesting. Visualising
+the behaviour of Observables without running the actual program, based
+solely on the data flow structure and generated data could provide
+valuable insight.  Learning from QuickCheck, reducing to pivotal data
+can show the various edge cases of how a data flow can evaluate while
+keeping the amount of cases to be considered (and interpreted by humans)
+at a minimum.
 
 \subsection{Tainting} When looking at the values bubbling through an
 Observable structure, values might be produced which are not directly
