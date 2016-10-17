@@ -52,6 +52,13 @@ function main(sources: ISources): ISinks {
   };
 }
 
-Cycle.run(main, {
-  DOM: makeDOMDriver("#app"),
-});
+Rx.Observable.of(1, 2, 3).map(i => "Hello " + i)
+  .flatMap(s => Rx.Observable.of("bla").startWith(s))
+  .groupBy(s => s[0])
+  .map(o => o.startWith("group of " + o.key))
+  .mergeAll()
+  .subscribe(console.log);
+
+// Cycle.run(main, {
+//   DOM: makeDOMDriver("#app"),
+// });

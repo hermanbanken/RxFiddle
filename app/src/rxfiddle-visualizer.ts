@@ -63,6 +63,7 @@ function endsWith(self: string, suffix: string): boolean {
 type Identification = string;
 type Result = any;
 
+type Methods = "of" | "map" | "flatMap" | "groupBy" | "merge" | "startWith";
 
 export class Visualizer {
 
@@ -93,45 +94,54 @@ export class Visualizer {
     record.stack = ErrorStackParser.parse(record).slice(1, 2)[0];
 
     if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
-      // let id = this.id(record);
-      this.tag(record.subject);
-      this.tag(record.returned);
+      if (record.method === "subscribe") { return; }
 
-      // Something used as Subject before it comes by as Result
-      // Something used as Result, later as Subject
-      this.addNode(record.subject, record.subjectName);
+      let subject = record.subjectName === "Observable" ? {} : record.subject;
+      this.addNode(subject, record.subject.getName() === "Function" ? record.subjectName : record.subject.getName());
       this.addNode(record.returned);
-      this.g.setNode(record.stack.source, { height: 1, width: 1, render: () => h("text", record.stack.functionName) });
-      this.g.setParent(record.returned[HASH], record.stack.source);
-      this.link(record.subject, record.method, record.stack, record.returned);
-
-      // this.createdByLookup[record.returned[HASH]] = id;
-      // this.addStructure(id, record.method, record.returned.getName());
-
-      // if (typeof this.createdByLookup[record.subject[HASH]] !== "undefined") {
-      //   this.g.setEdge(this.createdByLookup[record.subject[HASH]], id);
-      // }
+      this.link(subject, record.method, record.stack, record.returned);
     }
+
+    // if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
+    //   // let id = this.id(record);
+    //   this.tag(record.subject);
+    //   this.tag(record.returned);
+
+    //   // Something used as Subject before it comes by as Result
+    //   // Something used as Result, later as Subject
+    //   this.addNode(record.subject, record.subjectName);
+    //   this.addNode(record.returned);
+    //   this.g.setNode(record.stack.source, { height: 1, width: 1, render: () => h("text", record.stack.functionName) });
+    //   this.g.setParent(record.returned[HASH], record.stack.source);
+    //   this.link(record.subject, record.method, record.stack, record.returned);
+
+    //   // this.createdByLookup[record.returned[HASH]] = id;
+    //   // this.addStructure(id, record.method, record.returned.getName());
+
+    //   // if (typeof this.createdByLookup[record.subject[HASH]] !== "undefined") {
+    //   //   this.g.setEdge(this.createdByLookup[record.subject[HASH]], id);
+    //   // }
+    // }
 
     this.unrendered += 1;
     return;
 
-    if (!record.subject[HASH]) {
-      if (typeof record.subject[IGNORE] === "undefined") {
-        this.addNode(record.subject);
-      } else {
-        record.subject = {};
-        this.addNode(record.subject, record.subjectName);
-      }
-    }
+    // if (!record.subject[HASH]) {
+    //   if (typeof record.subject[IGNORE] === "undefined") {
+    //     this.addNode(record.subject);
+    //   } else {
+    //     record.subject = {};
+    //     this.addNode(record.subject, record.subjectName);
+    //   }
+    // }
 
-    if (typeof record.returned !== "undefined") {
-      let operator = this.operator(record.method);
-      this.g.setEdge(record.subject[HASH], operator);
+    // if (typeof record.returned !== "undefined") {
+    //   let operator = this.operator(record.method);
+    //   this.g.setEdge(record.subject[HASH], operator);
 
-      this.addNode(record.returned);
-      this.g.setEdge(operator, record.returned[HASH]);
-    }
+    //   this.addNode(record.returned);
+    //   this.g.setEdge(operator, record.returned[HASH]);
+    // }
   }
   public run() {
     if (this.unrendered === 0) {
@@ -142,9 +152,9 @@ export class Visualizer {
     this.svg.innerHTML = "";
     let ns = this.g.nodes().map((v: string) => {
       let node = this.g.node(v);
-      if (!node) { return undefined; }
+      if (!node) { throw new Error("No node for " + node); }
       return h("g", { attrs: { transform: `translate(${node.x},${node.y})` } }, node.render());
-    });
+    }).filter(n => n);
 
     let es = this.g.edges().map((e: Dagre.Edge) => {
       let edge = this.g.edge(e);
@@ -160,7 +170,7 @@ export class Visualizer {
     }, []).map((chunk: snabbdom.VNode[]) => h("g", chunk));
 
     let graph = this.g.graph();
-    let updated = h("svg#id", {
+    let updated = h("svg", {
       attrs: {
         id: "svg",
         style: "width: 100vw; height: 100vh",
