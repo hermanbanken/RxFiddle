@@ -4,10 +4,16 @@ import * as Rx from "rx";
 
 let defaultSubjects = {
     "Observable": Rx.Observable,
-    "Observable.prototype": Rx.Observable.prototype,
-    "AbstractObserver.prototype": Rx.internals.AbstractObserver.prototype,
-    "AnonymousObserver.prototype": Rx.AnonymousObserver.prototype,
+    "Observable.prototype": (<any>Rx.Observable)['prototype'],
+    "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver['prototype'],
+    "AnonymousObserver.prototype": <any>Rx.AnonymousObserver['prototype'],
   };
+
+/* tslint:disable:interface-name */
+interface Function {
+    __originalFunction?: Function | null;
+    apply(subject: any, args: any[] | IArguments): any;
+}
 
 let i = 0;
 
@@ -21,20 +27,23 @@ export default class Instrumentation {
     Object.keys(subjects).slice(0, 1).forEach((s: string) => subjects[s][IGNORE] = true);
   }
 
-  public instrument(fn, extras) {
+  /* tslint:disable:only-arrow-functions */
+  /* tslint:disable:no-string-literal */
+  /* tslint:disable:no-string-literal */
+  public instrument(fn: Function, extras: { [key: string]: string; }): Function {
     let calls = this.calls;
     let logger = this.logger;
 
-    let instrumented = function instrumented() {
+    let instrumented = <Function> function instrumented(): any {
       let call: ICallRecord = {
         arguments: [].slice.call(arguments, 0),
-        method: extras.methodName,
+        id: i++,
+        method: extras["methodName"],
         returned: null,
         stack: new Error().stack,
         subject: this,
-        subjectName: extras.subjectName,
+        subjectName: extras["subjectName"],
         time: performance.now(),
-        id: i++,
       };
       calls.push(call);
       let returned = fn.apply(this, arguments);
@@ -47,9 +56,13 @@ export default class Instrumentation {
     return instrumented;
   }
 
-  public deinstrument(fn) {
+  public deinstrument(fn: Function) {
     return fn.__originalFunction || fn;
   }
+  /* tslint:enable:only-arrow-functions */
+  /* tslint:enable:no-string-literal */
+  /* tslint:enable:no-string-literal */
+
 
   public setup(): void {
     let properties: { key: string, name: string, subject: any }[] = Object.keys(this.subjects)

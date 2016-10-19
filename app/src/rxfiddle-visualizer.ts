@@ -1,8 +1,12 @@
 import "./utils";
+import * as rx from "rx";
 import * as dagre from "dagre";
 import * as snabbdom from "snabbdom";
-import * as ErrorStackParser from "error-stack-parser";
+import { VNode } from "snabbdom";
 
+// import * as ErrorStackParser from "error-stack-parser";
+
+const ErrorStackParser = require("error-stack-parser");
 const h = require("snabbdom/h");
 const moduleAttrs = require("snabbdom/modules/attributes");
 const patch = snabbdom.init([moduleAttrs]);
@@ -12,11 +16,12 @@ export const HASH = "__hash";
 export const IGNORE = "__ignore";
 
 export interface ICallRecord {
+  id: number | string | null;
   subject: any;
   subjectName: string;
   method: string;
   arguments: any[];
-  stack: string;
+  stack: StackFrame | string;
   time: number;
   returned: any | null;
 }
@@ -65,18 +70,139 @@ type Result = any;
 
 type Methods = "of" | "map" | "flatMap" | "groupBy" | "merge" | "startWith";
 
+// Expose protected properties of Observers
+declare module "rx" {
+  export interface Observable<T> { }
+  export interface Observer<T> {
+    source?: Observable<any>;
+    o?: Observer<any>;
+  }
+}
+
+type MethodName = string;
+
+interface RxCollector {
+  logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): void
+  logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, to?: Rx.Observable<any>): void
+  logEvent(observer: Rx.Observer<any>, event: string, value: any): void
+}
+
+export class RxFiddleNode {
+  public instances: Rx.Observable<any>[] = [];
+  public observers: [Rx.Observable<any>, Rx.Observer<any>][] = [];
+  constructor(
+    public id: string,
+    public name: string,
+    public location: StackFrame
+  ) { }
+  public add(instance: Rx.Observable<any>) {
+    this.instances.push(instance)
+    return this
+  }
+  public addObserver(observable: Rx.Observable<any>, observer: Rx.Observer<any>): [Rx.Observable<any>, Rx.Observer<any>] {
+    let tuple: [Rx.Observable<any>, Rx.Observer<any>] = [observable, observer]
+    this.observers.push(tuple)
+    return tuple
+  }
+}
+
+export class RxFiddleEdge {
+  constructor(public from: RxFiddleNode, public to: RxFiddleNode) { }
+}
+
+export class RxVisualizer implements RxCollector {
+
+  private g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
+  private svg: HTMLElement;
+  private unrendered: number = 0;
+
+  constructor() {
+    this.g.setGraph({});
+    this.g.setDefaultEdgeLabel(() => ({}));
+  }
+
+  // new 
+  private lookup: { [stackframe: string]: RxFiddleNode } = {};
+  private observableLookup: { [hash: string]: RxFiddleNode } = {};
+  private observerLookup: { [hash: string]: [Rx.Observable<any>, Rx.Observer<any>] } = {};
+
+  // old
+  private creationLookup: { [id: string]: [MethodName, StackFrame] } = {};
+  private observerObervableLookup: { [id: string]: Rx.Observable<any> } = {};
+  private obervableObservers: { [id: string]: Rx.Observer<any>[] } = {};
+  private observers: { [id: string]: Rx.Observable<any> } = {};
+  private events: { [id: string]: any[] } = {};
+
+  private static _nextId = 0;
+  public static id(obs: Rx.Observable<any> | Rx.Observer<any>): string {
+    if (typeof (<any>obs)[HASH] == "undefined") {
+      (<any>obs)[HASH] = this._nextId++;
+    }
+    return (<any>obs)[HASH];
+  }
+
+  public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame]) {
+
+    let nid = using[1].source,
+      node = this.lookup[nid];
+    if (typeof node == 'undefined') {
+      this.lookup[nid] = node = new RxFiddleNode("" + RxVisualizer._nextId++, using[0], using[1]);
+      this.g.setNode(node.id, node);
+    }
+
+    node.add(to);
+    this.observableLookup[RxVisualizer.id(to)] = node;
+
+    if (onto != null && typeof this.observableLookup[RxVisualizer.id(onto)] !== "undefined") {
+      let edge = new RxFiddleEdge(this.observableLookup[RxVisualizer.id(onto)], node);
+      this.g.setEdge(edge.from.id, edge.to.id, edge);
+    }
+
+    // Old
+    this.creationLookup[RxVisualizer.id(to)] = using;
+    console.log("setup", using[0], onto, to, using[1]);
+  }
+
+  public logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, to?: Rx.Observable<any>) {
+
+    let node = this.observableLookup[RxVisualizer.id(on)]
+    this.observerLookup[RxVisualizer.id(observer)] = node.addObserver(on, observer)
+
+    // Old
+    this.observerObervableLookup[RxVisualizer.id(observer)] = on;
+    if (typeof to != "undefined") {
+    }
+    this.events[RxVisualizer.id(observer)] = [];
+    console.log("subscribe", on, observer, to);
+    if (observer.o) {
+      this.events[RxVisualizer.id(observer.o)] = [];
+      console.log("inner subscription");
+    }
+  }
+
+  public logEvent(observer: Rx.Observer<any>, event: string, value: any) {
+    if (typeof this.events[RxVisualizer.id(observer)] != 'undefined') {
+      this.events[RxVisualizer.id(observer)].push(event);
+      console.log("event", event, value, observer);
+    } else {
+      console.log("observer not in lookup", observer, event, value);
+    }
+  }
+
+}
+
 export class Visualizer {
 
   private static isNotRxFiddle(frame: any): boolean {
     return frame.functionName !== inst_method || !endsWith(frame.fileName, inst_file);
   }
 
-  private g = new dagre.graphlib.Graph({ compound: true });
+  private g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
   private unrendered: number = 0;
   private svg: HTMLElement;
 
-  private stackLookup: { [id: Identification]: StackFrame } = {};
-  private structure: { [id: Identification]: { operator: StackFrame, result: Result } } = {};
+  private stackLookup: { [id: string]: StackFrame } = {};
+  private structure: { [id: string]: { operator: any, result: Result } } = {};
   private hashLookup: { [hash: string]: { thing: Result } } = {};
 
   constructor() {
@@ -90,16 +216,32 @@ export class Visualizer {
     return id;
   }
 
+  private collector: RxVisualizer = new RxVisualizer();
+
   public log(record: ICallRecord) {
-    record.stack = ErrorStackParser.parse(record).slice(1, 2)[0];
+    var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
+    record.stack = stack;
 
     if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
-      if (record.method === "subscribe") { return; }
+      if (record.method === "subscribe") {
+        let observer = record.arguments[0] as Rx.Observer<any>;
+        if (observer.source && record.subject) {
+          // Keep:
+          this.collector.logSubscribe(record.subject, observer, observer.source);
+        }
+        return;
+      }
 
       let subject = record.subjectName === "Observable" ? {} : record.subject;
       this.addNode(subject, record.subject.getName() === "Function" ? record.subjectName : record.subject.getName());
       this.addNode(record.returned);
-      this.link(subject, record.method, record.stack, record.returned);
+      this.link(subject, record.method, stack, record.returned);
+
+      // Keep:
+      this.collector.logSetup(record.subjectName === "Observable.prototype" ? record.subject : null, record.returned, [record.method, stack]);
+    } else {
+      // Keep:
+      this.collector.logEvent(record.subject, record.method, record.arguments[0])
     }
 
     // if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
@@ -270,17 +412,18 @@ export class Visualizer {
     if (typeof result === "undefined") { return; }
     this.g.setNode(result[HASH] + "-creation", {
       height: 40,
-        render: () => {
-          return [
-            centeredRect(200, 40, { stroke: "green", rx: 10, ry: 10 }),
-            centeredText(operator, { y: -10 }),
-            centeredText(`${stack.functionName}:${stack.lineNumber}:${stack.columnNumber}`, { y: 10 }),
-          ];
-        },
-        width: 200,
+      render: () => {
+        return [
+          centeredRect(200, 40, { stroke: "green", rx: 10, ry: 10 }),
+          centeredText(operator, { y: -10 }),
+          centeredText(`${stack.functionName}:${stack.lineNumber}:${stack.columnNumber}`, { y: 10 }),
+        ];
+      },
+      width: 200,
     });
 
     if (typeof subject !== "undefined") {
+      this.g.setEdge(subject[HASH], result[HASH] + "-creation", {}, "a" + subject[HASH] + result[HASH] + "-creation");
       this.g.setEdge(subject[HASH], result[HASH] + "-creation");
     }
     this.g.setEdge(result[HASH] + "-creation", result[HASH]);

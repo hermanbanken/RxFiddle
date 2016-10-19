@@ -1,7 +1,11 @@
 {
   "name": "rxfiddle-app",
   "version": "1.0.0",
-  "description": "",
+  "description": "-",
+  "repository": {
+    "url": "git://github.com/hermanbanken/RxFiddle.git",
+    "type": "git"
+  },
   "main": "dist/start.js",
   "author": "",
   "license": "ISC",
@@ -26,7 +30,8 @@
     "rx": "^4.1.0",
     "rxmarbles": "1.4.1",
     "snabbdom": "^0.5.3",
-    "svg-pan-zoom": "github:ariutta/svg-pan-zoom"
+    "svg-pan-zoom": "github:ariutta/svg-pan-zoom",
+    "typescript": "^2.1.0-dev.20161018"
   },
   "devDependencies": {
     "babel-cli": "^6.14.0",
@@ -34,6 +39,7 @@
     "babel-preset-react": "^6.11.1",
     "babel-preset-stage-2": "^6.13.0",
     "babelify": "^7.3.0",
+    "browserify": "^13.1.0",
     "electron-prebuilt": "^1.4.0",
     "mocha": "^3.1.0",
     "mocha-typescript": "^1.0.10",

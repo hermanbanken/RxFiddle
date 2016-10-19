@@ -1,5 +1,4 @@
 {
-  "version": "2.1.0-dev.20161007",
   "compileOnSave": true,
   "compilerOptions": {
     "sourceMap": true,

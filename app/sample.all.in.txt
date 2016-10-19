@@ -1,0 +1,51 @@
+fiddle run 290542166921631
+fiddle invoke static[rx.Observable::just] Setup
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:88)
+fiddle result static[rx.Observable::just] => (rx.Observable 624f789b)
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:88)
+fiddle follow (rx.Observable 624f789b)
+fiddle invoke (rx.Observable 624f789b)[rx.Observable::map] Setup
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:90)
+fiddle result (rx.Observable 624f789b)[rx.Observable::map] => (rx.Observable 6764708)
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:90)
+fiddle follow (rx.Observable 6764708)
+fiddle invoke (rx.Observable 6764708)[rx.Observable::take] Setup
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:92)
+fiddle result (rx.Observable 6764708)[rx.Observable::take] => (rx.Observable 1fe46cfd)
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:92)
+fiddle follow (rx.Observable 1fe46cfd)
+fiddle invoke (rx.Observable 1fe46cfd)[rx.Observable::subscribe] Runtime
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:93)
+fiddle result (rx.Observable 1fe46cfd)[rx.Observable::subscribe] => (rx.internal.operators.OperatorTake$1 22864527)
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:93)
+fiddle follow (rx.internal.operators.OperatorTake$1 22864527)
+fiddle invoke (rx.Observable 624f789b)[rx.Observable::unsafeSubscribe] Runtime
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+Ignored null rx/Producer request false
+Ignored null rx/Producer request false
+Ignored rx.internal.operators.OnSubscribeMap$MapSubscriber@56ce92de rx/Subscriber onNext false
+fiddle invoke (rx.internal.operators.OperatorTake$1 22864527)[rx.Subscriber::onNext] Runtime
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+Ignored rx.observers.SafeSubscriber@6451c8a4 rx/Subscriber onNext false
+Ignored rx.internal.util.ActionSubscriber@11b5f8a0 rx/Subscriber onNext false
+a
+Ignored rx.internal.operators.OnSubscribeMap$MapSubscriber@56ce92de rx/Subscriber onNext false
+fiddle invoke (rx.internal.operators.OperatorTake$1 22864527)[rx.Subscriber::onNext] Runtime
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+Ignored rx.observers.SafeSubscriber@6451c8a4 rx/Subscriber onNext false
+Ignored rx.internal.util.ActionSubscriber@11b5f8a0 rx/Subscriber onNext false
+b
+Ignored null rx/observers/SafeSubscriber unsubscribe false
+Ignored null rx/Subscription unsubscribe false
+Ignored null rx/Subscription unsubscribe false
+fiddle result (rx.internal.operators.OperatorTake$1 22864527)[rx.Subscriber::onNext] => (rx.internal.operators.OnSubscribeMap$MapSubscriber 56ce92de)
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+fiddle follow (rx.internal.operators.OnSubscribeMap$MapSubscriber 56ce92de)
+fiddle result (rx.internal.operators.OperatorTake$1 22864527)[rx.Subscriber::onNext] => (rx.internal.operators.OnSubscribeMap$MapSubscriber 56ce92de)
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+fiddle result (rx.Observable 624f789b)[rx.Observable::unsafeSubscribe] => (rx.internal.operators.OnSubscribeMap$MapSubscriber 56ce92de)
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+fiddle result result without invoke rx.observers.SafeSubscriber@6451c8a4
+fiddle follow (rx.observers.SafeSubscriber 6451c8a4)
+fiddle result result without invoke rx.observers.SafeSubscriber@6451c8a4
+fiddle result result without invoke rx.observers.SafeSubscriber@6451c8a4
