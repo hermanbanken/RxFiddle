@@ -8,8 +8,10 @@ import { VNode } from "snabbdom";
 
 const ErrorStackParser = require("error-stack-parser");
 const h = require("snabbdom/h");
-const moduleAttrs = require("snabbdom/modules/attributes");
-const patch = snabbdom.init([moduleAttrs]);
+const patch = snabbdom.init([
+  require("snabbdom/modules/attributes"),
+  require('snabbdom/modules/eventlisteners'),
+]);
 const svgPanZoom = require("svg-pan-zoom");
 
 export const HASH = "__hash";
@@ -105,15 +107,19 @@ export class RxFiddleNode {
     return tuple
   }
 
-  public width = 100;
-  public height = 30;
+  public width = 120;
+  public height = 40;
   public x: number;
   public y: number;
 
   public render() {
     return h("g", { attrs: { transform: `translate(${this.x},${this.y})` } }, [
-      centeredRect(100, 30, { rx: 10, ry: 10 }),
-      centeredText(this.name),
+      centeredRect(this.width, this.height, { rx: 10, ry: 10 }),
+      centeredText(this.name, { y: -8 }),
+      centeredText(`
+      o: ${this.observers.length}, 
+      e: ${this.observers.reduce((p, o) => o[2].length, 0)}
+      `, { y: 8 }),
     ]);
   }
 }
