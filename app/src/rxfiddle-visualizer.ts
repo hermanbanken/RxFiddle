@@ -107,11 +107,14 @@ export class RxFiddleNode {
 
   public width = 100;
   public height = 30;
+  public x: number;
+  public y: number;
+
   public render() {
-    return [
+    return h("g", { attrs: { transform: `translate(${this.x},${this.y})` } }, [
       centeredRect(100, 30, { rx: 10, ry: 10 }),
       centeredText(this.name),
-    ];
+    ]);
   }
 }
 
@@ -127,7 +130,7 @@ export class RxFiddleEdge {
   }
 }
 
-export class RxVisualizer implements RxCollector {
+export class Visualizer implements RxCollector {
 
   private g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
   private svg: HTMLElement;
@@ -150,32 +153,50 @@ export class RxVisualizer implements RxCollector {
     return (<any>obs)[HASH];
   }
 
+  public log(record: ICallRecord) {
+    var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
+
+    if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
+      if (record.method === "subscribe") {
+        let observer = record.arguments[0] as Rx.Observer<any>;
+        if (observer.source && record.subject) {
+          this.logSubscribe(record.subject, observer, observer.source);
+        }
+        return;
+      }
+
+      this.logSetup(record.subjectName === "Observable.prototype" ? record.subject : null, record.returned, [record.method, stack]);
+    } else {
+      this.logEvent(record.subject, record.method, record.arguments[0])
+    }
+  }
+
   public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame]) {
     let nid = using[1].source,
       node = this.lookup[nid];
     if (typeof node == 'undefined') {
-      this.lookup[nid] = node = new RxFiddleNode("" + RxVisualizer._nextId++, using[0], using[1]);
+      this.lookup[nid] = node = new RxFiddleNode("" + Visualizer._nextId++, using[0], using[1]);
       this.g.setNode(node.id, node);
     }
 
     node.add(to);
-    this.observableLookup[RxVisualizer.id(to)] = node;
+    this.observableLookup[Visualizer.id(to)] = node;
 
-    if (onto != null && typeof this.observableLookup[RxVisualizer.id(onto)] !== "undefined") {
-      let edge = new RxFiddleEdge(this.observableLookup[RxVisualizer.id(onto)], node);
+    if (onto != null && typeof this.observableLookup[Visualizer.id(onto)] !== "undefined") {
+      let edge = new RxFiddleEdge(this.observableLookup[Visualizer.id(onto)], node);
       this.g.setEdge(edge.from.id, edge.to.id, edge);
     }
     this.unrendered += 1;
   }
 
   public logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, to?: Rx.Observable<any>) {
-    let node = this.observableLookup[RxVisualizer.id(on)]
-    this.observerLookup[RxVisualizer.id(observer)] = node.addObserver(on, observer);
+    let node = this.observableLookup[Visualizer.id(on)]
+    this.observerLookup[Visualizer.id(observer)] = node.addObserver(on, observer);
     this.unrendered += 1;
   }
 
   public logEvent(observer: Rx.Observer<any>, event: string, value: any) {
-    let tuple = this.observerLookup[RxVisualizer.id(observer)];
+    let tuple = this.observerLookup[Visualizer.id(observer)];
     if (typeof tuple != "undefined") {
       tuple[2].push(event);
     }
@@ -183,12 +204,13 @@ export class RxVisualizer implements RxCollector {
   }
 
   public render() {
-    let ns = this.g.nodes().map((id: string) => this.g.node(id).render());
+    let ns = this.g.nodes().map((id: string) => this.g.node(id).render()).reduce((p, c) => p.concat(c), []);
     let es = this.g.edges().map((e: Dagre.Edge) => {
       let edge = this.g.edge(e);
       return edge.render();
     });
     let childs = ns.concat(es);
+    console.log(childs);
     let graph = this.g.graph();
     return h("svg", {
       attrs: {
@@ -221,37 +243,5 @@ export class RxVisualizer implements RxCollector {
   public step() {
     this.run();
     window.requestAnimationFrame(() => this.step());
-  }
-}
-
-export class Visualizer {
-  private collector: RxVisualizer = new RxVisualizer();
-
-  public log(record: ICallRecord) {
-    var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
-
-    if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
-      if (record.method === "subscribe") {
-        let observer = record.arguments[0] as Rx.Observer<any>;
-        if (observer.source && record.subject) {
-          this.collector.logSubscribe(record.subject, observer, observer.source);
-        }
-        return;
-      }
-
-      this.collector.logSetup(record.subjectName === "Observable.prototype" ? record.subject : null, record.returned, [record.method, stack]);
-    } else {
-      this.collector.logEvent(record.subject, record.method, record.arguments[0])
-    }
-  }
-
-  public run() {
-    return this.collector.run();
-  }
-  public attach(node: HTMLElement) {
-    return this.collector.attach(node);
-  }
-  public step() {
-    return this.collector.step();
   }
 }
