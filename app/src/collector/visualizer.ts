@@ -1,10 +1,11 @@
 import "./utils";
+import { RxFiddleNode } from "./node";
+import { RxFiddleEdge } from "./edge";
+import { ICallRecord } from "./callrecord";
 import * as rx from "rx";
 import * as dagre from "dagre";
 import * as snabbdom from "snabbdom";
 import { VNode } from "snabbdom";
-
-// import * as ErrorStackParser from "error-stack-parser";
 
 const ErrorStackParser = require("error-stack-parser");
 const h = require("snabbdom/h");
@@ -17,62 +18,8 @@ const svgPanZoom = require("svg-pan-zoom");
 export const HASH = "__hash";
 export const IGNORE = "__ignore";
 
-export interface ICallRecord {
-  id: number | string | null;
-  subject: any;
-  subjectName: string;
-  method: string;
-  arguments: any[];
-  stack: StackFrame | string;
-  time: number;
-  returned: any | null;
-  parent?: ICallRecord;
-  childs: ICallRecord[];
-}
-
-function centeredRect(width: number, height: number, opts: any = {}): VNode {
-  return h("rect", {
-    attrs: Object.assign({
-      fill: "transparent",
-      stroke: "black",
-      "stroke-width": 2,
-      width,
-      height,
-      x: -width / 2,
-      y: -height / 2,
-    }, opts),
-  });
-}
-function centeredText(text: string, opts: any = {}): VNode {
-  return h("text", {
-    attrs: Object.assign({
-      x: 0,
-      y: 0,
-      "text-anchor": "middle",
-      "alignment-baseline": "middle",
-    }, opts),
-  }, text);
-}
-
-
 const inst_method = "instrumented";
-const inst_file = "rxfiddle-collector.js";
-
-function endsWith(self: string, suffix: string): boolean {
-  return self.indexOf(suffix, self.length - suffix.length) !== -1;
-};
-
-// class Identification { 
-//   constructor(public id: string, public frame: StackFrame) { }
-// }
-// class Thing {
-//   constructor(public result: any) { }
-// }
-
-type Identification = string;
-type Result = any;
-
-type Methods = "of" | "map" | "flatMap" | "groupBy" | "merge" | "startWith";
+const inst_file = "instrumentation.js";
 
 // Expose protected properties of Observers
 declare module "rx" {
@@ -89,82 +36,6 @@ interface RxCollector {
   logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): void
   logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>): void
   logEvent(observer: Rx.Observer<any>, event: string, value: any): void
-}
-
-export class RxFiddleNode {
-  public instances: Rx.Observable<any>[] = [];
-  public observers: [Rx.Observable<any>, Rx.Observer<any>, any[]][] = [];
-  constructor(
-    public id: string,
-    public name: string,
-    public location: StackFrame
-  ) { }
-  public add(instance: Rx.Observable<any>) {
-    this.instances.push(instance)
-    return this
-  }
-  public addObserver(observable: Rx.Observable<any>, observer: Rx.Observer<any>): [Rx.Observable<any>, Rx.Observer<any>, any[]] {
-    let tuple: [Rx.Observable<any>, Rx.Observer<any>, any[]] = [observable, observer, []]
-    this.observers.push(tuple)
-    return tuple
-  }
-
-  public width = 120;
-  public height = 40;
-  public x: number;
-  public y: number;
-  public hoover: boolean = false;
-  public rendered: VNode;
-
-  public setHoover(enabled: boolean) {
-    this.hoover = enabled;
-    return this;
-  }
-
-  public render() {
-    var result = h("g", {
-      attrs: { transform: `translate(${this.x},${this.y})` },
-      on: {
-        click: () => console.log(this),
-        mouseover: () => patch(result, this.setHoover(true).render()),
-        mouseout: () => patch(result, this.setHoover(false).render())
-      },
-    }, [
-      centeredRect(this.width, this.height, { rx: 10, ry: 10 }),
-      centeredText(this.name, { y: -8 }),
-      centeredText(`
-        o: ${this.observers.length}, 
-        e: ${this.observers.reduce((p, o) => o[2].length, 0)}
-      `, { y: 8 }),
-      // this.dialog()
-      // this.hoover ? this.dialog() : undefined
-    ].filter(id => id));
-    this.rendered = result;
-    return result;
-  }
-
-  private dialog() {
-    let _w = 200, _h = 200;
-    let triangle = `M ${_w / -2 - 5} 0 l 5 -5 l 0 10 Z`;
-    return h("g", {
-      attrs: { transform: `translate(${this.width / 2 + _w / 2 + 5},${0})`, width: _w, height: _h }
-    }, [
-        h("path", { attrs: { d: triangle, fill: "black" } }),
-        centeredRect(_w, _h, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
-      ]);
-  }
-}
-
-export class RxFiddleEdge {
-  public points: { x: number, y: number }[] = [];
-
-  constructor(public from: RxFiddleNode, public to: RxFiddleNode) { }
-
-  public render() {
-    let path = "M " + this.points.map((p: { x: number, y: number }) => `${p.x} ${p.y}`).join(" L ");
-    let attrs = { d: path, fill: "transparent", "stroke-width": "5", stroke: "red" };
-    return h("path", { attrs });
-  }
 }
 
 export class Visualizer implements RxCollector {
@@ -268,7 +139,7 @@ export class Visualizer implements RxCollector {
   }
 
   public render() {
-    let ns = this.g.nodes().map((id: string) => this.g.node(id).render()).reduce((p, c) => p.concat(c), []);
+    let ns = this.g.nodes().map((id: string) => this.g.node(id).render(patch)).reduce((p, c) => p.concat(c), []);
     let es = this.g.edges().map((e: Dagre.Edge) => {
       let edge = this.g.edge(e);
       return edge.render();

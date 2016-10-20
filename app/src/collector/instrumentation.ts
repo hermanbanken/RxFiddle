@@ -1,4 +1,5 @@
-import { ICallRecord, IGNORE, Visualizer } from "./rxfiddle-visualizer";
+import { ICallRecord } from "./callrecord";
+import { IGNORE, Visualizer } from "./visualizer";
 import "./utils";
 import * as Rx from "rx";
 

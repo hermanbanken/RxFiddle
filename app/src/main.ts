@@ -3,13 +3,13 @@ import { DOMSource } from "@cycle/dom/rx-typings";
 import Cycle from "@cycle/rx-run";
 import * as Immutable from "immutable";
 import * as Rx from "rx";
-import Collector from "./rxfiddle-collector";
+import Instrumentation from "./collector/instrumentation";
 import RxMarbles from "rxmarbles";
 
 const Observable = Rx.Observable;
-let collector = new Collector();
-collector.setup();
-collector.logger.attach(document.getElementById("graph"));
+let instrumentation = new Instrumentation();
+instrumentation.setup();
+instrumentation.logger.attach(document.getElementById("graph"));
 
 // Setup
 RxMarbles.AddCollectionOperator(undefined);

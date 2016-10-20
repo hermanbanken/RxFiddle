@@ -58,3 +58,8 @@ declare module "snabbdom" {
     (oldVNode: VNode | HTMLElement, vnode: VNode): VNode;
   }
 }
+
+/* random */
+function endsWith(self: string, suffix: string): boolean {
+  return self.indexOf(suffix, self.length - suffix.length) !== -1;
+};
