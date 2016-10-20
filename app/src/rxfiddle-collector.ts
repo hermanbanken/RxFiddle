@@ -3,16 +3,16 @@ import "./utils";
 import * as Rx from "rx";
 
 let defaultSubjects = {
-    "Observable": Rx.Observable,
-    "Observable.prototype": (<any>Rx.Observable)['prototype'],
-    "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver['prototype'],
-    "AnonymousObserver.prototype": <any>Rx.AnonymousObserver['prototype'],
-  };
+  "Observable": Rx.Observable,
+  "Observable.prototype": (<any>Rx.Observable)['prototype'],
+  "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver['prototype'],
+  "AnonymousObserver.prototype": <any>Rx.AnonymousObserver['prototype'],
+};
 
 /* tslint:disable:interface-name */
 interface Function {
-    __originalFunction?: Function | null;
-    apply(subject: any, args: any[] | IArguments): any;
+  __originalFunction?: Function | null;
+  apply(subject: any, args: any[] | IArguments): any;
 }
 
 let i = 0;
@@ -27,14 +27,17 @@ export default class Instrumentation {
     Object.keys(subjects).slice(0, 1).forEach((s: string) => subjects[s][IGNORE] = true);
   }
 
+  public open: any[] = [];
+
   /* tslint:disable:only-arrow-functions */
   /* tslint:disable:no-string-literal */
   /* tslint:disable:no-string-literal */
   public instrument(fn: Function, extras: { [key: string]: string; }): Function {
     let calls = this.calls;
     let logger = this.logger;
+    let open = this.open;
 
-    let instrumented = <Function> function instrumented(): any {
+    let instrumented = <Function>function instrumented(): any {
       let call: ICallRecord = {
         arguments: [].slice.call(arguments, 0),
         id: i++,
@@ -44,10 +47,23 @@ export default class Instrumentation {
         subject: this,
         subjectName: extras["subjectName"],
         time: performance.now(),
+        childs: []
       };
+
+      // Prepare
       calls.push(call);
+      if (open.length > 0) {
+        call.parent = open[open.length - 1];
+        call.parent.childs.push(call);
+      }
+      open.push(call);
+
+      // Actual method
       let returned = fn.apply(this, arguments);
       call.returned = returned;
+
+      // Cleanup
+      open.pop();
       logger.log(call);
       return returned;
     };

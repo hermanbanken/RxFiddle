@@ -39,12 +39,14 @@ function main(sources: ISources): ISinks {
       time: 10,
     }],
   });
-  const diagram = RxMarbles.DiagramComponent({ DOM: sources.DOM, props: {
-    class: "diagram",
-    data: Observable.of(data, data, data),
-    interactive: Observable.of(true, true, true, true),
-    key: `diagram0`,
-  }});
+  const diagram = RxMarbles.DiagramComponent({
+    DOM: sources.DOM, props: {
+      class: "diagram",
+      data: Observable.of(data, data, data),
+      interactive: Observable.of(true, true, true, true),
+      key: `diagram0`,
+    }
+  });
 
   diagram.DOM.map(id => id).subscribe(a => log(a + ""));
   return {
@@ -52,9 +54,13 @@ function main(sources: ISources): ISinks {
   };
 }
 
-Rx.Observable.of(1, 2, 3).map(i => "Hello " + i)
+Rx.Observable.of(1, 2, 3)
+  .map(i => "Hello " + i)
+  .filter(_ => true)
+  .map(_ => _)
+  .skip(1)
   .flatMap(s => Rx.Observable.of("bla").startWith(s))
-  .groupBy(s => s[0])
+  .groupBy(s => s[s.length - 1])
   .map(o => o.startWith("group of " + o.key))
   .mergeAll()
   .subscribe(console.log);

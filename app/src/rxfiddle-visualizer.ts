@@ -26,6 +26,8 @@ export interface ICallRecord {
   stack: StackFrame | string;
   time: number;
   returned: any | null;
+  parent?: ICallRecord;
+  childs: ICallRecord[];
 }
 
 function centeredRect(width: number, height: number, opts: any = {}): VNode {
@@ -85,7 +87,7 @@ type MethodName = string;
 
 interface RxCollector {
   logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): void
-  logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, to?: Rx.Observable<any>): void
+  logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>): void
   logEvent(observer: Rx.Observer<any>, event: string, value: any): void
 }
 
@@ -111,16 +113,45 @@ export class RxFiddleNode {
   public height = 40;
   public x: number;
   public y: number;
+  public hoover: boolean = false;
+  public rendered: VNode;
+
+  public setHoover(enabled: boolean) {
+    this.hoover = enabled;
+    return this;
+  }
 
   public render() {
-    return h("g", { attrs: { transform: `translate(${this.x},${this.y})` } }, [
+    var result = h("g", {
+      attrs: { transform: `translate(${this.x},${this.y})` },
+      on: {
+        click: () => console.log(this),
+        mouseover: () => patch(result, this.setHoover(true).render()),
+        mouseout: () => patch(result, this.setHoover(false).render())
+      },
+    }, [
       centeredRect(this.width, this.height, { rx: 10, ry: 10 }),
       centeredText(this.name, { y: -8 }),
       centeredText(`
-      o: ${this.observers.length}, 
-      e: ${this.observers.reduce((p, o) => o[2].length, 0)}
+        o: ${this.observers.length}, 
+        e: ${this.observers.reduce((p, o) => o[2].length, 0)}
       `, { y: 8 }),
-    ]);
+      // this.dialog()
+      // this.hoover ? this.dialog() : undefined
+    ].filter(id => id));
+    this.rendered = result;
+    return result;
+  }
+
+  private dialog() {
+    let _w = 200, _h = 200;
+    let triangle = `M ${_w / -2 - 5} 0 l 5 -5 l 0 10 Z`;
+    return h("g", {
+      attrs: { transform: `translate(${this.width / 2 + _w / 2 + 5},${0})`, width: _w, height: _h }
+    }, [
+        h("path", { attrs: { d: triangle, fill: "black" } }),
+        centeredRect(_w, _h, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
+      ]);
   }
 }
 
@@ -159,19 +190,36 @@ export class Visualizer implements RxCollector {
     return (<any>obs)[HASH];
   }
 
+  private flatMapReturn: any;
   public log(record: ICallRecord) {
     var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
 
+    if (record.method == "flatMap") {
+      this.flatMapReturn = record.returned;
+    }
+
+    if (record.subject == this.flatMapReturn) {
+      console.log(record);
+      // debugger;
+    }
+
+    if (record.subject.__hash == 7) {
+      console.log("observable before skip")
+      // debugger;
+    }
+
     if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
       if (record.method === "subscribe") {
-        let observer = record.arguments[0] as Rx.Observer<any>;
-        if (observer.source && record.subject) {
+        let observer = typeof record.arguments[0] == 'object' ? record.arguments[0] as Rx.Observer<any> : record.returned;
+        if (record.subject) {
           this.logSubscribe(record.subject, observer, observer.source);
         }
         return;
       }
 
-      this.logSetup(record.subjectName === "Observable.prototype" ? record.subject : null, record.returned, [record.method, stack]);
+      if (record.parent) return;
+
+      this.logSetup(record.subjectName === "Observable.prototype" ? record.subject : record.subject.source, record.returned, [record.method, stack]);
     } else {
       this.logEvent(record.subject, record.method, record.arguments[0])
     }
@@ -188,23 +236,33 @@ export class Visualizer implements RxCollector {
     node.add(to);
     this.observableLookup[Visualizer.id(to)] = node;
 
-    if (onto != null && typeof this.observableLookup[Visualizer.id(onto)] !== "undefined") {
+    this.unrendered += 1;
+
+    // No edges for ObservableStatic method calls
+    if (onto == null) return;
+
+    if (typeof this.observableLookup[Visualizer.id(onto)] !== "undefined") {
       let edge = new RxFiddleEdge(this.observableLookup[Visualizer.id(onto)], node);
       this.g.setEdge(edge.from.id, edge.to.id, edge);
+    } else {
+      // debugger;
     }
-    this.unrendered += 1;
   }
 
-  public logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, to?: Rx.Observable<any>) {
+  public logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>) {
     let node = this.observableLookup[Visualizer.id(on)]
-    this.observerLookup[Visualizer.id(observer)] = node.addObserver(on, observer);
-    this.unrendered += 1;
+    if (node) {
+      this.observerLookup[Visualizer.id(observer)] = node.addObserver(on, observer);
+      this.unrendered += 1;
+    } else {
+      // debugger;
+    }
   }
 
   public logEvent(observer: Rx.Observer<any>, event: string, value: any) {
     let tuple = this.observerLookup[Visualizer.id(observer)];
     if (typeof tuple != "undefined") {
-      tuple[2].push(event);
+      tuple[2].push([event, value]);
     }
     this.unrendered += 1;
   }
@@ -230,9 +288,6 @@ export class Visualizer implements RxCollector {
   }
 
   public run() {
-    if (this.unrendered === 0) {
-      return;
-    }
     this.unrendered = 0;
     dagre.layout(this.g);
     this.svg.innerHTML = "";
@@ -247,7 +302,10 @@ export class Visualizer implements RxCollector {
     this.step();
   }
   public step() {
-    this.run();
     window.requestAnimationFrame(() => this.step());
+    if (this.unrendered === 0) {
+      return;
+    }
+    this.run();
   }
 }
