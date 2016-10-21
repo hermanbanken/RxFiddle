@@ -60,12 +60,13 @@ export default class Instrumentation {
       open.push(call);
 
       // Actual method
+      let instanceLogger = logger.before(call);
       let returned = fn.apply(this, arguments);
       call.returned = returned;
+      instanceLogger.log(call);
 
       // Cleanup
       open.pop();
-      logger.log(call);
       return returned;
     };
 

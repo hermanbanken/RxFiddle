@@ -1,4 +1,5 @@
 import "../utils";
+import { Visualizer } from "./visualizer";
 
 export interface ICallRecord {
   id: number | string | null;
@@ -11,6 +12,7 @@ export interface ICallRecord {
   returned: any | null;
   parent?: ICallRecord;
   childs: ICallRecord[];
+  visualizer?: Visualizer;
 }
 
 type CallRecordType = "setup" | "subscribe" | "event";

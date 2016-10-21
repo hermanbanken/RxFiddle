@@ -34,7 +34,7 @@ declare module "rx" {
 type MethodName = string;
 
 interface RxCollector {
-  logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): void
+  logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): RxFiddleNode
   logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>): void
   logEvent(observer: Rx.Observer<any>, event: IEvent): void
 }
@@ -42,7 +42,7 @@ interface RxCollector {
 export class Visualizer implements RxCollector {
 
   private g = new dagre.graphlib.Graph({ compound: true, multigraph: true });
-  private svg: HTMLElement;
+  private svg: HTMLElement | VNode;
   private unrendered: number = 0;
 
   constructor() {
@@ -62,37 +62,75 @@ export class Visualizer implements RxCollector {
     return (<any>obs)[HASH];
   }
 
-  private trackd: any[] = [];
-
   private queue: ICallRecord[] = [];
-  public log(record: ICallRecord, reintroduce = false) {
-    // Trampoline nested calls
-    if (record.parent && !reintroduce) {
-      this.queue.push(record);
-      return;
+  private static subtree: { [id: number]: Visualizer } = {};
+
+  public findNode(stackSource: string): RxFiddleNode {
+    if (typeof this.lookup[stackSource] !== "undefined") {
+      return this.lookup[stackSource];
+    } else {
+      var match = Object.keys(this.lookup)
+        .filter(key => this.lookup[key].subGraph() !== this)
+        .find(key => this.lookup[key].subGraph().findNode(stackSource) != null);
+      if (match) {
+        this.lookup[match].subGraph().findNode(stackSource);
+      }
     }
+    return null;
+  }
+
+  public before(record: ICallRecord): Visualizer {
+    switch (callRecordType(record)) {
+      case "setup":
+        let stack = ErrorStackParser.parse(record).slice(1, 2)[0];
+        let nid = stack.source;
+        let node = this.lookup[nid];
+        if (record.parent) {
+          var parent = this.findNode(stack.source)
+          if (parent) return parent.subGraph();
+        }
+        if (typeof node == 'undefined') {
+          this.lookup[nid] = node = new RxFiddleNode("" + Visualizer._nextId++, record.method, stack);
+          console.log(node);
+          return this;
+        }
+        return node.subGraph();
+      case "subscribe":
+      case "event": break;
+    }
+    return this;
+  }
+
+  public log(record: ICallRecord) {
+    // if (record.parent) {
+    //   console.log("with parent", record);
+    // }
+    this._log(record);
+  }
+
+  public _log(record: ICallRecord, reintroduce = false) {
+    // Trampoline nested calls
+    // if (record.id)
+    //   if (record.parent && !reintroduce) {
+    //     this.queue.push(record);
+    //     return;
+    //   }
 
     var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
 
-    // Anonymous observable
-    if (record.method === "subscribe" && typeof record.arguments[0] === "function" && record.returned.observer) {
-      this.trackd.push(record.returned);
-      this.trackd.push(record.returned.observer);
-      this.trackd.push(record.parent && record.parent.subject);
-      console.log(
-        record.subject.getName(), Visualizer.id(record.subject), record.method,
-        Visualizer.id(record.returned), Visualizer.id(record.returned.observer),
-        record.parent && Visualizer.id(record.parent.subject));
-    }
-
     switch (callRecordType(record)) {
       case "setup":
-        this.logSetup(
+        let node = this.logSetup(
           record.subjectName === "Observable.prototype" ?
             record.subject :
             record.subject.source,
           record.returned,
-          [record.method, stack], record);
+          [record.method, stack]);
+        // Run nested calls trampoline
+        // while (this.queue.length) {
+        //   var top = this.queue.pop();
+        //   node.subGraph().log(top);
+        // }
         break;
 
       case "subscribe":
@@ -107,13 +145,13 @@ export class Visualizer implements RxCollector {
     }
 
     // Run nested calls trampoline
-    while (this.queue.length) {
-      var top = this.queue.shift();
-      this.log(top, true);
-    }
+    // while (this.queue.length) {
+    //   var top = this.queue.shift();
+    //   this.log(top);
+    // }
   }
 
-  public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame], record: ICallRecord) {
+  public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame]) {
     // Try to reuse existing code point
     let nid = using[1].source,
       node = this.lookup[nid];
@@ -125,24 +163,35 @@ export class Visualizer implements RxCollector {
     // Handle nested call
     if (typeof this.observableLookup[Visualizer.id(to)] !== "undefined") {
       // Create of obs yielded existing.
-      node = RxFiddleNode.wrap(node, this.observableLookup[Visualizer.id(to)]);
+      console.log("Handle in internal graph", node);
+      var newNode = RxFiddleNode.wrap(node, this.observableLookup[Visualizer.id(to)]);
+      return node;
+    } else {
+      this.observableLookup[Visualizer.id(to)] = node;
     }
 
     // Store references
     this.g.setNode(node.id, node);
-    this.observableLookup[Visualizer.id(to)] = node;
 
     this.unrendered += 1;
 
     // No edges for ObservableStatic method calls
-    if (onto == null) return;
+    if (onto == null) return node;
 
     let rootNode = this.observableLookup[Visualizer.id(onto)];
+
+    if (using[0] == "asObservable" || using[0] == "multicast" || using[0] == "publish") {
+      console.log("Not handling internally", node, rootNode);
+      // this.run();
+      // debugger;
+    }
 
     if (typeof rootNode !== "undefined") {
       let edge = new RxFiddleEdge(rootNode, node);
       this.g.setEdge(edge.from.id, edge.to.id, edge);
     }
+
+    return node;
   }
 
   public logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>) {
@@ -150,8 +199,6 @@ export class Visualizer implements RxCollector {
     if (node) {
       this.observerLookup[Visualizer.id(observer)] = node.addObserver(on, observer);
       this.unrendered += 1;
-    } else {
-      // debugger;
     }
   }
 
@@ -163,15 +210,48 @@ export class Visualizer implements RxCollector {
     this.unrendered += 1;
   }
 
-  public render() {
+  public subGraphs(): Visualizer[] {
+    return Object.keys(this.lookup)
+      .map(key => this.lookup[key])
+      .filter(r => r.subGraph() !== this)
+      .map(r => r.subGraph())
+  }
+
+  public render(): VNode {
+    this.layout();
+    let subs = this.subGraphs()
+      .map(r => r.render())
+      .filter(s => s);
+
+    if (this.g.nodes().length == 0) {
+      return subs.length && h("g", subs);
+    }
+
     let ns = this.g.nodes().map((id: string) => this.g.node(id).render(patch)).reduce((p, c) => p.concat(c), []);
     let es = this.g.edges().map((e: Dagre.Edge) => {
       let edge = this.g.edge(e);
       return edge.render();
     });
-    let childs = ns.concat(es);
+    let childs = ns.concat(es).concat(subs);
     let graph = this.g.graph();
-    return h("svg", {
+
+    return h("g", { attrs: { class: "visualizer" } }, childs);
+  }
+
+  public layout() {
+    this.subGraphs().forEach(g => g.layout());
+    dagre.layout(this.g);
+  }
+
+  public run() {
+    this.unrendered = 0;
+    if (this.svg instanceof HTMLElement) {
+      this.svg.innerHTML = "";
+    }
+
+    let graph = this.g.graph();
+    let render = this.render();
+    let updated = h("svg", {
       attrs: {
         id: "svg",
         style: "width: 100vw; height: 100vh",
@@ -179,15 +259,7 @@ export class Visualizer implements RxCollector {
         viewBox: `0 0 ${graph.width} ${graph.height}`,
         xmlns: "http://www.w3.org/2000/svg",
       },
-    }, childs);
-  }
-
-  public run() {
-    this.unrendered = 0;
-    dagre.layout(this.g);
-    this.svg.innerHTML = "";
-
-    let updated = this.render();
+    }, [render]);
     patch(this.svg, updated);
     this.svg = updated;
     let instance = svgPanZoom("#svg", { maxZoom: 30 });
@@ -198,7 +270,10 @@ export class Visualizer implements RxCollector {
   }
   public step() {
     window.requestAnimationFrame(() => this.step());
-    if (this.unrendered === 0) {
+    var subs = Object.keys(this.lookup).map(key => this.lookup[key]).reduce((p, r) => {
+      return p + r.subGraph().unrendered;
+    }, 0);
+    if (this.unrendered + subs === 0) {
       return;
     }
     this.run();

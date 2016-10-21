@@ -1,4 +1,5 @@
 import * as snabbdom from "snabbdom";
+import { Visualizer } from "./visualizer";
 import { centeredRect, centeredText } from "./shapes";
 import { render as ASCII } from "./ascii";
 const h = require("snabbdom/h");
@@ -10,12 +11,22 @@ function marble() {
 export class RxFiddleNode {
   public instances: Rx.Observable<any>[] = [];
   public observers: [Rx.Observable<any>, Rx.Observer<any>, any[]][] = [];
+  private _subgraph: Visualizer | null;
 
   constructor(
     public id: string,
     public name: string,
     public location: StackFrame
   ) { }
+
+  public subGraph(instance?: Visualizer): Visualizer {
+    if (typeof instance !== "undefined") {
+      this._subgraph = instance;
+    } else if (typeof this._subgraph === "undefined" || this._subgraph === null) {
+      this._subgraph = new Visualizer();
+    }
+    return this._subgraph;
+  }
 
   public addObservable(instance: Rx.Observable<any>) {
     this.instances.push(instance)
