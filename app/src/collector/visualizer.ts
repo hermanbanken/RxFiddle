@@ -1,7 +1,8 @@
-import "./utils";
+import "../utils";
 import { RxFiddleNode } from "./node";
 import { RxFiddleEdge } from "./edge";
-import { ICallRecord } from "./callrecord";
+import { IEvent, Event } from "./event";
+import { ICallRecord, callRecordType } from "./callrecord";
 import * as rx from "rx";
 import * as dagre from "dagre";
 import * as snabbdom from "snabbdom";
@@ -35,7 +36,7 @@ type MethodName = string;
 interface RxCollector {
   logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): void
   logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>): void
-  logEvent(observer: Rx.Observer<any>, event: string, value: any): void
+  logEvent(observer: Rx.Observer<any>, event: IEvent): void
 }
 
 export class Visualizer implements RxCollector {
@@ -51,7 +52,7 @@ export class Visualizer implements RxCollector {
 
   private lookup: { [stackframe: string]: RxFiddleNode } = {};
   private observableLookup: { [hash: string]: RxFiddleNode } = {};
-  private observerLookup: { [hash: string]: [Rx.Observable<any>, Rx.Observer<any>, any[]] } = {};
+  private observerLookup: { [hash: string]: [Rx.Observable<any>, Rx.Observer<any>, IEvent[]] } = {};
 
   private static _nextId = 0;
   public static id(obs: Rx.Observable<any> | Rx.Observer<any>): string {
@@ -61,7 +62,8 @@ export class Visualizer implements RxCollector {
     return (<any>obs)[HASH];
   }
 
-  private flatMapReturn: any;
+  private trackd: any[] = [];
+
   public log(record: ICallRecord) {
     var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
 
@@ -69,34 +71,44 @@ export class Visualizer implements RxCollector {
       this.flatMapReturn = record.returned;
     }
 
-    if (record.subject == this.flatMapReturn) {
-      console.log(record);
+    if (record.subject != null && 13 == record.subject[HASH]) {
       // debugger;
     }
 
-    if (record.subject.__hash == 7) {
-      console.log("observable before skip")
-      // debugger;
-    }
+    switch (callRecordType(record)) {
+      case "setup":
+        // if (record.parent) {
+        //   console.log("internal usage", record.method, record.parent.method);
+        //   return;
+        // }
 
-    if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
-      if (record.method === "subscribe") {
+        this.logSetup(record.subjectName === "Observable.prototype" ? record.subject : record.subject.source, record.returned, [record.method, stack]);
+
+        break;
+
+      case "subscribe":
         let observer = typeof record.arguments[0] == 'object' ? record.arguments[0] as Rx.Observer<any> : record.returned;
         if (record.subject) {
-          this.logSubscribe(record.subject, observer, observer.source);
+          this.logSubscribe(record.subject, observer, observer.source || observer.parent);
         }
-        return;
-      }
 
-      if (record.parent) return;
+        if ([13, 40, 69, 86].indexOf(record.subject[HASH]) >= 0) {
+          // debugger;
+        }
 
-      this.logSetup(record.subjectName === "Observable.prototype" ? record.subject : record.subject.source, record.returned, [record.method, stack]);
-    } else {
-      this.logEvent(record.subject, record.method, record.arguments[0])
+        break;
+
+      case "event":
+        if ([13, 40, 69, 86].indexOf(record.subject[HASH]) >= 0) {
+          // debugger;
+        }
+
+        this.logEvent(record.subject, Event.fromRecord(record))
     }
   }
 
   public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame]) {
+    // Try to reuse existing code point
     let nid = using[1].source,
       node = this.lookup[nid];
     if (typeof node == 'undefined') {
@@ -104,7 +116,8 @@ export class Visualizer implements RxCollector {
       this.g.setNode(node.id, node);
     }
 
-    node.add(to);
+    // Store references
+    this.g.setNode(node.id, node);
     this.observableLookup[Visualizer.id(to)] = node;
 
     this.unrendered += 1;
@@ -130,10 +143,10 @@ export class Visualizer implements RxCollector {
     }
   }
 
-  public logEvent(observer: Rx.Observer<any>, event: string, value: any) {
+  public logEvent(observer: Rx.Observer<any>, event: IEvent) {
     let tuple = this.observerLookup[Visualizer.id(observer)];
     if (typeof tuple != "undefined") {
-      tuple[2].push([event, value]);
+      tuple[2].push(event);
     }
     this.unrendered += 1;
   }
@@ -145,7 +158,6 @@ export class Visualizer implements RxCollector {
       return edge.render();
     });
     let childs = ns.concat(es);
-    console.log(childs);
     let graph = this.g.graph();
     return h("svg", {
       attrs: {

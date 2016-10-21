@@ -12,3 +12,16 @@ export interface ICallRecord {
   parent?: ICallRecord;
   childs: ICallRecord[];
 }
+
+type CallRecordType = "setup" | "subscribe" | "event";
+
+export function callRecordType(record: ICallRecord) {
+  if (record.subjectName === "Observable" || record.subjectName === "Observable.prototype") {
+    if (record.method === "subscribe") {
+      return "subscribe";
+    }
+    return "setup";
+  } else {
+    return "event";
+  }
+}

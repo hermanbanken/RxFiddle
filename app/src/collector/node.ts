@@ -1,6 +1,11 @@
 import * as snabbdom from "snabbdom";
 import { centeredRect, centeredText } from "./shapes";
+import { render as ASCII } from "./ascii";
 const h = require("snabbdom/h");
+
+function marble() {
+
+}
 
 export class RxFiddleNode {
   public instances: Rx.Observable<any>[] = [];
@@ -12,7 +17,7 @@ export class RxFiddleNode {
     public location: StackFrame
   ) { }
 
-  public add(instance: Rx.Observable<any>) {
+  public addObservable(instance: Rx.Observable<any>) {
     this.instances.push(instance)
     return this
   }
@@ -20,11 +25,12 @@ export class RxFiddleNode {
   public addObserver(observable: Rx.Observable<any>, observer: Rx.Observer<any>): [Rx.Observable<any>, Rx.Observer<any>, any[]] {
     let tuple: [Rx.Observable<any>, Rx.Observer<any>, any[]] = [observable, observer, []]
     this.observers.push(tuple)
+    this.height += 20;
     return tuple
   }
 
   public width = 120;
-  public height = 40;
+  public height = 20;
   public x: number;
   public y: number;
 
@@ -36,7 +42,12 @@ export class RxFiddleNode {
     return this;
   }
 
+  private line(i: number) {
+    return -this.height / 2 + i * 20 + 10;
+  }
+
   public render(patch: snabbdom.PatchFunction) {
+    var streams = ASCII(this.observers.map(_ => _[2])).map((stream, i) => centeredText(stream || "?", { y: this.line(i + 1), "font-family": "monospace" }))
     var result = h("g", {
       attrs: { transform: `translate(${this.x},${this.y})` },
       on: {
@@ -46,14 +57,10 @@ export class RxFiddleNode {
       },
     }, [
       centeredRect(this.width, this.height, { rx: 10, ry: 10 }),
-      centeredText(this.name, { y: -8 }),
-      centeredText(`
-        o: ${this.observers.length}, 
-        e: ${this.observers.reduce((p, o) => o[2].length, 0)}
-      `, { y: 8 }),
+      centeredText(this.name, { y: this.line(0) }),
       // this.dialog()
       // this.hoover ? this.dialog() : undefined
-    ].filter(id => id));
+    ].concat(streams).filter(id => id));
     this.rendered = result;
     return result;
   }

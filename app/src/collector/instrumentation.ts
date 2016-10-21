@@ -1,6 +1,6 @@
 import { ICallRecord } from "./callrecord";
 import { IGNORE, Visualizer } from "./visualizer";
-import "./utils";
+import "../utils";
 import * as Rx from "rx";
 
 let defaultSubjects = {
@@ -79,7 +79,6 @@ export default class Instrumentation {
   /* tslint:enable:only-arrow-functions */
   /* tslint:enable:no-string-literal */
   /* tslint:enable:no-string-literal */
-
 
   public setup(): void {
     let properties: { key: string, name: string, subject: any }[] = Object.keys(this.subjects)
