@@ -41,7 +41,6 @@ export class RxFiddleNode {
 
   public static wrap(inner: RxFiddleNode, outer: RxFiddleNode): RxFiddleNode {
     outer.nested.push(inner);
-    outer.id = inner.id;
     return outer;
   }
 

@@ -64,7 +64,14 @@ export class Visualizer implements RxCollector {
 
   private trackd: any[] = [];
 
-  public log(record: ICallRecord) {
+  private queue: ICallRecord[] = [];
+  public log(record: ICallRecord, reintroduce = false) {
+    // Trampoline nested calls
+    if (record.parent && !reintroduce) {
+      this.queue.push(record);
+      return;
+    }
+
     var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
 
     // Anonymous observable
@@ -78,19 +85,14 @@ export class Visualizer implements RxCollector {
         record.parent && Visualizer.id(record.parent.subject));
     }
 
-    if (record.subject != null && 13 == record.subject[HASH]) {
-      // debugger;
-    }
-
     switch (callRecordType(record)) {
       case "setup":
-        // if (record.parent) {
-        //   console.log("internal usage", record.method, record.parent.method);
-        //   return;
-        // }
-
-        this.logSetup(record.subjectName === "Observable.prototype" ? record.subject : record.subject.source, record.returned, [record.method, stack]);
-
+        this.logSetup(
+          record.subjectName === "Observable.prototype" ?
+            record.subject :
+            record.subject.source,
+          record.returned,
+          [record.method, stack], record);
         break;
 
       case "subscribe":
@@ -98,23 +100,20 @@ export class Visualizer implements RxCollector {
         if (record.subject) {
           this.logSubscribe(record.subject, observer, observer.source || observer.parent);
         }
-
-        if ([13, 40, 69, 86].indexOf(record.subject[HASH]) >= 0) {
-          // debugger;
-        }
-
         break;
 
       case "event":
-        if ([13, 40, 69, 86].indexOf(record.subject[HASH]) >= 0) {
-          // debugger;
-        }
-
         this.logEvent(record.subject, Event.fromRecord(record))
+    }
+
+    // Run nested calls trampoline
+    while (this.queue.length) {
+      var top = this.queue.shift();
+      this.log(top, true);
     }
   }
 
-  public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame]) {
+  public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame], record: ICallRecord) {
     // Try to reuse existing code point
     let nid = using[1].source,
       node = this.lookup[nid];
@@ -126,7 +125,7 @@ export class Visualizer implements RxCollector {
     // Handle nested call
     if (typeof this.observableLookup[Visualizer.id(to)] !== "undefined") {
       // Create of obs yielded existing.
-      node = RxFiddleNode.wrap(this.observableLookup[Visualizer.id(to)], node);
+      node = RxFiddleNode.wrap(node, this.observableLookup[Visualizer.id(to)]);
     }
 
     // Store references
@@ -138,11 +137,11 @@ export class Visualizer implements RxCollector {
     // No edges for ObservableStatic method calls
     if (onto == null) return;
 
-    if (typeof this.observableLookup[Visualizer.id(onto)] !== "undefined") {
-      let edge = new RxFiddleEdge(this.observableLookup[Visualizer.id(onto)], node);
+    let rootNode = this.observableLookup[Visualizer.id(onto)];
+
+    if (typeof rootNode !== "undefined") {
+      let edge = new RxFiddleEdge(rootNode, node);
       this.g.setEdge(edge.from.id, edge.to.id, edge);
-    } else {
-      // debugger;
     }
   }
 
