@@ -62,9 +62,6 @@ export class Visualizer implements RxCollector {
     return (<any>obs)[HASH];
   }
 
-  private queue: ICallRecord[] = [];
-  private static subtree: { [id: number]: Visualizer } = {};
-
   public findNode(record: ICallRecord): RxFiddleNode {
     let stack = ErrorStackParser.parse(record).slice(1, 2)[0];
     if (typeof this.lookup[stack.source] !== "undefined") {
@@ -91,7 +88,6 @@ export class Visualizer implements RxCollector {
         let node = this.lookup[nid];
         if (typeof node == 'undefined') {
           this.lookup[nid] = node = new RxFiddleNode("" + Visualizer._nextId++, record.method, stack);
-          return this;
         }
         return this;
       case "subscribe":
@@ -100,21 +96,7 @@ export class Visualizer implements RxCollector {
     return this;
   }
 
-  public log(record: ICallRecord) {
-    // if (record.parent) {
-    //   console.log("with parent", record);
-    // }
-    this._log(record);
-  }
-
-  public _log(record: ICallRecord, reintroduce = false) {
-    // Trampoline nested calls
-    // if (record.id)
-    //   if (record.parent && !reintroduce) {
-    //     this.queue.push(record);
-    //     return;
-    //   }
-
+  public after(record: ICallRecord) {
     var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
 
     switch (callRecordType(record)) {
@@ -125,11 +107,6 @@ export class Visualizer implements RxCollector {
             record.subject.source,
           record.returned,
           [record.method, stack]);
-        // Run nested calls trampoline
-        // while (this.queue.length) {
-        //   var top = this.queue.pop();
-        //   node.subGraph().log(top);
-        // }
         break;
 
       case "subscribe":
@@ -142,12 +119,6 @@ export class Visualizer implements RxCollector {
       case "event":
         this.logEvent(record.subject, Event.fromRecord(record))
     }
-
-    // Run nested calls trampoline
-    // while (this.queue.length) {
-    //   var top = this.queue.shift();
-    //   this.log(top);
-    // }
   }
 
   public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame]) {
@@ -178,12 +149,6 @@ export class Visualizer implements RxCollector {
     if (onto == null) return node;
 
     let rootNode = this.observableLookup[Visualizer.id(onto)];
-
-    if (using[0] == "asObservable" || using[0] == "multicast" || using[0] == "publish") {
-      console.log("Not handling internally", node, rootNode);
-      // this.run();
-      // debugger;
-    }
 
     if (typeof rootNode !== "undefined") {
       let edge = new RxFiddleEdge(rootNode, node);
@@ -220,6 +185,17 @@ export class Visualizer implements RxCollector {
       .filter(n => n && n !== this)
   }
 
+  public recuriveUnrendered(): number {
+    return this.unrendered + this.subGraphs().reduce(
+      (p, g) => p + g.recuriveUnrendered(), 0
+    );
+  }
+
+  public layout() {
+    this.nodes().forEach(n => n.layout());
+    dagre.layout(this.g);
+  }
+
   public size(): { w: number, h: number } {
     if (this.nodes().length == 0) {
       return { w: 0, h: 0 };
@@ -245,17 +221,6 @@ export class Visualizer implements RxCollector {
     let graph = this.g.graph();
 
     return h("g", { attrs: { class: "visualizer" } }, childs);
-  }
-
-  public layout() {
-    this.nodes().forEach(n => n.layout());
-    dagre.layout(this.g);
-  }
-
-  public recuriveUnrendered(): number {
-    return this.unrendered + this.subGraphs().reduce(
-      (p, g) => p + g.recuriveUnrendered(), 0
-    );
   }
 
   public run() {

@@ -64,7 +64,7 @@ export default class Instrumentation {
       let instanceLogger = logger.before(call, open.slice(0, -1));
       let returned = fn.apply(this, arguments);
       call.returned = returned;
-      instanceLogger.log(call);
+      instanceLogger.after(call);
 
       // Cleanup
       open.pop();
