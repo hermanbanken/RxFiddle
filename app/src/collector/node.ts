@@ -19,7 +19,11 @@ export class RxFiddleNode {
     public location: StackFrame
   ) { }
 
-  public subGraph(instance?: Visualizer): Visualizer {
+  public subGraph(): Visualizer {
+    return this._subgraph;
+  }
+
+  public createSubGraph(instance?: Visualizer): Visualizer {
     if (typeof instance !== "undefined") {
       this._subgraph = instance;
     } else if (typeof this._subgraph === "undefined" || this._subgraph === null) {
@@ -36,7 +40,7 @@ export class RxFiddleNode {
   public addObserver(observable: Rx.Observable<any>, observer: Rx.Observer<any>): [Rx.Observable<any>, Rx.Observer<any>, any[]] {
     let tuple: [Rx.Observable<any>, Rx.Observer<any>, any[]] = [observable, observer, []]
     this.observers.push(tuple)
-    this.height += 20;
+    this.size();
     return tuple
   }
 
@@ -44,6 +48,17 @@ export class RxFiddleNode {
   public height = 20;
   public x: number;
   public y: number;
+
+  public size(): { w: number, h: number } {
+    var extra = this._subgraph && this._subgraph.size() || { w: 0, h: 0 };
+    let size = {
+      w: Math.max(120, extra.w),
+      h: this.observers.length * 20 + 20 + extra.h
+    };
+    this.width = size.w;
+    this.height = size.h;
+    return size;
+  }
 
   public hoover: boolean = false;
   public rendered: VNode;
@@ -64,10 +79,18 @@ export class RxFiddleNode {
     return -this.height / 2 + i * 20 + 10;
   }
 
+  public layout() {
+    this._subgraph && this._subgraph.layout();
+    this.size();
+  }
+
   public render(patch: snabbdom.PatchFunction) {
     var streams = ASCII(this.observers.map(_ => _[2])).map((stream, i) => centeredText(stream || "?", { y: this.line(i + 1), "font-family": "monospace" }))
     var result = h("g", {
-      attrs: { transform: `translate(${this.x},${this.y})` },
+      attrs: {
+        transform: `translate(${this.x},${this.y})`,
+        width: this.width, height: this.height
+      },
       on: {
         click: () => console.log(this),
         mouseover: () => patch(result, this.setHoover(true).render(patch)),
@@ -76,6 +99,12 @@ export class RxFiddleNode {
     }, [
       centeredRect(this.width, this.height, { rx: 10, ry: 10 }),
       centeredText(this.name, { y: this.line(0) }),
+      // subgraph
+      h("g", {
+        attrs: { transform: `translate(${this.width / -2}, ${this.line(this.observers.length) + 10})` }
+      }, [
+        this._subgraph && this._subgraph.render()
+      ].filter(id => id))
       // this.dialog()
       // this.hoover ? this.dialog() : undefined
     ].concat(streams).filter(id => id));

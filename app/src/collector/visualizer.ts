@@ -65,36 +65,35 @@ export class Visualizer implements RxCollector {
   private queue: ICallRecord[] = [];
   private static subtree: { [id: number]: Visualizer } = {};
 
-  public findNode(stackSource: string): RxFiddleNode {
-    if (typeof this.lookup[stackSource] !== "undefined") {
-      return this.lookup[stackSource];
+  public findNode(record: ICallRecord): RxFiddleNode {
+    let stack = ErrorStackParser.parse(record).slice(1, 2)[0];
+    if (typeof this.lookup[stack.source] !== "undefined") {
+      return this.lookup[stack.source];
     } else {
-      var match = Object.keys(this.lookup)
-        .filter(key => this.lookup[key].subGraph() !== this)
-        .find(key => this.lookup[key].subGraph().findNode(stackSource) != null);
+      var match = this.subGraphs()
+        .find(g => g.findNode(record) != null);
       if (match) {
-        this.lookup[match].subGraph().findNode(stackSource);
+        return match.findNode(record);
       }
     }
     return null;
   }
 
-  public before(record: ICallRecord): Visualizer {
+  public before(record: ICallRecord, parents?: ICallRecord[]): Visualizer {
     switch (callRecordType(record)) {
       case "setup":
+        if (parents && parents.length > 0) {
+          var parent = this.findNode(parents[parents.length - 1])
+          if (parent) return parent.createSubGraph().before(record);
+        }
         let stack = ErrorStackParser.parse(record).slice(1, 2)[0];
         let nid = stack.source;
         let node = this.lookup[nid];
-        if (record.parent) {
-          var parent = this.findNode(stack.source)
-          if (parent) return parent.subGraph();
-        }
         if (typeof node == 'undefined') {
           this.lookup[nid] = node = new RxFiddleNode("" + Visualizer._nextId++, record.method, stack);
-          console.log(node);
           return this;
         }
-        return node.subGraph();
+        return this;
       case "subscribe":
       case "event": break;
     }
@@ -210,21 +209,31 @@ export class Visualizer implements RxCollector {
     this.unrendered += 1;
   }
 
-  public subGraphs(): Visualizer[] {
+  public nodes(): RxFiddleNode[] {
     return Object.keys(this.lookup)
       .map(key => this.lookup[key])
-      .filter(r => r.subGraph() !== this)
-      .map(r => r.subGraph())
+  }
+
+  public subGraphs(): Visualizer[] {
+    return this.nodes()
+      .map(n => n.subGraph())
+      .filter(n => n && n !== this)
+  }
+
+  public size(): { w: number, h: number } {
+    if (this.nodes().length == 0) {
+      return { w: 0, h: 0 };
+    }
+    let g = this.g.graph();
+    this.layout();
+    return { w: g.width, h: g.height };
   }
 
   public render(): VNode {
+    this.unrendered = 0;
     this.layout();
-    let subs = this.subGraphs()
-      .map(r => r.render())
-      .filter(s => s);
-
     if (this.g.nodes().length == 0) {
-      return subs.length && h("g", subs);
+      return h("g");
     }
 
     let ns = this.g.nodes().map((id: string) => this.g.node(id).render(patch)).reduce((p, c) => p.concat(c), []);
@@ -232,15 +241,21 @@ export class Visualizer implements RxCollector {
       let edge = this.g.edge(e);
       return edge.render();
     });
-    let childs = ns.concat(es).concat(subs);
+    let childs = ns.concat(es);
     let graph = this.g.graph();
 
     return h("g", { attrs: { class: "visualizer" } }, childs);
   }
 
   public layout() {
-    this.subGraphs().forEach(g => g.layout());
+    this.nodes().forEach(n => n.layout());
     dagre.layout(this.g);
+  }
+
+  public recuriveUnrendered(): number {
+    return this.unrendered + this.subGraphs().reduce(
+      (p, g) => p + g.recuriveUnrendered(), 0
+    );
   }
 
   public run() {
@@ -270,10 +285,7 @@ export class Visualizer implements RxCollector {
   }
   public step() {
     window.requestAnimationFrame(() => this.step());
-    var subs = Object.keys(this.lookup).map(key => this.lookup[key]).reduce((p, r) => {
-      return p + r.subGraph().unrendered;
-    }, 0);
-    if (this.unrendered + subs === 0) {
+    if (this.recuriveUnrendered() === 0) {
       return;
     }
     this.run();
