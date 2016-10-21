@@ -67,8 +67,15 @@ export class Visualizer implements RxCollector {
   public log(record: ICallRecord) {
     var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
 
-    if (record.method == "flatMap") {
-      this.flatMapReturn = record.returned;
+    // Anonymous observable
+    if (record.method === "subscribe" && typeof record.arguments[0] === "function" && record.returned.observer) {
+      this.trackd.push(record.returned);
+      this.trackd.push(record.returned.observer);
+      this.trackd.push(record.parent && record.parent.subject);
+      console.log(
+        record.subject.getName(), Visualizer.id(record.subject), record.method,
+        Visualizer.id(record.returned), Visualizer.id(record.returned.observer),
+        record.parent && Visualizer.id(record.parent.subject));
     }
 
     if (record.subject != null && 13 == record.subject[HASH]) {
@@ -113,7 +120,13 @@ export class Visualizer implements RxCollector {
       node = this.lookup[nid];
     if (typeof node == 'undefined') {
       this.lookup[nid] = node = new RxFiddleNode("" + Visualizer._nextId++, using[0], using[1]);
-      this.g.setNode(node.id, node);
+    }
+    node.addObservable(to);
+
+    // Handle nested call
+    if (typeof this.observableLookup[Visualizer.id(to)] !== "undefined") {
+      // Create of obs yielded existing.
+      node = RxFiddleNode.wrap(this.observableLookup[Visualizer.id(to)], node);
     }
 
     // Store references

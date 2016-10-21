@@ -37,6 +37,14 @@ export class RxFiddleNode {
   public hoover: boolean = false;
   public rendered: VNode;
 
+  public nested: RxFiddleNode[] = [];
+
+  public static wrap(inner: RxFiddleNode, outer: RxFiddleNode): RxFiddleNode {
+    outer.nested.push(inner);
+    outer.id = inner.id;
+    return outer;
+  }
+
   public setHoover(enabled: boolean) {
     this.hoover = enabled;
     return this;
