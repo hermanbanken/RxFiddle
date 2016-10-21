@@ -60,7 +60,6 @@ export default class Instrumentation {
       open.push(call);
 
       // Actual method
-      let c = logger.before(call, open.slice(0, -1));
       let instanceLogger = logger.before(call, open.slice(0, -1));
       let returned = fn.apply(this, arguments);
       call.returned = returned;

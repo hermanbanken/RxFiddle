@@ -1,7 +1,7 @@
 import "../utils";
 import { RxFiddleNode } from "./node";
 import { RxFiddleEdge } from "./edge";
-import { IEvent, Event } from "./event";
+import { IEvent, Event, Subscribe } from "./event";
 import { ICallRecord, callRecordType } from "./callrecord";
 import * as rx from "rx";
 import * as dagre from "dagre";
@@ -76,6 +76,22 @@ export class Visualizer implements RxCollector {
     return null;
   }
 
+  public findForSubject(obs: Rx.Observable<any> | Rx.Observer<any>): Visualizer {
+    if (
+      typeof this.observableLookup[Visualizer.id(obs)] !== "undefined" ||
+      typeof this.observerLookup[Visualizer.id(obs)] !== "undefined"
+    ) {
+      return this;
+    } else {
+      var match = this.subGraphs()
+        .find(g => g.findForSubject(obs) != null);
+      if (match) {
+        return match.findForSubject(obs);
+      }
+    }
+    return null;
+  }
+
   public before(record: ICallRecord, parents?: ICallRecord[]): Visualizer {
     switch (callRecordType(record)) {
       case "setup":
@@ -91,7 +107,8 @@ export class Visualizer implements RxCollector {
         }
         return this;
       case "subscribe":
-      case "event": break;
+      case "event":
+        return this.findForSubject(record.subject) || this;
     }
     return this;
   }
@@ -114,8 +131,7 @@ export class Visualizer implements RxCollector {
         if (record.subject) {
           this.logSubscribe(record.subject, observer, observer.source || observer.parent);
         }
-        break;
-
+      // fallthrough on purpose
       case "event":
         this.logEvent(record.subject, Event.fromRecord(record))
     }
@@ -167,9 +183,9 @@ export class Visualizer implements RxCollector {
   }
 
   public logEvent(observer: Rx.Observer<any>, event: IEvent) {
-    let tuple = this.observerLookup[Visualizer.id(observer)];
-    if (typeof tuple != "undefined") {
-      tuple[2].push(event);
+    if (Visualizer.id(observer) in this.observerLookup) {
+      let [_1, _2, events] = this.observerLookup[Visualizer.id(observer)];
+      events.push(event);
     }
     this.unrendered += 1;
   }
@@ -217,7 +233,7 @@ export class Visualizer implements RxCollector {
       let edge = this.g.edge(e);
       return edge.render();
     });
-    let childs = ns.concat(es);
+    let childs = es.concat(ns);
     let graph = this.g.graph();
 
     return h("g", { attrs: { class: "visualizer" } }, childs);
