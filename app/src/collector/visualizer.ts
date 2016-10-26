@@ -39,14 +39,13 @@ declare module "rx" {
 export type MethodName = string;
 
 export interface RxCollector {
-  logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): void
-  logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>): void
-  logEvent(observer: Rx.Observer<any>, event: IEvent): void
-  logLink(root: Rx.Observable<any>, child: Rx.Observable<any>): void
+  // logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): void
+  // logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>): void
+  // logEvent(observer: Rx.Observer<any>, event: IEvent): void
+  // logLink(root: Rx.Observable<any>, child: Rx.Observable<any>): void
   wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T
-
-  before(record: ICallRecord, parents?: ICallRecord[]): this;
-  after(record: ICallRecord): void;
+  before(record: ICallRecord, parents?: ICallRecord[]): this
+  after(record: ICallRecord): void
 }
 
 export class Visualizer implements RxCollector {

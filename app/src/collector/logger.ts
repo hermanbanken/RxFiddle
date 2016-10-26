@@ -1,24 +1,12 @@
-import "../utils";
-import { RxFiddleNode } from "./node";
-import { RxFiddleEdge } from "./edge";
-import { IEvent, Event, Subscribe, Next, Error as ErrorEvent, Complete } from "./event";
-import { ICallRecord, callRecordType } from "./callrecord";
-import * as Rx from "rx";
-import * as dagre from "dagre";
-import * as snabbdom from "snabbdom";
-import { VNode } from "snabbdom";
+import "../utils"
+import { ICallRecord, callRecordType } from "./callrecord"
+import { Complete, Error as ErrorEvent, Event, IEvent, Next } from "./event"
+import * as Rx from "rx"
 
 const ErrorStackParser = require("error-stack-parser");
-const h = require("snabbdom/h");
-const patch = snabbdom.init([
-  require("snabbdom/modules/attributes"),
-  require("snabbdom/modules/eventlisteners"),
-]);
-
-const svgPanZoom = typeof window != "undefined" ? require("svg-pan-zoom") : {};
 
 function isStream(v: Rx.Observable<any>): boolean {
-  return v instanceof (<any>Rx)["Observable"];
+  return v instanceof (<any>Rx)["Observable"]
 }
 
 export const HASH = "__hash"
@@ -82,29 +70,27 @@ export interface ILens<T> {
 }
 
 export interface RxCollector {
-  logSetup(
-    from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>,
-    using: [MethodName, StackFrame]): void
-  logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>): void
-  logEvent(observer: Rx.Observer<any>, event: IEvent): void
-  logLink(root: Rx.Observable<any>, child: Rx.Observable<any>): void
+  before(record: ICallRecord, parents?: ICallRecord[]): Collector
+  after(record: ICallRecord): void
   wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T
 }
 
 export default class Collector implements RxCollector {
 
   public static collectorId = 0
-  public collectorId: number
-  public hash: string
-  private queue: ICallRecord[] = []
-
   public static reset() {
     this.collectorId = 0
   }
 
+  public collectorId: number
+  public hash: string
+
   public indices = {
     stackframes: {} as { [source: string]: number },
   }
+
+  private queue: ICallRecord[] = []
+  private data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddLink)[] = []
 
   public constructor() {
     this.collectorId = Collector.collectorId++
@@ -149,69 +135,6 @@ export default class Collector implements RxCollector {
     }
   }
 
-  public stackFrame(record: ICallRecord): number {
-    if (typeof record === "undefined") {
-      return undefined
-    }
-    // Code Location
-    let stack = ErrorStackParser.parse(record).slice(1, 2)[0]
-    let id = this.indices.stackframes[stack]
-    if (typeof id === "undefined") {
-      this.indices.stackframes[stack] = id = this.data.length
-      this.data.push({
-        id,
-        stackframe: stack,
-      })
-    }
-    return id
-  }
-
-  public observable(obs: Rx.Observable<any>, record?: ICallRecord): number {
-    return (this.id(obs).getOrSet(() => {
-      if (typeof record === "undefined") {
-        return undefined
-      }
-      let node = new AddObservable()
-      node.stack = this.stackFrame(record)
-      node.id = this.data.length
-      this.data.push(node)
-      node.arguments = record && record.arguments
-      node.method = record && record.method
-
-      let parents = [record.subject].concat(record.arguments)
-        .filter(isStream)
-        .map((arg) => this.observable(arg))
-      node.parents = parents
-      return node.id
-    }))
-  }
-
-  public observer(obs: Rx.Observer<any>, observable: Rx.Observable<any>): number {
-    return this.id(obs).getOrSet(() => {
-      let id = this.data.length
-      let node = new AddSubscription()
-      this.data.push(node)
-      node.id = id
-      node.observableId = this.observable(observable)
-      return id
-    })
-  }
-
-  public id<T>(obs: T) {
-    return {
-      get: () => (<any>obs)[this.hash],
-      getOrSet: (orSet: () => number) => {
-        if (typeof (<any>obs)[this.hash] === "undefined") {
-          (<any>obs)[this.hash] = orSet()
-        }
-        return (<any>obs)[this.hash]
-      },
-      set: (n: number) => (<any>obs)[this.hash] = n,
-    }
-  }
-
-  public data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddLink)[] = []
-
   public before(record: ICallRecord, parents?: ICallRecord[]): Collector {
     this.queue.push(record)
     return this
@@ -235,16 +158,22 @@ export default class Collector implements RxCollector {
         let observer = record.arguments[0] && typeof record.arguments[0] === "object" ?
           record.arguments[0] as Rx.Observer<any> :
           record.returned
-        if (record.subject && observer) {
-          this.logSubscribe(record.subject, observer, observer.source || observer.parent)
+        if (observer && record.subject) {
+          this.observer(observer, record.subject)
         }
       }
 
       // fallthrough on purpose
       case "event":
         let event = Event.fromRecord(record)
-        if (event) {
-          this.logEvent(record.subject, event)
+        if (event && event.type !== "subscribe") {
+          let oid = this.id(record.subject).get()
+          if (typeof oid !== "undefined") {
+            let node = new AddEvent()
+            node.event = event
+            node.subscription = oid
+            this.data.push(node)
+          }
         }
         break
 
@@ -258,41 +187,85 @@ export default class Collector implements RxCollector {
     }
   }
 
-  public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame]) { return }
-
-  public logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>) {
-    this.observer(observer, on)
-  }
-
-  public logEvent(observer: Rx.Observer<any>, event: IEvent) {
-    if (event.type === "subscribe") { return }
-    let oid = this.id(observer).get()
-    if (typeof oid !== "undefined") {
-      let node = new AddEvent()
-      node.event = event
-      node.subscription = oid
-      this.data.push(node)
-    }
-  }
-
-  public logLink(root: Rx.Observable<any>, child: Rx.Observable<any>) {
-    let link = new AddLink()
-    link.sinkSubscription = this.observable(root)
-    link.sourceSubscription = this.observable(child)
-    this.data.push(link)
-  }
-
   public wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any {
     let self = this
     if (typeof fn === "function") {
       return function wrapper(val: any, id: any, subjectSuspect: Rx.Observable<any>) {
         let result = fn.apply(this, arguments)
         if (typeof result === "object" && isStream(result) && subjectSuspect) {
-          self.logLink(subjectSuspect, result)
+          self.link(subjectSuspect, result)
         }
         return result
       }
     }
     return fn
+  }
+
+  private stackFrame(record: ICallRecord): number {
+    if (typeof record === "undefined") {
+      return undefined
+    }
+    // Code Location
+    let stack = ErrorStackParser.parse(record).slice(1, 2)[0]
+    let id = this.indices.stackframes[stack]
+    if (typeof id === "undefined") {
+      this.indices.stackframes[stack] = id = this.data.length
+      this.data.push({
+        id,
+        stackframe: stack,
+      })
+    }
+    return id
+  }
+
+  private observable(obs: Rx.Observable<any>, record?: ICallRecord): number {
+    return (this.id(obs).getOrSet(() => {
+      if (typeof record === "undefined") {
+        return undefined
+      }
+      let node = new AddObservable()
+      node.stack = this.stackFrame(record)
+      node.id = this.data.length
+      this.data.push(node)
+      node.arguments = record && record.arguments
+      node.method = record && record.method
+
+      let parents = [record.subject].concat(record.arguments)
+        .filter(isStream)
+        .map((arg) => this.observable(arg))
+      node.parents = parents
+      return node.id
+    }))
+  }
+
+  private observer(obs: Rx.Observer<any>, observable: Rx.Observable<any>): number {
+    return this.id(obs).getOrSet(() => {
+      let id = this.data.length
+      let node = new AddSubscription()
+      this.data.push(node)
+      node.id = id
+      node.observableId = this.observable(observable)
+      return id
+    })
+  }
+
+  private id<T>(obs: T) {
+    return {
+      get: () => (<any>obs)[this.hash],
+      getOrSet: (orSet: () => number) => {
+        if (typeof (<any>obs)[this.hash] === "undefined") {
+          (<any>obs)[this.hash] = orSet()
+        }
+        return (<any>obs)[this.hash]
+      },
+      set: (n: number) => (<any>obs)[this.hash] = n,
+    }
+  }
+
+  private link(root: Rx.Observable<any>, child: Rx.Observable<any>) {
+    let link = new AddLink()
+    link.sinkSubscription = this.observable(root)
+    link.sourceSubscription = this.observable(child)
+    this.data.push(link)
   }
 }
