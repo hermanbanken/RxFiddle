@@ -4,12 +4,15 @@ import Cycle from "@cycle/rx-run";
 import * as Immutable from "immutable";
 import * as Rx from "rx";
 import Instrumentation from "./collector/instrumentation";
+import { Visualizer } from "./collector/visualizer";
 import RxMarbles from "rxmarbles";
 
 const Observable = Rx.Observable;
 let instrumentation = new Instrumentation();
 instrumentation.setup();
-instrumentation.logger.attach(document.getElementById("graph"));
+if (instrumentation.logger instanceof Visualizer) {
+  instrumentation.logger.attach(document.getElementById("graph"));
+}
 
 // Setup
 RxMarbles.AddCollectionOperator(undefined);

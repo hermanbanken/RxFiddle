@@ -14,7 +14,12 @@ const patch = snabbdom.init([
   require("snabbdom/modules/attributes"),
   require('snabbdom/modules/eventlisteners'),
 ]);
-const svgPanZoom = require("svg-pan-zoom");
+
+const svgPanZoom = typeof window != "undefined" ? require("svg-pan-zoom") : {};
+
+function isStream(v: Rx.Observable<any>): boolean {
+  return v instanceof (<any>Rx)["Observable"];
+}
 
 export const HASH = "__hash";
 export const IGNORE = "__ignore";
@@ -31,12 +36,17 @@ declare module "rx" {
   }
 }
 
-type MethodName = string;
+export type MethodName = string;
 
-interface RxCollector {
-  logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): RxFiddleNode
+export interface RxCollector {
+  logSetup(from: Rx.Observable<any> | Rx.ObservableStatic, to: Rx.Observable<any>, using: [MethodName, StackFrame]): void
   logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>): void
   logEvent(observer: Rx.Observer<any>, event: IEvent): void
+  logLink(root: Rx.Observable<any>, child: Rx.Observable<any>): void
+  wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T
+
+  before(record: ICallRecord, parents?: ICallRecord[]): this;
+  after(record: ICallRecord): void;
 }
 
 export class Visualizer implements RxCollector {
@@ -92,12 +102,12 @@ export class Visualizer implements RxCollector {
     return null;
   }
 
-  public before(record: ICallRecord, parents?: ICallRecord[]): Visualizer {
+  public before(record: ICallRecord, parents?: ICallRecord[]): this {
     switch (callRecordType(record)) {
       case "setup":
         if (parents && parents.length > 0) {
           var parent = this.findNode(parents[parents.length - 1])
-          if (parent) return parent.createSubGraph().before(record);
+          if (parent) return parent.createSubGraph().before(record) as this;
         }
         let stack = ErrorStackParser.parse(record).slice(1, 2)[0];
         let nid = stack.source;
@@ -108,17 +118,20 @@ export class Visualizer implements RxCollector {
         return this;
       case "subscribe":
       case "event":
-        return this.findForSubject(record.subject) || this;
+        return this.findForSubject(record.subject) as this || this;
     }
     return this;
   }
 
   public after(record: ICallRecord) {
+    if (record.subject[HASH] == 25 && record.method == "_subscribe") {
+      debugger;
+    }
     var stack = ErrorStackParser.parse(record).slice(1, 2)[0];
 
     switch (callRecordType(record)) {
       case "setup":
-        let node = this.logSetup(
+        this.logSetup(
           record.subjectName === "Observable.prototype" ?
             record.subject :
             record.subject.source,
@@ -188,6 +201,37 @@ export class Visualizer implements RxCollector {
       events.push(event);
     }
     this.unrendered += 1;
+  }
+
+  public logLink(root: Rx.Observable<any>, child: Rx.Observable<any>) {
+    console.log(root, child);
+    if (Visualizer.id(root) in this.observableLookup && Visualizer.id(child) in this.observableLookup) {
+      console.log("found");
+      let edge = new RxFiddleEdge(this.observableLookup[Visualizer.id(child)], this.observableLookup[Visualizer.id(root)], { dashed: true });
+      this.g.setEdge(edge.from.id, edge.to.id, edge);
+    } else {
+      var rootGraph = this.findForSubject(root);
+      if (!rootGraph) return console.warn("no rootGraph", this, root);
+      var rootNode = rootGraph.observableLookup[Visualizer.id(root)];
+      var childGraph = this.findForSubject(child);
+      if (!childGraph) return console.warn("no childGraph");;
+      console.log("migrating", root, child)
+      rootNode.migrate(child, childGraph.observableLookup[Visualizer.id(child)]);
+    }
+  }
+
+  public wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any {
+    var self = this;
+    if (typeof fn === "function") {
+      return function wrapper(val: any, id: any, subjectSuspect: rx.Observable<any>) {
+        var result = fn.apply(this, arguments);
+        if (typeof result == 'object' && isStream(result)) {
+          subjectSuspect && self.logLink(subjectSuspect, result);
+        }
+        return result;
+      }
+    }
+    return fn;
   }
 
   public nodes(): RxFiddleNode[] {

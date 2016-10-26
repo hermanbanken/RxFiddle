@@ -8,26 +8,29 @@ export interface IEvent {
 }
 
 export class Event implements IEvent {
-  constructor(public type: IEventType, public time: number) { }
-  static fromRecord(record: ICallRecord): IEvent {
+  public static fromRecord(record: ICallRecord): IEvent | null {
     switch (record.method) {
       case "next":
-      case "onNext":
-        return new Next(record.time, record.arguments[0]);
       case "error":
-      case "onError":
-        return new Error(record.time, record.arguments[0]);
       case "completed":
+        return
+      case "onNext":
+        return new Next(record.time, record.arguments[0])
+      case "onError":
+      case "fail":
+        return new Error(record.time, record.arguments[0])
       case "onCompleted":
-        return new Complete(record.time);
+        return new Complete(record.time)
       case "subscribe":
-        return new Subscribe(record.time);
+      case "_subscribe":
+        return new Subscribe(record.time)
       case "dispose":
-        return new Dispose(record.time);
+        return new Dispose(record.time)
       default:
-        console.log("Unknown event", record);
+        console.log("Unknown event", record)
     }
   }
+  constructor(public type: IEventType, public time: number) { }
 }
 
 export class Next<T> extends Event {

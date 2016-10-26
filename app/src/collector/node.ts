@@ -8,6 +8,18 @@ function marble() {
 
 }
 
+function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]] {
+  var a = [], b = [];
+  for (var i = 0; i < array.length; i++) {
+    if (fn(array[i], i, array)) {
+      a.push(array[i]);
+    } else {
+      b.push(array[i]);
+    }
+  }
+  return [a, b];
+}
+
 export class RxFiddleNode {
   public instances: Rx.Observable<any>[] = [];
   public observers: [Rx.Observable<any>, Rx.Observer<any>, any[]][] = [];
@@ -42,6 +54,17 @@ export class RxFiddleNode {
     this.observers.push(tuple)
     this.size();
     return tuple
+  }
+
+  public migrate(observable: Rx.Observable<any>, oldNode: RxFiddleNode) {
+    // migrate observable
+    var [observableMigrate, observableOld] = partition(oldNode.instances, (item) => item === observable);
+    oldNode.instances = observableOld;
+    this.instances.push.apply(this.instances, observableMigrate);
+    // migrate observer
+    var [observerMigrate, observerOld] = partition(oldNode.observers, (item) => item[0] === observable);
+    oldNode.observers = observerOld;
+    this.observers.push.apply(this.observers, observerMigrate);
   }
 
   public width = 120;

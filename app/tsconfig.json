@@ -16,7 +16,9 @@
     "jsx": "preserve",
     "removeComments": false,
     "noImplicitAny": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "declaration": true,
+    "preserveConstEnums": true
   },
   "include": [
     "src/**/*",

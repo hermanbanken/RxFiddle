@@ -1,81 +1,90 @@
-import { ICallRecord } from "./callrecord";
-import { IGNORE, Visualizer } from "./visualizer";
-import "../utils";
-import * as Rx from "rx";
+import "../utils"
+import { ICallRecord } from "./callrecord"
+import { IGNORE, RxCollector, Visualizer } from "./visualizer"
+import * as Rx from "rx"
 
-let defaultSubjects = {
-  "Observable": Rx.Observable,
-  "Observable.prototype": (<any>Rx.Observable)['prototype'],
-  "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver['prototype'],
-  "AnonymousObserver.prototype": <any>Rx.AnonymousObserver['prototype'],
-};
-
-/* tslint:disable:interface-name */
-interface Function {
-  __originalFunction?: Function | null;
-  apply(subject: any, args: any[] | IArguments): any;
+export let defaultSubjects = {
+  Observable: Rx.Observable,
+  "Observable.prototype": (<any>Rx.Observable)["prototype"],
+  // "ObservableBase.prototype": (<any> Rx.ObservableBase)['prototype'],
+  "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver["prototype"],
+  "AnonymousObserver.prototype": <any>Rx.AnonymousObserver["prototype"],
 }
 
-let i = 0;
+function now() {
+  return typeof performance !== "undefined" ? performance.now() : new Date().getTime()
+}
+
+/* tslint:disable:interface-name */
+export interface Function {
+  __originalFunction?: Function | null
+  apply(subject: any, args: any[] | IArguments): any
+}
+
+let i = 0
 
 export default class Instrumentation {
-  public logger: Visualizer;
-  private subjects: { [name: string]: any; };
-  private calls: ICallRecord[] = [];
-  constructor(subjects: { [name: string]: any; } = defaultSubjects, logger: Visualizer = new Visualizer()) {
-    this.subjects = subjects;
-    this.logger = logger;
-    Object.keys(subjects).slice(0, 1).forEach((s: string) => subjects[s][IGNORE] = true);
-  }
+  public logger: RxCollector
+  public open: any[] = []
 
-  public open: any[] = [];
+  private subjects: { [name: string]: any; }
+  private calls: ICallRecord[] = []
+
+  constructor(subjects: { [name: string]: any; } = defaultSubjects, logger: RxCollector = new Visualizer()) {
+    this.subjects = subjects
+    this.logger = logger
+    Object.keys(subjects).slice(0, 1).forEach((s: string) => subjects[s][IGNORE] = true)
+  }
 
   /* tslint:disable:only-arrow-functions */
   /* tslint:disable:no-string-literal */
   /* tslint:disable:no-string-literal */
   public instrument(fn: Function, extras: { [key: string]: string; }): Function {
-    let calls = this.calls;
-    let logger = this.logger;
-    let open = this.open;
+    let calls = this.calls
+    let logger = this.logger
+    let open = this.open
 
     let instrumented = <Function>function instrumented(): any {
       let call: ICallRecord = {
         arguments: [].slice.call(arguments, 0),
+        childs: [],
         id: i++,
         method: extras["methodName"],
         returned: null,
         stack: new Error().stack,
         subject: this,
         subjectName: extras["subjectName"],
-        time: performance.now(),
-        childs: []
-      };
+        time: now(),
+      }
 
       // Prepare
-      calls.push(call);
+      calls.push(call)
       if (open.length > 0) {
-        call.parent = open[open.length - 1];
-        call.parent.childs.push(call);
+        call.parent = open[open.length - 1]
+        call.parent.childs.push(call)
       }
-      open.push(call);
+      open.push(call)
 
       // Actual method
-      let instanceLogger = logger.before(call, open.slice(0, -1));
-      let returned = fn.apply(this, arguments);
-      call.returned = returned;
-      instanceLogger.after(call);
+      let instanceLogger = logger.before(call, open.slice(0, -1))
+      let returned = fn.apply(this, [].map.call(
+        arguments,
+        instanceLogger.wrapHigherOrder.bind(instanceLogger, call.subject))
+      )
+      call.returned = returned
+      instanceLogger.after(call)
 
       // Cleanup
-      open.pop();
-      return returned;
-    };
+      open.pop()
+      return returned
+    }
 
-    instrumented.__originalFunction = fn;
-    return instrumented;
+    instrumented.__originalFunction = fn
+    return instrumented
   }
 
   public deinstrument(fn: Function) {
-    return fn.__originalFunction || fn;
+    return fn.__originalFunction || fn
   }
   /* tslint:enable:only-arrow-functions */
   /* tslint:enable:no-string-literal */
@@ -87,16 +96,32 @@ export default class Instrumentation {
       .map(({ name, subject }) => Object.keys(subject)
         .map(key => ({ key, name: name as string, subject }))
       )
-      .reduce((prev, next) => prev.concat(next), []);
+      .reduce((prev, next) => prev.concat(next), [])
 
     let methods = properties
-      .filter(({ key, subject }) => typeof subject[key] === "function");
+      .filter(({ key, subject }) => typeof subject[key] === "function")
 
     methods.forEach(({ key, name, subject }) => {
       subject[key] = this.instrument(subject[key], {
         methodName: key,
         subjectName: name,
-      });
-    });
+      })
+    })
+  }
+
+  public teardown(): void {
+    let properties: { key: string, name: string, subject: any }[] = Object.keys(this.subjects)
+      .map((name: string) => ({ name, subject: this.subjects[name] }))
+      .map(({ name, subject }) => Object.keys(subject)
+        .map(key => ({ key, name: name as string, subject }))
+      )
+      .reduce((prev, next) => prev.concat(next), [])
+
+    let methods = properties
+      .filter(({ key, subject }) => typeof subject[key] === "function")
+
+    methods.forEach(({ key, subject }) => {
+      subject[key] = this.deinstrument(subject[key])
+    })
   }
 }
