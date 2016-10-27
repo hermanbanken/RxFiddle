@@ -1,17 +1,14 @@
 import "../utils"
 import { ICallRecord, callRecordType } from "./callrecord"
-import { Complete, Error as ErrorEvent, Event, IEvent, Next } from "./event"
+import { Event, IEvent } from "./event"
+import { ILens, lens } from "./lens"
 import * as Rx from "rx"
 
-const ErrorStackParser = require("error-stack-parser");
+const ErrorStackParser = require("error-stack-parser")
 
 function isStream(v: Rx.Observable<any>): boolean {
-  return v instanceof (<any>Rx)["Observable"]
+  return v instanceof (<any>Rx).Observable
 }
-
-export const HASH = "__hash"
-export const OBSERVABLE_ID = "__observableID"
-export const IGNORE = "__ignore"
 
 // Expose protected properties of Observers
 declare module "rx" {
@@ -21,8 +18,6 @@ declare module "rx" {
     o?: Observer<any>
   }
 }
-
-export type MethodName = string;
 
 export class AddStackFrame {
   public id: number
@@ -52,30 +47,22 @@ export class AddLink {
   public sinkSubscription: number
 }
 
-export interface ISubscriptionLens<T> {
-  events(): IEvent[]
-  nexts(): Next<T>[]
-  completes(): Complete[]
-  errors(): ErrorEvent[]
-  all(): AddSubscription[]
-}
-
-export interface IObservableLens<T> {
-  subscriptions(): ISubscriptionLens<T>
-  all(): AddObservable[]
-}
-
-export interface ILens<T> {
-  find(selector: string | number): IObservableLens<T>
-}
-
 export interface RxCollector {
   before(record: ICallRecord, parents?: ICallRecord[]): Collector
   after(record: ICallRecord): void
   wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T
 }
 
-export default class Collector implements RxCollector {
+export interface ICollector {
+  data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddLink)[]
+  indices: {
+    observables: { [id: number]: { childs: number[], links: number[], subscriptions: number[] } },
+    stackframes: { [source: string]: number },
+    subscriptions: { [id: number]: { events: number[] } },
+  }
+}
+
+export default class Collector implements RxCollector, ICollector {
 
   public static collectorId = 0
   public static reset() {
@@ -86,53 +73,22 @@ export default class Collector implements RxCollector {
   public hash: string
 
   public indices = {
+    observables: {} as { [id: number]: { childs: number[], links: number[], subscriptions: number[] } },
     stackframes: {} as { [source: string]: number },
+    subscriptions: {} as { [id: number]: { events: number[] } },
   }
 
+  public data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddLink)[] = []
+
   private queue: ICallRecord[] = []
-  private data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddLink)[] = []
 
   public constructor() {
     this.collectorId = Collector.collectorId++
     this.hash = this.collectorId ? `__hash${this.collectorId}` : "__hash"
   }
 
-  public lens<T>(): ILens<T> {
-    return {
-      find: (selector) => {
-        let obs = () => this.data.filter(e =>
-          e instanceof AddObservable &&
-          (e.method === selector || e.id === selector)
-        ) as AddObservable[]
-
-        let subs = () => {
-          let obsIds = obs().map(o => (<AddObservable>o).id)
-          return this.data.filter(e =>
-            e instanceof AddSubscription &&
-            obsIds.indexOf(e.observableId) >= 0
-          ) as AddSubscription[]
-        }
-
-        let events = () => {
-          let subsIds = subs().map(s => s.id)
-          return (this.data.filter(e =>
-            e instanceof AddEvent &&
-            subsIds.indexOf(e.subscription) >= 0
-          ) as AddEvent[]).map(e => e.event)
-        }
-
-        return {
-          all: () => obs(),
-          subscriptions: () => ({
-            all: () => subs(),
-            completes: () => events().filter(e => e.type === "complete"),
-            errors: () => events().filter(e => e.type === "error"),
-            events,
-            nexts: () => events().filter(e => e.type === "next"),
-          }),
-        } as IObservableLens<T>
-      },
-    }
+  public lens(): ILens<{}> {
+    return lens(this)
   }
 
   public before(record: ICallRecord, parents?: ICallRecord[]): Collector {
@@ -159,7 +115,7 @@ export default class Collector implements RxCollector {
           record.arguments[0] as Rx.Observer<any> :
           record.returned
         if (observer && record.subject) {
-          this.observer(observer, record.subject)
+          this.subscription(observer, record.subject)
         }
       }
 
@@ -173,6 +129,7 @@ export default class Collector implements RxCollector {
             node.event = event
             node.subscription = oid
             this.data.push(node)
+            this.indices.subscriptions[oid].events.push(this.data.length - 1)
           }
         }
         break
@@ -202,7 +159,7 @@ export default class Collector implements RxCollector {
   }
 
   private stackFrame(record: ICallRecord): number {
-    if (typeof record === "undefined") {
+    if (typeof record === "undefined" || typeof record.stack === "undefined") {
       return undefined
     }
     // Code Location
@@ -210,10 +167,10 @@ export default class Collector implements RxCollector {
     let id = this.indices.stackframes[stack]
     if (typeof id === "undefined") {
       this.indices.stackframes[stack] = id = this.data.length
-      this.data.push({
-        id,
-        stackframe: stack,
-      })
+      let node = new AddStackFrame()
+      node.id = id
+      node.stackframe = stack
+      this.data.push(node)
     }
     return id
   }
@@ -234,17 +191,33 @@ export default class Collector implements RxCollector {
         .filter(isStream)
         .map((arg) => this.observable(arg))
       node.parents = parents
+
+      this.indices.observables[node.id] = { childs: [], links: [], subscriptions: [] }
+      parents.forEach(parent => {
+        let index = this.indices.observables[parent]
+        if (typeof index !== "undefined") {
+          index.childs.push(node.id)
+        }
+      })
+
       return node.id
     }))
   }
 
-  private observer(obs: Rx.Observer<any>, observable: Rx.Observable<any>): number {
-    return this.id(obs).getOrSet(() => {
+  private subscription(sub: Rx.Observer<any>, observable: Rx.Observable<any>): number {
+    return this.id(sub).getOrSet(() => {
       let id = this.data.length
       let node = new AddSubscription()
       this.data.push(node)
       node.id = id
       node.observableId = this.observable(observable)
+
+      this.indices.subscriptions[id] = { events: [] }
+      let index = this.indices.observables[node.observableId]
+      if (typeof index !== "undefined") {
+        index.subscriptions.push(id)
+      }
+
       return id
     })
   }
@@ -267,5 +240,10 @@ export default class Collector implements RxCollector {
     link.sinkSubscription = this.observable(root)
     link.sourceSubscription = this.observable(child)
     this.data.push(link)
+
+    let index = this.indices.observables[link.sourceSubscription]
+    if (typeof index !== "undefined") {
+      index.links.push(link.sinkSubscription)
+    }
   }
 }

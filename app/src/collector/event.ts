@@ -1,10 +1,10 @@
-import { ICallRecord } from "./callrecord";
+import { ICallRecord } from "./callrecord"
 
-export type IEventType = "next" | "error" | "complete" | "subscribe" | "dispose";
+export type IEventType = "next" | "error" | "complete" | "subscribe" | "dispose"
 
 export interface IEvent {
-  type: IEventType;
-  time: number;
+  type: IEventType
+  time: number
 }
 
 export class Event implements IEvent {

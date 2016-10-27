@@ -5,10 +5,10 @@ import * as Rx from "rx"
 
 export let defaultSubjects = {
   Observable: Rx.Observable,
-  "Observable.prototype": (<any>Rx.Observable)["prototype"],
+  "Observable.prototype": (<any>Rx.Observable).prototype,
   // "ObservableBase.prototype": (<any> Rx.ObservableBase)['prototype'],
-  "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver["prototype"],
-  "AnonymousObserver.prototype": <any>Rx.AnonymousObserver["prototype"],
+  "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver.prototype,
+  "AnonymousObserver.prototype": <any>Rx.AnonymousObserver.prototype,
 }
 
 function now() {
@@ -26,6 +26,7 @@ let i = 0
 export default class Instrumentation {
   public logger: RxCollector
   public open: any[] = []
+  public stackTraces: boolean = false
 
   private subjects: { [name: string]: any; }
   private calls: ICallRecord[] = []
@@ -43,6 +44,7 @@ export default class Instrumentation {
     let calls = this.calls
     let logger = this.logger
     let open = this.open
+    let addStacktraces = this.stackTraces
 
     let instrumented = <Function>function instrumented(): any {
       let call: ICallRecord = {
@@ -51,7 +53,7 @@ export default class Instrumentation {
         id: i++,
         method: extras["methodName"],
         returned: null,
-        stack: new Error().stack,
+        stack: addStacktraces ? new Error().stack : undefined,
         subject: this,
         subjectName: extras["subjectName"],
         time: now(),
