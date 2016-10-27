@@ -56,9 +56,9 @@ export interface RxCollector {
 export interface ICollector {
   data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddLink)[]
   indices: {
-    observables: { [id: number]: { childs: number[], links: number[], subscriptions: number[] } },
+    observables: { [id: number]: { childs: number[], subscriptions: number[] } },
     stackframes: { [source: string]: number },
-    subscriptions: { [id: number]: { events: number[] } },
+    subscriptions: { [id: number]: { events: number[], links: number[] } },
   }
 }
 
@@ -73,9 +73,9 @@ export default class Collector implements RxCollector, ICollector {
   public hash: string
 
   public indices = {
-    observables: {} as { [id: number]: { childs: number[], links: number[], subscriptions: number[] } },
+    observables: {} as { [id: number]: { childs: number[], subscriptions: number[] } },
     stackframes: {} as { [source: string]: number },
-    subscriptions: {} as { [id: number]: { events: number[] } },
+    subscriptions: {} as { [id: number]: { events: number[], links: number[] } },
   }
 
   public data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddLink)[] = []
@@ -192,7 +192,7 @@ export default class Collector implements RxCollector, ICollector {
         .map((arg) => this.observable(arg))
       node.parents = parents
 
-      this.indices.observables[node.id] = { childs: [], links: [], subscriptions: [] }
+      this.indices.observables[node.id] = { childs: [], subscriptions: [] }
       parents.forEach(parent => {
         let index = this.indices.observables[parent]
         if (typeof index !== "undefined") {
@@ -212,7 +212,7 @@ export default class Collector implements RxCollector, ICollector {
       node.id = id
       node.observableId = this.observable(observable)
 
-      this.indices.subscriptions[id] = { events: [] }
+      this.indices.subscriptions[id] = { events: [], links: [] }
       let index = this.indices.observables[node.observableId]
       if (typeof index !== "undefined") {
         index.subscriptions.push(id)
@@ -241,7 +241,7 @@ export default class Collector implements RxCollector, ICollector {
     link.sourceSubscription = this.observable(child)
     this.data.push(link)
 
-    let index = this.indices.observables[link.sourceSubscription]
+    let index = this.indices.subscriptions[link.sourceSubscription]
     if (typeof index !== "undefined") {
       index.links.push(link.sinkSubscription)
     }
