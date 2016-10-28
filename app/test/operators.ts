@@ -114,4 +114,44 @@ export class OperatorTest {
     complexObs()
     console.timeEnd("complex")
   }
+
+  @test
+  public "nested-call operators"() {
+    Rx.Observable.of(1, 2, 3)
+      .share()
+      .subscribe()
+
+    expect(this.collector.lens().roots().all()).to.deep.eq([{
+      arguments: [1, 2, 3],
+      id: 0,
+      method: "of",
+      parents: [],
+      stack: undefined,
+    }])
+
+    expect(this.collector.lens().roots().childs().all()).to.deep.eq([{
+      arguments: [],
+      id: 1,
+      method: "share",
+      parents: [0],
+      stack: undefined,
+    }])
+  }
+
+  @test
+  public "higher order operators"() {
+    Rx.Observable.of(1, 2, 3)
+      .flatMap(i => Rx.Observable.empty())
+      .subscribe()
+
+    let childs = this.collector.lens().roots().childs()
+    expect(childs.all()[0].method).to.equal("flatMap")
+    expect(childs.subscriptions().links().all()).to.deep.equal([{
+      arguments: [],
+      id: 2,
+      method: "empty",
+      parents: [],
+      stack: undefined,
+    }])
+  }
 }
