@@ -54,144 +54,12 @@ export class Visualizer {
   private rendered: number = 0
   private collector: ICollector
 
-  constructor(collector?: ICollector, dom?: HTMLElement) {
+  constructor(collector: ICollector, dom?: HTMLElement) {
     this.g.setGraph({})
     this.g.setDefaultEdgeLabel(() => ({}))
     this.svg = dom
     this.collector = collector
   }
-
-  // public before(record: ICallRecord, parents?: ICallRecord[]): this {
-  //   switch (callRecordType(record)) {
-  //     case "setup":
-  //       if (parents && parents.length > 0) {
-  //         var parent = this.findNode(parents[parents.length - 1])
-  //         if (parent) return parent.createSubGraph().before(record) as this
-  //       }
-  //       let stack = ErrorStackParser.parse(record).slice(1, 2)[0]
-  //       let nid = stack.source
-  //       let node = this.lookup[nid]
-  //       if (typeof node == 'undefined') {
-  //         this.lookup[nid] = node = new RxFiddleNode("" + Visualizer._nextId++, record.method, stack)
-  //       }
-  //       return this
-  //     case "subscribe":
-  //     case "event":
-  //       return this.findForSubject(record.subject) as this || this
-  //   }
-  //   return this
-  // }
-
-  // public after(record: ICallRecord) {
-  //   if (record.subject[HASH] == 25 && record.method == "_subscribe") {
-  //     debugger
-  //   }
-  //   var stack = ErrorStackParser.parse(record).slice(1, 2)[0]
-
-  //   switch (callRecordType(record)) {
-  //     case "setup":
-  //       this.logSetup(
-  //         record.subjectName === "Observable.prototype" ?
-  //           record.subject :
-  //           record.subject.source,
-  //         record.returned,
-  //         [record.method, stack])
-  //       break
-
-  //     case "subscribe":
-  //       let observer = typeof record.arguments[0] == 'object' ? record.arguments[0] as Rx.Observer<any> : record.returned
-  //       if (record.subject) {
-  //         this.logSubscribe(record.subject, observer, observer.source || observer.parent)
-  //       }
-  //     // fallthrough on purpose
-  //     case "event":
-  //       this.logEvent(record.subject, Event.fromRecord(record))
-  //   }
-  // }
-
-  // public logSetup(onto: Rx.Observable<any> | null, to: Rx.Observable<any>, using: [MethodName, StackFrame]) {
-  //   // Try to reuse existing code point
-  //   let nid = using[1].source,
-  //     node = this.lookup[nid]
-  //   if (typeof node == 'undefined') {
-  //     this.lookup[nid] = node = new RxFiddleNode("" + Visualizer._nextId++, using[0], using[1])
-  //   }
-  //   node.addObservable(to)
-
-  //   // Handle nested call
-  //   if (typeof this.observableLookup[Visualizer.id(to)] !== "undefined") {
-  //     // Create of obs yielded existing.
-  //     console.log("Handle in internal graph", node)
-  //     var newNode = RxFiddleNode.wrap(node, this.observableLookup[Visualizer.id(to)])
-  //     return node
-  //   } else {
-  //     this.observableLookup[Visualizer.id(to)] = node
-  //   }
-
-  //   // Store references
-  //   this.g.setNode(node.id, node)
-
-  //   this.unrendered += 1
-
-  //   // No edges for ObservableStatic method calls
-  //   if (onto == null) return node
-
-  //   let rootNode = this.observableLookup[Visualizer.id(onto)]
-
-  //   if (typeof rootNode !== "undefined") {
-  //     let edge = new RxFiddleEdge(rootNode, node)
-  //     this.g.setEdge(edge.from.id, edge.to.id, edge)
-  //   }
-
-  //   return node
-  // }
-
-  // public logSubscribe(on: Rx.Observable<any>, observer: Rx.Observer<any>, destination?: Rx.Observable<any>) {
-  //   let node = this.observableLookup[Visualizer.id(on)]
-  //   if (node) {
-  //     this.observerLookup[Visualizer.id(observer)] = node.addObserver(on, observer)
-  //     this.unrendered += 1
-  //   }
-  // }
-
-  // public logEvent(observer: Rx.Observer<any>, event: IEvent) {
-  //   if (Visualizer.id(observer) in this.observerLookup) {
-  //     let [_1, _2, events] = this.observerLookup[Visualizer.id(observer)]
-  //     events.push(event)
-  //   }
-  //   this.unrendered += 1
-  // }
-
-  // public logLink(root: Rx.Observable<any>, child: Rx.Observable<any>) {
-  //   console.log(root, child)
-  //   if (Visualizer.id(root) in this.observableLookup && Visualizer.id(child) in this.observableLookup) {
-  //     console.log("found")
-  //     let edge = new RxFiddleEdge(this.observableLookup[Visualizer.id(child)], this.observableLookup[Visualizer.id(root)], { dashed: true })
-  //     this.g.setEdge(edge.from.id, edge.to.id, edge)
-  //   } else {
-  //     var rootGraph = this.findForSubject(root)
-  //     if (!rootGraph) return console.warn("no rootGraph", this, root)
-  //     var rootNode = rootGraph.observableLookup[Visualizer.id(root)]
-  //     var childGraph = this.findForSubject(child)
-  //     if (!childGraph) return console.warn("no childGraph")
-  //     console.log("migrating", root, child)
-  //     rootNode.migrate(child, childGraph.observableLookup[Visualizer.id(child)])
-  //   }
-  // }
-
-  // public wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any {
-  //   var self = this
-  //   if (typeof fn === "function") {
-  //     return function wrapper(val: any, id: any, subjectSuspect: rx.Observable<any>) {
-  //       var result = fn.apply(this, arguments)
-  //       if (typeof result == 'object' && isStream(result)) {
-  //         subjectSuspect && self.logLink(subjectSuspect, result)
-  //       }
-  //       return result
-  //     }
-  //   }
-  //   return fn
-  // }
 
   public subGraphs(): Visualizer[] {
     return this.nodes
@@ -226,23 +94,35 @@ export class Visualizer {
 
     for (let i = start; i < this.collector.data.length; i++) {
       let el = this.collector.data[i]
+
       if (el instanceof AddObservable) {
         this.nodes[el.id] = new RxFiddleNode(`${el.id}`, el.method, null)
-        this.g.setNode(`${el.id}` + "", this.nodes[el.id])
-        for (let p of el.parents.filter(_ => _)) {
+        let graph: Visualizer = this
+        if (typeof el.callParent !== "undefined") {
+          continue
+        }
+        graph.g.setNode(`${el.id}` + "", this.nodes[el.id])
+        for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
           this.g.setEdge(p.toString(), el.id.toString(), new RxFiddleEdge(this.nodes[p], this.nodes[el.id]))
         }
       }
+
       if (el instanceof AddSubscription && typeof this.nodes[el.observableId] !== "undefined") {
         this.nodes[el.observableId].addObserver({ id: el.observableId }, { id: el.id })
       }
+
       if (el instanceof AddLink) {
-        try {
-          let source = this.nodes[(this.collector.data[el.sourceSubscription] as AddSubscription).observableId]
-          let sink = this.nodes[(this.collector.data[el.sinkSubscription] as AddSubscription).observableId]
-          this.g.setEdge(source.id, sink.id, new RxFiddleEdge(source, sink, { dashed: true }))
-        } catch (e) { }
+        let source = (this.collector.data[el.sourceSubscription] as AddSubscription)
+        let sink = (this.collector.data[el.sinkSubscription] as AddSubscription)
+        if (source && sink) {
+          let obsSource = this.nodes[source.observableId]
+          let obsSink = this.nodes[sink.observableId]
+          this.g.setEdge(obsSource.id, obsSink.id, new RxFiddleEdge(obsSource, obsSink, { dashed: true }))
+        } else {
+          console.warn("Could not add", el)
+        }
       }
+
       if (el instanceof AddEvent) {
         let oid = (this.collector.data[el.subscription] as AddSubscription).observableId
         if (typeof this.nodes[oid] === "undefined") { continue }
@@ -252,6 +132,7 @@ export class Visualizer {
           }
         }
       }
+
     }
   }
 

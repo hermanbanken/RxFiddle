@@ -14,54 +14,86 @@ export interface ISubscriptionLens<T> {
   completes(): Complete[]
   errors(): Error[]
   all(): AddSubscription[]
+  links(): ISubscriptionLens<T>
 }
 
 export interface IObservableLens<T> {
-  subscriptions(): ISubscriptionLens<T>
   all(): AddObservable[]
+  childs(): IObservableLens<T>
+  subscriptions(): ISubscriptionLens<T>
 }
 
 export interface ILens<T> {
+  roots(): IObservableLens<T>
   find(selector: string | number): IObservableLens<T>
+}
+
+function subsLens<T>(collector: Collector, subs: () => AddSubscription[]): ISubscriptionLens<T> {
+  let events = () => {
+    let subsIds = subs().map(s => s.id)
+    return subsIds
+      .map(subId => collector.indices.subscriptions[subId].events)
+      .map(eventIds => eventIds.map(eid => collector.data[eid] as AddEvent))
+      .reduce((list, next) => list.concat(next), [])
+      .map(e => e.event)
+  }
+
+  let links = () => {
+    return subs().map(s => s.id)
+      .map(subId => collector.indices.subscriptions[subId].links)
+      .reduce((list, ls) => list.concat(ls), [])
+      .map(subId => collector.data[subId]) as AddSubscription[]
+  }
+
+  return {
+    all: () => subs(),
+    completes: () => events().filter(e => e.type === "complete"),
+    errors: () => events().filter(e => e.type === "error") as Error[],
+    events,
+    links: () => subsLens(collector, links),
+    nexts: () => events().filter(e => e.type === "next") as Next<T>[],
+  } as ISubscriptionLens<T>
+}
+
+function obsLens<T>(collector: Collector, get: () => AddObservable[]): IObservableLens<T> {
+  let subs = () => {
+    let obsIds = get().map(o => (<AddObservable>o).id)
+    return obsIds
+      .map(id => collector.indices.observables[id].subscriptions)
+      .map(subIds => subIds.map(subId => collector.data[subId] as AddSubscription))
+      .reduce((list, next) => list.concat(next), [])
+  }
+
+  return {
+    all: () => get(),
+    childs: () => {
+      let query = () => get()
+        .map(_ => collector.indices.observables[_.id].childs)
+        .reduce((list, _) => list.concat(_), [])
+        .map(i => collector.data[i] as AddObservable)
+        .filter(_ => typeof _.callParent === "undefined")
+      return obsLens<T>(collector, query)
+    },
+    subscriptions: () => subsLens(collector, subs),
+  } as IObservableLens<T>
 }
 
 export function lens<T>(collector: Collector): ILens<T> {
   return {
     find: (selector: string | number) => {
       let obs = () => typeof selector === "number" ?
-        [collector.data[selector]] :
+        [collector.data[selector] as AddObservable] :
         collector.data.filter(e =>
           e instanceof AddObservable &&
           (e.method === selector)
         ) as AddObservable[]
 
-      let subs = () => {
-        let obsIds = obs().map(o => (<AddObservable>o).id)
-        return obsIds
-          .map(id => collector.indices.observables[id].subscriptions)
-          .map(subIds => subIds.map(subId => collector.data[subId] as AddSubscription))
-          .reduce((list, next) => list.concat(next), [])
-      }
-
-      let events = () => {
-        let subsIds = subs().map(s => s.id)
-        return subsIds
-          .map(subId => collector.indices.subscriptions[subId].events)
-          .map(eventIds => eventIds.map(eid => collector.data[eid] as AddEvent))
-          .reduce((list, next) => list.concat(next), [])
-          .map(e => e.event)
-      }
-
-      return {
-        all: () => obs(),
-        subscriptions: () => ({
-          all: () => subs(),
-          completes: () => events().filter(e => e.type === "complete"),
-          errors: () => events().filter(e => e.type === "error"),
-          events,
-          nexts: () => events().filter(e => e.type === "next"),
-        }),
-      } as IObservableLens<T>
+      return obsLens<T>(collector, obs)
+    },
+    roots: () => {
+      let obs = () => collector.data
+        .filter(e => e instanceof AddObservable && e.parents.length === 0) as AddObservable[]
+      return obsLens<T>(collector, obs)
     },
   }
 }

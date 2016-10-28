@@ -26,6 +26,7 @@ export class AddStackFrame {
 
 export class AddObservable {
   public id: number
+  public callParent?: number
   public parents?: number[]
   public method?: string
   public stack?: number
@@ -180,12 +181,18 @@ export default class Collector implements RxCollector, ICollector {
       if (typeof record === "undefined") {
         return undefined
       }
+
       let node = new AddObservable()
       node.stack = this.stackFrame(record)
       node.id = this.data.length
       this.data.push(node)
       node.arguments = record && record.arguments
       node.method = record && record.method
+
+      // Add call-parent
+      if (record.parent && record.subject === record.parent.subject) {
+        node.callParent = this.id(record.parent.returned).get()
+      }
 
       let parents = [record.subject].concat(record.arguments)
         .filter(isStream)

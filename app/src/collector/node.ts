@@ -1,23 +1,25 @@
-import * as snabbdom from "snabbdom";
-import { Visualizer } from "./visualizer";
-import { centeredRect, centeredText } from "./shapes";
-import { render as ASCII } from "./ascii";
-const h = require("snabbdom/h");
+import { render as ASCII } from "./ascii"
+import { ICollector } from "./logger"
+import { centeredRect, centeredText } from "./shapes"
+import { Visualizer } from "./visualizer"
+import * as snabbdom from "snabbdom"
+
+const h = require("snabbdom/h")
 
 function marble() {
 
 }
 
 function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]] {
-  var a = [], b = [];
+  var a = [], b = []
   for (var i = 0; i < array.length; i++) {
     if (fn(array[i], i, array)) {
-      a.push(array[i]);
+      a.push(array[i])
     } else {
-      b.push(array[i]);
+      b.push(array[i])
     }
   }
-  return [a, b];
+  return [a, b]
 }
 
 export class RxFiddleNode {
@@ -32,16 +34,14 @@ export class RxFiddleNode {
   ) { }
 
   public subGraph(): Visualizer {
-    return this._subgraph;
+    return this._subgraph
   }
 
-  public createSubGraph(instance?: Visualizer): Visualizer {
-    if (typeof instance !== "undefined") {
-      this._subgraph = instance;
-    } else if (typeof this._subgraph === "undefined" || this._subgraph === null) {
-      this._subgraph = new Visualizer()
+  public createSubGraph(collector: ICollector): Visualizer {
+    if (typeof this._subgraph === "undefined" || this._subgraph === null) {
+      this._subgraph = new Visualizer(collector)
     }
-    return this._subgraph;
+    return this._subgraph
   }
 
   public addObservable(instance: Rx.Observable<any> | { id: number }) {
@@ -60,53 +60,53 @@ export class RxFiddleNode {
 
   public migrate(observable: Rx.Observable<any>, oldNode: RxFiddleNode) {
     // migrate observable
-    var [observableMigrate, observableOld] = partition(oldNode.instances, (item) => item === observable);
-    oldNode.instances = observableOld;
-    this.instances.push.apply(this.instances, observableMigrate);
+    var [observableMigrate, observableOld] = partition(oldNode.instances, (item) => item === observable)
+    oldNode.instances = observableOld
+    this.instances.push.apply(this.instances, observableMigrate)
     // migrate observer
-    var [observerMigrate, observerOld] = partition(oldNode.observers, (item) => item[0] === observable);
-    oldNode.observers = observerOld;
-    this.observers.push.apply(this.observers, observerMigrate);
+    var [observerMigrate, observerOld] = partition(oldNode.observers, (item) => item[0] === observable)
+    oldNode.observers = observerOld
+    this.observers.push.apply(this.observers, observerMigrate)
   }
 
-  public width = 120;
-  public height = 20;
-  public x: number;
-  public y: number;
+  public width = 120
+  public height = 20
+  public x: number
+  public y: number
 
   public size(): { w: number, h: number } {
-    var extra = this._subgraph && this._subgraph.size() || { w: 0, h: 0 };
+    var extra = this._subgraph && this._subgraph.size() || { w: 0, h: 0 }
     let size = {
       w: Math.max(120, extra.w),
       h: this.observers.length * 20 + 20 + extra.h
-    };
-    this.width = size.w;
-    this.height = size.h;
-    return size;
+    }
+    this.width = size.w
+    this.height = size.h
+    return size
   }
 
-  public hoover: boolean = false;
-  public rendered: VNode;
+  public hoover: boolean = false
+  public rendered: VNode
 
-  public nested: RxFiddleNode[] = [];
+  public nested: RxFiddleNode[] = []
 
   public static wrap(inner: RxFiddleNode, outer: RxFiddleNode): RxFiddleNode {
-    outer.nested.push(inner);
-    return outer;
+    outer.nested.push(inner)
+    return outer
   }
 
   public setHoover(enabled: boolean) {
-    this.hoover = enabled;
-    return this;
+    this.hoover = enabled
+    return this
   }
 
   private line(i: number) {
-    return -this.height / 2 + i * 20 + 10;
+    return -this.height / 2 + i * 20 + 10
   }
 
   public layout() {
-    this._subgraph && this._subgraph.layout();
-    this.size();
+    this._subgraph && this._subgraph.layout()
+    this.size()
   }
 
   public render(patch: snabbdom.PatchFunction) {
@@ -132,19 +132,19 @@ export class RxFiddleNode {
       ].filter(id => id))
       // this.dialog()
       // this.hoover ? this.dialog() : undefined
-    ].concat(streams).filter(id => id));
-    this.rendered = result;
-    return result;
+    ].concat(streams).filter(id => id))
+    this.rendered = result
+    return result
   }
 
   private dialog() {
-    let _w = 200, _h = 200;
-    let triangle = `M ${_w / -2 - 5} 0 l 5 -5 l 0 10 Z`;
+    let _w = 200, _h = 200
+    let triangle = `M ${_w / -2 - 5} 0 l 5 -5 l 0 10 Z`
     return h("g", {
       attrs: { transform: `translate(${this.width / 2 + _w / 2 + 5},${0})`, width: _w, height: _h }
     }, [
         h("path", { attrs: { d: triangle, fill: "black" } }),
         centeredRect(_w, _h, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
-      ]);
+      ])
   }
 }
