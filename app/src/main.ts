@@ -13,9 +13,8 @@ const Observable = Rx.Observable
 let collector = new Collector()
 let instrumentation = new Instrumentation(defaultSubjects, collector)
 instrumentation.setup()
-if (instrumentation.logger instanceof Visualizer) {
-  instrumentation.logger.attach(document.getElementById("graph"))
-}
+let vis = new Visualizer(instrumentation.logger, document.getElementById("graph"))
+vis.step();
 (<any>window).collector = collector
 
 // Setup

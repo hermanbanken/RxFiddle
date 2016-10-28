@@ -21,9 +21,9 @@ function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => b
 }
 
 export class RxFiddleNode {
-  public instances: Rx.Observable<any>[] = [];
-  public observers: [Rx.Observable<any>, Rx.Observer<any>, any[]][] = [];
-  private _subgraph: Visualizer | null;
+  public instances: (Rx.Observable<any> | { id: number })[] = []
+  public observers: [Rx.Observable<any> | { id: number }, Rx.Observer<any> | { id: number }, any[]][] = []
+  private _subgraph: Visualizer | null
 
   constructor(
     public id: string,
@@ -39,21 +39,23 @@ export class RxFiddleNode {
     if (typeof instance !== "undefined") {
       this._subgraph = instance;
     } else if (typeof this._subgraph === "undefined" || this._subgraph === null) {
-      this._subgraph = new Visualizer();
+      this._subgraph = new Visualizer()
     }
     return this._subgraph;
   }
 
-  public addObservable(instance: Rx.Observable<any>) {
+  public addObservable(instance: Rx.Observable<any> | { id: number }) {
     this.instances.push(instance)
     return this
   }
 
-  public addObserver(observable: Rx.Observable<any>, observer: Rx.Observer<any>): [Rx.Observable<any>, Rx.Observer<any>, any[]] {
-    let tuple: [Rx.Observable<any>, Rx.Observer<any>, any[]] = [observable, observer, []]
-    this.observers.push(tuple)
-    this.size();
-    return tuple
+  public addObserver(
+    observable: Rx.Observable<any> | { id: number },
+    observer: Rx.Observer<any> | { id: number }
+  ): [Rx.Observable<any> | { id: number }, Rx.Observer<any> | { id: number }, any[]] {
+    this.observers.push([observable, observer, []])
+    this.size()
+    return this.observers[this.observers.length - 1]
   }
 
   public migrate(observable: Rx.Observable<any>, oldNode: RxFiddleNode) {

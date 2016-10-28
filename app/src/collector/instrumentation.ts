@@ -1,5 +1,6 @@
 import "../utils"
 import { ICallRecord } from "./callrecord"
+import { ICollector } from "./logger"
 import { IGNORE, RxCollector, Visualizer } from "./visualizer"
 import * as Rx from "rx"
 
@@ -24,14 +25,14 @@ export interface Function {
 let i = 0
 
 export default class Instrumentation {
-  public logger: RxCollector
+  public logger: ICollector & RxCollector
   public open: any[] = []
   public stackTraces: boolean = false
 
   private subjects: { [name: string]: any; }
   private calls: ICallRecord[] = []
 
-  constructor(subjects: { [name: string]: any; } = defaultSubjects, logger: RxCollector = new Visualizer()) {
+  constructor(subjects: { [name: string]: any; } = defaultSubjects, logger: ICollector & RxCollector) {
     this.subjects = subjects
     this.logger = logger
     Object.keys(subjects).slice(0, 1).forEach((s: string) => subjects[s][IGNORE] = true)
