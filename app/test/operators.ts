@@ -144,9 +144,13 @@ export class OperatorTest {
       .flatMap(i => Rx.Observable.empty())
       .subscribe()
 
-    let childs = this.collector.lens().roots().childs()
-    expect(childs.all()[0].method).to.equal("flatMap")
-    expect(childs.subscriptions().links().all()).to.deep.equal([{
+    let lens = this.collector.lens()
+    console.log(this.collector.data)
+    expect(lens.all().all().map(_ => _.method)).to.deep.equal([
+      "of", "flatMap", "empty",
+    ])
+
+    expect(lens.all().subscriptions().links().all()).to.deep.equal([{
       arguments: [],
       id: 2,
       method: "empty",

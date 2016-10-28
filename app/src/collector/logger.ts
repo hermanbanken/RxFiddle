@@ -112,11 +112,25 @@ export default class Collector implements RxCollector, ICollector {
       }
 
       case "subscribe": {
-        let observer = record.arguments[0] && typeof record.arguments[0] === "object" ?
+        let observer: Rx.Observer<{}> = record.arguments[0] && typeof record.arguments[0] === "object" ?
           record.arguments[0] as Rx.Observer<any> :
           record.returned
+        let sourceId
         if (observer && record.subject) {
-          this.subscription(observer, record.subject)
+          sourceId = this.subscription(observer, record.subject)
+        }
+
+        // Add higher order links
+        if (observer.source instanceof <any>Rx.Observable && observer.o) {
+          let sink: Rx.Observable<{}> = observer.source
+          let source: Rx.Observable<{}> = record.subject
+          let sinkNode = this.data[this.observable(sink)] as AddObservable
+          let sourceNode = this.data[this.observable(source)] as AddObservable
+          if (sinkNode && sinkNode.parents.indexOf(sourceNode.id) === -1) {
+            let sinkId = this.subscription(observer.o, observer.source)
+            console.log(sinkId, sourceId)
+            this.linkSubs(this.data[sourceId] as AddSubscription, this.data[sinkId] as AddSubscription)
+          }
         }
       }
 
@@ -176,37 +190,51 @@ export default class Collector implements RxCollector, ICollector {
     return id
   }
 
+  private enrichWithCall(node: AddObservable, record: ICallRecord) {
+    if (typeof node.method !== "undefined") {
+      return
+    }
+    node.stack = this.stackFrame(record)
+    node.arguments = record && record.arguments
+    node.method = record && record.method
+
+    // Add call-parent
+    if (record.parent && record.subject === record.parent.subject) {
+      node.callParent = this.id(record.parent.returned).get()
+    }
+
+    let parents = [record.subject].concat(record.arguments)
+      .filter(isStream)
+      .map((arg) => this.observable(arg))
+    node.parents = parents
+
+    this.indices.observables[node.id] = { childs: [], subscriptions: [] }
+    parents.forEach(parent => {
+      let index = this.indices.observables[parent]
+      if (typeof index !== "undefined") {
+        index.childs.push(node.id)
+      }
+    })
+  }
+
   private observable(obs: Rx.Observable<any>, record?: ICallRecord): number {
+    if (typeof record !== "undefined" && typeof this.id(obs).get() !== "undefined") {
+      this.enrichWithCall(this.data[this.id(obs).get()] as AddObservable, record)
+    }
+
     return (this.id(obs).getOrSet(() => {
-      if (typeof record === "undefined") {
-        return undefined
-      }
-
       let node = new AddObservable()
-      node.stack = this.stackFrame(record)
       node.id = this.data.length
+      node.parents = []
       this.data.push(node)
-      node.arguments = record && record.arguments
-      node.method = record && record.method
-
-      // Add call-parent
-      if (record.parent && record.subject === record.parent.subject) {
-        node.callParent = this.id(record.parent.returned).get()
-      }
-
-      let parents = [record.subject].concat(record.arguments)
-        .filter(isStream)
-        .map((arg) => this.observable(arg))
-      node.parents = parents
-
-      this.indices.observables[node.id] = { childs: [], subscriptions: [] }
-      parents.forEach(parent => {
-        let index = this.indices.observables[parent]
-        if (typeof index !== "undefined") {
-          index.childs.push(node.id)
+      if (typeof record !== "undefined") {
+        if (record.method === "flatMap") {
+          console.log("flatmap info available", obs)
         }
-      })
-
+        this.enrichWithCall(node, record)
+      } else {
+        console.log("No info available for ", obs)
+      }
       return node.id
     }))
   }
@@ -243,9 +271,23 @@ export default class Collector implements RxCollector, ICollector {
   }
 
   private link(root: Rx.Observable<any>, child: Rx.Observable<any>) {
+    // let link = new AddLink()
+    // link.sinkSubscription = this.observable(root)
+    // link.sourceSubscription = this.observable(child)
+    // this.data.push(link)
+
+    // let index = this.indices.subscriptions[link.sourceSubscription]
+    // if (typeof index !== "undefined") {
+    //   index.links.push(link.sinkSubscription)
+    // }
+  }
+
+  private linkSubs(source: AddSubscription, sink: AddSubscription) {
+    console.log("link subscriptions", source, sink)
+
     let link = new AddLink()
-    link.sinkSubscription = this.observable(root)
-    link.sourceSubscription = this.observable(child)
+    link.sourceSubscription = source.id
+    link.sinkSubscription = sink.id
     this.data.push(link)
 
     let index = this.indices.subscriptions[link.sourceSubscription]

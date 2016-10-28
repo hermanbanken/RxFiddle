@@ -24,6 +24,7 @@ export interface IObservableLens<T> {
 }
 
 export interface ILens<T> {
+  all(): IObservableLens<T>
   roots(): IObservableLens<T>
   find(selector: string | number): IObservableLens<T>
 }
@@ -80,6 +81,11 @@ function obsLens<T>(collector: Collector, get: () => AddObservable[]): IObservab
 
 export function lens<T>(collector: Collector): ILens<T> {
   return {
+    all: () => {
+      let obs = () => collector.data
+        .filter(e => e instanceof AddObservable) as AddObservable[]
+      return obsLens<T>(collector, obs)
+    },
     find: (selector: string | number) => {
       let obs = () => typeof selector === "number" ?
         [collector.data[selector] as AddObservable] :
