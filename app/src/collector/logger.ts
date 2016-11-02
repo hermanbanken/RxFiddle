@@ -157,24 +157,14 @@ export default class Collector implements RxCollector, ICollector {
           record.arguments[0] as Rx.Observer<any> :
           record.returned
 
-        // Add higher order links
+        // Add higher order links, recording upstream nested 
+        // observables (eg flatMap's inner FlatMapObservable)
         let scopeId = undefined
-        // if (observer && observer.source instanceof <any>Rx.Observable && observer.o) {
-        //   let sink: Rx.Observable<{}> = observer.source
-        //   let source: Rx.Observable<{}> = record.subject
-        //   let sinkNode = this.data[this.observable(sink)] as AddObservable
-        //   let sourceNode = this.data[this.observable(source)] as AddObservable
-        //   if (sinkNode && sinkNode.parents.indexOf(sourceNode.id) === -1) {
-        //     let sinkId = this.subscription(observer.o, observer.source)
-        //     scopeId = sinkId
-        //   }
-        // }
         if (record.subject.scope) {
           let found = ascendingFind(record.arguments[0], (o) => {
             return this.observableForObserver(o) && true
           })
           scopeId = this.id(found).get()
-          // console.log("subscribe scope", record.subject.scope, found, this.observableForObserver(found))
         }
 
         let sourceId
@@ -184,7 +174,6 @@ export default class Collector implements RxCollector, ICollector {
       }
         break
 
-      // fallthrough on purpose
       case "event":
         let event = Event.fromRecord(record)
         if (event && event.type === "subscribe") {
@@ -216,7 +205,6 @@ export default class Collector implements RxCollector, ICollector {
       return function wrapper(val: any, id: any, subjectSuspect: Rx.Observable<any>) {
         let result = fn.apply(this, arguments)
         if (typeof result === "object" && isStream(result) && subjectSuspect) {
-          // self.link(subjectSuspect, result)
           return self.proxy(result)
         }
         return result
@@ -295,15 +283,6 @@ export default class Collector implements RxCollector, ICollector {
     node.arguments = record && record.arguments
     node.method = record && record.method
 
-    // Record upstream nested observables (eg flatMap's inner FlatMapObservable)
-    // let possiblyNested = this.recurseWhile<Rx.Observable<any>>(
-    //   t => (<any>t).source,
-    //   t => t && typeof this.id(t).get() === "undefined",
-    //   observable)
-    // possiblyNested.slice(1).reduce((callParent, obs) => {
-    //   return this.observableWithCallParent(obs, callParent)
-    // }, node.id)
-
     // Add call-parent
     if (record.parent && record.subject === record.parent.subject) {
       node.callParent = this.id(record.parent.returned).get()
@@ -323,29 +302,6 @@ export default class Collector implements RxCollector, ICollector {
     })
   }
 
-  // private recurseWhile<T>(generator: (t: T) => T, filterfn: (t: T) => boolean, seed: T): T[] {
-  //   if (filterfn(seed)) {
-  //     return [seed].concat(this.recurseWhile(generator, filterfn, generator(seed)))
-  //   } else {
-  //     return []
-  //   }
-  // }
-
-  // private observableWithCallParent(obs: Rx.Observable<any>, callParent: number): number {
-  //   let node: AddObservable
-  //   if (typeof this.id(obs).get() === "undefined") {
-  //     node = new AddObservable()
-  //     node.id = this.data.length
-  //     node.method = obs.constructor.name
-  //     node.parents = [];
-  //     this.data.push(node)
-  //   } else {
-  //     node = this.data[this.id(obs).get()] as AddObservable
-  //   }
-  //   (<any>node).callParent = callParent || "Fucker!"
-  //   return node.id
-  // }
-
   private observable(obs: Rx.Observable<any>, record?: ICallRecord): number {
     let existingId = this.id(obs).get()
     if (
@@ -364,15 +320,7 @@ export default class Collector implements RxCollector, ICollector {
         this.data.push(node)
         this.enrichWithCall(node, record, obs)
         return node.id
-      } else {
-        return undefined
       }
-      // else {
-      //   (<any>node).original = obs;
-      //   (<any>node).originalName = obs.constructor.name;
-      //   (<any>node).originalRecordLocation = (new Error()).stack.replace(
-      //     /\/Users\/hbanken\/Dropbox\/Afstuderen\/RxFiddle\/app\//g, "")
-      // }
     }))
   }
 
@@ -408,62 +356,5 @@ export default class Collector implements RxCollector, ICollector {
       },
       set: (n: number) => (<any>obs)[this.hash] = n,
     }
-  }
-
-  private findLink(parent: Rx.Observer<any>, onto: Rx.Observable<any>, subscriber: Rx.Observer<any>): AddScopeLink | null {
-    let pD = this.id(parent).get()
-    if (typeof pD === 'undefined') {
-      console.log("pD or iD undefined,", pD)
-      return
-    } else {
-      console.log(pD)
-    }
-    let pO = (<AddSubscription>this.data[pD]).observableId
-    let iO = this.id(onto).get().observableId
-    let links = this.indices.observables[pO] && this.indices.observables[pO].inner
-      .map(i => this.data[i] as AddScopeLink)
-      .filter(sl => sl.observable === iO) || []
-    if (links.length) {
-      links.length > 1 && console.log("found multiple links", links)
-      return links[0]
-    } else {
-      console.log("No links founds")
-    }
-  }
-
-  private link(root: Rx.Observable<any>, child: Rx.Observable<any>) {
-    let link = new AddScopeLink()
-    link.scopeObservable = this.observable(root)
-    link.observable = this.observable(child)
-    link.id = this.data.length
-    this.data.push(link)
-
-    let rev = this.indices.observables[this.observable(root)]
-    rev && rev.inner.push(link.id)
-
-    // let link = new AddLink()
-    // link.sinkSubscription = this.observable(root)
-    // link.sourceSubscription = this.observable(child)
-    // this.data.push(link)
-
-    // let index = this.indices.subscriptions[link.sourceSubscription]
-    // if (typeof index !== "undefined") {
-    //   index.links.push(link.sinkSubscription)
-    // }
-  }
-
-  private linkSubs(source: AddSubscription, sink: AddSubscription) {
-    console.log("link subscriptions", source, sink)
-
-    let link = new AddScopeLink()
-
-    // link.sourceSubscription = source.id
-    // link.sinkSubscription = sink.id
-    this.data.push(link)
-
-    // let index = this.indices.subscriptions[link.sourceSubscription]
-    // if (typeof index !== "undefined") {
-    //   index.links.push(link.sinkSubscription)
-    // }
   }
 }
