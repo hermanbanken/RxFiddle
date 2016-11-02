@@ -160,6 +160,8 @@ export class OperatorTest {
     expect(lens.find("empty").subscriptions().all().map(_ => _.scopeId)).to.deep.equal(
       [flatMapSubId, flatMapSubId, flatMapSubId]
     )
+    expect(lens.find("flatMap").subscriptions().scoping().all()).to.have.lengthOf(3)
+
   }
 
   @test
@@ -181,5 +183,6 @@ export class OperatorTest {
     expect(lens.find("fromArray").subscriptions().all().map(_ => _.scopeId)).to.deep.equal(
       [undefined, flatMapSubId, flatMapSubId, flatMapSubId]
     )
+    expect(lens.find("flatMap").subscriptions().scoping().all()).to.have.lengthOf(3)
   }
 }

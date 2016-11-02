@@ -14,7 +14,7 @@ export interface ISubscriptionLens<T> {
   completes(): Complete[]
   errors(): Error[]
   all(): AddSubscription[]
-  links(): ISubscriptionLens<T>
+  scoping(): ISubscriptionLens<T>
 }
 
 export interface IObservableLens<T> {
@@ -40,9 +40,9 @@ function subsLens<T>(collector: Collector, subs: () => AddSubscription[]): ISubs
       .map(e => e.event)
   }
 
-  let links = () => {
+  let scoping = () => {
     return subs().map(s => s.id)
-      .map(subId => collector.indices.subscriptions[subId].links)
+      .map(subId => collector.indices.subscriptions[subId].scoping)
       .reduce((list, ls) => list.concat(ls), [])
       .map(subId => collector.data[subId]) as AddSubscription[]
   }
@@ -52,7 +52,7 @@ function subsLens<T>(collector: Collector, subs: () => AddSubscription[]): ISubs
     completes: () => events().filter(e => e.type === "complete"),
     errors: () => events().filter(e => e.type === "error") as Error[],
     events,
-    links: () => subsLens(collector, links),
+    scoping: () => subsLens(collector, scoping),
     nexts: () => events().filter(e => e.type === "next") as Next<T>[],
   } as ISubscriptionLens<T>
 }

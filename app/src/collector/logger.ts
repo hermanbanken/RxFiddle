@@ -99,7 +99,7 @@ export interface ICollector {
   indices: {
     observables: { [id: number]: { childs: number[], subscriptions: number[] } },
     stackframes: { [source: string]: number },
-    subscriptions: { [id: number]: { events: number[], links: number[] } },
+    subscriptions: { [id: number]: { events: number[], scoping: number[] } },
   }
 }
 
@@ -116,7 +116,7 @@ export default class Collector implements RxCollector, ICollector {
   public indices = {
     observables: {} as { [id: number]: { childs: number[], subscriptions: number[], inner: number[] } },
     stackframes: {} as { [source: string]: number },
-    subscriptions: {} as { [id: number]: { events: number[], links: number[] } },
+    subscriptions: {} as { [id: number]: { events: number[], scoping: number[] } },
   }
 
   public data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddScopeLink)[] = []
@@ -167,9 +167,12 @@ export default class Collector implements RxCollector, ICollector {
           scopeId = this.id(found).get()
         }
 
-        let sourceId
         if (observer && record.subject) {
-          sourceId = this.subscription(observer, record.subject, scopeId)
+          let subid = this.subscription(observer, record.subject, scopeId)
+          if (typeof scopeId !== "undefined") {
+            this.indices.subscriptions[scopeId].scoping.push(subid)
+          }
+
         }
       }
         break
@@ -335,7 +338,7 @@ export default class Collector implements RxCollector, ICollector {
         node.scopeId = scopeId
       }
 
-      this.indices.subscriptions[id] = { events: [], links: [] }
+      this.indices.subscriptions[id] = { events: [], scoping: [] }
       let index = this.indices.observables[node.observableId]
       if (typeof index !== "undefined") {
         index.subscriptions.push(id)
