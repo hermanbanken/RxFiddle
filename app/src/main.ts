@@ -49,7 +49,7 @@ function b() {
     .filter(_ => true)
     .map(_ => _)
     .skip(1)
-    .share()
+    .publish()
   var B = Rx.Observable.never()
 
   A.flatMapLatest(s => Rx.Observable.of("bla").startWith(s))
@@ -62,6 +62,8 @@ function b() {
     .merge(B)
     .filter(a => true)
     .subscribe(console.log)
+
+  A.connect()
 }
 
 //    _____ 
