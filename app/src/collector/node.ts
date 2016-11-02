@@ -1,5 +1,5 @@
 import { render as ASCII } from "./ascii"
-import { ICollector } from "./logger"
+import { ICollector, AddObservable, AddSubscription, AddEvent } from "./logger"
 import { centeredRect, centeredText } from "./shapes"
 import { Visualizer } from "./visualizer"
 import * as snabbdom from "snabbdom"
@@ -44,14 +44,14 @@ export class RxFiddleNode {
     return this._subgraph
   }
 
-  public addObservable(instance: Rx.Observable<any> | { id: number }) {
+  public addObservable(instance: Rx.Observable<any> | AddObservable) {
     this.instances.push(instance)
     return this
   }
 
   public addObserver(
-    observable: Rx.Observable<any> | { id: number },
-    observer: Rx.Observer<any> | { id: number }
+    observable: Rx.Observable<any> | AddObservable,
+    observer: Rx.Observer<any> | AddSubscription
   ): [Rx.Observable<any> | { id: number }, Rx.Observer<any> | { id: number }, any[]] {
     this.observers.push([observable, observer, []])
     this.size()
@@ -60,11 +60,11 @@ export class RxFiddleNode {
 
   public migrate(observable: Rx.Observable<any>, oldNode: RxFiddleNode) {
     // migrate observable
-    var [observableMigrate, observableOld] = partition(oldNode.instances, (item) => item === observable)
+    let [observableMigrate, observableOld] = partition(oldNode.instances, (item) => item === observable)
     oldNode.instances = observableOld
     this.instances.push.apply(this.instances, observableMigrate)
     // migrate observer
-    var [observerMigrate, observerOld] = partition(oldNode.observers, (item) => item[0] === observable)
+    let [observerMigrate, observerOld] = partition(oldNode.observers, (item) => item[0] === observable)
     oldNode.observers = observerOld
     this.observers.push.apply(this.observers, observerMigrate)
   }

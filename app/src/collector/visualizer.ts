@@ -108,20 +108,15 @@ export class Visualizer {
       }
 
       if (el instanceof AddSubscription && typeof this.nodes[el.observableId] !== "undefined") {
-        this.nodes[el.observableId].addObserver({ id: el.observableId }, { id: el.id })
-      }
+        this.nodes[el.observableId].addObserver(this.collector.data[el.observableId] as AddObservable, el)
 
-      // if (el instanceof AddScopeLink) {
-      //   let source = (this.collector.data[el.sourceSubscription] as AddSubscription)
-      //   let sink = (this.collector.data[el.sinkSubscription] as AddSubscription)
-      //   if (source && sink) {
-      //     let obsSource = this.nodes[source.observableId]
-      //     let obsSink = this.nodes[sink.observableId]
-      //     this.g.setEdge(obsSource.id, obsSink.id, new RxFiddleEdge(obsSource, obsSink, { dashed: true }))
-      //   } else {
-      //     console.warn("Could not add", el)
-      //   }
-      // }
+        // Dashed link
+        if (typeof el.scopeId !== "undefined") {
+          let from = this.nodes[el.observableId]
+          let to = this.nodes[(this.collector.data[el.scopeId] as AddSubscription).observableId]
+          this.g.setEdge(from.id, to.id, new RxFiddleEdge(from, to, { dashed: true }))
+        }
+      }
 
       if (el instanceof AddEvent) {
         let oid = (this.collector.data[el.subscription] as AddSubscription).observableId
