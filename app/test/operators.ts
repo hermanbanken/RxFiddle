@@ -39,6 +39,7 @@ export class OperatorTest {
     this.instrumentation.teardown()
   }
 
+
   // @test
   public "test coverage"() {
     let tested = [
@@ -129,13 +130,18 @@ export class OperatorTest {
       stack: undefined,
     }])
 
-    expect(this.collector.lens().roots().childs().all()).to.deep.eq([{
+    let childs = this.collector.lens().roots().childs()
+
+    expect(childs.all()).to.deep.eq([{
       arguments: [],
       id: 1,
       method: "share",
       parents: [0],
       stack: undefined,
     }])
+
+    expect(childs.internals().all())
+      .to.have.length.greaterThan(0)
   }
 
   @test
@@ -145,17 +151,35 @@ export class OperatorTest {
       .subscribe()
 
     let lens = this.collector.lens()
-    console.log(this.collector.data)
-    expect(lens.all().all().map(_ => _.method)).to.deep.equal([
+
+    expect(lens.all().all().map(_ => _.method || _)).to.deep.equal([
       "of", "flatMap", "empty",
     ])
 
-    expect(lens.all().subscriptions().links().all()).to.deep.equal([{
-      arguments: [],
-      id: 2,
-      method: "empty",
-      parents: [],
-      stack: undefined,
-    }])
+    let flatMapSubId = lens.find("flatMap").subscriptions().all()[0].id
+    expect(lens.find("empty").subscriptions().all().map(_ => _.scopeId)).to.deep.equal(
+      [flatMapSubId, flatMapSubId, flatMapSubId]
+    )
+  }
+
+  @test
+  public "mixed higher order operators"() {
+    let inner = Rx.Observable.fromArray(["a"])
+    inner.subscribe()
+    Rx.Observable.of(1, 2, 3)
+      .flatMap(i => inner)
+      .subscribe()
+
+    let lens = this.collector.lens()
+    let roots = lens.roots()
+    let childs = roots.childs()
+
+    expect(roots.all().map(_ => _.method || _)).to.deep.equal(["fromArray", "of"])
+    expect(childs.all().map(_ => _.method || _)).to.deep.equal(["flatMap"])
+
+    let flatMapSubId = lens.find("flatMap").subscriptions().all()[0].id
+    expect(lens.find("fromArray").subscriptions().all().map(_ => _.scopeId)).to.deep.equal(
+      [undefined, flatMapSubId, flatMapSubId, flatMapSubId]
+    )
   }
 }

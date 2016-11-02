@@ -1,3 +1,3 @@
 import { OperatorTest } from "./operators"
 
-new OperatorTest();
+new OperatorTest()

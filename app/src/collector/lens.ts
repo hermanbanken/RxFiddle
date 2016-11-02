@@ -20,6 +20,7 @@ export interface ISubscriptionLens<T> {
 export interface IObservableLens<T> {
   all(): AddObservable[]
   childs(): IObservableLens<T>
+  internals(): IObservableLens<T>
   subscriptions(): ISubscriptionLens<T>
 }
 
@@ -73,6 +74,18 @@ function obsLens<T>(collector: Collector, get: () => AddObservable[]): IObservab
         .reduce((list, _) => list.concat(_), [])
         .map(i => collector.data[i] as AddObservable)
         .filter(_ => typeof _.callParent === "undefined")
+      return obsLens<T>(collector, query)
+    },
+    internals: () => {
+      let query = () => {
+        let ids = get().map(o => o.id)
+        return collector.data
+          .filter(o =>
+            o instanceof AddObservable &&
+            typeof o.callParent === "number" &&
+            ids.indexOf(o.callParent) >= 0
+          ) as AddObservable[]
+      }
       return obsLens<T>(collector, query)
     },
     subscriptions: () => subsLens(collector, subs),

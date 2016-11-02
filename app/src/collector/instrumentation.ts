@@ -1,7 +1,7 @@
 import "../utils"
 import { ICallRecord } from "./callrecord"
 import { ICollector } from "./logger"
-import { IGNORE, RxCollector, Visualizer } from "./visualizer"
+import { IGNORE, RxCollector } from "./visualizer"
 import * as Rx from "rx"
 
 export let defaultSubjects = {

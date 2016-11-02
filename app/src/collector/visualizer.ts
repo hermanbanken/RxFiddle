@@ -2,7 +2,7 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent, Event, Subscribe } from "./event"
-import { AddEvent, AddLink, AddObservable, AddSubscription, ICollector } from "./logger"
+import { AddEvent, AddScopeLink, AddObservable, AddSubscription, ICollector } from "./logger"
 import { RxFiddleNode } from "./node"
 import * as rx from "rx"
 import * as dagre from "dagre"
@@ -111,17 +111,17 @@ export class Visualizer {
         this.nodes[el.observableId].addObserver({ id: el.observableId }, { id: el.id })
       }
 
-      if (el instanceof AddLink) {
-        let source = (this.collector.data[el.sourceSubscription] as AddSubscription)
-        let sink = (this.collector.data[el.sinkSubscription] as AddSubscription)
-        if (source && sink) {
-          let obsSource = this.nodes[source.observableId]
-          let obsSink = this.nodes[sink.observableId]
-          this.g.setEdge(obsSource.id, obsSink.id, new RxFiddleEdge(obsSource, obsSink, { dashed: true }))
-        } else {
-          console.warn("Could not add", el)
-        }
-      }
+      // if (el instanceof AddScopeLink) {
+      //   let source = (this.collector.data[el.sourceSubscription] as AddSubscription)
+      //   let sink = (this.collector.data[el.sinkSubscription] as AddSubscription)
+      //   if (source && sink) {
+      //     let obsSource = this.nodes[source.observableId]
+      //     let obsSink = this.nodes[sink.observableId]
+      //     this.g.setEdge(obsSource.id, obsSink.id, new RxFiddleEdge(obsSource, obsSink, { dashed: true }))
+      //   } else {
+      //     console.warn("Could not add", el)
+      //   }
+      // }
 
       if (el instanceof AddEvent) {
         let oid = (this.collector.data[el.subscription] as AddSubscription).observableId
