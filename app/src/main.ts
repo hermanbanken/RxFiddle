@@ -15,7 +15,8 @@ let instrumentation = new Instrumentation(defaultSubjects, collector)
 instrumentation.setup()
 let vis = new Visualizer(instrumentation.logger, document.getElementById("graph"))
 vis.step();
-(<any>window).collector = collector
+(<any>window).collector = collector;
+(<any>window).Rx = Rx
 
 //      /\    
 //     /  \   

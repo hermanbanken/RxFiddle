@@ -20,6 +20,7 @@ export interface ISubscriptionLens<T> {
 export interface IObservableLens<T> {
   all(): AddObservable[]
   childs(): IObservableLens<T>
+  each(): IObservableLens<T>[]
   internals(): IObservableLens<T>
   subscriptions(): ISubscriptionLens<T>
 }
@@ -52,8 +53,8 @@ function subsLens<T>(collector: Collector, subs: () => AddSubscription[]): ISubs
     completes: () => events().filter(e => e.type === "complete"),
     errors: () => events().filter(e => e.type === "error") as Error[],
     events,
-    scoping: () => subsLens(collector, scoping),
     nexts: () => events().filter(e => e.type === "next") as Next<T>[],
+    scoping: () => subsLens(collector, scoping),
   } as ISubscriptionLens<T>
 }
 
@@ -76,6 +77,7 @@ function obsLens<T>(collector: Collector, get: () => AddObservable[]): IObservab
         .filter(_ => typeof _.callParent === "undefined")
       return obsLens<T>(collector, query)
     },
+    each: () => get().map(obs => obsLens(collector, () => [obs])),
     internals: () => {
       let query = () => {
         let ids = get().map(o => o.id)
@@ -113,6 +115,6 @@ export function lens<T>(collector: Collector): ILens<T> {
       let obs = () => collector.data
         .filter(e => e instanceof AddObservable && e.parents.length === 0) as AddObservable[]
       return obsLens<T>(collector, obs)
-    },
+    }
   }
 }

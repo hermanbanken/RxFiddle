@@ -185,4 +185,19 @@ export class OperatorTest {
     )
     expect(lens.find("flatMap").subscriptions().scoping().all()).to.have.lengthOf(3)
   }
+
+  @test
+  public "performance operators"() {
+    Rx.Observable.of(1, 2, 3)
+      .map(s => s)
+      .map(o => o)
+      .subscribe()
+    let lens = this.collector.lens()
+    expect(lens.find("map").all().map(_ => _.method)).to.deep.equal(["map", "map"])
+
+    // Map combines subsequent maps: the first operator will never receive subscribes
+    lens.find("map").each().forEach((mapLens, i) => {
+      expect(mapLens.subscriptions().all()).to.have.lengthOf(i === 0 ? 0 : 1)
+    })
+  }
 }
