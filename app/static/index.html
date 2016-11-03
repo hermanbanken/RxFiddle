@@ -2,14 +2,14 @@
 <html>
 
 <head>
-	<style>
-		html,
-		body {
-			margin: 0;
-			padding: 0;
-		}
-	</style>
-	<script>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+  <script>
       function script(src) {
         var s = document.createElement("script");
         s.src = src;
@@ -24,6 +24,7 @@
     </script>
 </head>
 
+<label><input type="checkbox" id="trace" /> Add Stack Traces</label>
 <button id="a">Sample A (Simple)</button>
 <button id="b">Sample B (Random)</button>
 <button id="c">Sample C (Some RxMarble Component)</button>
@@ -34,9 +35,9 @@
 </script>
 <div id="viewport"></div>
 <div id="graph">
-	<svg id="svg">
-		<g id="graph-layer"></g>
-	</svg>
+  <svg id="svg">
+    <g id="graph-layer"></g>
+  </svg>
 </div>
 
 </html>

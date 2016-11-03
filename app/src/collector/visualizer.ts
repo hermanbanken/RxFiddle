@@ -2,7 +2,7 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent, Event, Subscribe } from "./event"
-import { AddEvent, AddScopeLink, AddObservable, AddSubscription, ICollector } from "./logger"
+import { AddEvent, AddObservable, AddSubscription, ICollector } from "./logger"
 import { RxFiddleNode } from "./node"
 import * as rx from "rx"
 import * as dagre from "dagre"
@@ -88,12 +88,12 @@ export class Visualizer {
   }
 
   public process() {
-    console.log("Processing", this.collector.data.length - this.rendered)
+    console.log("Processing", this.collector.length - this.rendered)
     let start = this.rendered
-    this.rendered = this.collector.data.length
+    this.rendered = this.collector.length
 
-    for (let i = start; i < this.collector.data.length; i++) {
-      let el = this.collector.data[i]
+    for (let i = start; i < this.collector.length; i++) {
+      let el = this.collector.getLog(i)
 
       if (el instanceof AddObservable) {
         this.nodes[el.id] = new RxFiddleNode(`${el.id}`, el.method, null)
@@ -108,18 +108,18 @@ export class Visualizer {
       }
 
       if (el instanceof AddSubscription && typeof this.nodes[el.observableId] !== "undefined") {
-        this.nodes[el.observableId].addObserver(this.collector.data[el.observableId] as AddObservable, el)
+        this.nodes[el.observableId].addObserver(this.collector.getObservable(el.observableId), el)
 
         // Dashed link
         if (typeof el.scopeId !== "undefined") {
           let from = this.nodes[el.observableId]
-          let to = this.nodes[(this.collector.data[el.scopeId] as AddSubscription).observableId]
+          let to = this.nodes[(this.collector.getSubscription(el.scopeId)).observableId]
           this.g.setEdge(from.id, to.id, new RxFiddleEdge(from, to, { dashed: true }))
         }
       }
 
       if (el instanceof AddEvent) {
-        let oid = (this.collector.data[el.subscription] as AddSubscription).observableId
+        let oid = (this.collector.getSubscription(el.subscription)).observableId
         if (typeof this.nodes[oid] === "undefined") { continue }
         for (let row of this.nodes[oid].observers) {
           if ((row[1] as { id: number }).id === el.subscription) {
@@ -133,7 +133,7 @@ export class Visualizer {
 
   public render(): VNode {
     this.process()
-    this.rendered = this.collector.data.length
+    this.rendered = this.collector.length
     this.layout()
     if (this.g.nodes().length === 0) {
       return h("g")
@@ -176,7 +176,7 @@ export class Visualizer {
   }
   public step() {
     window.requestAnimationFrame(() => this.step())
-    if (this.recursiveRendered() === this.collector.data.length) {
+    if (this.recursiveRendered() === this.collector.length) {
       return
     }
     this.run()

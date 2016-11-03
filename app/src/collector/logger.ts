@@ -82,12 +82,6 @@ export class AddEvent {
   public event: IEvent
 }
 
-export class AddScopeLink {
-  public id: number
-  public scopeObservable: number
-  public observable: number
-}
-
 export interface RxCollector {
   before(record: ICallRecord, parents?: ICallRecord[]): Collector
   after(record: ICallRecord): void
@@ -95,12 +89,17 @@ export interface RxCollector {
 }
 
 export interface ICollector {
-  data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddScopeLink)[]
   indices: {
     observables: { [id: number]: { childs: number[], subscriptions: number[] } },
     stackframes: { [source: string]: number },
     subscriptions: { [id: number]: { events: number[], scoping: number[] } },
   }
+  length: number
+  getLog(id: number): AddObservable | AddSubscription | AddEvent | AddStackFrame
+  getStack(id: number): AddStackFrame | null
+  getObservable(id: number): AddObservable | null
+  getSubscription(id: number): AddSubscription | null
+  getEvent(id: number): AddEvent | null
 }
 
 export default class Collector implements RxCollector, ICollector {
@@ -119,7 +118,7 @@ export default class Collector implements RxCollector, ICollector {
     subscriptions: {} as { [id: number]: { events: number[], scoping: number[] } },
   }
 
-  public data: (AddStackFrame | AddObservable | AddSubscription | AddEvent | AddScopeLink)[] = []
+  public data: (AddStackFrame | AddObservable | AddSubscription | AddEvent)[] = []
 
   private queue: ICallRecord[] = []
 
@@ -153,27 +152,26 @@ export default class Collector implements RxCollector, ICollector {
       }
 
       case "subscribe": {
-        let observer: Rx.Observer<{}> = record.arguments[0] && typeof record.arguments[0] === "object" ?
-          record.arguments[0] as Rx.Observer<any> :
-          record.returned
-
-        // Add higher order links, recording upstream nested 
-        // observables (eg flatMap's inner FlatMapObservable)
-        let scopeId = undefined
-        if (record.subject.scope) {
-          let found = ascendingFind(record.arguments[0], (o) => {
-            return this.observableForObserver(o) && true
-          })
-          scopeId = this.id(found).get()
-        }
-
-        if (observer && record.subject) {
-          let subid = this.subscription(observer, record.subject, scopeId)
-          if (typeof scopeId !== "undefined") {
-            this.indices.subscriptions[scopeId].scoping.push(subid)
+        [record.returned].filter(o => typeof o === "object").forEach((observer) => {
+          // Add higher order links, recording upstream nested 
+          // observables (eg flatMap's inner FlatMapObservable)
+          let scopeId = undefined
+          if (record.subject.isScoped) {
+            let found = ascendingFind(record.arguments[0], (o) => {
+              return this.observableForObserver(o) && true
+            })
+            scopeId = this.id(found).get()
           }
 
-        }
+          if (observer && record.subject) {
+            // log subscribe
+            let subid = this.subscription(observer, record.subject, scopeId)
+            // indices
+            if (typeof scopeId !== "undefined") {
+              this.indices.subscriptions[scopeId].scoping.push(subid)
+            }
+          }
+        })
       }
         break
 
@@ -189,6 +187,11 @@ export default class Collector implements RxCollector, ICollector {
           node.subscription = oid
           this.data.push(node)
           this.indices.subscriptions[oid].events.push(this.data.length - 1)
+        } else {
+          if (record.method === "dispose") {
+            console.log("ignored event", record.method, record.subject)
+          }
+
         }
         break
 
@@ -200,6 +203,34 @@ export default class Collector implements RxCollector, ICollector {
     if (this.queue.length) {
       this.queue.splice(0, this.queue.length).forEach(this.after.bind(this))
     }
+  }
+
+  public get length() {
+    return this.data.length
+  }
+
+  public getLog(id: number): AddObservable | AddSubscription | AddEvent | AddStackFrame {
+    return this.data[id]
+  }
+
+  public getObservable(id: number): AddObservable | null {
+    let node = this.data[id]
+    if (node instanceof AddObservable) { return node }
+  }
+
+  public getSubscription(id: number): AddSubscription | null {
+    let node = this.data[id]
+    if (node instanceof AddSubscription) { return node }
+  }
+
+  public getStack(id: number): AddStackFrame | null {
+    let node = this.data[id]
+    if (node instanceof AddStackFrame) { return node }
+  }
+
+  public getEvent(id: number): AddEvent | null {
+    let node = this.data[id]
+    if (node instanceof AddEvent) { return node }
   }
 
   public wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any {
@@ -221,11 +252,11 @@ export default class Collector implements RxCollector, ICollector {
     if (typeof id !== "undefined") {
       let node = this.data[id]
       if (node instanceof AddSubscription) {
-        let obs = this.data[node.observableId] as AddObservable
+        let obs = this.getObservable(node.observableId)
         return `${o.constructor.name}(${id}, observable: ${obs})`
       }
       if (node instanceof AddEvent) {
-        let oid = (<AddSubscription>this.data[node.subscription]).observableId
+        let oid = this.getSubscription(node.subscription).observableId
         return `${node.event.type}(subscription: ${node.subscription}, observable: ${oid})`
       }
       if (node instanceof AddObservable) {
@@ -236,15 +267,9 @@ export default class Collector implements RxCollector, ICollector {
   }
 
   private proxy<T>(target: T): T {
-    let link = new AddScopeLink()
-    link.id = this.data.length
-    this.data.push(link)
-
     return new Proxy(target, {
       get: (obj: any, name: string) => {
-        if (name === "scope") { return link.id }
-        if (name === "link") { return link }
-        if (name === "original") { return target }
+        if (name === "isScoped") { return true }
         return obj[name]
       },
     })
@@ -270,12 +295,9 @@ export default class Collector implements RxCollector, ICollector {
   private observableForObserver(observer: Rx.Observer<any>): AddObservable {
     let id = this.id(observer).get()
     if (typeof id === "undefined") { return }
-    let node = this.data[id]
-    if (node instanceof AddSubscription) {
-      node = this.data[node.observableId]
-      return node instanceof AddObservable && "method" in node ? node : undefined
-    }
-    return undefined
+    let node = this.getSubscription(id)
+    let obs = node && this.getObservable(node.observableId) || undefined
+    return obs
   }
 
   private enrichWithCall(node: AddObservable, record: ICallRecord, observable: Rx.Observable<any>) {
@@ -312,7 +334,7 @@ export default class Collector implements RxCollector, ICollector {
       typeof existingId !== "undefined" &&
       typeof this.data[existingId] !== "undefined"
     ) {
-      this.enrichWithCall(this.data[existingId] as AddObservable, record, obs)
+      this.enrichWithCall(this.getObservable(existingId), record, obs)
     }
 
     return (this.id(obs).getOrSet(() => {

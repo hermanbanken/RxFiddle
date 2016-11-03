@@ -12,9 +12,9 @@
   "typings": "dist",
   "scripts": {
     "compile": "tsc -p .",
-    "watch": "tsc -w --sourceMap | node_modules/.bin/watchify -v -d --noparse rxmarbles dist/main.js -o dist/main.bundle.js",
+    "watch": "tsc -w --sourceMap | node_modules/.bin/watchify -v -d dist/src/main.js -o dist/main.bundle.js",
     "start": "electron .",
-    "bundle": "browserify -noparse rxmarbles dist/main.js > dist/app.js",
+    "bundle": "browserify dist/src/main.js -o dist/main.bundle.js",
     "test": "tsc -p . && mocha --require source-map-support/register dist/test",
     "dev-test-watch": "mocha-typescript-watch",
     "prepublish": "tsc -p ."

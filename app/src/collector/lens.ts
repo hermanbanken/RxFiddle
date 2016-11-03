@@ -36,7 +36,7 @@ function subsLens<T>(collector: Collector, subs: () => AddSubscription[]): ISubs
     let subsIds = subs().map(s => s.id)
     return subsIds
       .map(subId => collector.indices.subscriptions[subId].events)
-      .map(eventIds => eventIds.map(eid => collector.data[eid] as AddEvent))
+      .map(eventIds => eventIds.map(eid => collector.getEvent(eid)))
       .reduce((list, next) => list.concat(next), [])
       .map(e => e.event)
   }
@@ -45,7 +45,7 @@ function subsLens<T>(collector: Collector, subs: () => AddSubscription[]): ISubs
     return subs().map(s => s.id)
       .map(subId => collector.indices.subscriptions[subId].scoping)
       .reduce((list, ls) => list.concat(ls), [])
-      .map(subId => collector.data[subId]) as AddSubscription[]
+      .map(subId => collector.getSubscription(subId))
   }
 
   return {
@@ -63,7 +63,7 @@ function obsLens<T>(collector: Collector, get: () => AddObservable[]): IObservab
     let obsIds = get().map(o => (<AddObservable>o).id)
     return obsIds
       .map(id => collector.indices.observables[id].subscriptions)
-      .map(subIds => subIds.map(subId => collector.data[subId] as AddSubscription))
+      .map(subIds => subIds.map(subId => collector.getSubscription(subId)))
       .reduce((list, next) => list.concat(next), [])
   }
 
@@ -73,7 +73,7 @@ function obsLens<T>(collector: Collector, get: () => AddObservable[]): IObservab
       let query = () => get()
         .map(_ => collector.indices.observables[_.id].childs)
         .reduce((list, _) => list.concat(_), [])
-        .map(i => collector.data[i] as AddObservable)
+        .map(i => collector.getObservable(i))
         .filter(_ => typeof _.callParent === "undefined")
       return obsLens<T>(collector, query)
     },
@@ -103,7 +103,7 @@ export function lens<T>(collector: Collector): ILens<T> {
     },
     find: (selector: string | number) => {
       let obs = () => typeof selector === "number" ?
-        [collector.data[selector] as AddObservable] :
+        [collector.getObservable(selector)] :
         collector.data.filter(e =>
           e instanceof AddObservable &&
           (e.method === selector)

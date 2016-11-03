@@ -45,7 +45,7 @@ export default class Instrumentation {
     let calls = this.calls
     let logger = this.logger
     let open = this.open
-    let addStacktraces = this.stackTraces
+    let self = this
 
     let instrumented = <Function>function instrumented(): any {
       let call: ICallRecord = {
@@ -54,7 +54,7 @@ export default class Instrumentation {
         id: i++,
         method: extras["methodName"],
         returned: null,
-        stack: addStacktraces ? new Error().stack : undefined,
+        stack: self.stackTraces ? new Error().stack : undefined,
         subject: this,
         subjectName: extras["subjectName"],
         time: now(),
