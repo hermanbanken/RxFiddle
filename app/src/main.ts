@@ -26,7 +26,9 @@ vis.step();
 
 function a() {
   Rx.Observable.of(1, 2, 3)
-    .flatMap(i => Rx.Observable.empty())
+    .map(s => s)
+    .groupBy(v => v)
+    .mergeAll()
     .subscribe()
 }
 

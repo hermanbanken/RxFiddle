@@ -13,11 +13,11 @@ export class RxFiddleEdge {
     let attrs: any = {
       d: path,
       fill: "transparent",
-      "stroke-width": "5",
-      stroke: "red",
+      "stroke-width": "1",
+      stroke: "black",
     };
     if (this.options && this.options.dashed) {
-      attrs["stroke-dasharray"] = "5, 5";
+      attrs["stroke-dasharray"] = "5, 5"
     }
     return h("path", { attrs });
   }

@@ -23,14 +23,34 @@ function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => b
 }
 
 export class RxFiddleNode {
+  public static wrap(inner: RxFiddleNode, outer: RxFiddleNode): RxFiddleNode {
+    outer.nested.push(inner)
+    return outer
+  }
+
   public instances: (Rx.Observable<any> | { id: number })[] = []
   public observers: [Rx.Observable<any> | { id: number }, Rx.Observer<any> | { id: number }, any[]][] = []
+
+  public width = 120
+  public height = 20
+  public x: number
+  public y: number
+
+
+  public hoover: boolean = false
+  public highlightIndex?: number
+  public highlightId?: number
+  public rendered: VNode
+
+  public nested: RxFiddleNode[] = []
+
   private _subgraph: Visualizer | null
 
   constructor(
     public id: string,
     public name: string,
-    public location: StackFrame
+    public location: StackFrame,
+    private visualizer: Visualizer
   ) { }
 
   public subGraph(): Visualizer {
@@ -69,11 +89,6 @@ export class RxFiddleNode {
     this.observers.push.apply(this.observers, observerMigrate)
   }
 
-  public width = 120
-  public height = 20
-  public x: number
-  public y: number
-
   public size(): { w: number, h: number } {
     var extra = this._subgraph && this._subgraph.size() || { w: 0, h: 0 }
     let size = {
@@ -85,23 +100,9 @@ export class RxFiddleNode {
     return size
   }
 
-  public hoover: boolean = false
-  public rendered: VNode
-
-  public nested: RxFiddleNode[] = []
-
-  public static wrap(inner: RxFiddleNode, outer: RxFiddleNode): RxFiddleNode {
-    outer.nested.push(inner)
-    return outer
-  }
-
   public setHoover(enabled: boolean) {
     this.hoover = enabled
     return this
-  }
-
-  private line(i: number) {
-    return -this.height / 2 + i * 20 + 10
   }
 
   public layout() {
@@ -109,42 +110,81 @@ export class RxFiddleNode {
     this.size()
   }
 
+  public setHighlight(index?: number) {
+    this.highlightIndex = index
+    this.highlightId = typeof index !== "undefined" ? (this.observers[index][1] as AddSubscription).id : undefined
+    this.visualizer.highlightSubscriptionSource(this.highlightId)
+    return this
+  }
+
+  public setHighlightId(patch: snabbdom.PatchFunction, id?: number) {
+    this.highlightIndex = this.observers.findIndex((o) => (o[1] as AddSubscription).id === id)
+    this.highlightId = id
+    try {
+      patch(this.rendered, this.render(patch))
+    } catch (e) {
+      console.warn("error while rendering", this, this.count)
+    }
+    return this
+  }
+
+  private count: number = 0
+
   public render(patch: snabbdom.PatchFunction) {
-    var streams = ASCII(this.observers.map(_ => _[2])).map((stream, i) => centeredText(stream || "?", { y: this.line(i + 1), "font-family": "monospace" }))
-    var result = h("g", {
+    let streams = ASCII(this.observers.map(_ => _[2]))
+      .map((stream, i) => centeredText(stream || "?", {
+        fill: this.highlightIndex === i ? "red" : "black",
+        y: this.line(i + 1), "font-family": "monospace",
+      }, {
+          on: {
+            mouseout: () => patch(result, this.setHighlight().render(patch)),
+            mouseover: () => patch(result, this.setHighlight(i).render(patch)),
+          },
+        }))
+    let result = h("g", {
       attrs: {
+        height: this.height,
         transform: `translate(${this.x},${this.y})`,
-        width: this.width, height: this.height
+        width: this.width,
       },
       on: {
         click: () => console.log(this),
+        mouseout: () => patch(result, this.setHoover(false).render(patch)),
         mouseover: () => patch(result, this.setHoover(true).render(patch)),
-        mouseout: () => patch(result, this.setHoover(false).render(patch))
       },
     }, [
-      centeredRect(this.width, this.height, { rx: 10, ry: 10 }),
+      this.hoover ? this.dialog() : undefined,
+      centeredRect(this.width, this.height, {
+        rx: 10, ry: 10,
+        stroke: this.hoover || typeof this.highlightId !== "undefined" ? "red" : "black",
+      }),
       centeredText(this.name, { y: this.line(0) }),
       // subgraph
       h("g", {
-        attrs: { transform: `translate(${this.width / -2}, ${this.line(this.observers.length) + 10})` }
+        attrs: { transform: `translate(${this.width / -2}, ${this.line(this.observers.length) + 10})` },
       }, [
-        this._subgraph && this._subgraph.render()
-      ].filter(id => id))
-      // this.dialog()
-      // this.hoover ? this.dialog() : undefined
+        this._subgraph && this._subgraph.render(),
+      ].filter(id => id)),
     ].concat(streams).filter(id => id))
     this.rendered = result
+    this.count++
     return result
   }
 
+  private line(i: number) {
+    return -this.height / 2 + i * 20 + 10
+  }
+
   private dialog() {
-    let _w = 200, _h = 200
-    let triangle = `M ${_w / -2 - 5} 0 l 5 -5 l 0 10 Z`
+    let width = 200
+    let height = 200
+    let triangle = `M ${width / -2 - 5} 0 l 5 -5 l 0 10 Z`
     return h("g", {
-      attrs: { transform: `translate(${this.width / 2 + _w / 2 + 5},${0})`, width: _w, height: _h }
+      attrs: { transform: `translate(${this.width / 2 + width / 2 + 5},${0})`, width, height },
     }, [
         h("path", { attrs: { d: triangle, fill: "black" } }),
-        centeredRect(_w, _h, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
+        centeredRect(width, height, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
       ])
   }
+
 }

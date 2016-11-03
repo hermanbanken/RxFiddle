@@ -87,6 +87,20 @@ export class Visualizer {
     return { w: g.width, h: g.height }
   }
 
+  public highlightSubscriptionSource(id?: number) {
+    let sub = this.collector.getSubscription(id)
+    if (typeof sub !== "undefined") {
+      sub.sinks.forEach(p => {
+        this.highlightSubscriptionSource(p)
+        let parent = this.collector.getSubscription(p)
+        let node = this.nodes[parent.observableId]
+        if (node) { node.setHighlightId(patch, parent.id) }
+      })
+    } else {
+      this.nodes.forEach(n => { n.setHighlightId(patch) })
+    }
+  }
+
   public process() {
     console.log("Processing", this.collector.length - this.rendered)
     let start = this.rendered
@@ -96,11 +110,12 @@ export class Visualizer {
       let el = this.collector.getLog(i)
 
       if (el instanceof AddObservable) {
-        this.nodes[el.id] = new RxFiddleNode(`${el.id}`, el.method, null)
-        let graph: Visualizer = this
         if (typeof el.callParent !== "undefined") {
-          continue
+          // continue
         }
+        this.nodes[el.id] = new RxFiddleNode(`${el.id}`, el.method, null, this)
+        this.nodes[el.id].addObservable(el)
+        let graph: Visualizer = this
         graph.g.setNode(`${el.id}` + "", this.nodes[el.id])
         for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
           this.g.setEdge(p.toString(), el.id.toString(), new RxFiddleEdge(this.nodes[p], this.nodes[el.id]))
@@ -110,6 +125,8 @@ export class Visualizer {
       if (el instanceof AddSubscription && typeof this.nodes[el.observableId] !== "undefined") {
         this.nodes[el.observableId].addObserver(this.collector.getObservable(el.observableId), el)
 
+        el.sinks.forEach((parentId) => this.collector.getSubscription(parentId).observableId)
+
         // Dashed link
         if (typeof el.scopeId !== "undefined") {
           let from = this.nodes[el.observableId]
@@ -118,7 +135,7 @@ export class Visualizer {
         }
       }
 
-      if (el instanceof AddEvent) {
+      if (el instanceof AddEvent && typeof this.collector.getSubscription(el.subscription) !== "undefined") {
         let oid = (this.collector.getSubscription(el.subscription)).observableId
         if (typeof this.nodes[oid] === "undefined") { continue }
         for (let row of this.nodes[oid].observers) {

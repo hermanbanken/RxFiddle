@@ -7,9 +7,11 @@ import * as Rx from "rx"
 export let defaultSubjects = {
   Observable: Rx.Observable,
   "Observable.prototype": (<any>Rx.Observable).prototype,
+  "ObservableBase.prototype": (<any>Rx).ObservableBase.prototype,
   // "ObservableBase.prototype": (<any> Rx.ObservableBase)['prototype'],
   "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver.prototype,
   "AnonymousObserver.prototype": <any>Rx.AnonymousObserver.prototype,
+  "Subject.prototype": <any>Rx.Subject.prototype,
 }
 
 function now() {
@@ -22,6 +24,19 @@ export interface Function {
   apply(subject: any, args: any[] | IArguments): any
 }
 
+function hasRxPrototype(input: any): boolean {
+  if (typeof input !== "object") {
+    return false
+  }
+  if (
+    (<any>Rx).Observable.prototype.isPrototypeOf(input) ||
+    (<any>Rx).internals.AbstractObserver.prototype.isPrototypeOf(input)
+  ) {
+    return true
+  }
+  return false
+}
+
 let i = 0
 
 export default class Instrumentation {
@@ -31,6 +46,8 @@ export default class Instrumentation {
 
   private subjects: { [name: string]: any; }
   private calls: ICallRecord[] = []
+
+  private prototypes: any[] = []
 
   constructor(subjects: { [name: string]: any; } = defaultSubjects, logger: ICollector & RxCollector) {
     this.subjects = subjects
@@ -47,41 +64,55 @@ export default class Instrumentation {
     let open = this.open
     let self = this
 
-    let instrumented = <Function>function instrumented(): any {
-      let call: ICallRecord = {
-        arguments: [].slice.call(arguments, 0),
-        childs: [],
-        id: i++,
-        method: extras["methodName"],
-        returned: null,
-        stack: self.stackTraces ? new Error().stack : undefined,
-        subject: this,
-        subjectName: extras["subjectName"],
-        time: now(),
-      }
+    let instrumented = new Proxy(fn, {
+      apply: (target, thisArg, argumentsList) => {
 
-      // Prepare
-      calls.push(call)
-      if (open.length > 0) {
-        call.parent = open[open.length - 1]
-        call.parent.childs.push(call)
-      }
-      open.push(call)
+        // find more
+        argumentsList
+          .filter(hasRxPrototype)
+          .filter((v: any) => !v.hasOwnProperty("__instrumented"))
+          .forEach((t: any) => this.setupPrototype(t))
 
-      // Actual method
-      let instanceLogger = logger.before(call, open.slice(0, -1))
-      let returned = fn.apply(this, [].map.call(
-        arguments,
-        instanceLogger.wrapHigherOrder.bind(instanceLogger, call.subject))
-      )
-      call.returned = returned
-      instanceLogger.after(call)
+        let call: ICallRecord = {
+          arguments: [].slice.call(argumentsList, 0),
+          childs: [],
+          id: i++,
+          method: extras["methodName"],
+          returned: null,
+          stack: self.stackTraces ? new Error().stack : undefined,
+          subject: thisArg,
+          subjectName: extras["subjectName"],
+          time: now(),
+        }
 
-      // Cleanup
-      open.pop()
-      return returned
-    }
+        // Prepare
+        calls.push(call)
+        if (open.length > 0) {
+          call.parent = open[open.length - 1]
+          call.parent.childs.push(call)
+        }
+        open.push(call)
 
+        // Actual method
+        let instanceLogger = logger.before(call, open.slice(0, -1))
+        let returned = target.apply(thisArg, [].map.call(
+          argumentsList,
+          instanceLogger.wrapHigherOrder.bind(instanceLogger, call.subject))
+        )
+        call.returned = returned
+        instanceLogger.after(call)
+
+        // find more
+        new Array(returned)
+          .filter(hasRxPrototype)
+          .filter((v: any) => !v.hasOwnProperty("__instrumented"))
+          .forEach((t: any) => this.setupPrototype(t))
+
+        // Cleanup
+        open.pop()
+        return returned
+      },
+    })
     instrumented.__originalFunction = fn
     return instrumented
   }
@@ -94,30 +125,33 @@ export default class Instrumentation {
   /* tslint:enable:no-string-literal */
 
   public setup(): void {
-    let properties: { key: string, name: string, subject: any }[] = Object.keys(this.subjects)
-      .map((name: string) => ({ name, subject: this.subjects[name] }))
-      .map(({ name, subject }) => Object.keys(subject)
-        .map(key => ({ key, name: name as string, subject }))
-      )
-      .reduce((prev, next) => prev.concat(next), [])
+    Object.keys(this.subjects)
+      .forEach(name => this.setupPrototype(this.subjects[name], name))
+  }
 
-    let methods = properties
-      .filter(({ key, subject }) => typeof subject[key] === "function")
+  public setupPrototype(prototype: any, name?: string) {
+    if (typeof name !== "undefined") {
+      prototype.__virus = true
+      console.log("Virussed into", prototype.constructor.name)
+    }
+    let methods = Object.keys(prototype)
+      .filter((key) => typeof prototype[key] === "function")
 
-    methods.forEach(({ key, name, subject }) => {
-      subject[key] = this.instrument(subject[key], {
+    // log, preparing for teardown
+    this.prototypes.push(prototype)
+
+    methods.forEach(key => {
+      prototype[key].__instrumented = true
+      prototype[key] = this.instrument(prototype[key], {
         methodName: key,
-        subjectName: name,
+        subjectName: name || prototype.constructor.name,
       })
     })
   }
 
   public teardown(): void {
-    let properties: { key: string, name: string, subject: any }[] = Object.keys(this.subjects)
-      .map((name: string) => ({ name, subject: this.subjects[name] }))
-      .map(({ name, subject }) => Object.keys(subject)
-        .map(key => ({ key, name: name as string, subject }))
-      )
+    let properties: { key: string, subject: any }[] = this.prototypes
+      .map(subject => Object.keys(subject).map(key => ({ key, subject })))
       .reduce((prev, next) => prev.concat(next), [])
 
     let methods = properties
@@ -125,6 +159,7 @@ export default class Instrumentation {
 
     methods.forEach(({ key, subject }) => {
       subject[key] = this.deinstrument(subject[key])
+      delete subject.__instrumented
     })
   }
 }

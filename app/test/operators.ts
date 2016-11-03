@@ -1,6 +1,5 @@
-import Instrumentation, { defaultSubjects } from "../src/collector/instrumentation"
 import { lens as lenz } from "../src/collector/lens"
-import Collector from "../src/collector/logger"
+import { InstrumentationTest } from "./instrumentationTest"
 import { expect } from "chai"
 import { suite, test } from "mocha-typescript"
 import * as Rx from "rx"
@@ -22,23 +21,8 @@ function complexObs() {
     .subscribe()
 }
 
-@suite
-export class OperatorTest {
-
-  private instrumentation: Instrumentation
-  private collector: Collector
-
-  public before() {
-    Collector.reset()
-    this.collector = new Collector()
-    this.instrumentation = new Instrumentation(defaultSubjects, this.collector)
-    this.instrumentation.setup()
-  }
-
-  public after() {
-    this.instrumentation.teardown()
-  }
-
+// @suite
+export class OperatorTest extends InstrumentationTest {
 
   // @test
   public "test coverage"() {

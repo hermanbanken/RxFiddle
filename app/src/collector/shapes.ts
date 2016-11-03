@@ -15,13 +15,13 @@ export function centeredRect(width: number, height: number, opts: any = {}): VNo
   });
 }
 
-export function centeredText(text: string, opts: any = {}): VNode {
-  return h("text", {
+export function centeredText(text: string, attrs: any = {}, opts: any = {}): VNode {
+  return h("text", Object.assign({
     attrs: Object.assign({
       x: 0,
       y: 0,
       "text-anchor": "middle",
       "alignment-baseline": "middle",
-    }, opts),
-  }, text);
+    }, attrs),
+  }, opts), text)
 }

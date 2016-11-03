@@ -26,8 +26,8 @@ export class Event implements IEvent {
         return new Subscribe(record.time)
       case "dispose":
         return new Dispose(record.time)
-      default:
-        console.log("Unknown event", record)
+      default: break
+      // console.log("Unknown event", record)
     }
   }
   constructor(public type: IEventType, public time: number) { }
