@@ -29,7 +29,7 @@ const defs: VNode[] = [h("defs", [
       overflow: "visible",
       refx: 0, refy: 3,
     },
-  }, [h("path", { attrs: { d: "M-9,-3 L-9,3 L0,0 z", fill: "inherit" } })]),
+  }, [h("path", { attrs: { d: "M-4,-2 L-4,2 L0,0 z", fill: "inherit" } })]),
   h("marker", {
     attrs: {
       id: "arrow-reverse",
@@ -40,7 +40,7 @@ const defs: VNode[] = [h("defs", [
       overflow: "visible",
       refx: 0, refy: 3,
     },
-  }, [h("path", { attrs: { d: "M0,0 L9,3 L9,-3 z", fill: "blue" } })]),
+  }, [h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
 ])]
 
 function isStream(v: Rx.Observable<any>): boolean {

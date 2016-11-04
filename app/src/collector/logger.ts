@@ -15,7 +15,7 @@ export function instanceAddSubscription(input: any) {
 }
 
 function guessing<T>(value: T, ...args: any[]): T {
-  console.warn("Guessed", value, ...args)
+  console.warn("Guessed", value, ".", ...args)
   return value
 }
 
@@ -383,7 +383,6 @@ export default class Collector implements RxCollector, ICollector {
       return [guessing(
         this.data.length - 1,
         "No sink Observer found, using previous Observer as most probable sink.",
-        this.data[this.data.length - 1]
       )]
     }
     return []
@@ -416,17 +415,17 @@ export default class Collector implements RxCollector, ICollector {
 
     }
 
-    if (typeof (<any>observable).onNext !== "undefined") {
-      console.warn("subject!!!", sub, observable)
-    }
-    let maybeSubject: AddObservable = this.getObservable(this.id(sub).get())
-    if (typeof maybeSubject !== "undefined") {
-      console.warn("subject!!!")
-      let id = this.id(sub).get()
-      let node = create(id)
-      Object.assign(this.data[id], node)
-      return this.id(sub).get()
-    }
+    // if (typeof (<any>observable).onNext !== "undefined") {
+    //   console.warn("subject!!!", sub, observable)
+    // }
+    // let maybeSubject: AddObservable = this.getObservable(this.id(sub).get())
+    // if (typeof maybeSubject !== "undefined") {
+    //   console.warn("subject!!!")
+    //   let id = this.id(sub).get()
+    //   let node = create(id)
+    //   Object.assign(this.data[id], node)
+    //   return this.id(sub).get()
+    // }
     return this.id(sub).getOrSet(() => {
       let id = this.data.length
       create(id)

@@ -4,14 +4,15 @@ import { ICollector } from "./logger"
 import { IGNORE, RxCollector } from "./visualizer"
 import * as Rx from "rx"
 
+const rxAny: any = <any>Rx
+
 export let defaultSubjects = {
   Observable: Rx.Observable,
-  "Observable.prototype": (<any>Rx.Observable).prototype,
-  "ObservableBase.prototype": (<any>Rx).ObservableBase.prototype,
-  // "ObservableBase.prototype": (<any> Rx.ObservableBase)['prototype'],
-  "AbstractObserver.prototype": <any>Rx.internals.AbstractObserver.prototype,
-  "AnonymousObserver.prototype": <any>Rx.AnonymousObserver.prototype,
-  "Subject.prototype": <any>Rx.Subject.prototype,
+  "Observable.prototype": rxAny.Observable.prototype,
+  "ObservableBase.prototype": rxAny.ObservableBase.prototype,
+  "AbstractObserver.prototype": rxAny.internals.AbstractObserver.prototype,
+  "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
+  "Subject.prototype": rxAny.Subject.prototype,
 }
 
 function now() {
@@ -25,16 +26,10 @@ export interface Function {
 }
 
 function hasRxPrototype(input: any): boolean {
-  if (typeof input !== "object") {
-    return false
-  }
-  if (
-    (<any>Rx).Observable.prototype.isPrototypeOf(input) ||
-    (<any>Rx).internals.AbstractObserver.prototype.isPrototypeOf(input)
-  ) {
-    return true
-  }
-  return false
+  return typeof input === "object" && (
+    rxAny.Observable.prototype.isPrototypeOf(input) ||
+    rxAny.internals.AbstractObserver.prototype.isPrototypeOf(input)
+  )
 }
 
 let i = 0
@@ -131,8 +126,7 @@ export default class Instrumentation {
 
   public setupPrototype(prototype: any, name?: string) {
     if (typeof name !== "undefined") {
-      prototype.__virus = true
-      console.log("Infected", prototype.constructor.name)
+      prototype.__dynamicallyInstrumented = true
     }
     let methods = Object.keys(prototype)
       .filter((key) => typeof prototype[key] === "function")
