@@ -23,6 +23,7 @@ export class Event implements IEvent {
         return new Complete(record.time)
       case "subscribe":
       case "_subscribe":
+      case "__subscribe":
         return new Subscribe(record.time)
       case "dispose":
         return new Dispose(record.time)

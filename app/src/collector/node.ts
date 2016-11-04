@@ -156,9 +156,10 @@ export class RxFiddleNode {
       this.hoover ? this.dialog() : undefined,
       centeredRect(this.width, this.height, {
         rx: 10, ry: 10,
+        "stroke-width": 2,
         stroke: this.hoover || typeof this.highlightId !== "undefined" ? "red" : "black",
       }),
-      centeredText(this.name, { y: this.line(0) }),
+      centeredText(`${this.id} ${this.name}`, { y: this.line(0) }),
       // subgraph
       h("g", {
         attrs: { transform: `translate(${this.width / -2}, ${this.line(this.observers.length) + 10})` },

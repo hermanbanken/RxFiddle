@@ -10,8 +10,13 @@ function isStream(v: Rx.Observable<any>): boolean {
   return v instanceof (<any>Rx).Observable
 }
 
-function instanceAddSubscription(input: any) {
-  return "observableId" in input && "id" in input
+export function instanceAddSubscription(input: any) {
+  return typeof input !== "undefined" && "observableId" in input && "id" in input
+}
+
+function guessing<T>(value: T, ...args: any[]): T {
+  console.warn("Guessed", value, ...args)
+  return value
 }
 
 interface IAscendResults {
@@ -157,15 +162,6 @@ export default class Collector implements RxCollector, ICollector {
       return
     }
 
-    [record.subject, record.returned].concat(record.arguments)
-      .filter(v => v && v.__virus)
-      .forEach(v => console.log("using virussed", v.constructor.name, record.method))
-
-    if (record.arguments[0] && record.arguments[0].constructor.name === "GroupedObservable") {
-      console.log("grouped observable", record.arguments[0])
-      typeof window !== "undefined" && ((<any>window).go = record.arguments[0])
-    }
-
     switch (callRecordType(record)) {
       case "setup": {
         this.observable(record.returned, record)
@@ -173,20 +169,11 @@ export default class Collector implements RxCollector, ICollector {
       }
 
       case "subscribe": {
-        console.log(record.subject.constructor.name, this.id(record.subject).get())
-        // if (typeof this.id(record.subject).get() === "undefined") {
-        //   this.observable(record.subject, {} as ICallRecord)
-        // }
-
         let sinkSubscriber: AddSubscription = ascendingFind(record.arguments[0], (o) => {
           return this.getSubscription(this.id(o).get()) && true || false
         })
-        let returnedSinkSubscriber: AddSubscription = ascendingFind(record.returned, (o) => {
-          return this.getSubscription(this.id(o).get()) && true || false
-        });
-        // console.log(this.id(sinkSubscriber).get(), this.id(returnedSinkSubscriber).get());
 
-        [record.returned].filter(o => typeof o === "object").forEach((observer) => {
+        new Array(record.returned).filter(o => typeof o === "object").forEach((observer) => {
           // Add higher order links, recording upstream nested 
           // observables (eg flatMap's inner FlatMapObservable)
           let scopeId = undefined
@@ -211,7 +198,7 @@ export default class Collector implements RxCollector, ICollector {
 
       case "event":
         let event = Event.fromRecord(record)
-        if (event && event.type === "subscribe") {
+        if (event && event.type === "subscribe" || typeof event === "undefined") {
           return
         }
         let oid = this.id(record.subject).get()
@@ -227,7 +214,7 @@ export default class Collector implements RxCollector, ICollector {
           index.events.push(this.data.length - 1)
         } else {
           if (record.method === "dispose") {
-            console.log("ignored event", record.method, record.subject)
+            // console.log("ignored event", record.method, record.subject)
           }
 
         }
@@ -258,7 +245,7 @@ export default class Collector implements RxCollector, ICollector {
 
   public getSubscription(id: number): AddSubscription | null {
     let node = this.data[id]
-    if (node instanceof AddSubscription) { return node }
+    if (instanceAddSubscription(node)) { return node as AddSubscription }
   }
 
   public getStack(id: number): AddStackFrame | null {
@@ -289,8 +276,8 @@ export default class Collector implements RxCollector, ICollector {
     let id = this.id(o).get()
     if (typeof id !== "undefined") {
       let node = this.data[id]
-      if (node instanceof AddSubscription) {
-        let obs = this.getObservable(node.observableId)
+      if (instanceAddSubscription(node)) {
+        let obs = this.getObservable((node as AddSubscription).observableId)
         return `${o.constructor.name}(${id}, observable: ${obs})`
       }
       if (node instanceof AddEvent) {
@@ -387,18 +374,33 @@ export default class Collector implements RxCollector, ICollector {
     }))
   }
 
+  /**
+   * AnonymousObservable uses AnonymousObserver to subscribe, which does not list its sinks.
+   * We can guess though, that the previously created observer is the sink 
+   */
+  private heuristicallyGetSinkSubscribers() {
+    if (this.getSubscription(this.data.length - 1)) {
+      return [guessing(
+        this.data.length - 1,
+        "No sink Observer found, using previous Observer as most probable sink.",
+        this.data[this.data.length - 1]
+      )]
+    }
+    return []
+  }
+
   private subscription(
     sub: Rx.Observer<any>,
     observable: Rx.Observable<any>,
     scopeId?: number,
     sink?: AddSubscription
   ): number {
-    return this.id(sub).getOrSet(() => {
-      let id = this.data.length
-      let node = new AddSubscription()
+    let create = (id: number) => {
+      let sinks = sink ? [this.id(sink).get()] : this.heuristicallyGetSinkSubscribers()
+      let node = new AddSubscriptionImpl()
       this.data.push(node)
       node.id = id
-      node.sinks = sink ? [this.id(sink).get()] : []
+      node.sinks = sinks
       node.observableId = this.observable(observable)
       if (typeof scopeId !== "undefined") {
         node.scopeId = scopeId
@@ -410,6 +412,22 @@ export default class Collector implements RxCollector, ICollector {
         index.subscriptions.push(id)
       }
 
+    }
+
+    if (typeof (<any>observable).onNext !== "undefined") {
+      console.warn("subject!!!", sub, observable)
+    }
+    let maybeSubject: AddObservable = this.getObservable(this.id(sub).get())
+    if (typeof maybeSubject !== "undefined") {
+      console.warn("subject!!!")
+      let id = this.id(sub).get()
+      let node = create(id)
+      Object.assign(this.data[id], node)
+      return this.id(sub).get()
+    }
+    return this.id(sub).getOrSet(() => {
+      let id = this.data.length
+      create(id)
       return id
     })
   }

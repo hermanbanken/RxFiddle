@@ -132,7 +132,7 @@ export default class Instrumentation {
   public setupPrototype(prototype: any, name?: string) {
     if (typeof name !== "undefined") {
       prototype.__virus = true
-      console.log("Virussed into", prototype.constructor.name)
+      console.log("Infected", prototype.constructor.name)
     }
     let methods = Object.keys(prototype)
       .filter((key) => typeof prototype[key] === "function")

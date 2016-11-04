@@ -22,7 +22,7 @@ export function callRecordType(record: ICallRecord) {
     record.subjectName === "Observable.prototype" ||
     record.subjectName === "ObservableBase.prototype"
   ) {
-    if (record.method === "subscribe" || record.method === "_subscribe") {
+    if (record.method === "subscribe" || record.method === "_subscribe" || record.method === "__subscribe") {
       return "subscribe"
     }
     return "setup"

@@ -2,7 +2,7 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent, Event, Subscribe } from "./event"
-import { AddEvent, AddObservable, AddSubscription, ICollector } from "./logger"
+import { AddEvent, AddObservable, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
 import * as rx from "rx"
 import * as dagre from "dagre"
@@ -17,6 +17,31 @@ const patch = snabbdom.init([
 ])
 
 const svgPanZoom = typeof window != "undefined" ? require("svg-pan-zoom") : {}
+
+const defs: VNode[] = [h("defs", [
+  h("marker", {
+    attrs: {
+      id: "arrow",
+      markerHeight: 10,
+      markerUnits: "strokeWidth",
+      markerWidth: 10,
+      orient: "auto",
+      overflow: "visible",
+      refx: 0, refy: 3,
+    },
+  }, [h("path", { attrs: { d: "M-9,-3 L-9,3 L0,0 z", fill: "inherit" } })]),
+  h("marker", {
+    attrs: {
+      id: "arrow-reverse",
+      markerHeight: 10,
+      markerUnits: "strokeWidth",
+      markerWidth: 10,
+      orient: "auto",
+      overflow: "visible",
+      refx: 0, refy: 3,
+    },
+  }, [h("path", { attrs: { d: "M0,0 L9,3 L9,-3 z", fill: "blue" } })]),
+])]
 
 function isStream(v: Rx.Observable<any>): boolean {
   return v instanceof (<any>Rx)["Observable"]
@@ -87,11 +112,12 @@ export class Visualizer {
     return { w: g.width, h: g.height }
   }
 
-  public highlightSubscriptionSource(id?: number) {
+  public highlightSubscriptionSource(id?: number, level: number = 1) {
     let sub = this.collector.getSubscription(id)
     if (typeof sub !== "undefined") {
+      if (level < 0.1) { return }
       sub.sinks.forEach(p => {
-        this.highlightSubscriptionSource(p)
+        this.highlightSubscriptionSource(p, level * 0.9)
         let parent = this.collector.getSubscription(p)
         let node = this.nodes[parent.observableId]
         if (node) { node.setHighlightId(patch, parent.id) }
@@ -102,6 +128,9 @@ export class Visualizer {
   }
 
   public process() {
+    this.g.graph().ranker = "tight-tree"
+    // this.g.graph().rankdir = "RL"
+
     console.log("Processing", this.collector.length - this.rendered)
     let start = this.rendered
     this.rendered = this.collector.length
@@ -118,20 +147,41 @@ export class Visualizer {
         let graph: Visualizer = this
         graph.g.setNode(`${el.id}` + "", this.nodes[el.id])
         for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
-          this.g.setEdge(p.toString(), el.id.toString(), new RxFiddleEdge(this.nodes[p], this.nodes[el.id]))
+          this.g.setEdge(p.toString(), el.id.toString(), new RxFiddleEdge(this.nodes[p], this.nodes[el.id], {
+            "marker-end": "url(#arrow)",
+          }))
         }
       }
 
-      if (el instanceof AddSubscription && typeof this.nodes[el.observableId] !== "undefined") {
-        this.nodes[el.observableId].addObserver(this.collector.getObservable(el.observableId), el)
+      if (instanceAddSubscription(el) && typeof this.nodes[(el as AddSubscription).observableId] !== "undefined") {
+        let adds: AddSubscription = (el as AddSubscription)
+        let node = this.nodes[adds.observableId]
+        node.addObserver(this.collector.getObservable(adds.observableId), adds)
 
-        el.sinks.forEach((parentId) => this.collector.getSubscription(parentId).observableId)
+        adds.sinks.forEach((parentId) => {
+          let to = this.nodes[this.collector.getSubscription(parentId).observableId]
+          let existing = this.g.edge(node.id, to.id)
+          if (typeof existing === "undefined") {
+            this.g.setEdge(to.id, node.id, new RxFiddleEdge(node, to, {
+              dashed: true,
+              stroke: "blue",
+              "marker-start": "url(#arrow-reverse)",
+            }))
+          } else if (existing instanceof RxFiddleEdge) {
+            existing.options.stroke = "purple"
+            existing.options["marker-start"] = "url(#arrow-reverse)"
+          } else {
+            console.warn("What edge?", existing)
+          }
+        })
 
         // Dashed link
-        if (typeof el.scopeId !== "undefined") {
-          let from = this.nodes[el.observableId]
-          let to = this.nodes[(this.collector.getSubscription(el.scopeId)).observableId]
-          this.g.setEdge(from.id, to.id, new RxFiddleEdge(from, to, { dashed: true }))
+        if (typeof adds.scopeId !== "undefined") {
+          let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId]
+          this.g.setEdge(node.id, to.id, new RxFiddleEdge(node, to, {
+            dashed: true,
+            "marker-start": "url(#arrow-reverse)"
+          }))
         }
       }
 
@@ -182,7 +232,7 @@ export class Visualizer {
         viewBox: `0 0 ${size.w} ${size.h}`,
         xmlns: "http://www.w3.org/2000/svg",
       },
-    }, [render])
+    }, [render].concat(defs))
     patch(this.svg, updated)
     this.svg = updated
     let instance = svgPanZoom("#svg", { maxZoom: 30 })

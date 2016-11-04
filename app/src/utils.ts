@@ -29,7 +29,12 @@ declare namespace Dagre {
   }
   interface Graph {
     new (options: { compound?: boolean, multigraph?: boolean }): Dagre.Graph;
-    graph(): { width: number, height: number };
+    graph(): {
+      width: number, height: number,
+      ranker: "network-simplex" | "tight-tree" | "longest-path"
+      rankdir: "TB" | "BT" | "LR" | "RL"
+    };
+    edge(id: any, to?: any): any;
     setEdge(sourceId: string, targetId: string, options: { [key: string]: any }, name: string): Graph;
   }
   interface GraphLib {
