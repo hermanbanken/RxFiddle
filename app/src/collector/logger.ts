@@ -395,13 +395,15 @@ export default class Collector implements RxCollector, ICollector {
     scopeId?: number,
     sink?: AddSubscription
   ): number {
+    let obsId = this.observable(observable)
+
     let create = (id: number) => {
       let sinks = sink ? [this.id(sink).get()] : this.heuristicallyGetSinkSubscribers()
       let node = new AddSubscriptionImpl()
       this.data.push(node)
       node.id = id
       node.sinks = sinks
-      node.observableId = this.observable(observable)
+      node.observableId = obsId
       if (typeof scopeId !== "undefined") {
         node.scopeId = scopeId
       }
