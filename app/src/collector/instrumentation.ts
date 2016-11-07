@@ -32,6 +32,55 @@ function hasRxPrototype(input: any): boolean {
   )
 }
 
+function startsWith(input: string, matcher: string) {
+
+  let r = input.substr(0, matcher.length) === matcher
+  return r
+}
+
+function detachedScopeProxy<T>(input: T): T {
+  let hashes: { [id: string]: number } = {}
+  if ((<any>input).__detached === true) {
+    return input
+  }
+  return new Proxy(input, {
+    get: (target, property: PropertyKey): any => {
+      if (property === "__detached") {
+        return true
+      }
+      if (typeof property === "string" && startsWith(property, "__hash")) {
+        return hashes[property]
+      }
+      return (<any>target)[property]
+    },
+    set: (target, property, value): boolean => {
+      if (typeof property === "string" && startsWith(property, "__hash")) {
+        hashes[property] = value
+      }
+      return true
+    },
+  })
+}
+
+/**
+ * Tweaks specific for RxJS 4
+ */
+function rxTweaks<T>(call: ICallRecord): void {
+  // Detach reuse of NeverObservable
+  let fields: [any, PropertyKey][] = []
+  fields.push([call, "subject"], [call, "returned"])
+  fields.push(...[].map.call(call.arguments, (a: any, i: number) => [call.arguments, i]))
+  fields.forEach(([subject, prop]) => {
+    if (
+      typeof subject[prop] !== "undefined" && subject[prop] !== null &&
+      subject[prop].constructor.name === "NeverObservable"
+    ) {
+      subject[prop] = detachedScopeProxy(subject[prop])
+    }
+  })
+  // Other tweaks here...
+}
+
 let i = 0
 
 export default class Instrumentation {
@@ -88,24 +137,31 @@ export default class Instrumentation {
         }
         open.push(call)
 
+        // Nicen up Rx performance tweaks
+        rxTweaks(call)
+
         // Actual method
         let instanceLogger = logger.before(call, open.slice(0, -1))
-        let returned = target.apply(thisArg, [].map.call(
+        let returned = target.apply(call.subject, [].map.call(
           argumentsList,
           instanceLogger.wrapHigherOrder.bind(instanceLogger, call.subject))
         )
         call.returned = returned
+
+        // Nicen up Rx performance tweaks
+        rxTweaks(call)
+
         instanceLogger.after(call)
 
         // find more
-        new Array(returned)
+        new Array(call.returned)
           .filter(hasRxPrototype)
           .filter((v: any) => !v.hasOwnProperty("__instrumented"))
           .forEach((t: any) => this.setupPrototype(t))
 
         // Cleanup
         open.pop()
-        return returned
+        return call.returned
       },
     })
     instrumented.__originalFunction = fn
