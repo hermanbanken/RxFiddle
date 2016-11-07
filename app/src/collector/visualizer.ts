@@ -1,10 +1,8 @@
 import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
-import { IEvent, Event, Subscribe } from "./event"
 import { AddEvent, AddObservable, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
-import * as rx from "rx"
 import * as dagre from "dagre"
 import * as snabbdom from "snabbdom"
 import { VNode } from "snabbdom"
@@ -43,15 +41,8 @@ const defs: VNode[] = [h("defs", [
   }, [h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
 ])]
 
-function isStream(v: Rx.Observable<any>): boolean {
-  return v instanceof (<any>Rx)["Observable"]
-}
-
 export const HASH = "__hash"
 export const IGNORE = "__ignore"
-
-const inst_method = "instrumented"
-const inst_file = "instrumentation.js"
 
 // Expose protected properties of Observers
 declare module "rx" {
@@ -73,12 +64,21 @@ export interface RxCollector {
 export class Visualizer {
 
   public nodes: RxFiddleNode[] = []
-  public showIds = false
 
-  private g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
+  private showIdsBacking = false
+  public get showIds() {
+    return this.showIdsBacking
+  }
+  public set showIds(value: boolean) {
+    this.showIdsBacking = value
+    this.run()
+  }
+
+  public g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
   private svg: HTMLElement | VNode
   private rendered: number = 0
   private collector: ICollector
+  public svgZoomInstance: { destroy(): void } | null = null
 
   constructor(collector: ICollector, dom?: HTMLElement) {
     this.g.setGraph({})
@@ -105,12 +105,12 @@ export class Visualizer {
   }
 
   public size(): { w: number, h: number } {
-    if (this.nodes.length == 0) {
-      return { w: 10, h: 10 }
+    if (this.nodes.length === 0) {
+      return { h: 10, w: 10 }
     }
     let g = this.g.graph()
     this.layout()
-    return { w: g.width, h: g.height }
+    return { h: g.height, w: g.width }
   }
 
   public highlightSubscriptionSource(id?: number, level: number = 1) {
@@ -128,11 +128,9 @@ export class Visualizer {
     }
   }
 
-  public process() {
+  public process(): number {
     this.g.graph().ranker = "tight-tree"
     // this.g.graph().rankdir = "RL"
-
-    console.log("Processing", this.collector.length - this.rendered)
     let start = this.rendered
     this.rendered = this.collector.length
 
@@ -179,9 +177,9 @@ export class Visualizer {
         // Dashed link
         if (typeof adds.scopeId !== "undefined") {
           let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId]
-          this.g.setEdge(node.id, to.id, new RxFiddleEdge(node, to, {
+          this.g.setEdge(to.id, node.id, new RxFiddleEdge(to, node, {
             dashed: true,
-            "marker-start": "url(#arrow-reverse)"
+            "marker-end": "url(#arrow)",
           }))
         }
       }
@@ -195,12 +193,12 @@ export class Visualizer {
           }
         }
       }
-
     }
+
+    return this.collector.length - start
   }
 
   public render(): VNode {
-    this.process()
     this.rendered = this.collector.length
     this.layout()
     if (this.g.nodes().length === 0) {
@@ -224,6 +222,7 @@ export class Visualizer {
       this.svg.innerHTML = ""
     }
 
+    let changes = this.process()
     let render = this.render()
     let size = this.size()
     let updated = h("svg", {
@@ -231,13 +230,17 @@ export class Visualizer {
         id: "svg",
         style: "width: 100vw; height: 100vh",
         version: "1.1",
-        viewBox: `0 0 ${size.w} ${size.h}`,
         xmlns: "http://www.w3.org/2000/svg",
       },
     }, [render].concat(defs))
     patch(this.svg, updated)
     this.svg = updated
-    let instance = svgPanZoom("#svg", { maxZoom: 30 })
+    if (this.svgZoomInstance && changes) {
+      this.svgZoomInstance.destroy()
+    }
+    if (!this.svgZoomInstance || changes) {
+      this.svgZoomInstance = svgPanZoom("#svg", { maxZoom: 30 })
+    }
   }
   public attach(node: HTMLElement) {
     this.svg = node

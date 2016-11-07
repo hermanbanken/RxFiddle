@@ -54,6 +54,10 @@ export class RxFiddleNode {
     return this._subgraph
   }
 
+  public get edges() {
+    return this.visualizer.g.neighbors(this.id)
+  }
+
   public createSubGraph(collector: ICollector): Visualizer {
     if (typeof this._subgraph === "undefined" || this._subgraph === null) {
       this._subgraph = new Visualizer(collector)

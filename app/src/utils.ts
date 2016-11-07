@@ -34,6 +34,7 @@ declare namespace Dagre {
       ranker: "network-simplex" | "tight-tree" | "longest-path"
       rankdir: "TB" | "BT" | "LR" | "RL"
     };
+    neighbors(node: {}): Edge[];
     edge(id: any, to?: any): any;
     setEdge(sourceId: string, targetId: string, options: { [key: string]: any }, name: string): Graph;
   }

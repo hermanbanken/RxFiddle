@@ -16,6 +16,7 @@ instrumentation.setup()
 let vis = new Visualizer(instrumentation.logger, document.getElementById("graph"))
 vis.step();
 (<any>window).collector = collector;
+(<any>window).visualizer = vis;
 (<any>window).Rx = Rx
 
 //      /\    
@@ -130,6 +131,6 @@ trace.addEventListener("click", () => {
   instrumentation.stackTraces = trace.checked
 })
 
-trace.addEventListener("click", () => {
+ids.addEventListener("click", () => {
   vis.showIds = ids.checked
 })
