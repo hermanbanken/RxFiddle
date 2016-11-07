@@ -163,6 +163,10 @@ export default class Instrumentation {
         open.pop()
         return call.returned
       },
+      construct: (target: { new (...args: any[]): any }, args) => {
+        console.warn("TODO, instrument constructor", target, args)
+        return new target(...args)
+      },
     })
     instrumented.__originalFunction = fn
     return instrumented
@@ -178,6 +182,10 @@ export default class Instrumentation {
   public setup(): void {
     Object.keys(this.subjects)
       .forEach(name => this.setupPrototype(this.subjects[name], name))
+    rxAny.Subject = this.instrument(rxAny.Subject, {
+      methodName: "new",
+      subjectName: "Rx.Subject",
+    })
   }
 
   public setupPrototype(prototype: any, name?: string) {
@@ -200,6 +208,8 @@ export default class Instrumentation {
   }
 
   public teardown(): void {
+    rxAny.Subject = this.deinstrument(rxAny.Subject)
+
     let properties: { key: string, subject: any }[] = this.prototypes
       .map(subject => Object.keys(subject).map(key => ({ key, subject })))
       .reduce((prev, next) => prev.concat(next), [])
