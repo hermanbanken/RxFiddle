@@ -24,20 +24,23 @@
     </script>
 </head>
 
-<label><input type="checkbox" id="trace" /> Add Stack Traces</label>
-<button id="a">Sample A (Simple)</button>
-<button id="b">Sample B (Random)</button>
-<button id="c">Sample C (Some RxMarble Component)</button>
+<div class="bar" style="position: absolute">
+  <label><input type="checkbox" id="trace" /> Add Stack Traces</label>
+  <label><input type="checkbox" id="showIds" /> Show Ids</label>
+  <button id="a">Sample A (Simple)</button>
+  <button id="b">Sample B (Random)</button>
+  <button id="c">Sample C (Some RxMarble Component)</button>
 
-<div id="app"></div>
-<div id="log"></div>
-<script>
+  <div id="app"></div>
+  <div id="log"></div>
+  <script>
 </script>
-<div id="viewport"></div>
-<div id="graph">
-  <svg id="svg">
-    <g id="graph-layer"></g>
-  </svg>
+  <div id="viewport"></div>
+  <div id="graph">
+    <svg id="svg">
+      <g id="graph-layer"></g>
+    </svg>
+  </div>
 </div>
 
 </html>

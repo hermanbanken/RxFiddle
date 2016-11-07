@@ -197,19 +197,21 @@ export default class Collector implements RxCollector, ICollector {
         break
 
       case "event":
+        let sid = this.id(record.subject).get()
+
         let event = Event.fromRecord(record)
         if (event && event.type === "subscribe" || typeof event === "undefined") {
           return
         }
-        let oid = this.id(record.subject).get()
-        if (typeof oid !== "undefined") {
+
+        if (typeof sid !== "undefined") {
           let node = new AddEvent()
           node.event = event
-          node.subscription = oid
+          node.subscription = sid
           this.data.push(node)
-          let index = this.indices.subscriptions[oid]
+          let index = this.indices.subscriptions[sid]
           if (typeof index === "undefined") {
-            index = this.indices.subscriptions[oid] = { events: [], scoping: [] }
+            index = this.indices.subscriptions[sid] = { events: [], scoping: [] }
           }
           index.events.push(this.data.length - 1)
         } else {
