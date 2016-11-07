@@ -6,10 +6,6 @@ import * as snabbdom from "snabbdom"
 
 const h = require("snabbdom/h")
 
-function marble() {
-
-}
-
 function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]] {
   var a = [], b = []
   for (var i = 0; i < array.length; i++) {
@@ -28,8 +24,8 @@ export class RxFiddleNode {
     return outer
   }
 
-  public instances: (Rx.Observable<any> | { id: number })[] = []
-  public observers: [Rx.Observable<any> | { id: number }, Rx.Observer<any> | { id: number }, any[]][] = []
+  public instances: ({ id: number })[] = []
+  public observers: [{ id: number }, { id: number }, any[]][] = []
 
   public width = 120
   public height = 20
@@ -44,6 +40,7 @@ export class RxFiddleNode {
 
   public nested: RxFiddleNode[] = []
 
+  private count: number = 0
   private _subgraph: Visualizer | null
 
   constructor(
@@ -64,36 +61,25 @@ export class RxFiddleNode {
     return this._subgraph
   }
 
-  public addObservable(instance: Rx.Observable<any> | AddObservable) {
+  public addObservable(instance: AddObservable) {
     this.instances.push(instance)
     return this
   }
 
   public addObserver(
-    observable: Rx.Observable<any> | AddObservable,
-    observer: Rx.Observer<any> | AddSubscription
-  ): [Rx.Observable<any> | { id: number }, Rx.Observer<any> | { id: number }, any[]] {
+    observable: AddObservable,
+    observer: AddSubscription
+  ): [{ id: number }, { id: number }, any[]] {
     this.observers.push([observable, observer, []])
     this.size()
     return this.observers[this.observers.length - 1]
   }
 
-  public migrate(observable: Rx.Observable<any>, oldNode: RxFiddleNode) {
-    // migrate observable
-    let [observableMigrate, observableOld] = partition(oldNode.instances, (item) => item === observable)
-    oldNode.instances = observableOld
-    this.instances.push.apply(this.instances, observableMigrate)
-    // migrate observer
-    let [observerMigrate, observerOld] = partition(oldNode.observers, (item) => item[0] === observable)
-    oldNode.observers = observerOld
-    this.observers.push.apply(this.observers, observerMigrate)
-  }
-
   public size(): { w: number, h: number } {
-    var extra = this._subgraph && this._subgraph.size() || { w: 0, h: 0 }
+    let extra = this._subgraph && this._subgraph.size() || { h: 0, w: 0 }
     let size = {
+      h: this.observers.length * 20 + 20 + extra.h,
       w: Math.max(120, extra.w),
-      h: this.observers.length * 20 + 20 + extra.h
     }
     this.width = size.w
     this.height = size.h
@@ -128,10 +114,8 @@ export class RxFiddleNode {
     return this
   }
 
-  private count: number = 0
-
-  public render(patch: snabbdom.PatchFunction) {
-    let streams = ASCII(this.observers.map(_ => _[2]))
+  public render(patch: snabbdom.PatchFunction, showIds: boolean = false) {
+    let streams = ASCII(this.observers.map(_ => ({ events: _[2], id: showIds ? _[1].id + "" : undefined })))
       .map((stream, i) => centeredText(stream || "?", {
         fill: this.highlightIndex === i ? "red" : "black",
         y: this.line(i + 1), "font-family": "monospace",
@@ -159,7 +143,7 @@ export class RxFiddleNode {
         "stroke-width": 2,
         stroke: this.hoover || typeof this.highlightId !== "undefined" ? "red" : "black",
       }),
-      centeredText(`${this.id} ${this.name}`, { y: this.line(0) }),
+      centeredText(showIds ? `${this.id} ${this.name}` : this.name, { y: this.line(0) }),
       // subgraph
       h("g", {
         attrs: { transform: `translate(${this.width / -2}, ${this.line(this.observers.length) + 10})` },

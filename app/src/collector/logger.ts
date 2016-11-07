@@ -395,7 +395,6 @@ export default class Collector implements RxCollector, ICollector {
     sink?: AddSubscription
   ): number {
     let obsId = this.observable(observable)
-
     let create = (id: number) => {
       let sinks = sink ? [this.id(sink).get()] : this.heuristicallyGetSinkSubscribers()
       let node = new AddSubscriptionImpl()

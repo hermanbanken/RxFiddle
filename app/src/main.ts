@@ -124,7 +124,12 @@ document.getElementById("a").onclick = run.bind(null, a)
 document.getElementById("b").onclick = run.bind(null, b)
 document.getElementById("c").onclick = run.bind(null, c)
 let trace = document.getElementById("trace") as HTMLInputElement
+let ids = document.getElementById("showIds") as HTMLInputElement
 
 trace.addEventListener("click", () => {
   instrumentation.stackTraces = trace.checked
+})
+
+trace.addEventListener("click", () => {
+  vis.showIds = ids.checked
 })

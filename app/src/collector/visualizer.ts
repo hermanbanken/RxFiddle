@@ -73,6 +73,7 @@ export interface RxCollector {
 export class Visualizer {
 
   public nodes: RxFiddleNode[] = []
+  public showIds = false
 
   private g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
   private svg: HTMLElement | VNode
@@ -206,7 +207,8 @@ export class Visualizer {
       return h("g")
     }
 
-    let ns = this.g.nodes().map((id: string) => this.g.node(id).render(patch)).reduce((p, c) => p.concat(c), [])
+    let ns = this.g.nodes().map((id: string) => this.g.node(id).render(patch, this.showIds))
+      .reduce((p, c) => p.concat(c), [])
     let es = this.g.edges().map((e: Dagre.Edge) => {
       let edge = this.g.edge(e)
       return edge.render()
