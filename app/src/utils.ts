@@ -8,6 +8,13 @@ import { RxFiddleNode } from "./collector/node"
 /* tslint:disable:interface-name */
 
 /* Extension of Rx */
+declare module "rx" {
+  export interface Observable<T> { }
+  export interface Observer<T> {
+    source?: Observable<any>
+    o?: Observer<any>
+  }
+}
 
 declare module "rx" {
   interface ObservableStatic {

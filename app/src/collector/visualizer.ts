@@ -3,20 +3,20 @@ import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { AddEvent, AddObservable, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
-import { alg, Graph, Edge as GraphEdge } from "graphlib"
+import { Edge as GraphEdge, Graph, alg } from "graphlib"
 import * as snabbdom from "snabbdom"
 import { VNode } from "snabbdom"
 
+/* tslint:disable:no-var-requires */
 const dagre = require("dagre")
-
-const ErrorStackParser = require("error-stack-parser")
+const svgPanZoom = typeof window !== "undefined" ? require("svg-pan-zoom") : {}
 const h = require("snabbdom/h")
 const patch = snabbdom.init([
   require("snabbdom/modules/attributes"),
-  require('snabbdom/modules/eventlisteners'),
+  require("snabbdom/modules/eventlisteners"),
 ])
-
-const svgPanZoom = typeof window != "undefined" ? require("svg-pan-zoom") : {}
+// const ErrorStackParser = require("error-stack-parser")
+/* tslint:enable:no-var-requires */
 
 const defs: VNode[] = [h("defs", [
   h("marker", {
@@ -46,15 +46,6 @@ const defs: VNode[] = [h("defs", [
 export const HASH = "__hash"
 export const IGNORE = "__ignore"
 
-// Expose protected properties of Observers
-declare module "rx" {
-  export interface Observable<T> { }
-  export interface Observer<T> {
-    source?: Observable<any>
-    o?: Observer<any>
-  }
-}
-
 export type MethodName = string
 
 export interface RxCollector {
@@ -67,6 +58,9 @@ export class Visualizer {
 
   public edges: RxFiddleEdge[] = []
   public nodes: RxFiddleNode[] = []
+  public g: Graph = new Graph({ compound: true, multigraph: true })
+  public dag: Graph = new Graph({ compound: true, multigraph: true })
+  public svgZoomInstance: { destroy(): void } | null = null
 
   private showIdsBacking = false
   public get showIds() {
@@ -77,12 +71,9 @@ export class Visualizer {
     this.run()
   }
 
-  public g: Graph = new Graph({ compound: true, multigraph: true })
-  public dag: Graph = new Graph({ compound: true, multigraph: true }) as any
   private svg: HTMLElement | VNode
   private rendered: number = 0
   private collector: ICollector
-  public svgZoomInstance: { destroy(): void } | null = null
 
   constructor(collector: ICollector, dom?: HTMLElement) {
     this.g.setGraph({})
@@ -96,7 +87,7 @@ export class Visualizer {
   }
 
   public structureDag(): Graph {
-    let edges: { v: string, w: string }[] = this.g.edges();//.map(e => this.g.edge(e)) as RxFiddleEdge[]
+    let edges: { v: string, w: string }[] = this.g.edges()
     let clone = new Graph()
     edges.forEach(({ v, w }) => {
       let edge = this.g.edge({ v, w })
@@ -109,18 +100,6 @@ export class Visualizer {
       clone.setEdge(v, w, edge)
     })
     return <any>(clone) as Graph
-  }
-
-  public subGraphs(): Visualizer[] {
-    return this.nodes
-      .map(n => n.subGraph())
-      .filter(n => n && n !== this)
-  }
-
-  public recursiveRendered(): number {
-    return this.subGraphs().reduce(
-      (p, g) => Math.max(p, g.recursiveRendered()),
-      this.rendered)
   }
 
   public layout() {
@@ -167,7 +146,6 @@ export class Visualizer {
         }
         let node = this.setNode(el.id, new RxFiddleNode(`${el.id}`, el.method, null, this))
         node.addObservable(el)
-        let graph: Visualizer = this
         for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
           // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
           let edge = new RxFiddleEdge(
@@ -261,7 +239,7 @@ export class Visualizer {
 
     let changes = this.process()
     let render = this.render()
-    let size = this.size()
+    this.size()
     let updated = h("svg", {
       attrs: {
         id: "svg",
@@ -285,7 +263,7 @@ export class Visualizer {
   }
   public step() {
     window.requestAnimationFrame(() => this.step())
-    if (this.recursiveRendered() === this.collector.length) {
+    if (this.rendered === this.collector.length) {
       return
     }
     this.run()

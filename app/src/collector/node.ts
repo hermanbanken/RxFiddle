@@ -43,7 +43,6 @@ export class RxFiddleNode {
   public nested: RxFiddleNode[] = []
 
   private count: number = 0
-  private _subgraph: Visualizer | null
 
   constructor(
     public id: string,
@@ -52,19 +51,8 @@ export class RxFiddleNode {
     private visualizer: Visualizer
   ) { }
 
-  public subGraph(): Visualizer {
-    return this._subgraph
-  }
-
   public get edges(): string[] {
     return this.visualizer.g.neighbors(this.id)
-  }
-
-  public createSubGraph(collector: ICollector): Visualizer {
-    if (typeof this._subgraph === "undefined" || this._subgraph === null) {
-      this._subgraph = new Visualizer(collector)
-    }
-    return this._subgraph
   }
 
   public addObservable(instance: AddObservable) {
@@ -82,7 +70,7 @@ export class RxFiddleNode {
   }
 
   public size(): { w: number, h: number } {
-    let extra = this._subgraph && this._subgraph.size() || { h: 0, w: 0 }
+    let extra = { h: 0, w: 0 }
     let size = {
       h: this.observers.length * 20 + 20 + extra.h,
       w: Math.max(120, extra.w),
@@ -98,7 +86,6 @@ export class RxFiddleNode {
   }
 
   public layout() {
-    this._subgraph && this._subgraph.layout()
     this.size()
   }
 
@@ -155,9 +142,7 @@ export class RxFiddleNode {
       // subgraph
       h("g", {
         attrs: { transform: `translate(${this.width / -2}, ${this.line(this.observers.length) + 10})` },
-      }, [
-        this._subgraph && this._subgraph.render(),
-      ].filter(id => id)),
+      }),
     ].concat(streams).filter(id => id))
     this.rendered = result
     this.count++
