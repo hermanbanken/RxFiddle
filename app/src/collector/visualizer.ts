@@ -3,10 +3,11 @@ import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { AddEvent, AddObservable, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
-import * as dagre from "dagre"
+import { alg, Graph, Edge as GraphEdge } from "graphlib"
 import * as snabbdom from "snabbdom"
 import { VNode } from "snabbdom"
-import { alg, Graph } from "graphlib"
+
+const dagre = require("dagre")
 
 const ErrorStackParser = require("error-stack-parser")
 const h = require("snabbdom/h")
@@ -64,6 +65,7 @@ export interface RxCollector {
 
 export class Visualizer {
 
+  public edges: RxFiddleEdge[] = []
   public nodes: RxFiddleNode[] = []
 
   private showIdsBacking = false
@@ -75,7 +77,8 @@ export class Visualizer {
     this.run()
   }
 
-  public g = new dagre.graphlib.Graph({ compound: true, multigraph: true })
+  public g: Graph = new Graph({ compound: true, multigraph: true })
+  public dag: Graph = new Graph({ compound: true, multigraph: true }) as any
   private svg: HTMLElement | VNode
   private rendered: number = 0
   private collector: ICollector
@@ -83,7 +86,6 @@ export class Visualizer {
 
   constructor(collector: ICollector, dom?: HTMLElement) {
     this.g.setGraph({})
-    this.g.setDefaultEdgeLabel(() => ({}))
     this.svg = dom
     this.collector = collector
 
@@ -163,31 +165,34 @@ export class Visualizer {
         if (typeof el.callParent !== "undefined") {
           // continue
         }
-        this.nodes[el.id] = new RxFiddleNode(`${el.id}`, el.method, null, this)
-        this.nodes[el.id].addObservable(el)
+        let node = this.setNode(el.id, new RxFiddleNode(`${el.id}`, el.method, null, this))
+        node.addObservable(el)
         let graph: Visualizer = this
-        graph.g.setNode(`${el.id}` + "", this.nodes[el.id])
         for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
-          typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
-          this.g.setEdge(p.toString(), el.id.toString(), new RxFiddleEdge(
+          // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
+          let edge = new RxFiddleEdge(
             this.nodes[p], this.nodes[el.id],
             "structure", {
               "marker-end": "url(#arrow)",
             }
-          ))
+          )
+          this.setEdge(p, el.id, edge)
         }
       }
 
       if (instanceAddSubscription(el) && typeof this.nodes[(el as AddSubscription).observableId] !== "undefined") {
         let adds: AddSubscription = (el as AddSubscription)
         let node = this.nodes[adds.observableId]
+        let from = adds.observableId
         node.addObserver(this.collector.getObservable(adds.observableId), adds)
 
         adds.sinks.forEach((parentId) => {
-          let to = this.nodes[this.collector.getSubscription(parentId).observableId]
-          let existing = this.g.edge(node.id, to.id)
+          let to = this.collector.getSubscription(parentId).observableId
+          let toNode = this.nodes[this.collector.getSubscription(parentId).observableId]
+          let existing = this.edge(from, to)
+
           if (typeof existing === "undefined") {
-            this.g.setEdge(to.id, node.id, new RxFiddleEdge(node, to, "subscription", {
+            this.setEdge(to, from, new RxFiddleEdge(node, toNode, "subscription", {
               dashed: true,
               stroke: "blue",
               "marker-start": "url(#arrow-reverse)",
@@ -202,8 +207,9 @@ export class Visualizer {
 
         // Dashed link
         if (typeof adds.scopeId !== "undefined") {
+          let toId = (this.collector.getSubscription(adds.scopeId)).observableId
           let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId]
-          this.g.setEdge(to.id, node.id, new RxFiddleEdge(to, node, "higherorder", {
+          this.setEdge(toId, from, new RxFiddleEdge(to, node, "higherorder", {
             dashed: true,
             "marker-end": "url(#arrow)",
           }))
@@ -226,19 +232,24 @@ export class Visualizer {
 
   public render(): VNode {
     this.rendered = this.collector.length
+
+    /* Prepare components */
+    let comps = alg.components(this.dag as any)
+    let graphs = comps.map(array => this.dag.filterNodes(n => array.indexOf(n) >= 0))
+    console.log(graphs)
+
     this.layout()
-    if (this.g.nodes().length === 0) {
+    if (this.dag.nodes().length === 0) {
       return h("g")
     }
 
-    let ns = this.g.nodes().map((id: string) => this.g.node(id).render(patch, this.showIds))
+    let ns = this.dag.nodes().map((id: string) => this.node(id).render(patch, this.showIds))
       .reduce((p, c) => p.concat(c), [])
-    let es = this.g.edges().map((e: Dagre.Edge) => {
-      let edge = this.g.edge(e)
+    let es = this.dag.edges().map((e) => {
+      let edge = this.edge(e)
       return edge.render()
     })
     let childs = es.concat(ns)
-    let graph = this.g.graph()
 
     return h("g", { attrs: { class: "visualizer" } }, childs)
   }
@@ -278,5 +289,35 @@ export class Visualizer {
       return
     }
     this.run()
+  }
+
+  private setNode(id: number, label: RxFiddleNode): RxFiddleNode {
+    this.nodes[id] = label
+    this.g.setNode(`${id}`, label)
+    return label
+  }
+
+  private setEdge(from: number, to: number, edge: RxFiddleEdge) {
+    if (edge.type === "structure") {
+      this.dag.setNode(`${from}`, this.nodes[from])
+      this.dag.setNode(`${to}`, this.nodes[to])
+      this.dag.setEdge(`${from}`, `${to}`, edge)
+    }
+    this.g.setEdge(`${from}`, `${to}`, edge)
+    this.edges.push(edge)
+  }
+
+  private edge(from: number | GraphEdge, to?: number): RxFiddleEdge | undefined {
+    let edge: RxFiddleEdge
+    if (typeof from === "number") {
+      edge = this.g.edge(`${from}`, `${to}`)
+    } else {
+      edge = this.g.edge(from)
+    }
+    return typeof edge !== "undefined" ? edge : undefined
+  }
+
+  private node(label: string | number): RxFiddleNode | undefined {
+    return this.nodes[typeof label === "number" ? label : parseInt(label, 10)]
   }
 }

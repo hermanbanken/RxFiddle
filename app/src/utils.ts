@@ -1,71 +1,104 @@
+import { Edge, Graph } from "graphlib"
+import * as GraphLib from "graphlib"
+import * as rx from "rx"
+import { PatchFunction, VNode } from "snabbdom"
+import { RxFiddleNode } from "./collector/node"
+
+/* tslint:disable:no-namespace */
+/* tslint:disable:interface-name */
+
 /* Extension of Rx */
 
-/* tslint:disable */
-module rx {
+declare module "rx" {
   interface ObservableStatic {
-    prototype: any;
+    prototype: any
   }
 }
 interface ObservableStatic {
-  prototype: any;
+  prototype: any
 }
-/* tslint:enable */
 
 /* Extension of Object prototype */
 interface Object {
-  getName(): string;
+  getName(): string
 }
 function getName() {
-  let funcNameRegex = /function (.{1,})\(/;
-  let results = (funcNameRegex).exec((this).constructor.toString());
-  return (results && results.length > 1) ? results[1] : "";
+  let funcNameRegex = /function (.{1,})\(/
+  let results = (funcNameRegex).exec((this).constructor.toString())
+  return (results && results.length > 1) ? results[1] : ""
 }
-Object.prototype.getName = getName;
+(<any>Object.prototype).getName = getName
 
-/* Extension of Dagre declaration */
-declare namespace Dagre {
-  interface DagreFactory {
-    graphlib: GraphLib;
-  }
+declare module "graphlib" {
   interface Graph {
-    new (options: { compound?: boolean, multigraph?: boolean }): Dagre.Graph;
+    // new (options: { compound?: boolean, multigraph?: boolean }): Graph
+    // height: number
+    // width: number
     graph(): {
       width: number, height: number,
       ranker: "network-simplex" | "tight-tree" | "longest-path"
       rankdir: "TB" | "BT" | "LR" | "RL"
-    };
-    neighbors(node: {}): Edge[];
-    edge(id: any, to?: any): any;
-    setEdge(sourceId: string, targetId: string, options: { [key: string]: any }, name: string): Graph;
-  }
-  interface GraphLib {
-    Graph: Graph;
+    }
+    filterNodes(filter: (node: string) => boolean): Graph
+    setGraph(g: {}): void
+    // setGraph(label: string | {}): Graph
+    setDefaultEdgeLabel(callback: () => void): any
+    // neighbors(node: {}): string[]
+    // edge(id: any, to?: any): any
+    // edges(): Edge[]
+    // nodes(): string[]
+    // node(label: string): any
+    // setEdge(sourceId: string, targetId: string, name: string): any
   }
 }
-declare var dagre: Dagre.DagreFactory;
+
+// declare var dagre: Dagre.DagreFactory
+
+// /* Extension of Dagre declaration */
+// export namespace Dagre {
+//   export interface DagreFactory {
+//     // graphlib: "graphlib"
+//     // layout(graph: Graph): void
+//   }
+//   interface Graph {
+//     //   new (options: { compound?: boolean, multigraph?: boolean }): Graph
+//     graph(): {
+//       width: number, height: number,
+//       ranker: "network-simplex" | "tight-tree" | "longest-path"
+//       rankdir: "TB" | "BT" | "LR" | "RL"
+//     }
+//     //   neighbors(node: {}): Edge[]
+//     //   edge(id: any, to?: any): any
+//     //   edges(): Edge[]
+//     //   nodes(): string[]
+//     //   node(label: string): {}
+//     setDefaultEdgeLabel(callback: () => void): any
+//     // setEdge(sourceId: string, targetId: string, name: string): any
+//     // }
+//     // interface GraphLib {
+//     //   Graph: Graph
+//   }
+// }
+
+// declare var dagre: Dagre.DagreFactory
 
 /* Declaration for StackFrame */
-interface StackFrame {
-  functionName: string;
-  lineNumber: number;
-  columnNumber: number;
-  source: string;
+export interface StackFrame {
+  functionName: string
+  lineNumber: number
+  columnNumber: number
+  source: string
 }
 
 
 /* Extension of Snabbdom declaration */
-interface VNode {
-}
-
 declare module "snabbdom" {
-  export interface VNode {
-  }
   export interface PatchFunction {
     (oldVNode: VNode | HTMLElement, vnode: VNode): VNode;
   }
 }
 
 /* random */
-function endsWith(self: string, suffix: string): boolean {
-  return self.indexOf(suffix, self.length - suffix.length) !== -1;
+export function endsWith(self: string, suffix: string): boolean {
+  return self.indexOf(suffix, self.length - suffix.length) !== -1
 };

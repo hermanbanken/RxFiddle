@@ -1,4 +1,4 @@
-import "../utils"
+import { StackFrame } from "../utils"
 import { ICallRecord, callRecordType } from "./callrecord"
 import { Event, IEvent } from "./event"
 import { ILens, lens } from "./lens"

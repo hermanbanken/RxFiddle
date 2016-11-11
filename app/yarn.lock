@@ -38,10 +38,6 @@
   version "3.4.34"
   resolved "https://registry.yarnpkg.com/@types/chai/-/chai-3.4.34.tgz#d5335792823bb09cddd5e38c3d211b709183854d"
 
-"@types/dagre@^0.7.32":
-  version "0.7.32"
-  resolved "https://registry.yarnpkg.com/@types/dagre/-/dagre-0.7.32.tgz#cd0ca08dc8226070992048223083720e9b45afbb"
-
 "@types/electron@^1.4.24":
   version "1.4.24"
   resolved "https://registry.yarnpkg.com/@types/electron/-/electron-1.4.24.tgz#825c224a33b1bf802725286b8cc1f7af5f43657f"

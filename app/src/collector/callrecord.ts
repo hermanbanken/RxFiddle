@@ -1,4 +1,4 @@
-import "../utils"
+import { StackFrame } from "../utils"
 import { Visualizer } from "./visualizer"
 
 export interface ICallRecord {

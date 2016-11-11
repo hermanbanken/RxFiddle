@@ -1,4 +1,5 @@
-import * as snabbdom from "snabbdom";
+import * as snabbdom from "snabbdom"
+import { VNode } from "snabbdom"
 const h = require("snabbdom/h");
 
 export function centeredRect(width: number, height: number, opts: any = {}): VNode {

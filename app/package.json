@@ -22,7 +22,6 @@
   "dependencies": {
     "@cycle/dom": "^12.2.5",
     "@cycle/rx-run": "^7.0.1",
-    "@types/dagre": "^0.7.32",
     "@types/electron": "^1.4.24",
     "@types/graphlib": "^2.1.2",
     "@types/node": "^6.0.45",

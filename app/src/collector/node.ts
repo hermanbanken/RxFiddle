@@ -1,8 +1,10 @@
+import { StackFrame } from "../utils"
 import { render as ASCII } from "./ascii"
 import { ICollector, AddObservable, AddSubscription, AddEvent } from "./logger"
 import { centeredRect, centeredText } from "./shapes"
 import { Visualizer } from "./visualizer"
 import * as snabbdom from "snabbdom"
+import { PatchFunction, VNode } from "snabbdom"
 
 const h = require("snabbdom/h")
 
@@ -54,7 +56,7 @@ export class RxFiddleNode {
     return this._subgraph
   }
 
-  public get edges() {
+  public get edges(): string[] {
     return this.visualizer.g.neighbors(this.id)
   }
 
@@ -111,9 +113,11 @@ export class RxFiddleNode {
     this.highlightIndex = this.observers.findIndex((o) => (o[1] as AddSubscription).id === id)
     this.highlightId = id
     try {
-      patch(this.rendered, this.render(patch))
+      if (this.rendered) {
+        patch(this.rendered, this.render(patch))
+      }
     } catch (e) {
-      console.warn("error while rendering", this, this.count)
+      console.warn("error while rendering", this, this.count, e)
     }
     return this
   }
