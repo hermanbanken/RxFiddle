@@ -11,11 +11,13 @@ export interface IOptions {
   "marker-start"?: string,
 }
 
+export type EdgeType = "structure" | "subscription" | "higherorder"
+
 export class RxFiddleEdge {
   public points: { x: number, y: number }[] = []
   public options: IOptions
 
-  constructor(public from: RxFiddleNode, public to: RxFiddleNode, options: IOptions = {}) {
+  constructor(public from: RxFiddleNode, public to: RxFiddleNode, public type: EdgeType, options: IOptions = {}) {
     this.options = Object.assign({
       dashed: false,
       fill: "transparent",

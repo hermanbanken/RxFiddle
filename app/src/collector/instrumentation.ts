@@ -21,6 +21,7 @@ function now() {
 
 /* tslint:disable:interface-name */
 export interface Function {
+  caller?: Function
   __originalFunction?: Function | null
   apply(subject: any, args: any[] | IArguments): any
 }
@@ -110,6 +111,7 @@ export default class Instrumentation {
 
     let instrumented = new Proxy(fn, {
       apply: (target, thisArg, argumentsList) => {
+        // console.log(target.caller)
 
         // find more
         argumentsList

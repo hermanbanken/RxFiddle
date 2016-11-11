@@ -6,6 +6,7 @@ import { RxFiddleNode } from "./node"
 import * as dagre from "dagre"
 import * as snabbdom from "snabbdom"
 import { VNode } from "snabbdom"
+import { alg, Graph } from "graphlib"
 
 const ErrorStackParser = require("error-stack-parser")
 const h = require("snabbdom/h")
@@ -85,6 +86,27 @@ export class Visualizer {
     this.g.setDefaultEdgeLabel(() => ({}))
     this.svg = dom
     this.collector = collector
+
+    if (!!window) {
+      (<any>window).alg = alg;
+      (<any>window).dagre = dagre
+    }
+  }
+
+  public structureDag(): Graph {
+    let edges: { v: string, w: string }[] = this.g.edges();//.map(e => this.g.edge(e)) as RxFiddleEdge[]
+    let clone = new Graph()
+    edges.forEach(({ v, w }) => {
+      let edge = this.g.edge({ v, w })
+      if (edge.type !== "structure") { return }
+      console.log(edge, v, w)
+      edge.from = this.g.node(v)
+      edge.to = this.g.node(w)
+      clone.setNode(v, this.g.node(v))
+      clone.setNode(w, this.g.node(w))
+      clone.setEdge(v, w, edge)
+    })
+    return <any>(clone) as Graph
   }
 
   public subGraphs(): Visualizer[] {
@@ -146,9 +168,13 @@ export class Visualizer {
         let graph: Visualizer = this
         graph.g.setNode(`${el.id}` + "", this.nodes[el.id])
         for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
-          this.g.setEdge(p.toString(), el.id.toString(), new RxFiddleEdge(this.nodes[p], this.nodes[el.id], {
-            "marker-end": "url(#arrow)",
-          }))
+          typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
+          this.g.setEdge(p.toString(), el.id.toString(), new RxFiddleEdge(
+            this.nodes[p], this.nodes[el.id],
+            "structure", {
+              "marker-end": "url(#arrow)",
+            }
+          ))
         }
       }
 
@@ -161,7 +187,7 @@ export class Visualizer {
           let to = this.nodes[this.collector.getSubscription(parentId).observableId]
           let existing = this.g.edge(node.id, to.id)
           if (typeof existing === "undefined") {
-            this.g.setEdge(to.id, node.id, new RxFiddleEdge(node, to, {
+            this.g.setEdge(to.id, node.id, new RxFiddleEdge(node, to, "subscription", {
               dashed: true,
               stroke: "blue",
               "marker-start": "url(#arrow-reverse)",
@@ -177,7 +203,7 @@ export class Visualizer {
         // Dashed link
         if (typeof adds.scopeId !== "undefined") {
           let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId]
-          this.g.setEdge(to.id, node.id, new RxFiddleEdge(to, node, {
+          this.g.setEdge(to.id, node.id, new RxFiddleEdge(to, node, "higherorder", {
             dashed: true,
             "marker-end": "url(#arrow)",
           }))
