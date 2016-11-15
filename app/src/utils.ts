@@ -48,46 +48,9 @@ declare module "graphlib" {
     }
     filterNodes(filter: (node: string) => boolean): Graph
     setGraph(g: {}): void
-    // setGraph(label: string | {}): Graph
     setDefaultEdgeLabel(callback: () => void): any
-    // neighbors(node: {}): string[]
-    // edge(id: any, to?: any): any
-    // edges(): Edge[]
-    // nodes(): string[]
-    // node(label: string): any
-    // setEdge(sourceId: string, targetId: string, name: string): any
   }
 }
-
-// declare var dagre: Dagre.DagreFactory
-
-// /* Extension of Dagre declaration */
-// export namespace Dagre {
-//   export interface DagreFactory {
-//     // graphlib: "graphlib"
-//     // layout(graph: Graph): void
-//   }
-//   interface Graph {
-//     //   new (options: { compound?: boolean, multigraph?: boolean }): Graph
-//     graph(): {
-//       width: number, height: number,
-//       ranker: "network-simplex" | "tight-tree" | "longest-path"
-//       rankdir: "TB" | "BT" | "LR" | "RL"
-//     }
-//     //   neighbors(node: {}): Edge[]
-//     //   edge(id: any, to?: any): any
-//     //   edges(): Edge[]
-//     //   nodes(): string[]
-//     //   node(label: string): {}
-//     setDefaultEdgeLabel(callback: () => void): any
-//     // setEdge(sourceId: string, targetId: string, name: string): any
-//     // }
-//     // interface GraphLib {
-//     //   Graph: Graph
-//   }
-// }
-
-// declare var dagre: Dagre.DagreFactory
 
 /* Declaration for StackFrame */
 export interface StackFrame {
@@ -96,7 +59,6 @@ export interface StackFrame {
   columnNumber: number
   source: string
 }
-
 
 /* Extension of Snabbdom declaration */
 declare module "snabbdom" {

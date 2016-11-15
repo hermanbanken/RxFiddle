@@ -102,17 +102,18 @@ export class Visualizer {
     return <any>(clone) as Graph
   }
 
-  public layout() {
+  public layout(graph: Graph = this.g) {
+    graph.setGraph({})
     this.nodes.forEach(n => n.layout())
-    dagre.layout(this.g)
+    dagre.layout(graph)
   }
 
-  public size(): { w: number, h: number } {
+  public size(graph: Graph = this.g): { w: number, h: number } {
     if (this.nodes.length === 0) {
       return { h: 10, w: 10 }
     }
-    let g = this.g.graph()
-    this.layout()
+    this.layout(graph)
+    let g = graph.graph()
     return { h: g.height, w: g.width }
   }
 
@@ -208,22 +209,18 @@ export class Visualizer {
     return this.collector.length - start
   }
 
-  public render(): VNode {
+  public render(graph: Graph): VNode {
     this.rendered = this.collector.length
 
-    /* Prepare components */
-    let comps = alg.components(this.dag as any)
-    let graphs = comps.map(array => this.dag.filterNodes(n => array.indexOf(n) >= 0))
-    console.log(graphs)
-
-    this.layout()
-    if (this.dag.nodes().length === 0) {
+    if (typeof graph === "undefined" || graph.nodes().length === 0) {
       return h("g")
     }
 
-    let ns = this.dag.nodes().map((id: string) => this.node(id).render(patch, this.showIds))
+    this.layout(graph)
+
+    let ns = graph.nodes().map((id: string) => this.node(id).render(patch, this.showIds))
       .reduce((p, c) => p.concat(c), [])
-    let es = this.dag.edges().map((e) => {
+    let es = graph.edges().map((e) => {
       let edge = this.edge(e)
       return edge.render()
     })
@@ -232,14 +229,24 @@ export class Visualizer {
     return h("g", { attrs: { class: "visualizer" } }, childs)
   }
 
+  public selection(graphs: Graph[]): VNode[] {
+    return []
+  }
+
   public run() {
     if (this.svg instanceof HTMLElement) {
       this.svg.innerHTML = ""
     }
 
     let changes = this.process()
-    let render = this.render()
-    this.size()
+
+    /* Prepare components */
+    let comps = alg.components(this.dag as any)
+    let graphs: Graph[] = comps.map(array => this.dag.filterNodes(n => array.indexOf(n) >= 0))
+    let graph = graphs[0]
+
+    let render = this.render(graph)
+    this.size(graph)
     let updated = h("svg", {
       attrs: {
         id: "svg",
@@ -247,7 +254,7 @@ export class Visualizer {
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },
-    }, [render].concat(defs))
+    }, this.selection(graphs).concat([render]).concat(defs))
     patch(this.svg, updated)
     this.svg = updated
     if (this.svgZoomInstance && changes) {

@@ -1,16 +1,18 @@
 import { StackFrame } from "../utils"
 import { render as ASCII } from "./ascii"
-import { ICollector, AddObservable, AddSubscription, AddEvent } from "./logger"
+import { AddObservable, AddSubscription } from "./logger"
 import { centeredRect, centeredText } from "./shapes"
 import { Visualizer } from "./visualizer"
 import * as snabbdom from "snabbdom"
 import { PatchFunction, VNode } from "snabbdom"
 
+/* tslint:disable:no-var-requires */
 const h = require("snabbdom/h")
 
-function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]] {
-  var a = [], b = []
-  for (var i = 0; i < array.length; i++) {
+export function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]] {
+  let a = []
+  let b = []
+  for (let i = 0; i < array.length; i++) {
     if (fn(array[i], i, array)) {
       a.push(array[i])
     } else {
@@ -123,6 +125,7 @@ export class RxFiddleNode {
     let result = h("g", {
       attrs: {
         height: this.height,
+        id: `node-${this.id}`,
         transform: `translate(${this.x},${this.y})`,
         width: this.width,
       },
@@ -164,5 +167,4 @@ export class RxFiddleNode {
         centeredRect(width, height, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
       ])
   }
-
 }
