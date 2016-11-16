@@ -39,6 +39,10 @@ top {
   color: #e2e2e2;
 }
 
+#svg {
+  display: none;
+}
+
 app {
   flex: 1;
   display: flex;
@@ -47,33 +51,71 @@ app {
   overflow-y: auto;
 }
 
+#marbles {
+  flex: 1;
+  padding-right: 15px;
+}
+
 master > * {
   background: #eeeeee;
   min-height: 100%;
   content: "";
 }
 
-master > * + * {
-  background: #dddddd;
-}
-
 .operator {
   height: 50px;
   line-height: 50px;
   padding: 0 10px;
-  margin: 25px 0 50px;
-  border: 1px solid;
+  border: 1px solid #777;
   box-sizing: border-box;
   background: white;
   text-align: center;
 }
 
+.operator:first-child {
+  margin-top: 50px;
+}
+
+.operator:last-child {
+  margin-bottom: 0px;
+}
+
+.marblediagram {
+  width: 100%;
+  height: 100px;
+}
+
+.marblediagram svg {
+  overflow: visible;
+}
+
+.marblediagram line.time {
+  stroke: black;
+  stroke-width: 2px;
+}
+
+.marblediagram circle {
+  fill: purple;
+  stroke-width: 0;
+  stroke: none;
+}
+
+.marblediagram circle:hover {
+  transform: scale(1.2);
+}
+
+.marblediagram circle.subscribe { fill: yellow; }
+.marblediagram circle.next { fill: limegreen; }
+.marblediagram circle.error { fill: red; }
+.marblediagram circle.complete { fill: dodgerblue; }
+.marblediagram circle.dispose { fill: gray; }
+
 detail {
-  flex: 3;
+  flex: 0;
 }
 
 master {
-  flex: 0;
+  flex: 1;
   display: flex;
   flex-direction: row;
   stroke: black;

@@ -1,6 +1,7 @@
 import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
+import { IEvent } from "./event"
 import { AddEvent, AddObservable, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
 import { Edge as GraphEdge, Graph, alg } from "graphlib"
@@ -370,15 +371,18 @@ class StructureGraph {
     return successors.filter(s => s !== chosen)
   }
 
-  private static chunk: number = 100
+  public static chunk: number = 150
 
   public renderMarbles(graph: Graph): VNode[] {
+    let coordinator = new MarbleCoordinator()
     let u = StructureGraph.chunk
     let main = StructureGraph.traverse(graph)
+    main.map((v) => graph.node(v)).forEach(v => coordinator.add(v))
+
     let root = h("div", {
       attrs: {
         id: "marbles",
-        style: `width: ${u * 2}px; height: ${u * main.length}px`,
+        style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
       },
     }, main.flatMap((v, i) => {
       let y = i * StructureGraph.chunk
@@ -386,7 +390,7 @@ class StructureGraph {
         attrs: {
           class: "operator",
         },
-      }, graph.node(v).name)]
+      }, graph.node(v).name), coordinator.render(graph.node(v))]
     }))
     return [root]
   }
@@ -397,7 +401,7 @@ class StructureGraph {
     let root = h("svg", {
       attrs: {
         id: "structure",
-        style: `width: ${u * 2}px; height: ${u * main.length}px`,
+        style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },
@@ -423,6 +427,40 @@ class StructureGraph {
       ].slice(i === 0 ? 1 : 0).concat(branchNodes)
     }))
     return [root]
+  }
+
+}
+
+class MarbleCoordinator {
+  private min: number
+  private max: number
+
+  public add(node: RxFiddleNode): void {
+    let times = node.observers.flatMap(v => v[2] as IEvent[]).map(e => e.time)
+    this.min = times.reduce((m, n) => typeof m !== "undefined" ? Math.min(m, n) : n, this.min)
+    this.max = times.reduce((m, n) => typeof m !== "undefined" ? Math.max(m, n) : n, this.max)
+    console.log(node)
+  }
+
+  public render(node: RxFiddleNode): VNode {
+    let events = node.observers.flatMap(v => v[2] as IEvent[])
+    let marbles = events.map(e => h("svg", {
+      attrs: { x: `${this.relTime(e.time)}%`, y: "50%" },
+    }, [h("circle", {
+      attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
+    })]))
+
+    return h("svg", {
+      attrs: {
+        class: "marblediagram",
+      },
+    }, [
+      h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
+    ].concat(marbles))
+  }
+
+  private relTime(t: number): number {
+    return (t - this.min) / (this.max - this.min) * 95 + 2.5
   }
 
 }
