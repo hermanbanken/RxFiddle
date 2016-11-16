@@ -364,6 +364,11 @@ export default class Collector implements RxCollector, ICollector {
       this.enrichWithCall(this.getObservable(existingId), record, obs)
     }
 
+    // ensure all dependencies are tagged
+    [record && record.subject].concat(record && record.arguments)
+      .filter(isStream)
+      .map((arg) => this.observable(arg))
+
     return (this.id(obs).getOrSet(() => {
       // if (typeof record !== "undefined") {
       let node = new AddObservable()

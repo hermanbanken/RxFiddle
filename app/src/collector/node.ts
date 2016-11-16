@@ -122,6 +122,7 @@ export class RxFiddleNode {
             mouseover: () => patch(result, this.setHighlight(i).render(patch)),
           },
         }))
+    if (typeof this.x === "undefined") { console.log("Undefined coords", this) }
     let result = h("g", {
       attrs: {
         height: this.height,

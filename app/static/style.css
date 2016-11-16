@@ -1,0 +1,108 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+html {
+  /* vscode windows */
+  font-family: "Monaco", "Menlo", "Consolas", "Droid Sans Mono", "Inconsolata", "Courier New", monospace;
+  /* vscode mac */
+  font-family: "Segoe WPC","Segoe UI",SFUIText-Light,HelveticaNeue-Light,sans-serif,"Droid Sans Fallback";
+  font-size: 13px
+}
+    
+svg,
+top,
+center,
+master,
+detail {
+  display: block;
+  text-align: left;
+}
+
+#app {
+  background: white;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  color: black;
+}
+
+top {
+  display: block;
+  line-height: 22px;
+  padding: 0 5px;
+  background: #262626;
+  color: #e2e2e2;
+}
+
+app {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  overflow-y: auto;
+}
+
+master > * {
+  background: #eeeeee;
+  min-height: 100%;
+  content: "";
+}
+
+master > * + * {
+  background: #dddddd;
+}
+
+.operator {
+  height: 50px;
+  line-height: 50px;
+  padding: 0 10px;
+  margin: 25px 0 50px;
+  border: 1px solid;
+  box-sizing: border-box;
+  background: white;
+  text-align: center;
+}
+
+detail {
+  flex: 3;
+}
+
+master {
+  flex: 0;
+  display: flex;
+  flex-direction: row;
+  stroke: black;
+}
+
+master path {
+  stroke: inherit;
+  stroke-width: 4px;
+  fill: transparent;
+}
+
+button {
+  display: inline-block;
+  box-sizing: border-box;
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: #1678CA;
+  color: #ebecec;
+  outline: none;
+  padding: 10px;
+  margin: 0;
+  vertical-align: baseline;
+  font-size: inherit;
+}
+button:hover {
+  background: #0D61AD;
+}
+
+bar {
+  background: #0F6FC8;
+}

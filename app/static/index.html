@@ -2,13 +2,7 @@
 <html>
 
 <head>
-  <style>
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" type="text/css">
   <script>
       function script(src) {
         var s = document.createElement("script");
@@ -24,23 +18,27 @@
     </script>
 </head>
 
-<div class="bar" style="position: absolute">
-  <label><input type="checkbox" id="trace" /> Add Stack Traces</label>
-  <label><input type="checkbox" id="showIds" /> Show Ids</label>
-  <button id="a">Sample A (Simple)</button>
-  <button id="b">Sample B (Random)</button>
-  <button id="c">Sample C (Some RxMarble Component)</button>
-
-  <div id="app"></div>
-  <div id="log"></div>
-  <script>
-</script>
-  <div id="viewport"></div>
-  <div id="graph">
-    <svg id="svg">
-      <g id="graph-layer"></g>
-    </svg>
-  </div>
+<div id="app">
+  <top>
+    <label><input type="checkbox" id="trace" /> Add Stack Traces</label>
+    <label><input type="checkbox" id="showIds" /> Show Ids</label>
+    <button id="a">Sample A (Simple)</button>
+    <button id="b">Sample B (Random)</button>
+    <button id="c">Sample C (Some RxMarble Component)</button>
+    <div id="controls"></div>
+  </top>
+  <app>
+    <master>
+      <svg id="lines"></svg>
+    </master>
+    <detail>
+      <div id="graph">
+        <svg id="svg">
+          <g id="graph-layer"></g>
+        </svg>
+      </div>
+    </detail>
+  </app>
 </div>
 
 </html>

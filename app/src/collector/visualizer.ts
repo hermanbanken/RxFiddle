@@ -71,13 +71,24 @@ export class Visualizer {
     this.run()
   }
 
-  private svg: HTMLElement | VNode
+  private componentId = 0
+  public get component() {
+    return this.componentId
+  }
+  public set component(value: number) {
+    this.componentId = value
+    this.run()
+  }
+
+  private app: HTMLElement | VNode
+  private controls: HTMLElement | VNode
   private rendered: number = 0
   private collector: ICollector
 
-  constructor(collector: ICollector, dom?: HTMLElement) {
+  constructor(collector: ICollector, dom?: HTMLElement, controls?: HTMLElement) {
     this.g.setGraph({})
-    this.svg = dom
+    this.app = dom
+    this.controls = controls
     this.collector = collector
 
     if (!!window) {
@@ -114,6 +125,7 @@ export class Visualizer {
     }
     this.layout(graph)
     let g = graph.graph()
+    console.log("size", g)
     return { h: g.height, w: g.width }
   }
 
@@ -217,6 +229,7 @@ export class Visualizer {
     }
 
     this.layout(graph)
+    console.log("layouted", graph.nodes().map(n => graph.node(n)).filter(n => typeof n === "undefined"))
 
     let ns = graph.nodes().map((id: string) => this.node(id).render(patch, this.showIds))
       .reduce((p, c) => p.concat(c), [])
@@ -230,12 +243,16 @@ export class Visualizer {
   }
 
   public selection(graphs: Graph[]): VNode[] {
-    return []
+    return [h("select", {
+      on: {
+        change: (e: Event) => { console.log(e); this.component = parseInt((e.target as HTMLSelectElement).value, 10) },
+      },
+    }, graphs.map((g, i) => h("option", { attrs: { value: i } }, `graph ${i}`)))]
   }
 
   public run() {
-    if (this.svg instanceof HTMLElement) {
-      this.svg.innerHTML = ""
+    if (this.app instanceof HTMLElement) {
+      this.app.innerHTML = ""
     }
 
     let changes = this.process()
@@ -243,31 +260,52 @@ export class Visualizer {
     /* Prepare components */
     let comps = alg.components(this.dag as any)
     let graphs: Graph[] = comps.map(array => this.dag.filterNodes(n => array.indexOf(n) >= 0))
-    let graph = graphs[0]
+    let graph = graphs[this.component]
+    patch(this.controls, this.selection(graphs)[0]);
 
+    (<any>window).graph = graph
+
+    console.log(StructureGraph.traverse(graph))
+
+    console.log("render", this.component)
     let render = this.render(graph)
-    this.size(graph)
-    let updated = h("svg", {
-      attrs: {
-        id: "svg",
-        style: "width: 100vw; height: 100vh",
-        version: "1.1",
-        xmlns: "http://www.w3.org/2000/svg",
-      },
-    }, this.selection(graphs).concat([render]).concat(defs))
-    patch(this.svg, updated)
-    this.svg = updated
+    if (typeof graph !== "undefined") {
+      this.size(graph)
+    }
+
+    let sg = new StructureGraph()
+    let app = h("app", [
+      h("master", sg.renderSvg(graph).concat(sg.renderMarbles(graph))),
+      h("detail", [
+        h("svg", {
+          attrs: {
+            id: "svg",
+            style: "width: 200px; height: 200px",
+            version: "1.1",
+            xmlns: "http://www.w3.org/2000/svg",
+          },
+        }, [render].concat(defs)),
+      ]),
+    ])
+
+    patch(this.app, app)
+    this.app = app
+
     if (this.svgZoomInstance && changes) {
       this.svgZoomInstance.destroy()
     }
-    if (!this.svgZoomInstance || changes) {
+    if (typeof graph !== "undefined" && (!this.svgZoomInstance || changes)) {
+      console.log("svgZoomInstance")
       this.svgZoomInstance = svgPanZoom("#svg", { maxZoom: 30 })
     }
+
   }
+
   public attach(node: HTMLElement) {
-    this.svg = node
+    this.app = node
     this.step()
   }
+
   public step() {
     window.requestAnimationFrame(() => this.step())
     if (this.rendered === this.collector.length) {
@@ -305,4 +343,86 @@ export class Visualizer {
   private node(label: string | number): RxFiddleNode | undefined {
     return this.nodes[typeof label === "number" ? label : parseInt(label, 10)]
   }
+}
+
+class StructureGraph {
+
+  public static traverse(graph: Graph, choices: string[] = []): string[] {
+    if (typeof graph === "undefined") { return [] }
+
+    let path: string[] = []
+    let sources = graph.sources()
+    do {
+      // select first from choices or from successors otherwise
+      let current = sources.find(source => choices.indexOf(source) >= 0) || sources[0]
+      path.unshift(current)
+      sources = graph.successors(current)
+    } while (sources.length)
+
+    return path.reverse()
+  }
+
+  public static branches(graph: Graph, node: string, choices: string[]): string[] {
+    if (typeof graph === "undefined") { return [] }
+
+    let successors = graph.successors(node)
+    let chosen = successors.find(n => choices.indexOf(n) >= 0) || successors[0]
+    return successors.filter(s => s !== chosen)
+  }
+
+  private static chunk: number = 100
+
+  public renderMarbles(graph: Graph): VNode[] {
+    let u = StructureGraph.chunk
+    let main = StructureGraph.traverse(graph)
+    let root = h("div", {
+      attrs: {
+        id: "marbles",
+        style: `width: ${u * 2}px; height: ${u * main.length}px`,
+      },
+    }, main.flatMap((v, i) => {
+      let y = i * StructureGraph.chunk
+      return [h("div", {
+        attrs: {
+          class: "operator",
+        },
+      }, graph.node(v).name)]
+    }))
+    return [root]
+  }
+
+  public renderSvg(graph: Graph): VNode[] {
+    let u = StructureGraph.chunk
+    let main = StructureGraph.traverse(graph)
+    let root = h("svg", {
+      attrs: {
+        id: "structure",
+        style: `width: ${u * 2}px; height: ${u * main.length}px`,
+        version: "1.1",
+        xmlns: "http://www.w3.org/2000/svg",
+      },
+    }, main.flatMap((v, i) => {
+      let y = (i + 0.5) * StructureGraph.chunk
+      let x = 1.5 * u
+
+      // branches
+      let branches = StructureGraph.branches(graph, v, [])
+      let branchRad = Math.PI / 2 / (branches.length + 1)
+      let branchNodes = branches.flatMap((b, bi) => {
+        let dx = -Math.sin(branchRad * (bi + 1)) * u
+        let dy = Math.cos(branchRad * (bi + 1)) * u
+        return [
+          h("path", { attrs: { d: `M${x} ${y} l ${dx} ${dy} L ${x + dx} ${y + u}` } }),
+        ]
+      })
+
+      return [
+        h("path", { attrs: { d: `M${x} ${y} m 0 ${-u / 2} l 0 ${u / 2}` } }),
+        h("circle", { attrs: { cx: x, cy: y, r: 10 } }),
+        h("path", { attrs: { d: `M${x} ${y} l 0 ${u / 2}` } }),
+      ].slice(i === 0 ? 1 : 0).concat(branchNodes)
+    }))
+    return [root]
+  }
+
 }

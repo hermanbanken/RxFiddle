@@ -25,6 +25,17 @@ interface ObservableStatic {
   prototype: any
 }
 
+/* FlatMap extension of Array prototype */
+declare global {
+  interface Array<T> {
+    flatMap<R>(f: (t: any, index: number) => R[]): Array<R>
+  }
+}
+function flatMap<T, R>(f: (t: T, index: number) => R[]): R[] {
+  return this.reduce((p: R[], n: T, index: number) => p.concat(f(n, index)), [])
+}
+Array.prototype.flatMap = flatMap
+
 /* Extension of Object prototype */
 interface Object {
   getName(): string
