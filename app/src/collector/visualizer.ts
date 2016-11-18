@@ -78,8 +78,11 @@ export class Visualizer {
   }
   public set component(value: number) {
     this.componentId = value
+    this.choices = []
     this.run()
   }
+
+  private choices: string[] = []
 
   private app: HTMLElement | VNode
   private controls: HTMLElement | VNode
@@ -126,7 +129,6 @@ export class Visualizer {
     }
     this.layout(graph)
     let g = graph.graph()
-    console.log("size", g)
     return { h: g.height, w: g.width }
   }
 
@@ -230,7 +232,6 @@ export class Visualizer {
     }
 
     this.layout(graph)
-    console.log("layouted", graph.nodes().map(n => graph.node(n)).filter(n => typeof n === "undefined"))
 
     let ns = graph.nodes().map((id: string) => this.node(id).render(patch, this.showIds))
       .reduce((p, c) => p.concat(c), [])
@@ -266,9 +267,9 @@ export class Visualizer {
 
     (<any>window).graph = graph
 
-    console.log(StructureGraph.traverse(graph))
+    console.log(StructureGraph.traverse(graph), this.choices)
+    console.log("choices", this.choices)
 
-    console.log("render", this.component)
     let render = this.render(graph)
     if (typeof graph !== "undefined") {
       this.size(graph)
@@ -276,7 +277,11 @@ export class Visualizer {
 
     let sg = new StructureGraph()
     let app = h("app", [
-      h("master", sg.renderSvg(graph).concat(sg.renderMarbles(graph))),
+      h("master", sg.renderSvg(
+        graph,
+        this.choices,
+        (v) => this.makeChoice(v, graph)).concat(sg.renderMarbles(graph, this.choices))
+      ),
       h("detail", [
         h("svg", {
           attrs: {
@@ -300,6 +305,29 @@ export class Visualizer {
       this.svgZoomInstance = svgPanZoom("#svg", { maxZoom: 30 })
     }
 
+  }
+
+  public makeChoice(v: string, graph: Graph) {
+    let node = graph.node(v)
+    console.log(v, graph, node)
+    let newChoices = this.choices
+    graph.predecessors(v).flatMap(p => this.descendants(graph, p)).forEach(n => {
+      let index = newChoices.findIndex(c => c === n)
+      if (index >= 0) {
+        newChoices.splice(index, 1)
+      }
+    })
+    newChoices.push(v)
+    this.choices = newChoices
+    this.run()
+  }
+
+  public descendants(graph: Graph, v: string): string[] {
+    if (!alg.isAcyclic(graph)) {
+      throw new Error("Only use this on acyclic graphs!")
+    }
+    let sc = graph.successors(v)
+    return sc.concat(sc.flatMap(s => this.descendants(graph, s)))
   }
 
   public attach(node: HTMLElement) {
@@ -373,10 +401,10 @@ class StructureGraph {
 
   public static chunk: number = 150
 
-  public renderMarbles(graph: Graph): VNode[] {
+  public renderMarbles(graph: Graph, choices: string[]): VNode[] {
     let coordinator = new MarbleCoordinator()
     let u = StructureGraph.chunk
-    let main = StructureGraph.traverse(graph)
+    let main = StructureGraph.traverse(graph, choices)
     main.map((v) => graph.node(v)).forEach(v => coordinator.add(v))
 
     let root = h("div", {
@@ -395,9 +423,9 @@ class StructureGraph {
     return [root]
   }
 
-  public renderSvg(graph: Graph): VNode[] {
+  public renderSvg(graph: Graph, choices: string[], cb: (choice: string) => void): VNode[] {
     let u = StructureGraph.chunk
-    let main = StructureGraph.traverse(graph)
+    let main = StructureGraph.traverse(graph, choices)
     let root = h("svg", {
       attrs: {
         id: "structure",
@@ -416,15 +444,22 @@ class StructureGraph {
         let dx = -Math.sin(branchRad * (bi + 1)) * u
         let dy = Math.cos(branchRad * (bi + 1)) * u
         return [
-          h("path", { attrs: { d: `M${x} ${y} l ${dx} ${dy} L ${x + dx} ${y + u}` } }),
+          h("path", {
+            attrs: {
+              class: "branch",
+              d: `M${x} ${y} l ${dx} ${dy} L ${x + dx} ${y + u}`
+            }, on: {
+              click: () => cb(b),
+            },
+          }),
         ]
       })
 
-      return [
+      return branchNodes.concat([
         h("path", { attrs: { d: `M${x} ${y} m 0 ${-u / 2} l 0 ${u / 2}` } }),
         h("circle", { attrs: { cx: x, cy: y, r: 10 } }),
         h("path", { attrs: { d: `M${x} ${y} l 0 ${u / 2}` } }),
-      ].slice(i === 0 ? 1 : 0).concat(branchNodes)
+      ].slice(i === 0 ? 1 : 0))
     }))
     return [root]
   }
@@ -439,14 +474,15 @@ class MarbleCoordinator {
     let times = node.observers.flatMap(v => v[2] as IEvent[]).map(e => e.time)
     this.min = times.reduce((m, n) => typeof m !== "undefined" ? Math.min(m, n) : n, this.min)
     this.max = times.reduce((m, n) => typeof m !== "undefined" ? Math.max(m, n) : n, this.max)
-    console.log(node)
   }
 
   public render(node: RxFiddleNode): VNode {
     let events = node.observers.flatMap(v => v[2] as IEvent[])
     let marbles = events.map(e => h("svg", {
       attrs: { x: `${this.relTime(e.time)}%`, y: "50%" },
-    }, [h("circle", {
+    }, [h("path", {
+      attrs: { class: "arrow", d: "M 0 -50 L 0 48" },
+    }), h("circle", {
       attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
     })]))
 
@@ -456,7 +492,7 @@ class MarbleCoordinator {
       },
     }, [
       h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
-    ].concat(marbles))
+    ].concat(marbles).concat(defs))
   }
 
   private relTime(t: number): number {

@@ -51,6 +51,9 @@ app {
   overflow-y: auto;
 }
 
+path.branch { stroke: gray; }
+path.branch:hover { stroke: darkslategray; }
+
 #marbles {
   flex: 1;
   padding-right: 15px;
@@ -109,6 +112,13 @@ master > * {
 .marblediagram circle.error { fill: red; }
 .marblediagram circle.complete { fill: dodgerblue; }
 .marblediagram circle.dispose { fill: gray; }
+
+.marblediagram .arrow {
+    stroke-width: 1px;
+    stroke: gray;
+    stroke-dasharray: 10, 5;
+    marker-end: url(#arrow);
+}
 
 detail {
   flex: 0;
