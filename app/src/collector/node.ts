@@ -62,6 +62,10 @@ export class RxFiddleNode {
     return this
   }
 
+  public get locationText(): string {
+    return typeof this.location !== "undefined" ? this.location.source : undefined
+  }
+
   public addObserver(
     observable: AddObservable,
     observer: AddSubscription

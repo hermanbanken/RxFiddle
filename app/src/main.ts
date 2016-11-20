@@ -52,7 +52,7 @@ function a() {
 // })
 
 function b() {
-  var A = Rx.Observable.of(1, 2, 3)
+  var A = Rx.Observable.interval(1000)
     .map(i => "Hello " + i)
     .filter(_ => true)
     .map(_ => _)

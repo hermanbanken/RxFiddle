@@ -40,7 +40,18 @@ top {
 }
 
 #svg {
-  display: none;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    background: white;
+    border-top: 2px solid black;
+    border-left: 2px solid black;
+    box-shadow: 0 0 15px rgba(0,0,0,.3);
+    transition: 0.5s all;
+}
+#svg:hover {
+    width: 95vw !important;
+    height: 90vh !important;
 }
 
 app {
@@ -73,6 +84,10 @@ master > * {
   box-sizing: border-box;
   background: white;
   text-align: center;
+}
+
+.operator.withStack {
+  line-height: 25px;
 }
 
 .operator:first-child {

@@ -87,7 +87,7 @@ let i = 0
 export default class Instrumentation {
   public logger: ICollector & RxCollector
   public open: any[] = []
-  public stackTraces: boolean = false
+  public stackTraces: boolean = true
 
   private subjects: { [name: string]: any; }
   private calls: ICallRecord[] = []

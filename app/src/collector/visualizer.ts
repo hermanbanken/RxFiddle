@@ -2,11 +2,13 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent } from "./event"
-import { AddEvent, AddObservable, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
+import { rankLongestPath } from "./graphutils"
+import { AddEvent, AddObservable, AddStackFrame, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
 import { Edge as GraphEdge, Graph, alg } from "graphlib"
 import * as snabbdom from "snabbdom"
 import { VNode } from "snabbdom"
+import * as _ from "lodash"
 
 /* tslint:disable:no-var-requires */
 const dagre = require("dagre")
@@ -19,7 +21,15 @@ const patch = snabbdom.init([
 // const ErrorStackParser = require("error-stack-parser")
 /* tslint:enable:no-var-requires */
 
-const defs: VNode[] = [h("defs", [
+function toDot(graph: Graph): string {
+  return "graph g {\n" +
+    this.visualizer.subs.edges().map((e: GraphEdge) =>
+      e.v + " -- " + e.w + " [type=s];"
+    ).join("\n") +
+    "\n}"
+}
+
+const defs: () => VNode[] = () => [h("defs", [
   h("marker", {
     attrs: {
       id: "arrow",
@@ -61,6 +71,7 @@ export class Visualizer {
   public nodes: RxFiddleNode[] = []
   public g: Graph = new Graph({ compound: true, multigraph: true })
   public dag: Graph = new Graph({ compound: true, multigraph: true })
+  public combined: Graph = new Graph({ compound: true, multigraph: true })
   public svgZoomInstance: { destroy(): void } | null = null
 
   private showIdsBacking = false
@@ -97,7 +108,9 @@ export class Visualizer {
 
     if (!!window) {
       (<any>window).alg = alg;
-      (<any>window).dagre = dagre
+      (<any>window).dagre = dagre;
+      (<any>window).combined = this.combined;
+      (<any>window).toDot = toDot
     }
   }
 
@@ -160,7 +173,10 @@ export class Visualizer {
         if (typeof el.callParent !== "undefined") {
           // continue
         }
-        let node = this.setNode(el.id, new RxFiddleNode(`${el.id}`, el.method, null, this))
+        let node = this.setNode(el.id, new RxFiddleNode(
+          `${el.id}`, el.method,
+          this.collector.getStack(el.stack) && this.collector.getStack(el.stack).stackframe, this
+        ))
         node.addObservable(el)
         for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
           // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
@@ -176,6 +192,11 @@ export class Visualizer {
 
       if (instanceAddSubscription(el) && typeof this.nodes[(el as AddSubscription).observableId] !== "undefined") {
         let adds: AddSubscription = (el as AddSubscription)
+
+        // subs-graph
+        this.combined.setNode(`${adds.id}`, el)
+        adds.sinks.forEach(s => this.combined.setEdge(`${adds.id}`, `${s}`))
+
         let node = this.nodes[adds.observableId]
         let from = adds.observableId
         node.addObserver(this.collector.getObservable(adds.observableId), adds)
@@ -290,7 +311,7 @@ export class Visualizer {
             version: "1.1",
             xmlns: "http://www.w3.org/2000/svg",
           },
-        }, [render].concat(defs)),
+        }, [render].concat(defs())),
       ]),
     ])
 
@@ -413,19 +434,21 @@ class StructureGraph {
         style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
       },
     }, main.flatMap((v, i) => {
-      let y = i * StructureGraph.chunk
-      return [h("div", {
-        attrs: {
-          class: "operator",
-        },
-      }, graph.node(v).name), coordinator.render(graph.node(v))]
+      let clazz = "operator " + (typeof graph.node(v).locationText !== "undefined" ? "withStack" : "")
+      let box = h("div", { attrs: { class: clazz } }, [
+        h("div", [], graph.node(v).name),
+        h("div", [], graph.node(v).locationText),
+      ])
+      return [box, coordinator.render(graph.node(v))]
     }))
     return [root]
   }
 
   public renderSvg(graph: Graph, choices: string[], cb: (choice: string) => void): VNode[] {
     let u = StructureGraph.chunk
-    let main = StructureGraph.traverse(graph, choices)
+    let main = StructureGraph.traverse(graph, choices);
+    (<any>window).rankLongestPath = rankLongestPath;
+    (<any>window).renderSvgGraph = graph
     let root = h("svg", {
       attrs: {
         id: "structure",
@@ -492,7 +515,7 @@ class MarbleCoordinator {
       },
     }, [
       h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
-    ].concat(marbles).concat(defs))
+    ].concat(marbles).concat(defs()))
   }
 
   private relTime(t: number): number {

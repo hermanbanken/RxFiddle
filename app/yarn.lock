@@ -48,6 +48,10 @@
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/@types/graphlib/-/graphlib-2.1.2.tgz#eaf5bdaa7e5c5c1c1ab24c5842af5cc2faa981ea"
 
+"@types/lodash":
+  version "4.14.39"
+  resolved "https://registry.yarnpkg.com/@types/lodash/-/lodash-4.14.39.tgz#99e2180351609e4466abde8952d153a63a03eb14"
+
 "@types/node@*", "@types/node@^6.0.45":
   version "6.0.45"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-6.0.45.tgz#c4842a9d653d767831e4ff495b6008cc0d579966"
@@ -2335,6 +2339,10 @@ lodash@^3.10.0:
 lodash@^4.2.0:
   version "4.16.4"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.16.4.tgz#01ce306b9bad1319f2a5528674f88297aeb70127"
+
+lodash@3.10.0:
+  version "3.10.0"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-3.10.0.tgz#93d51c672828a4416a12af57220ba8a8737e2fbb"
 
 loose-envify@^1.0.0:
   version "1.2.0"
