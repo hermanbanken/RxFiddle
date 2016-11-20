@@ -1,0 +1,34 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "sourceMap": true,
+    "outDir": "dist",
+    "module": "commonjs",
+    "typeRoots": [
+      "node_modules/@types/"
+    ],
+    "types": [
+      "node",
+      "electron",
+      "dagre"
+    ],
+    "target": "ES6",
+    "jsx": "preserve",
+    "removeComments": false,
+    "noImplicitAny": true,
+    "experimentalDecorators": true,
+    "declaration": true,
+    "preserveConstEnums": true
+  },
+  "include": [
+    "src/**/*",
+    "src/*",
+    "test/**/*",
+    "test/*",
+    "node_modules/rx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

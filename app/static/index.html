@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="style.css" type="text/css">
+  <script>
+      function script(src) {
+        var s = document.createElement("script");
+        s.src = src;
+        s.async = false;
+        document.head.appendChild(s);
+      }
+      if(typeof require == 'undefined') {
+        script('../dist/main.bundle.js');
+      } else {
+        script('../dist/main.js')
+      }
+    </script>
+</head>
+
+<div id="app">
+  <top>
+    <label><input type="checkbox" id="trace" checked /> Add Stack Traces</label>
+    <label><input type="checkbox" id="showIds" /> Show Ids</label>
+    <button id="a">Sample A (Simple)</button>
+    <button id="b">Sample B (Random)</button>
+    <button id="c">Sample C (Some RxMarble Component)</button>
+    <div id="controls"></div>
+  </top>
+  <app>
+    <master>
+      <svg id="lines"></svg>
+    </master>
+    <detail>
+      <div id="graph">
+        <svg id="svg">
+          <g id="graph-layer"></g>
+        </svg>
+      </div>
+    </detail>
+  </app>
+</div>
+
+</html>

@@ -1,3 +1,21 @@
+/*
+ * RxFiddle - Rx debugger
+ * Copyright (C) 2016 Herman Banken
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 group 'nl.hermanbanken.rxfiddle'
 version '0.1-SNAPSHOT'
 
@@ -22,9 +40,16 @@ jar {
                    'Implementation-Version': version,
                    'Can-Redefine-Classes': true,
                    'Can-Retransform-Classes': true,
-                   'Premain-Class': 'nl.hermanbanken.rxfiddle.PreMain'
+                   'Premain-Class': 'nl.hermanbanken.rxfiddle.RxFiddleAgent',
+                   'Agentmain-Class': 'nl.hermanbanken.rxfiddle.RxFiddleAgent',
+                   'Main-Class': 'nl.hermanbanken.rxfiddle.RxFiddleAgent'
     }
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+test {
+    jvmArgs '-javaagent:build/libs/rxfiddle-jvm-collector-0.1-SNAPSHOT.jar'
+    dependsOn "jar"
 }
 
 defaultTasks 'clean', 'jar'
@@ -33,6 +58,8 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
     testCompile 'io.reactivex:rxjava:1.1.7'
     compile 'org.javassist:javassist:3.19+'
+    // http://stackoverflow.com/questions/14580337/most-efficient-performance-wise-for-inter-jvm-communication
+    compile 'net.openhft:chronicle-queue:4.5.14+'
 }
 
 // https://discuss.gradle.org/t/java-compiler-ignore-symbol-file/8774
