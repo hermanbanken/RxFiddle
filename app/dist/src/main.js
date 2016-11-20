@@ -11,7 +11,7 @@ const Observable = Rx.Observable;
 let collector = new logger_1.default();
 let instrumentation = new instrumentation_1.default(instrumentation_1.defaultSubjects, collector);
 instrumentation.setup();
-let vis = new visualizer_1.Visualizer(instrumentation.logger, document.getElementById("graph"));
+let vis = new visualizer_1.Visualizer(instrumentation.logger, document.querySelector("app"), document.getElementById("controls"));
 vis.step();
 window.collector = collector;
 window.visualizer = vis;
@@ -40,7 +40,7 @@ function a() {
 //   subscriber.onCompleted()
 // })
 function b() {
-    var A = Rx.Observable.of(1, 2, 3)
+    var A = Rx.Observable.interval(1000)
         .map(i => "Hello " + i)
         .filter(_ => true)
         .map(_ => _)
