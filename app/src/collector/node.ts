@@ -63,7 +63,7 @@ export class RxFiddleNode {
   }
 
   public get locationText(): string {
-    return typeof this.location !== "undefined" ? this.location.source : undefined
+    return typeof this.location !== "undefined" ? this.location.source.replace(window.location.origin, "") : undefined
   }
 
   public addObserver(

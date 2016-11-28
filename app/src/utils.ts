@@ -28,7 +28,7 @@ interface ObservableStatic {
 /* FlatMap extension of Array prototype */
 declare global {
   interface Array<T> {
-    flatMap<R>(f: (t: any, index: number) => R[]): Array<R>
+    flatMap<R>(f: (t: T, index: number) => R[]): Array<R>
   }
 }
 function flatMap<T, R>(f: (t: T, index: number) => R[]): R[] {

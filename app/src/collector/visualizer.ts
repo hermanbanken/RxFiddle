@@ -2,7 +2,7 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent } from "./event"
-import { rankLongestPath } from "./graphutils"
+import { lines, rankLongestPath, metroLayout } from "./graphutils"
 import { AddEvent, AddObservable, AddStackFrame, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
 import { Edge as GraphEdge, Graph, alg } from "graphlib"
@@ -20,6 +20,11 @@ const patch = snabbdom.init([
 ])
 // const ErrorStackParser = require("error-stack-parser")
 /* tslint:enable:no-var-requires */
+
+const colors = ["#0066B9", "#E90013", "#8E4397", "#3FB132", "#FDAC00", "#F3681B", "#9FACB3", "#9CA2D4", "#E84CA2"]
+function colorIndex(i: number) {
+  return colors[i % colors.length]
+}
 
 function toDot(graph: Graph): string {
   return "graph g {\n" +
@@ -72,6 +77,7 @@ export class Visualizer {
   public g: Graph = new Graph({ compound: true, multigraph: true })
   public dag: Graph = new Graph({ compound: true, multigraph: true })
   public combined: Graph = new Graph({ compound: true, multigraph: true })
+  public metroLines: { [sink: number]: number[] } = {}
   public svgZoomInstance: { destroy(): void } | null = null
 
   private showIdsBacking = false
@@ -110,7 +116,8 @@ export class Visualizer {
       (<any>window).alg = alg;
       (<any>window).dagre = dagre;
       (<any>window).combined = this.combined;
-      (<any>window).toDot = toDot
+      (<any>window).toDot = toDot;
+      (<any>window).rankLongestPath = rankLongestPath
     }
   }
 
@@ -160,6 +167,96 @@ export class Visualizer {
     }
   }
 
+  public metroData(): { obs: string[], subs: string[], color: string }[] {
+    return Object.values(this.metroLines).map((line: number[], index: number) => ({
+      color: colorIndex(index),
+      obs: line.map((subId: number) => this.collector.getSubscription(subId).observableId).map(s => s.toString()),
+      subs: line,
+    }))
+  }
+
+  public handleLogEntry(el: any) {
+    if (el instanceof AddObservable) {
+      if (typeof el.callParent !== "undefined") {
+        // continue
+      }
+      let node = this.setNode(el.id, new RxFiddleNode(
+        `${el.id}`, el.method,
+        this.collector.getStack(el.stack) && this.collector.getStack(el.stack).stackframe, this
+      ))
+      node.addObservable(el)
+      for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
+        // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
+        let edge = new RxFiddleEdge(
+          this.nodes[p], this.nodes[el.id],
+          "structure", {
+            "marker-end": "url(#arrow)",
+          }
+        )
+        this.setEdge(p, el.id, edge)
+      }
+    }
+
+    if (instanceAddSubscription(el) && typeof this.nodes[(el as AddSubscription).observableId] !== "undefined") {
+      let adds: AddSubscription = (el as AddSubscription)
+
+      // subs-graph
+      this.combined.setNode(`${adds.id}`, el)
+      adds.sinks.forEach(s => this.combined.setEdge(`${adds.id}`, `${s}`))
+
+      let node = this.nodes[adds.observableId]
+      let from = adds.observableId
+      node.addObserver(this.collector.getObservable(adds.observableId), adds)
+
+      // add metro lines
+      if (adds.sinks.length > 0) {
+        this.metroLines[adds.id] = (this.metroLines[adds.sinks[0]] || [adds.sinks[0]]).concat([adds.id])
+        delete this.metroLines[adds.sinks[0]]
+      } else {
+        this.metroLines[adds.id] = [adds.id]
+      }
+
+      adds.sinks.forEach((parentId) => {
+        let to = this.collector.getSubscription(parentId).observableId
+        let toNode = this.nodes[this.collector.getSubscription(parentId).observableId]
+        let existing = this.edge(from, to)
+
+        if (typeof existing === "undefined") {
+          this.setEdge(to, from, new RxFiddleEdge(node, toNode, "subscription", {
+            dashed: true,
+            stroke: "blue",
+            "marker-start": "url(#arrow-reverse)",
+          }))
+        } else if (existing instanceof RxFiddleEdge) {
+          existing.options.stroke = "purple"
+          existing.options["marker-start"] = "url(#arrow-reverse)"
+        } else {
+          console.warn("What edge?", existing)
+        }
+      })
+
+      // Dashed link
+      if (typeof adds.scopeId !== "undefined") {
+        let toId = (this.collector.getSubscription(adds.scopeId)).observableId
+        let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId]
+        this.setEdge(toId, from, new RxFiddleEdge(to, node, "higherorder", {
+          dashed: true,
+          "marker-end": "url(#arrow)",
+        }))
+      }
+    }
+
+    if (el instanceof AddEvent && typeof this.collector.getSubscription(el.subscription) !== "undefined") {
+      let oid = (this.collector.getSubscription(el.subscription)).observableId
+      if (typeof this.nodes[oid] === "undefined") { return }
+      for (let row of this.nodes[oid].observers) {
+        if ((row[1] as { id: number }).id === el.subscription) {
+          row[2].push(el.event)
+        }
+      }
+    }
+  }
+
   public process(): number {
     this.g.graph().ranker = "tight-tree"
     // this.g.graph().rankdir = "RL"
@@ -168,78 +265,7 @@ export class Visualizer {
 
     for (let i = start; i < this.collector.length; i++) {
       let el = this.collector.getLog(i)
-
-      if (el instanceof AddObservable) {
-        if (typeof el.callParent !== "undefined") {
-          // continue
-        }
-        let node = this.setNode(el.id, new RxFiddleNode(
-          `${el.id}`, el.method,
-          this.collector.getStack(el.stack) && this.collector.getStack(el.stack).stackframe, this
-        ))
-        node.addObservable(el)
-        for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
-          // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
-          let edge = new RxFiddleEdge(
-            this.nodes[p], this.nodes[el.id],
-            "structure", {
-              "marker-end": "url(#arrow)",
-            }
-          )
-          this.setEdge(p, el.id, edge)
-        }
-      }
-
-      if (instanceAddSubscription(el) && typeof this.nodes[(el as AddSubscription).observableId] !== "undefined") {
-        let adds: AddSubscription = (el as AddSubscription)
-
-        // subs-graph
-        this.combined.setNode(`${adds.id}`, el)
-        adds.sinks.forEach(s => this.combined.setEdge(`${adds.id}`, `${s}`))
-
-        let node = this.nodes[adds.observableId]
-        let from = adds.observableId
-        node.addObserver(this.collector.getObservable(adds.observableId), adds)
-
-        adds.sinks.forEach((parentId) => {
-          let to = this.collector.getSubscription(parentId).observableId
-          let toNode = this.nodes[this.collector.getSubscription(parentId).observableId]
-          let existing = this.edge(from, to)
-
-          if (typeof existing === "undefined") {
-            this.setEdge(to, from, new RxFiddleEdge(node, toNode, "subscription", {
-              dashed: true,
-              stroke: "blue",
-              "marker-start": "url(#arrow-reverse)",
-            }))
-          } else if (existing instanceof RxFiddleEdge) {
-            existing.options.stroke = "purple"
-            existing.options["marker-start"] = "url(#arrow-reverse)"
-          } else {
-            console.warn("What edge?", existing)
-          }
-        })
-
-        // Dashed link
-        if (typeof adds.scopeId !== "undefined") {
-          let toId = (this.collector.getSubscription(adds.scopeId)).observableId
-          let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId]
-          this.setEdge(toId, from, new RxFiddleEdge(to, node, "higherorder", {
-            dashed: true,
-            "marker-end": "url(#arrow)",
-          }))
-        }
-      }
-
-      if (el instanceof AddEvent && typeof this.collector.getSubscription(el.subscription) !== "undefined") {
-        let oid = (this.collector.getSubscription(el.subscription)).observableId
-        if (typeof this.nodes[oid] === "undefined") { continue }
-        for (let row of this.nodes[oid].observers) {
-          if ((row[1] as { id: number }).id === el.subscription) {
-            row[2].push(el.event)
-          }
-        }
-      }
+      this.handleLogEntry(el)
     }
 
     return this.collector.length - start
@@ -299,9 +325,13 @@ export class Visualizer {
     let sg = new StructureGraph()
     let app = h("app", [
       h("master", sg.renderSvg(
-        graph,
-        this.choices,
-        (v) => this.makeChoice(v, graph)).concat(sg.renderMarbles(graph, this.choices))
+          graph,
+          this.choices,
+          (v) => this.makeChoice(v, graph),
+          this.dag,
+          Object.values(this.metroLines),
+          this.metroData()
+        ).concat(sg.renderMarbles(graph, this.choices)),
       ),
       h("detail", [
         h("svg", {
@@ -444,11 +474,16 @@ class StructureGraph {
     return [root]
   }
 
-  public renderSvg(graph: Graph, choices: string[], cb: (choice: string) => void): VNode[] {
+  public renderSvg(graph: Graph, choices: string[], cb: (choice: string) => void, dag: Graph, lines: number[][], metroData: { obs: string[], subs: string[], color: string }[]): VNode[] {
     let u = StructureGraph.chunk
-    let main = StructureGraph.traverse(graph, choices);
-    (<any>window).rankLongestPath = rankLongestPath;
+    // let ranks = lines(graph)
+    // console.log("ranks", ranks)
+    let main = metroLayout(dag, lines);
     (<any>window).renderSvgGraph = graph
+    console.log("MetroLayout", metroLayout(dag, lines), metroData)
+
+    let mu = u / 4
+
     let root = h("svg", {
       attrs: {
         id: "structure",
@@ -457,32 +492,32 @@ class StructureGraph {
         xmlns: "http://www.w3.org/2000/svg",
       },
     }, main.flatMap((v, i) => {
-      let y = (i + 0.5) * StructureGraph.chunk
+      let y = (i + 0.5) * u
       let x = 1.5 * u
 
-      // branches
-      let branches = StructureGraph.branches(graph, v, [])
-      let branchRad = Math.PI / 2 / (branches.length + 1)
-      let branchNodes = branches.flatMap((b, bi) => {
-        let dx = -Math.sin(branchRad * (bi + 1)) * u
-        let dy = Math.cos(branchRad * (bi + 1)) * u
-        return [
-          h("path", {
-            attrs: {
-              class: "branch",
-              d: `M${x} ${y} l ${dx} ${dy} L ${x + dx} ${y + u}`
-            }, on: {
-              click: () => cb(b),
-            },
-          }),
-        ]
+      // upward edges
+      let edges = v.sourceColumns.flatMap(source => {
+        let openLines = metroData
+          .filter(l => {
+            let idx = l.obs.indexOf(v.obs)
+            if (idx >= 0) { console.log("open line", idx, l, l.obs[idx + 1] === source.obs) }
+            return idx >= 0 //&& l.obs[idx - 1] === source.obs
+          })
+        if (openLines.length === 0) {
+          return [h("path", {
+            attrs: { d: `M${x + -mu * source.column} ${y - u} L ${x + -mu * v.column} ${y}`,
+            stroke: "gray", "stroke-dasharray": 5  },
+          })]
+        }
+        return openLines.map((line) => h("path", {
+          attrs: { d: `M${x + -mu * source.column} ${y - u} L ${x + -mu * v.column} ${y}`,
+          stroke: colorIndex(source.column) },
+        }))
       })
 
-      return branchNodes.concat([
-        h("path", { attrs: { d: `M${x} ${y} m 0 ${-u / 2} l 0 ${u / 2}` } }),
-        h("circle", { attrs: { cx: x, cy: y, r: 10 } }),
-        h("path", { attrs: { d: `M${x} ${y} l 0 ${u / 2}` } }),
-      ].slice(i === 0 ? 1 : 0))
+      return edges.concat([
+        h("circle", { attrs: { cx: x + -mu * v.column, cy: y, fill: colorIndex(v.column), r: 10 } }),
+      ])
     }))
     return [root]
   }

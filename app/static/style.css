@@ -90,6 +90,13 @@ master > * {
   line-height: 25px;
 }
 
+.operator div + div {
+  font-size: 0.8em;
+  font-style: italic;
+  color: #1678CA;
+  text-decoration: underline;
+}
+
 .operator:first-child {
   margin-top: 50px;
 }
@@ -147,7 +154,6 @@ master {
 }
 
 master path {
-  stroke: inherit;
   stroke-width: 4px;
   fill: transparent;
 }
