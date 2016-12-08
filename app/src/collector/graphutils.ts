@@ -52,7 +52,7 @@ function rightPad(l: number, a: any): string {
 export type RowRef = { column: number, obs: string }
 export type Row = { column: number, sourceColumns: RowRef[], obs: string }
 
-export function metroLayout(g: Graph, lines: number[][]): Row[] {
+export function metroLayout<Label>(g: Graph, lines: Label[][]): Row[] {
   let ranks  = rankLongestPath(g)
   let sorted = Object.keys(ranks)
     .map(k => [k, ranks[k]])
@@ -79,6 +79,63 @@ export function metroLayout(g: Graph, lines: number[][]): Row[] {
   console.log(sorted, result)
   // debugger
   return result.linear
+}
+
+export type Label = string
+export type LayoutItem<Label> = { node: Label, x: number, y: number, relative: Label[], lines: number[] }
+export function structureLayout(g: Graph, lines: Label[][]): LayoutItem<Label>[] {
+  let ranks  = rankLongestPath(g)
+  console.log("ranks\n", ranks)
+  let byRank = [].concat(...lines).concat(Object.keys(ranks)).reduce((index, node) => {
+    if(typeof index[ranks[node]] === "undefined") {
+      index[ranks[node]] = []
+    }
+    if(index[ranks[node]].indexOf(node) === -1) {
+      index[ranks[node]].push(node)    
+    }
+    return index
+  }, {} as { [node: string]: string[] })
+
+  function dfs(node: string, store: { [label: string]: LayoutItem<Label> }, offset: number = 0): LayoutItem<Label> {
+    if(typeof store[node] !== "undefined") {
+      return store[node]
+    }
+
+    let parents = g.predecessors(node)
+    let parentLayout = parents.map(p => dfs(p, store, byRank[ranks[node]].indexOf(node)))
+    if(parentLayout.length == 0) {
+      return {
+        node,
+        lines: [],
+        x: byRank[ranks[node]].indexOf(node),
+        y: 0,
+        relative: []
+      }
+    }
+
+    return {
+      node,
+      lines: [],
+      x: Math.max(byRank[ranks[node]].indexOf(node), Math.min(...parentLayout.map(l => l.y))),
+      y: Math.max(...parentLayout.map(l => l.y))+1,
+      relative: parents,
+    }
+  }
+
+  let result = [].concat(...lines).concat(g.nodes()).reduce((memo: { [label: string]: LayoutItem<Label> }, node: string) => {
+    console.log("Walking", node)
+    if(typeof memo[node] !== "undefined") {
+      return memo
+    }
+    memo[node] = dfs(node, memo)
+    return memo
+  }, {} as { [label: string]: LayoutItem<Label> })
+
+  lines.forEach((line, index)  => {
+    line.forEach(n => result[n].lines.push(index))
+  })
+
+  return Object.keys(result).map(k => result[k])
 }
 
 export function lines(g: Graph): string[][] {

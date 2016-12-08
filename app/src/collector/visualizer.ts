@@ -2,7 +2,7 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent } from "./event"
-import { lines, rankLongestPath, metroLayout } from "./graphutils"
+import { lines, rankLongestPath, metroLayout, structureLayout } from "./graphutils"
 import { AddEvent, AddObservable, AddStackFrame, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
 import { Edge as GraphEdge, Graph, alg } from "graphlib"
@@ -450,7 +450,7 @@ class StructureGraph {
     return successors.filter(s => s !== chosen)
   }
 
-  public static chunk: number = 150
+  public static chunk: number = 100
 
   public renderMarbles(graph: Graph, choices: string[]): VNode[] {
     let coordinator = new MarbleCoordinator()
@@ -480,46 +480,70 @@ class StructureGraph {
     // console.log("ranks", ranks)
     let main = metroLayout(dag, lines);
     (<any>window).renderSvgGraph = graph
-    console.log("MetroLayout", metroLayout(dag, lines), metroData)
+    console.log("MetroLayout", main, metroData)
 
     let mu = u / 4
+    
+    let structure = structureLayout(graph, [])
+    let structureIndex = indexedBy(i => i.node, structure)
 
-    let root = h("svg", {
+    let nodes = structure.map((item, i) => {
+      return h("circle", { attrs: { cx: mu * item.x, cy: mu * item.y, fill: colorIndex(0), r: 5 } })
+    })
+    let edges = graph.edges().map(g => {
+      let v = structureIndex[g.v]
+      let w = structureIndex[g.w]
+      return h("path", {
+            attrs: { d: `M${mu * v.x} ${mu * v.y} L ${mu * w.x} ${mu * w.y}`,
+            stroke: "gray", "stroke-dasharray": 5  },
+          })
+    })
+
+    return [h("svg", {
       attrs: {
         id: "structure",
         style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },
-    }, main.flatMap((v, i) => {
-      let y = (i + 0.5) * u
-      let x = 1.5 * u
+    }, edges.concat(nodes))]
+    
+    // let root = h("svg", {
+    //   attrs: {
+    //     id: "structure",
+    //     style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
+    //     version: "1.1",
+    //     xmlns: "http://www.w3.org/2000/svg",
+    //   },
+    // }, main.flatMap((v, i) => {
+    //   let y = (i + 0.5) * u
+    //   let x = 1.5 * u
 
-      // upward edges
-      let edges = v.sourceColumns.flatMap(source => {
-        let openLines = metroData
-          .filter(l => {
-            let idx = l.obs.indexOf(v.obs)
-            if (idx >= 0) { console.log("open line", idx, l, l.obs[idx + 1] === source.obs) }
-            return idx >= 0 //&& l.obs[idx - 1] === source.obs
-          })
-        if (openLines.length === 0) {
-          return [h("path", {
-            attrs: { d: `M${x + -mu * source.column} ${y - u} L ${x + -mu * v.column} ${y}`,
-            stroke: "gray", "stroke-dasharray": 5  },
-          })]
-        }
-        return openLines.map((line) => h("path", {
-          attrs: { d: `M${x + -mu * source.column} ${y - u} L ${x + -mu * v.column} ${y}`,
-          stroke: colorIndex(source.column) },
-        }))
-      })
+    //   // upward edges
+    //   let edges = v.sourceColumns.flatMap(source => {
+    //     let openLines = metroData
+    //       .filter(l => {
+    //         let idx = l.obs.indexOf(v.obs)
+    //         if (idx >= 0) { console.log("open line", idx, l, l.obs[idx + 1] === source.obs) }
+    //         return idx >= 0 //&& l.obs[idx - 1] === source.obs
+    //       })
+    //     if (openLines.length === 0) {
+    //       return [h("path", {
+    //         attrs: { d: `M${x + -mu * source.column} ${y - u} L ${x + -mu * v.column} ${y}`,
+    //         stroke: "gray", "stroke-dasharray": 5  },
+    //       })]
+    //     }
+    //     return openLines.map((line) => h("path", {
+    //       attrs: { d: `M${x + -mu * source.column} ${y - u} L ${x + -mu * v.column} ${y}`,
+    //       stroke: colorIndex(source.column) },
+    //     }))
+    //   })
 
-      return edges.concat([
-        h("circle", { attrs: { cx: x + -mu * v.column, cy: y, fill: colorIndex(v.column), r: 10 } }),
-      ])
-    }))
-    return [root]
+    //   return edges.concat([
+    //     h("circle", { attrs: { cx: x + -mu * v.column, cy: y, fill: colorIndex(v.column), r: 10 } }),
+    //   ])
+    // }))
+    // return [root]
   }
 
 }
@@ -557,4 +581,10 @@ class MarbleCoordinator {
     return (t - this.min) / (this.max - this.min) * 95 + 2.5
   }
 
+}
+
+function indexedBy<T>(selector: (item: T) => string, list: T[]): { [key: string]: T } {
+  let obj = {} as { [key: string]: T }
+  list.forEach((i: T) => { obj[selector(i)] = i })
+  return obj
 }
