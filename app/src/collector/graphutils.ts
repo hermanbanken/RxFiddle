@@ -88,10 +88,17 @@ function sort<T>(input: T[], byRefIndex: (elem: T) => (number | undefined)): T[]
     }).map(v => v.item)
 }
 
-function sweep<T>(input: T[][], sort: (subject: T[], ref: T[]) => T[]): T[][] {
-  trace("Sweeping")
-  for (let ref = 0, i = 1; i < input.length; i++, ref++) {
-    input[i] = sort(input[i], input[ref])
+type Direction = "down" | "up"
+function sweep<T>(input: T[][], direction: Direction, sort: (subject: T[], ref: T[]) => T[]): T[][] {
+  trace("Sweeping", direction)
+  if(direction === "down") {
+    for (let i = 1, ref = i - 1; i < input.length; i++, ref++) {
+      input[i] = sort(input[i], input[ref])
+    }
+  } else {
+    for (let i = input.length - 2, ref = i + 1; i >= 0; i--, ref--) {
+      input[i] = sort(input[i], input[ref])
+    }
   }
   return input
 }
@@ -232,8 +239,8 @@ export function structureLayout(g: Graph): LayouterOutput<Label> {
   // Sort vertices according to BaryCenter's
   if(ENABLE_BARYCENTRESORT) {
     for (let iteration = 0; iteration < 10; iteration++) {
-      let direction: "up" | "down" = iteration % 2 === 0 ? "down" : "up"
-      sweep(layers, (subject, ref) => {
+      let direction: Direction = iteration % 2 === 0 ? "down" : "up"
+      sweep(layers, "down", (subject, ref) => {
         return sort(subject, (item) => {
           return barycenter(
             normalized,
@@ -253,17 +260,27 @@ export function structureLayout(g: Graph): LayouterOutput<Label> {
     )
   }
 
+  // Balancing or centering relative to branches
   if(ENABLE_PRIORITYLAYOUT) {
     for (let iteration = 0; iteration < 2; iteration++) {
-      let dir: "up" | "down" = iteration % 2 === 0 ? "down" : "up"
-      for(let i = dir === "down" ? 1 : layers.length - 2; dir === "down" ? i < layers.length : i >= 0; dir === "down" ? i++ : i--) {
-        let j = dir === "down" ? i - 1 : i + 1
-        layers[i].forEach(item => {
-          item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(normalized, dir, item.node)
-          item.barycenter = barycenter(normalized, dir, item.node, linked => head(layers[j].filter(r => r.node === linked).map(r => r.x)))
+      let direction: Direction = iteration % 2 === 0 ? "down" : "up"
+      sweep(layers, direction, (subject, ref) => {
+        subject.forEach(item => {
+          item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(
+            normalized,
+            direction,
+            item.node
+          )
+          item.barycenter = barycenter(
+            normalized,
+            direction,
+            item.node,
+            linked => head(ref.filter(r => r.node === linked).map(r => r.x))
+          )
         })
-        priorityLayoutReorder(layers[i])
-      }
+        priorityLayoutReorder(subject)
+        return subject
+      })
     }
     shiftOffset(layers)
   }
