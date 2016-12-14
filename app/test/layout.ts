@@ -3,7 +3,7 @@ import { assert, expect, use as chaiUse } from "chai"
 import { suite, test } from "mocha-typescript"
 import { Graph } from "graphlib"
 import * as Rx from "rx"
-import { metroLayout, structureLayout, LayoutItem, priorityLayoutReorder } from "../src/collector/graphutils"
+import { structureLayout, LayoutItem, priorityLayoutReorder } from "../src/collector/graphutils"
 
 function deepCover(actual: any, expected: any, message: string = "__root__") {
   let errors: Error[] = []
@@ -84,11 +84,11 @@ export class LayoutTest extends InstrumentationTest {
   @test
   public "test layout"() {
     //
-    //     a
-    //     |
-    //     b
-    //    /|
-    //   d c
+    //   a
+    //   |
+    //   b
+    //   |\
+    //   c d
     // 
     let g = new Graph()
     g.setNode("a", "a")
@@ -101,12 +101,12 @@ export class LayoutTest extends InstrumentationTest {
     
     let lines = [["a", "b", "d"], ["a", "b", "c"]]
 
-    let actual = structureLayout(g, lines).layout.sort((a,b) => a.node.localeCompare(b.node))
+    let actual = structureLayout(g).layout.sort((a,b) => a.node.localeCompare(b.node))
     let expected = [
-      { node: "a", x: 0, y: 0, }, // lines: [0, 1], relative: [] },
-      { node: "b", x: 0, y: 1, }, // lines: [0, 1], relative: ["a"] },
-      { node: "c", x: 1, y: 2, }, // lines: [1], relative: ["b"] },
-      { node: "d", x: 0, y: 2, }, // lines: [0], relative: ["b"] },
+      { node: "a", x: 1, y: 0, }, // lines: [0, 1], relative: [] },
+      { node: "b", x: 1, y: 1, }, // lines: [0, 1], relative: ["a"] },
+      { node: "c", x: 0, y: 2, }, // lines: [1], relative: ["b"] },
+      { node: "d", x: 1, y: 2, }, // lines: [0], relative: ["b"] },
     ]
 
     deepCover(actual, expected)
@@ -118,9 +118,9 @@ export class LayoutTest extends InstrumentationTest {
     //   f
     //   |
     //   e a
-    //    \|
-    //     b
-    //    /|
+    //   |/
+    //   b
+    //   |\
     //   d c
     // 
     let g = new Graph()
@@ -138,12 +138,12 @@ export class LayoutTest extends InstrumentationTest {
     
     let lines = [["a", "b", "c"], ["f", "e", "b", "d"]]
 
-    let actual = structureLayout(g, lines).layout.sort((a,b) => a.node.localeCompare(b.node))
+    let actual = structureLayout(g).layout.sort((a,b) => a.node.localeCompare(b.node))
     let expected = [
       { node: "f", x: 1, y: 0, }, // lines: [1], relative: [] },
       { node: "e", x: 1, y: 1, }, // lines: [1], relative: ["f"] },
       { node: "a", x: 0, y: 1, }, // lines: [0], relative: [] },
-      { node: "b", x: 0, y: 2, }, // lines: [0, 1], relative: ["a", "e"] },
+      { node: "b", x: 1, y: 2, }, // lines: [0, 1], relative: ["a", "e"] },
       { node: "c", x: 0, y: 3, }, // lines: [0], relative: ["b"] },
       { node: "d", x: 1, y: 3, }, // lines: [1], relative: ["b"] },
     ].sort((a,b) => a.node.localeCompare(b.node))
