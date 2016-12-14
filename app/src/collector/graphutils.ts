@@ -11,12 +11,34 @@ function last<T>(list: T[]): T {
   return list[list.length - 1]
 }
 
+function head<T>(list: T[]): T {
+  return list[0]
+}
+
+function takeWhile<T>(list: T[], pred: (item: T) => boolean) {
+  let ret: T[] = []
+  for(let i = 0; i < list.length && pred(list[i]); i++) {
+    ret.push(list[i])
+  }
+  return ret
+}
+
 function range(start: number, exclusiveEnd: number): number[] {
   let r: number[] = []
   for(let i = start; i < exclusiveEnd; i++) {
     r.push(i)
   }
   return r
+}
+
+function avg(list: number[]): number {
+  if(list.length === 0) return undefined
+  if(list.length === 1) return list[0]
+  return list.reduce((sum, v) => sum + (v / list.length), 0)
+}
+
+function absMin(a: number, b: number): number {
+  return Math.abs(a) < Math.abs(b) ? a : b
 }
 
 function clone(g: Graph, edgeFilter?: (e: GraphEdge) => boolean, transform?: (e: GraphEdge) => GraphEdge[]): Graph {
@@ -151,71 +173,72 @@ export function metroLayout<Label>(g: Graph, lines: Label[][]): Row[] {
 
 export type Label = string
 export type LayoutItem<Label> = { 
-  node: Label, 
-  x: number, 
-  y: number, 
-  relative: Label[], 
-  lines: number[],
+  node: Label,
+  x: number,
+  y: number,
   isDummy: boolean,
   barycenter: number,
-}
-export type Structure<Label> = {
-  graph: Graph,
-  layout: LayoutItem<Label>[]
 }
 
 const ENABLE_NORMALIZE = true
 const ENABLE_BARYCENTRESORT = true
 const ENABLE_PRIORITYLAYOUT = true
 
-export function structureLayout(g: Graph, lines: Label[][]): Structure<Label> {
+export type LayouterInput = {
+  graph: Graph
+}
+export type LayouterOutput<Label> = {
+  graph: Graph,
+  layout: LayoutItem<Label>[]
+}
+
+// TODO make it online
+export function structureLayout(g: Graph): LayouterOutput<Label> {
   let ranks  = rankLongestPath(g)
   trace("ranks\n", ranks)
 
   // Without long edges
-  let normalized = ENABLE_NORMALIZE ? clone(g, undefined, e => {
-    if(ranks[e.v] + 1 < ranks[e.w]) {
-      // Add dummy nodes + edges
-      let dummies = range(ranks[e.v] + 1, ranks[e.w]).map(i => ({ label: `dummy-${e.v}-${e.w}(${i})`, rank: i }))
-      dummies.forEach(d => ranks[d.label] = d.rank)
-      let nodes = [e.v].concat(dummies.map(d => d.label)).concat([e.w])
-      return nodes.slice(1).map((w, i) => ({
-        v: nodes[i],
-        w
-      }))
-    }
-    return [e]
-  }) : g
-
-  let byRank = groupByUniq(node => ranks[node], [].concat(...lines).concat(Object.keys(ranks)))
-  
-  let layers = Object.keys(byRank).sort((a, b) => +a - +b).map((r: string, y: number) => {
-    byRank[r].map((n) => normalized.outEdges(n).map(e => {
+  let normalized: Graph
+  if (ENABLE_NORMALIZE) {
+    normalized = clone(g, undefined, e => {
       if(ranks[e.v] + 1 < ranks[e.w]) {
+        // Add dummy nodes + edges
+        let dummies = range(ranks[e.v] + 1, ranks[e.w]).map(i => ({ label: `dummy-${e.v}-${e.w}(${i})`, rank: i }))
+        dummies.forEach(d => ranks[d.label] = d.rank)
+        let nodes = [e.v].concat(dummies.map(d => d.label)).concat([e.w])
+        return nodes.slice(1).map((w, i) => ({ v: nodes[i], w }))
+      } else {
+        return [e]
       }
-    }))
+    })
+  } else {
+    normalized = g
+  }
+
+  let byRank = groupByUniq(node => ranks[node], Object.keys(ranks))
+  
+  // Convert rank's vertices to layered layout items
+  let layers = Object.keys(byRank).sort((a, b) => +a - +b).map((r: string, y: number) => {
     return byRank[r].map((n: Label, x: number) => ({
       node: n,
       x,
       y,
-      relative: [] as Label[],
-      lines: [] as number[],
       isDummy: n.startsWith("dummy"),
       barycenter: 0,
       priority: 0,
     }))
   })
 
-  // Sweeping the layers
+  // Sort vertices according to BaryCenter's
   if(ENABLE_BARYCENTRESORT) {
     for (let iteration = 0; iteration < 10; iteration++) {
       let direction: "up" | "down" = iteration % 2 === 0 ? "down" : "up"
       sweep(layers, (subject, ref) => {
         return sort(subject, (item) => {
           return barycenter(
-            normalized, 
-            direction, 
-            item.node, 
+            normalized,
+            direction,
+            item.node,
             linked => ref.findIndex(r => r.node === linked)
           )
         })
@@ -387,29 +410,4 @@ export function groupByUniq<T, K extends (string | number)>(selector: (item: T) 
     }
   })
   return obj
-}
-
-function avg(list: number[]): number {
-  if(list.length === 0) return undefined
-  if(list.length === 1) return list[0]
-  return list.reduce((sum, v) => sum + (v / list.length), 0)
-}
-
-function takeWhile<T>(list: T[], pred: (item: T) => boolean) {
-  let ret: T[] = []
-  for(let i = 0; i < list.length && pred(list[i]); i++) {
-    ret.push(list[i])
-  }
-  return ret
-}
-
-function head<T>(list: T[]): T {
-  if(list.length > 0) {
-    return list[0]
-  }
-  return undefined
-}
-
-function absMin(a: number, b: number): number {
-  return Math.abs(a) < Math.abs(b) ? a : b
 }

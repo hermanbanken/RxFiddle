@@ -477,13 +477,12 @@ class StructureGraph {
   }
 
   public renderSvg(graph: Graph, choices: string[], cb: (choice: string) => void, dag: Graph, lines: number[][], /*metroData: { obs: string[], subs: string[], color: string }[]*/): VNode[] {
-    let u = StructureGraph.chunk
-    let main = metroLayout(dag, lines);
+    let u = StructureGraph.chunk;
     (<any>window).renderSvgGraph = graph
 
     let mu = u / 2
     
-    let structure = structureLayout(graph, [])
+    let structure = structureLayout(graph)
     let structureIndex = indexedBy(i => i.node, structure.layout)
     console.log("structure layout", structure)
     let nodes = structure.layout.filter(item => !item.isDummy).flatMap((item, i) => {
@@ -507,7 +506,7 @@ class StructureGraph {
     return [h("svg", {
       attrs: {
         id: "structure",
-        style: `width: ${u * 6}px; height: ${u * (0.5 + main.length)}px`,
+        style: `width: ${u * 6}px; height: ${u * (0.5 + structure.layout.length)}px`,
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },
