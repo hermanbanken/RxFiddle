@@ -1,9 +1,77 @@
 import "../utils"
-import { Edge as GraphEdge, Graph } from "graphlib"
+import { Edge as GraphEdge, Graph, alg } from "graphlib"
 import * as _ from "lodash"
+
+const TRACE = false
+function trace(...args: any[]) {
+  if(TRACE) console.log.apply(console, arguments)
+}
 
 function last<T>(list: T[]): T {
   return list[list.length - 1]
+}
+
+function range(start: number, exclusiveEnd: number): number[] {
+  let r: number[] = []
+  for(let i = start; i < exclusiveEnd; i++) {
+    r.push(i)
+  }
+  return r
+}
+
+function clone(g: Graph, edgeFilter?: (e: GraphEdge) => boolean, transform?: (e: GraphEdge) => GraphEdge[]): Graph {
+  let clone = new Graph({
+    multigraph: g.isMultigraph(),
+    directed: g.isDirected(),
+    compound: g.isCompound(),
+  })
+
+  let edges = typeof edgeFilter === "undefined" ? 
+    g.edges() : 
+    g.edges().filter(edgeFilter)
+
+  function add(e: GraphEdge) {
+    clone.setEdge(e.v, e.w, g.edge(e.v, e.w))    
+  }
+
+  edges.forEach(e => {
+    if(typeof transform === "undefined") {
+      add(e)
+    } else {
+      transform(e).forEach(add)
+    }
+  })
+
+  return clone
+}
+
+function firstDefined<T>(...args: T[]): T {
+  if (typeof args[0] !== "undefined") {
+    return args[0]
+  }
+  if(args.length > 1) {
+    return firstDefined(...args.slice(1))
+  }
+  return undefined
+}
+
+function sort<T>(input: T[], byRefIndex: (elem: T) => (number | undefined)): T[] {
+  return input.map((item, index) => ({ item, index, refIndex: byRefIndex(item) }))
+    .sort((a, b) => {
+      if(typeof a.refIndex !== "undefined" && typeof b.refIndex !== "undefined") {
+        return a.refIndex - b.refIndex;
+      } else {
+        return firstDefined(a.refIndex, a.index) - firstDefined(b.refIndex, b.index)
+      }
+    }).map(v => v.item)
+}
+
+function sweep<T>(input: T[][], sort: (subject: T[], ref: T[]) => T[]): T[][] {
+  trace("Sweeping")
+  for (let ref = 0, i = 1; i < input.length; i++, ref++) {
+    input[i] = sort(input[i], input[ref])
+  }
+  return input
 }
 
 /**
@@ -76,66 +144,168 @@ export function metroLayout<Label>(g: Graph, lines: Label[][]): Row[] {
     linear: [] as Row[],
   })
 
-  console.log(sorted, result)
+  trace(sorted, result)
   // debugger
   return result.linear
 }
 
 export type Label = string
-export type LayoutItem<Label> = { node: Label, x: number, y: number, relative: Label[], lines: number[] }
-export function structureLayout(g: Graph, lines: Label[][]): LayoutItem<Label>[] {
+export type LayoutItem<Label> = { 
+  node: Label, 
+  x: number, 
+  y: number, 
+  relative: Label[], 
+  lines: number[],
+  isDummy: boolean,
+  barycenter: number,
+}
+export type Structure<Label> = {
+  graph: Graph,
+  layout: LayoutItem<Label>[]
+}
+
+const ENABLE_NORMALIZE = true
+const ENABLE_BARYCENTRESORT = true
+const ENABLE_PRIORITYLAYOUT = true
+
+export function structureLayout(g: Graph, lines: Label[][]): Structure<Label> {
   let ranks  = rankLongestPath(g)
-  console.log("ranks\n", ranks)
-  let byRank = [].concat(...lines).concat(Object.keys(ranks)).reduce((index, node) => {
-    if(typeof index[ranks[node]] === "undefined") {
-      index[ranks[node]] = []
-    }
-    if(index[ranks[node]].indexOf(node) === -1) {
-      index[ranks[node]].push(node)    
-    }
-    return index
-  }, {} as { [node: string]: string[] })
+  trace("ranks\n", ranks)
 
-  function dfs(node: string, store: { [label: string]: LayoutItem<Label> }, offset: number = 0): LayoutItem<Label> {
-    if(typeof store[node] !== "undefined") {
-      return store[node]
+  // Without long edges
+  let normalized = ENABLE_NORMALIZE ? clone(g, undefined, e => {
+    if(ranks[e.v] + 1 < ranks[e.w]) {
+      // Add dummy nodes + edges
+      let dummies = range(ranks[e.v] + 1, ranks[e.w]).map(i => ({ label: `dummy-${e.v}-${e.w}(${i})`, rank: i }))
+      dummies.forEach(d => ranks[d.label] = d.rank)
+      let nodes = [e.v].concat(dummies.map(d => d.label)).concat([e.w])
+      return nodes.slice(1).map((w, i) => ({
+        v: nodes[i],
+        w
+      }))
     }
+    return [e]
+  }) : g
 
-    let parents = g.predecessors(node)
-    let parentLayout = parents.map(p => dfs(p, store, byRank[ranks[node]].indexOf(node)))
-    if(parentLayout.length == 0) {
-      return {
-        node,
-        lines: [],
-        x: byRank[ranks[node]].indexOf(node),
-        y: 0,
-        relative: []
+  let byRank = groupByUniq(node => ranks[node], [].concat(...lines).concat(Object.keys(ranks)))
+  
+  let layers = Object.keys(byRank).sort((a, b) => +a - +b).map((r: string, y: number) => {
+    byRank[r].map((n) => normalized.outEdges(n).map(e => {
+      if(ranks[e.v] + 1 < ranks[e.w]) {
       }
+    }))
+    return byRank[r].map((n: Label, x: number) => ({
+      node: n,
+      x,
+      y,
+      relative: [] as Label[],
+      lines: [] as number[],
+      isDummy: n.startsWith("dummy"),
+      barycenter: 0,
+      priority: 0,
+    }))
+  })
+
+  // Sweeping the layers
+  if(ENABLE_BARYCENTRESORT) {
+    for (let iteration = 0; iteration < 10; iteration++) {
+      let direction: "up" | "down" = iteration % 2 === 0 ? "down" : "up"
+      sweep(layers, (subject, ref) => {
+        return sort(subject, (item) => {
+          return barycenter(
+            normalized, 
+            direction, 
+            item.node, 
+            linked => ref.findIndex(r => r.node === linked)
+          )
+        })
+      })
+      layers.reverse()
     }
 
-    return {
-      node,
-      lines: [],
-      x: Math.max(byRank[ranks[node]].indexOf(node), Math.min(...parentLayout.map(l => l.y))),
-      y: Math.max(...parentLayout.map(l => l.y))+1,
-      relative: parents,
+    layers.forEach(layer => 
+      layer.forEach(
+        (item, index) => item.x = index
+      )
+    )
+  }
+
+  if(ENABLE_PRIORITYLAYOUT) {
+    for(let i = 1; i < layers.length - 1; i++) {
+      console.log('down', i, layers[i])
+      layers[i].forEach(item => {
+        item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(normalized, "down", item.node)
+        item.barycenter = barycenter(normalized, "down", item.node, linked => head(layers[i-1].filter(r => r.node === linked).map(r => r.x)))
+      })
+      priorityLayoutReorder(layers[i])
+    }
+
+    for(let i = layers.length - 2; i > 0; i--) {
+      console.log('up', i, layers[i])
+      layers[i].forEach(item => {
+        item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(normalized, "up", item.node)
+        item.barycenter = barycenter(normalized, "up", item.node, linked => head(layers[i+1].filter(r => r.node === linked).map(r => r.x)))
+      })
+      priorityLayoutReorder(layers[i])
     }
   }
 
-  let result = [].concat(...lines).concat(g.nodes()).reduce((memo: { [label: string]: LayoutItem<Label> }, node: string) => {
-    console.log("Walking", node)
-    if(typeof memo[node] !== "undefined") {
-      return memo
+  let layout = layers.flatMap(v => v)
+
+  return {
+    layout,
+    graph: normalized,
+  }
+}
+
+function barycenter(g: Graph, direction: "up" | "down", node: string, ref: (node: string) => number): number {
+  let linkedNodes = direction === "down" ? 
+    g.inEdges(node).map(e => e.v) : 
+    g.outEdges(node).map(e => e.w);
+  // Find Barycenter
+  let positions = linkedNodes.map(ref).filter(v => typeof v === "number")
+  return avg(positions)
+}
+
+function priority(g: Graph, direction: "up" | "down", node: string): number {
+  let linkedNodes = direction === "down" ? 
+    g.inEdges(node).map(e => e.v) : 
+    g.outEdges(node).map(e => e.w);
+  return linkedNodes.length
+}
+
+export function priorityLayoutReorder<Label>(items: (LayoutItem<Label> & {priority: number})[]): void {
+  let move = (priority: number, index: number, requestedShift: number): number => {
+    requestedShift = Math.max(0, requestedShift)
+    let subject = items[index]
+    if(subject.priority > priority) return 0
+    if(items.length === index + 1 || index === 0) {
+      trace("Testing", subject.node, "last node, shifting", requestedShift)
+      subject.x += requestedShift
+      return requestedShift
     }
-    memo[node] = dfs(node, memo)
-    return memo
-  }, {} as { [label: string]: LayoutItem<Label> })
+    let slack = Math.min(requestedShift, items[index+1].x - subject.x - 1)
+    if(slack < requestedShift) {
+      let rightMoved = move(priority, index + 1, requestedShift - slack)
+      trace("Testing", subject.node, "bubbled shift, had", slack, "got additional", rightMoved)
+      subject.x += slack + rightMoved
+      return slack + rightMoved
+    } else {
+      trace("Testing", subject.node, "inside slack shift of ", slack, ", had", items[index+1].x - subject.x - 1, "slack")
+      subject.x += slack
+      return slack
+    }
+  }
 
-  lines.forEach((line, index)  => {
-    line.forEach(n => result[n].lines.push(index))
-  })
-
-  return Object.keys(result).map(k => result[k])
+  items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => b.item.priority - a.item.priority)
+    .forEach(({ item, index }) => {
+      trace("Moving", item.node)
+      if (typeof item.barycenter !== "undefined") {
+        move(item.priority, index, Math.round(item.barycenter) - item.x)        
+      }
+    })
 }
 
 export function lines(g: Graph): string[][] {
@@ -144,7 +314,7 @@ export function lines(g: Graph): string[][] {
   let groups = _.toPairs(grouped)
   let levels = groups
     .sort((a, b) => a[0] - b[0])
-  console.log(levels.map(l => `${leftPad(5, l[0])}${l[1].map(leftPad.bind(null, 5)).join("")}`).join("\n"))
+  trace(levels.map(l => `${leftPad(5, l[0])}${l[1].map(leftPad.bind(null, 5)).join("")}`).join("\n"))
 
   let visited: { [id: string]: boolean } = {}
   let positions: { [id: string]: number } = {}
@@ -164,7 +334,7 @@ export function lines(g: Graph): string[][] {
   }
 
   _.each(g.sources(), dfs)
-  console.log(positions)
+  trace(positions)
 
   let ls = levels.map(l => {
     let row = l[1].reduce((text: string, n: string) => {
@@ -174,11 +344,60 @@ export function lines(g: Graph): string[][] {
     }, "")
     return `${leftPad(5, l[0])}${row}`
   }).join("\n")
-  console.log(ls)
+  trace(ls)
 
   return []
 }
 
 export function slack(g: Graph, e: GraphEdge): number {
   return g.node(e.w).rank - g.node(e.v).rank - g.edge(e).minlen
+}
+
+export function indexedBy<T>(selector: (item: T) => string, list: T[]): { [key: string]: T } {
+  let obj = {} as { [key: string]: T }
+  list.forEach((i: T) => { obj[selector(i)] = i })
+  return obj
+}
+
+export function groupBy<T>(selector: (item: T) => string, list: T[]): { [key: string]: T[] } {
+  let obj = {} as { [key: string]: T[] }
+  list.forEach((i: T) => {
+    let k  = selector(i)
+    obj[k] = obj[k] || []
+    obj[k].push(i)
+  })
+  return obj
+}
+
+export function groupByUniq<T, K extends (string | number)>(selector: (item: T) => K, list: T[]): { [key: string]: T[] } {
+  let obj = {} as { [key: string]: T[] }
+  list.forEach((i: T) => {
+    let k  = selector(i) as string
+    obj[k] = obj[k] || []
+    if(obj[k].indexOf(i) === -1) {
+      obj[k].push(i)
+    }
+  })
+  return obj
+}
+
+function avg(list: number[]): number {
+  if(list.length === 0) return undefined
+  if(list.length === 1) return list[0]
+  return list.reduce((sum, v) => sum + v / list.length)
+}
+
+function takeWhile<T>(list: T[], pred: (item: T) => boolean) {
+  let ret: T[] = []
+  for(let i = 0; i < list.length && pred(list[i]); i++) {
+    ret.push(list[i])
+  }
+  return ret
+}
+
+function head<T>(list: T[]): T {
+  if(list.length > 0) {
+    return list[0]
+  }
+  return undefined
 }

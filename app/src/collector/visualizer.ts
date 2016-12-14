@@ -2,13 +2,15 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent } from "./event"
-import { lines, rankLongestPath, metroLayout, structureLayout } from "./graphutils"
+import { lines, rankLongestPath, metroLayout, structureLayout, indexedBy } from "./graphutils"
 import { AddEvent, AddObservable, AddStackFrame, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
 import { Edge as GraphEdge, Graph, alg } from "graphlib"
 import * as snabbdom from "snabbdom"
 import { VNode } from "snabbdom"
 import * as _ from "lodash"
+import "../utils"
+import "../object/extensions"
 
 /* tslint:disable:no-var-requires */
 const dagre = require("dagre")
@@ -167,13 +169,13 @@ export class Visualizer {
     }
   }
 
-  public metroData(): { obs: string[], subs: string[], color: string }[] {
-    return Object.values(this.metroLines).map((line: number[], index: number) => ({
-      color: colorIndex(index),
-      obs: line.map((subId: number) => this.collector.getSubscription(subId).observableId).map(s => s.toString()),
-      subs: line,
-    }))
-  }
+  // public metroData(): { obs: string[], subs: string[], color: string }[] {
+  //   return Object.values(this.metroLines).map((line: number[], index: number) => ({
+  //     color: colorIndex(index),
+  //     obs: line.map((subId: number) => this.collector.getSubscription(subId).observableId).map(s => s.toString()),
+  //     subs: line,
+  //   }))
+  // }
 
   public handleLogEntry(el: any) {
     if (el instanceof AddObservable) {
@@ -330,7 +332,7 @@ export class Visualizer {
           (v) => this.makeChoice(v, graph),
           this.dag,
           Object.values(this.metroLines),
-          this.metroData()
+          // this.metroData()
         ).concat(sg.renderMarbles(graph, this.choices)),
       ),
       h("detail", [
@@ -474,27 +476,30 @@ class StructureGraph {
     return [root]
   }
 
-  public renderSvg(graph: Graph, choices: string[], cb: (choice: string) => void, dag: Graph, lines: number[][], metroData: { obs: string[], subs: string[], color: string }[]): VNode[] {
+  public renderSvg(graph: Graph, choices: string[], cb: (choice: string) => void, dag: Graph, lines: number[][], /*metroData: { obs: string[], subs: string[], color: string }[]*/): VNode[] {
     let u = StructureGraph.chunk
-    // let ranks = lines(graph)
-    // console.log("ranks", ranks)
     let main = metroLayout(dag, lines);
     (<any>window).renderSvgGraph = graph
-    console.log("MetroLayout", main, metroData)
 
-    let mu = u / 4
+    let mu = u / 2
     
     let structure = structureLayout(graph, [])
-    let structureIndex = indexedBy(i => i.node, structure)
-
-    let nodes = structure.map((item, i) => {
-      return h("circle", { attrs: { cx: mu * item.x, cy: mu * item.y, fill: colorIndex(0), r: 5 } })
+    let structureIndex = indexedBy(i => i.node, structure.layout)
+    console.log("structure layout", structure)
+    let nodes = structure.layout.filter(item => !item.isDummy).flatMap((item, i) => {
+      return [h("circle", { attrs: { 
+        cx: mu + mu * item.x, 
+        cy: mu + mu * item.y, 
+        fill: colorIndex(0), 
+        r: 5
+      } }), h("text", { attrs: { x: mu + mu * item.x + 10, y: mu + mu * item.y + 5 } }, `${item.node}`)]
     })
-    let edges = graph.edges().map(g => {
+    let edges = structure.graph.edges().map(g => {
       let v = structureIndex[g.v]
       let w = structureIndex[g.w]
+      if(!v || !w) console.log(g, v, w)
       return h("path", {
-            attrs: { d: `M${mu * v.x} ${mu * v.y} L ${mu * w.x} ${mu * w.y}`,
+            attrs: { d: `M${mu + mu * v.x} ${mu + mu * v.y} L ${mu + mu * w.x} ${mu + mu * w.y}`,
             stroke: "gray", "stroke-dasharray": 5  },
           })
     })
@@ -502,48 +507,11 @@ class StructureGraph {
     return [h("svg", {
       attrs: {
         id: "structure",
-        style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
+        style: `width: ${u * 6}px; height: ${u * (0.5 + main.length)}px`,
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },
     }, edges.concat(nodes))]
-    
-    // let root = h("svg", {
-    //   attrs: {
-    //     id: "structure",
-    //     style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
-    //     version: "1.1",
-    //     xmlns: "http://www.w3.org/2000/svg",
-    //   },
-    // }, main.flatMap((v, i) => {
-    //   let y = (i + 0.5) * u
-    //   let x = 1.5 * u
-
-    //   // upward edges
-    //   let edges = v.sourceColumns.flatMap(source => {
-    //     let openLines = metroData
-    //       .filter(l => {
-    //         let idx = l.obs.indexOf(v.obs)
-    //         if (idx >= 0) { console.log("open line", idx, l, l.obs[idx + 1] === source.obs) }
-    //         return idx >= 0 //&& l.obs[idx - 1] === source.obs
-    //       })
-    //     if (openLines.length === 0) {
-    //       return [h("path", {
-    //         attrs: { d: `M${x + -mu * source.column} ${y - u} L ${x + -mu * v.column} ${y}`,
-    //         stroke: "gray", "stroke-dasharray": 5  },
-    //       })]
-    //     }
-    //     return openLines.map((line) => h("path", {
-    //       attrs: { d: `M${x + -mu * source.column} ${y - u} L ${x + -mu * v.column} ${y}`,
-    //       stroke: colorIndex(source.column) },
-    //     }))
-    //   })
-
-    //   return edges.concat([
-    //     h("circle", { attrs: { cx: x + -mu * v.column, cy: y, fill: colorIndex(v.column), r: 10 } }),
-    //   ])
-    // }))
-    // return [root]
   }
 
 }
@@ -581,10 +549,4 @@ class MarbleCoordinator {
     return (t - this.min) / (this.max - this.min) * 95 + 2.5
   }
 
-}
-
-function indexedBy<T>(selector: (item: T) => string, list: T[]): { [key: string]: T } {
-  let obj = {} as { [key: string]: T }
-  list.forEach((i: T) => { obj[selector(i)] = i })
-  return obj
 }
