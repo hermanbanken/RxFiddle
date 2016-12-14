@@ -242,6 +242,7 @@ export function structureLayout(g: Graph, lines: Label[][]): Structure<Label> {
         priorityLayoutReorder(layers[i])
       }
     }
+    shiftOffset(layers)
   }
 
   let layout = layers.flatMap(v => v)
@@ -305,6 +306,14 @@ export function priorityLayoutReorder<Label>(items: (LayoutItem<Label> & {priori
         move(item.priority, index, Math.round(item.barycenter) - item.x)        
       }
     })
+}
+
+function shiftOffset<T extends { x: number }>(layers: T[][]) {
+  let max = Number.MAX_SAFE_INTEGER
+  let offset = layers.reduce((l, layer) => Math.min(l, layer.reduce((p, item) => Math.min(p, item.x), max)), max)
+  layers.forEach(layer => layer.forEach(item => {
+    item.x -= offset
+  }))
 }
 
 export function lines(g: Graph): string[][] {
