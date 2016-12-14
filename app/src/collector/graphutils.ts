@@ -231,22 +231,16 @@ export function structureLayout(g: Graph, lines: Label[][]): Structure<Label> {
   }
 
   if(ENABLE_PRIORITYLAYOUT) {
-    for(let i = 1; i < layers.length - 1; i++) {
-      console.log('down', i, layers[i])
-      layers[i].forEach(item => {
-        item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(normalized, "down", item.node)
-        item.barycenter = barycenter(normalized, "down", item.node, linked => head(layers[i-1].filter(r => r.node === linked).map(r => r.x)))
-      })
-      priorityLayoutReorder(layers[i])
-    }
-
-    for(let i = layers.length - 2; i > 0; i--) {
-      console.log('up', i, layers[i])
-      layers[i].forEach(item => {
-        item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(normalized, "up", item.node)
-        item.barycenter = barycenter(normalized, "up", item.node, linked => head(layers[i+1].filter(r => r.node === linked).map(r => r.x)))
-      })
-      priorityLayoutReorder(layers[i])
+    for (let iteration = 0; iteration < 2; iteration++) {
+      let dir: "up" | "down" = iteration % 2 === 0 ? "down" : "up"
+      for(let i = dir === "down" ? 1 : layers.length - 2; dir === "down" ? i < layers.length : i >= 0; dir === "down" ? i++ : i--) {
+        let j = dir === "down" ? i - 1 : i + 1
+        layers[i].forEach(item => {
+          item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(normalized, dir, item.node)
+          item.barycenter = barycenter(normalized, dir, item.node, linked => head(layers[j].filter(r => r.node === linked).map(r => r.x)))
+        })
+        priorityLayoutReorder(layers[i])
+      }
     }
   }
 
@@ -276,22 +270,27 @@ function priority(g: Graph, direction: "up" | "down", node: string): number {
 
 export function priorityLayoutReorder<Label>(items: (LayoutItem<Label> & {priority: number})[]): void {
   let move = (priority: number, index: number, requestedShift: number): number => {
-    requestedShift = Math.max(0, requestedShift)
     let subject = items[index]
     if(subject.priority > priority) return 0
-    if(items.length === index + 1 || index === 0) {
+    if(items.length === index + 1 && requestedShift > 0) {
       trace("Testing", subject.node, "last node, shifting", requestedShift)
+      subject.x += requestedShift
+      return requestedShift      
+    }
+    if(index === 0 && requestedShift < 0) {
+      trace("Testing", subject.node, "first node, shifting", requestedShift)
       subject.x += requestedShift
       return requestedShift
     }
-    let slack = Math.min(requestedShift, items[index+1].x - subject.x - 1)
-    if(slack < requestedShift) {
-      let rightMoved = move(priority, index + 1, requestedShift - slack)
-      trace("Testing", subject.node, "bubbled shift, had", slack, "got additional", rightMoved)
-      subject.x += slack + rightMoved
-      return slack + rightMoved
+    let next = index + Math.sign(requestedShift)
+    let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift))
+    if(Math.abs(slack) < Math.abs(requestedShift)) {
+      let nextMoved = move(priority, next, requestedShift - slack)
+      trace("Testing", subject.node, "bubbled shift, had", slack, "got additional", nextMoved)
+      subject.x += slack + nextMoved
+      return slack + nextMoved
     } else {
-      trace("Testing", subject.node, "inside slack shift of ", slack, ", had", items[index+1].x - subject.x - 1, "slack")
+      trace("Testing", subject.node, "inside slack shift of ", slack, ", had", items[next].x - subject.x - Math.sign(requestedShift), "slack")
       subject.x += slack
       return slack
     }
@@ -384,7 +383,7 @@ export function groupByUniq<T, K extends (string | number)>(selector: (item: T) 
 function avg(list: number[]): number {
   if(list.length === 0) return undefined
   if(list.length === 1) return list[0]
-  return list.reduce((sum, v) => sum + v / list.length)
+  return list.reduce((sum, v) => sum + (v / list.length), 0)
 }
 
 function takeWhile<T>(list: T[], pred: (item: T) => boolean) {
@@ -400,4 +399,8 @@ function head<T>(list: T[]): T {
     return list[0]
   }
   return undefined
+}
+
+function absMin(a: number, b: number): number {
+  return Math.abs(a) < Math.abs(b) ? a : b
 }
