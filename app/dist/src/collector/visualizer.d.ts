@@ -5,6 +5,8 @@ import { ICollector } from "./logger";
 import { RxFiddleNode } from "./node";
 import { Graph } from "graphlib";
 import { VNode } from "snabbdom";
+import "../utils";
+import "../object/extensions";
 export declare const HASH = "__hash";
 export declare const IGNORE = "__ignore";
 export declare type MethodName = string;
@@ -19,6 +21,9 @@ export declare class Visualizer {
     g: Graph;
     dag: Graph;
     combined: Graph;
+    metroLines: {
+        [sink: number]: number[];
+    };
     svgZoomInstance: {
         destroy(): void;
     } | null;
@@ -39,6 +44,7 @@ export declare class Visualizer {
         h: number;
     };
     highlightSubscriptionSource(id?: number, level?: number): void;
+    handleLogEntry(el: any): void;
     process(): number;
     render(graph: Graph): VNode;
     selection(graphs: Graph[]): VNode[];

@@ -6,6 +6,8 @@ const logger_1 = require("./logger");
 const node_1 = require("./node");
 const graphlib_1 = require("graphlib");
 const snabbdom = require("snabbdom");
+require("../utils");
+require("../object/extensions");
 /* tslint:disable:no-var-requires */
 const dagre = require("dagre");
 const svgPanZoom = typeof window !== "undefined" ? require("svg-pan-zoom") : {};
@@ -16,6 +18,10 @@ const patch = snabbdom.init([
 ]);
 // const ErrorStackParser = require("error-stack-parser")
 /* tslint:enable:no-var-requires */
+const colors = ["#0066B9", "#E90013", "#8E4397", "#3FB132", "#FDAC00", "#F3681B", "#9FACB3", "#9CA2D4", "#E84CA2"];
+function colorIndex(i) {
+    return colors[i % colors.length];
+}
 function toDot(graph) {
     return "graph g {\n" +
         this.visualizer.subs.edges().map((e) => e.v + " -- " + e.w + " [type=s];").join("\n") +
@@ -54,6 +60,7 @@ class Visualizer {
         this.g = new graphlib_1.Graph({ compound: true, multigraph: true });
         this.dag = new graphlib_1.Graph({ compound: true, multigraph: true });
         this.combined = new graphlib_1.Graph({ compound: true, multigraph: true });
+        this.metroLines = {};
         this.svgZoomInstance = null;
         this.showIdsBacking = false;
         this.componentId = 0;
@@ -68,6 +75,7 @@ class Visualizer {
             window.dagre = dagre;
             window.combined = this.combined;
             window.toDot = toDot;
+            window.rankLongestPath = graphutils_1.rankLongestPath;
         }
     }
     get showIds() {
@@ -134,6 +142,84 @@ class Visualizer {
             this.nodes.forEach(n => { n.setHighlightId(patch); });
         }
     }
+    // public metroData(): { obs: string[], subs: string[], color: string }[] {
+    //   return Object.values(this.metroLines).map((line: number[], index: number) => ({
+    //     color: colorIndex(index),
+    //     obs: line.map((subId: number) => this.collector.getSubscription(subId).observableId).map(s => s.toString()),
+    //     subs: line,
+    //   }))
+    // }
+    handleLogEntry(el) {
+        if (el instanceof logger_1.AddObservable) {
+            if (typeof el.callParent !== "undefined") {
+            }
+            let node = this.setNode(el.id, new node_1.RxFiddleNode(`${el.id}`, el.method, this.collector.getStack(el.stack) && this.collector.getStack(el.stack).stackframe, this));
+            node.addObservable(el);
+            for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
+                // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
+                let edge = new edge_1.RxFiddleEdge(this.nodes[p], this.nodes[el.id], "structure", {
+                    "marker-end": "url(#arrow)",
+                });
+                this.setEdge(p, el.id, edge);
+            }
+        }
+        if (logger_1.instanceAddSubscription(el) && typeof this.nodes[el.observableId] !== "undefined") {
+            let adds = el;
+            // subs-graph
+            this.combined.setNode(`${adds.id}`, el);
+            adds.sinks.forEach(s => this.combined.setEdge(`${adds.id}`, `${s}`));
+            let node = this.nodes[adds.observableId];
+            let from = adds.observableId;
+            node.addObserver(this.collector.getObservable(adds.observableId), adds);
+            // add metro lines
+            if (adds.sinks.length > 0) {
+                this.metroLines[adds.id] = (this.metroLines[adds.sinks[0]] || [adds.sinks[0]]).concat([adds.id]);
+                delete this.metroLines[adds.sinks[0]];
+            }
+            else {
+                this.metroLines[adds.id] = [adds.id];
+            }
+            adds.sinks.forEach((parentId) => {
+                let to = this.collector.getSubscription(parentId).observableId;
+                let toNode = this.nodes[this.collector.getSubscription(parentId).observableId];
+                let existing = this.edge(from, to);
+                if (typeof existing === "undefined") {
+                    this.setEdge(to, from, new edge_1.RxFiddleEdge(node, toNode, "subscription", {
+                        dashed: true,
+                        stroke: "blue",
+                        "marker-start": "url(#arrow-reverse)",
+                    }));
+                }
+                else if (existing instanceof edge_1.RxFiddleEdge) {
+                    existing.options.stroke = "purple";
+                    existing.options["marker-start"] = "url(#arrow-reverse)";
+                }
+                else {
+                    console.warn("What edge?", existing);
+                }
+            });
+            // Dashed link
+            if (typeof adds.scopeId !== "undefined") {
+                let toId = (this.collector.getSubscription(adds.scopeId)).observableId;
+                let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId];
+                this.setEdge(toId, from, new edge_1.RxFiddleEdge(to, node, "higherorder", {
+                    dashed: true,
+                    "marker-end": "url(#arrow)",
+                }));
+            }
+        }
+        if (el instanceof logger_1.AddEvent && typeof this.collector.getSubscription(el.subscription) !== "undefined") {
+            let oid = (this.collector.getSubscription(el.subscription)).observableId;
+            if (typeof this.nodes[oid] === "undefined") {
+                return;
+            }
+            for (let row of this.nodes[oid].observers) {
+                if (row[1].id === el.subscription) {
+                    row[2].push(el.event);
+                }
+            }
+        }
+    }
     process() {
         this.g.graph().ranker = "tight-tree";
         // this.g.graph().rankdir = "RL"
@@ -141,67 +227,7 @@ class Visualizer {
         this.rendered = this.collector.length;
         for (let i = start; i < this.collector.length; i++) {
             let el = this.collector.getLog(i);
-            if (el instanceof logger_1.AddObservable) {
-                if (typeof el.callParent !== "undefined") {
-                }
-                let node = this.setNode(el.id, new node_1.RxFiddleNode(`${el.id}`, el.method, this.collector.getStack(el.stack) && this.collector.getStack(el.stack).stackframe, this));
-                node.addObservable(el);
-                for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
-                    // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
-                    let edge = new edge_1.RxFiddleEdge(this.nodes[p], this.nodes[el.id], "structure", {
-                        "marker-end": "url(#arrow)",
-                    });
-                    this.setEdge(p, el.id, edge);
-                }
-            }
-            if (logger_1.instanceAddSubscription(el) && typeof this.nodes[el.observableId] !== "undefined") {
-                let adds = el;
-                // subs-graph
-                this.combined.setNode(`${adds.id}`, el);
-                adds.sinks.forEach(s => this.combined.setEdge(`${adds.id}`, `${s}`));
-                let node = this.nodes[adds.observableId];
-                let from = adds.observableId;
-                node.addObserver(this.collector.getObservable(adds.observableId), adds);
-                adds.sinks.forEach((parentId) => {
-                    let to = this.collector.getSubscription(parentId).observableId;
-                    let toNode = this.nodes[this.collector.getSubscription(parentId).observableId];
-                    let existing = this.edge(from, to);
-                    if (typeof existing === "undefined") {
-                        this.setEdge(to, from, new edge_1.RxFiddleEdge(node, toNode, "subscription", {
-                            dashed: true,
-                            stroke: "blue",
-                            "marker-start": "url(#arrow-reverse)",
-                        }));
-                    }
-                    else if (existing instanceof edge_1.RxFiddleEdge) {
-                        existing.options.stroke = "purple";
-                        existing.options["marker-start"] = "url(#arrow-reverse)";
-                    }
-                    else {
-                        console.warn("What edge?", existing);
-                    }
-                });
-                // Dashed link
-                if (typeof adds.scopeId !== "undefined") {
-                    let toId = (this.collector.getSubscription(adds.scopeId)).observableId;
-                    let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId];
-                    this.setEdge(toId, from, new edge_1.RxFiddleEdge(to, node, "higherorder", {
-                        dashed: true,
-                        "marker-end": "url(#arrow)",
-                    }));
-                }
-            }
-            if (el instanceof logger_1.AddEvent && typeof this.collector.getSubscription(el.subscription) !== "undefined") {
-                let oid = (this.collector.getSubscription(el.subscription)).observableId;
-                if (typeof this.nodes[oid] === "undefined") {
-                    continue;
-                }
-                for (let row of this.nodes[oid].observers) {
-                    if (row[1].id === el.subscription) {
-                        row[2].push(el.event);
-                    }
-                }
-            }
+            this.handleLogEntry(el);
         }
         return this.collector.length - start;
     }
@@ -246,7 +272,7 @@ class Visualizer {
         }
         let sg = new StructureGraph();
         let app = h("app", [
-            h("master", sg.renderSvg(graph, this.choices, (v) => this.makeChoice(v, graph)).concat(sg.renderMarbles(graph, this.choices))),
+            h("master", sg.renderSvg(graph, this.choices, (v) => this.makeChoice(v, graph), this.dag, Object.values(this.metroLines)).concat(sg.renderMarbles(graph, this.choices))),
             h("detail", [
                 h("svg", {
                     attrs: {
@@ -372,48 +398,47 @@ class StructureGraph {
         }));
         return [root];
     }
-    renderSvg(graph, choices, cb) {
+    renderSvg(graph, choices, cb, dag, lines) {
         let u = StructureGraph.chunk;
-        let main = StructureGraph.traverse(graph, choices);
-        window.rankLongestPath = graphutils_1.rankLongestPath;
         window.renderSvgGraph = graph;
-        let root = h("svg", {
-            attrs: {
-                id: "structure",
-                style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
-                version: "1.1",
-                xmlns: "http://www.w3.org/2000/svg",
-            },
-        }, main.flatMap((v, i) => {
-            let y = (i + 0.5) * StructureGraph.chunk;
-            let x = 1.5 * u;
-            // branches
-            let branches = StructureGraph.branches(graph, v, []);
-            let branchRad = Math.PI / 2 / (branches.length + 1);
-            let branchNodes = branches.flatMap((b, bi) => {
-                let dx = -Math.sin(branchRad * (bi + 1)) * u;
-                let dy = Math.cos(branchRad * (bi + 1)) * u;
-                return [
-                    h("path", {
-                        attrs: {
-                            class: "branch",
-                            d: `M${x} ${y} l ${dx} ${dy} L ${x + dx} ${y + u}`
-                        }, on: {
-                            click: () => cb(b),
-                        },
-                    }),
-                ];
+        let mu = u / 2;
+        let structure = graphutils_1.structureLayout(graph);
+        let structureIndex = graphutils_1.indexedBy(i => i.node, structure.layout);
+        console.log("structure layout", structure);
+        let nodes = structure.layout /*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
+            return [h("circle", {
+                    attrs: {
+                        cx: mu + mu * item.x,
+                        cy: mu + mu * item.y,
+                        fill: colorIndex(item.isDummy ? 1 : 0),
+                        r: item.isDummy ? 2 : 5
+                    },
+                    on: {
+                        click: () => console.log(item),
+                    },
+                }), h("text", { attrs: { x: mu + mu * item.x + 10, y: mu + mu * item.y + 5 } }, item.isDummy ? "" : `${item.node}`)];
+        });
+        let edges = structure.graph.edges().map(g => {
+            let v = structureIndex[g.v];
+            let w = structureIndex[g.w];
+            if (!v || !w)
+                console.log(g, v, w);
+            return h("path", {
+                attrs: { d: `M${mu + mu * v.x} ${mu + mu * v.y} L ${mu + mu * w.x} ${mu + mu * w.y}`,
+                    stroke: "gray", "stroke-dasharray": 5 },
             });
-            return branchNodes.concat([
-                h("path", { attrs: { d: `M${x} ${y} m 0 ${-u / 2} l 0 ${u / 2}` } }),
-                h("circle", { attrs: { cx: x, cy: y, r: 10 } }),
-                h("path", { attrs: { d: `M${x} ${y} l 0 ${u / 2}` } }),
-            ].slice(i === 0 ? 1 : 0));
-        }));
-        return [root];
+        });
+        return [h("svg", {
+                attrs: {
+                    id: "structure",
+                    style: `width: ${u * 6}px; height: ${u * (0.5 + structure.layout.length)}px`,
+                    version: "1.1",
+                    xmlns: "http://www.w3.org/2000/svg",
+                },
+            }, edges.concat(nodes))];
     }
 }
-StructureGraph.chunk = 150;
+StructureGraph.chunk = 100;
 class MarbleCoordinator {
     add(node) {
         let times = node.observers.flatMap(v => v[2]).map(e => e.time);

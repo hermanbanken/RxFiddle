@@ -24,8 +24,7 @@ function complexObs() {
         .mergeAll()
         .subscribe();
 }
-// @suite
-class OperatorTest extends instrumentationTest_1.InstrumentationTest {
+let OperatorTest = class OperatorTest extends instrumentationTest_1.InstrumentationTest {
     // @test
     "test coverage"() {
         let tested = [
@@ -144,8 +143,7 @@ class OperatorTest extends instrumentationTest_1.InstrumentationTest {
             chai_1.expect(mapLens.subscriptions().all()).to.have.lengthOf(i === 0 ? 0 : 1);
         });
     }
-}
-exports.OperatorTest = OperatorTest;
+};
 __decorate([
     mocha_typescript_1.test
 ], OperatorTest.prototype, "map", null);
@@ -170,4 +168,8 @@ __decorate([
 __decorate([
     mocha_typescript_1.test
 ], OperatorTest.prototype, "performance operators", null);
+OperatorTest = __decorate([
+    mocha_typescript_1.suite
+], OperatorTest);
+exports.OperatorTest = OperatorTest;
 //# sourceMappingURL=operators.js.map

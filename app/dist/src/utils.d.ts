@@ -13,7 +13,7 @@ declare module "rx" {
 }
 declare global  {
     interface Array<T> {
-        flatMap<R>(f: (t: any, index: number) => R[]): Array<R>;
+        flatMap<R>(f: (t: T, index: number) => R[]): Array<R>;
     }
 }
 declare module "graphlib" {

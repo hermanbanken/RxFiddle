@@ -43,7 +43,7 @@ class RxFiddleNode {
         return this;
     }
     get locationText() {
-        return typeof this.location !== "undefined" ? this.location.source : undefined;
+        return typeof this.location !== "undefined" ? this.location.source.replace(window.location.origin, "") : undefined;
     }
     addObserver(observable, observer) {
         this.observers.push([observable, observer, []]);
