@@ -41,7 +41,7 @@ function absMin(a: number, b: number): number {
   return Math.abs(a) < Math.abs(b) ? a : b
 }
 
-function clone(g: Graph, edgeFilter?: (e: GraphEdge) => boolean, transform?: (e: GraphEdge) => GraphEdge[]): Graph {
+export function clone(g: Graph, edgeFilter?: (e: GraphEdge) => boolean, transform?: (e: GraphEdge) => GraphEdge[]): Graph {
   let clone = new Graph({
     multigraph: g.isMultigraph(),
     directed: g.isDirected(),
@@ -144,38 +144,6 @@ function rightPad(l: number, a: any): string {
     r += " "
   }
   return r
-}
-
-export type RowRef = { column: number, obs: string }
-export type Row = { column: number, sourceColumns: RowRef[], obs: string }
-
-export function metroLayout<Label>(g: Graph, lines: Label[][]): Row[] {
-  let ranks  = rankLongestPath(g)
-  let sorted = Object.keys(ranks)
-    .map(k => [k, ranks[k]])
-    .sort((a: number[], b: number[]) => a[1] - b[1]) as [string, number][]
-
-  let result = sorted.reduce(({ columns, index, linear }, [id, order]) => {
-    let sources: Row[] = g.predecessors(id).map((v: string) => index[v])
-    let row = {
-      column: sources[0] && last(columns[sources[0].column]) === sources[0].obs ? sources[0].column : columns.length,
-      obs: id,
-      sourceColumns: sources,
-    }
-    linear.push(row)
-    if (typeof columns[row.column] === "undefined") { columns[row.column] = [] }
-    columns[row.column].push(id)
-    index[id] = row
-    return { columns, index, linear }
-  }, {
-    columns: [],
-    index: {} as { [id: string]: Row },
-    linear: [] as Row[],
-  })
-
-  trace(sorted, result)
-  // debugger
-  return result.linear
 }
 
 export type Label = string
@@ -293,57 +261,55 @@ export function structureLayout(g: Graph): LayouterOutput<Label> {
   }
 }
 
-function barycenter(g: Graph, direction: "up" | "down", node: string, ref: (node: string) => number): number {
-  let linkedNodes = direction === "down" ? 
+function linkedNodes(g: Graph, direction: Direction, node: string): string[] {
+  return direction === "down" ? 
     g.inEdges(node).map(e => e.v) : 
-    g.outEdges(node).map(e => e.w);
+    g.outEdges(node).map(e => e.w)
+}
+
+function barycenter(g: Graph, direction: "up" | "down", node: string, ref: (node: string) => number): number {
+  let nodes = linkedNodes(g, direction, node)
   // Find Barycenter
-  let positions = linkedNodes.map(ref).filter(v => typeof v === "number")
+  let positions = nodes.map(ref).filter(v => typeof v === "number")
   return avg(positions)
 }
 
 function priority(g: Graph, direction: "up" | "down", node: string): number {
-  let linkedNodes = direction === "down" ? 
-    g.inEdges(node).map(e => e.v) : 
-    g.outEdges(node).map(e => e.w);
-  return linkedNodes.length
+  let nodes = linkedNodes(g, direction, node)
+  return nodes.length
 }
 
-export function priorityLayoutReorder<Label>(items: (LayoutItem<Label> & {priority: number})[]): void {
+export type PriorityLayoutItem = { 
+  x: number,
+  readonly priority: number,
+  readonly barycenter: number,
+}
+export function priorityLayoutReorder<Label>(items: PriorityLayoutItem[]): void {
   let move = (priority: number, index: number, requestedShift: number): number => {
     let subject = items[index]
-    if(subject.priority > priority) return 0
+    if(subject.priority > priority || requestedShift === 0) return 0
     if(items.length === index + 1 && requestedShift > 0) {
-      trace("Testing", subject.node, "last node, shifting", requestedShift)
       subject.x += requestedShift
-      return requestedShift      
+      return requestedShift
     }
     if(index === 0 && requestedShift < 0) {
-      trace("Testing", subject.node, "first node, shifting", requestedShift)
       subject.x += requestedShift
       return requestedShift
     }
     let next = index + Math.sign(requestedShift)
     let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift))
-    if(Math.abs(slack) < Math.abs(requestedShift)) {
-      let nextMoved = move(priority, next, requestedShift - slack)
-      trace("Testing", subject.node, "bubbled shift, had", slack, "got additional", nextMoved)
-      subject.x += slack + nextMoved
-      return slack + nextMoved
-    } else {
-      trace("Testing", subject.node, "inside slack shift of ", slack, ", had", items[next].x - subject.x - Math.sign(requestedShift), "slack")
-      subject.x += slack
-      return slack
-    }
+    // Bubble move
+    let nextMoved = move(priority, next, requestedShift - slack)
+    subject.x += slack + nextMoved
+    return slack + nextMoved
   }
 
   items
     .map((item, index) => ({ item, index }))
     .sort((a, b) => b.item.priority - a.item.priority)
     .forEach(({ item, index }) => {
-      trace("Moving", item.node)
       if (typeof item.barycenter !== "undefined") {
-        move(item.priority, index, Math.round(item.barycenter) - item.x)        
+        move(item.priority, index, Math.round(item.barycenter) - item.x)
       }
     })
 }
@@ -395,10 +361,6 @@ export function lines(g: Graph): string[][] {
   trace(ls)
 
   return []
-}
-
-export function slack(g: Graph, e: GraphEdge): number {
-  return g.node(e.w).rank - g.node(e.v).rank - g.edge(e).minlen
 }
 
 export function indexedBy<T>(selector: (item: T) => string, list: T[]): { [key: string]: T } {
