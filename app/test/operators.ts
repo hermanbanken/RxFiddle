@@ -21,7 +21,7 @@ function complexObs() {
     .subscribe()
 }
 
-// @suite
+@suite
 export class OperatorTest extends InstrumentationTest {
 
   // @test

@@ -116,7 +116,7 @@ To keep track of the work that is done.
 | 12/06 | Ordina  | Papers about layouts |
 | 12/07 | Ordina  | Papers about layouts, found StoryFlow      |
 | 12/08 | Ordina  | Implementing StoryFlow: Adding Dummy Nodes |
-| 12/09 | Ordina  | Implementing StoryFlow: Ordering of Nodes  |
+| 12/09 | Ordina  | Implementing StoryFlow: Ordering of Nodes; RxDevCon proposal |
 | 12/11 | Delft   | Sunday: progress update with Erik Meijer   |
 
 ## Week 11

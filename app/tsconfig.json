@@ -9,8 +9,7 @@
     ],
     "types": [
       "node",
-      "electron",
-      "dagre"
+      "electron"
     ],
     "target": "ES6",
     "jsx": "preserve",
