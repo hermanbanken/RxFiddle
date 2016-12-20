@@ -117,7 +117,7 @@ export function rankLongestPath(g: Graph) {
     visited[v] = true
 
     let rank = _.min(_.map(g.outEdges(v), (e) => {
-      return dfs(e.w) - (g.edge(e).minlen || 1)
+      return dfs(e.w) - (g.edge(e) && g.edge(e).minlen || 1)
     }))
 
     if (rank === Number.POSITIVE_INFINITY || typeof rank === "undefined") {
@@ -164,6 +164,7 @@ export type LayouterInput = {
 }
 export type LayouterOutput<Label> = {
   graph: Graph,
+  edges: { v: string, w: string, points: {x: number, y: number}[] }[],
   layout: LayoutItem<Label>[]
 }
 
@@ -255,14 +256,40 @@ export function structureLayout(g: Graph): LayouterOutput<Label> {
 
   let layout = layers.flatMap(v => v)
 
+  // Convert dummy paths back to full paths
+  let index = indexedBy(i => i.node, layout)  
+  let edges = g.edges().map(({v, w}) => {
+    let mids: {x:number,y:number}[]
+    if(ranks[v] + 1 < ranks[w]) {
+      mids = range(ranks[v] + 1, ranks[w]).map(i => `dummy-${v}-${w}(${i})`)
+        .map(k => index[k])
+        .map(({x,y}) => ({x,y}))
+    } else {
+      mids = []
+    }
+    return {
+      v, w,
+      points: [
+        { x: index[v].x, y: index[v].y },
+        ...mids,
+        { x: index[w].x, y: index[w].y }
+      ]
+    }
+  })
+
   return {
-    layout,
+    layout: layout.filter(v => !v.isDummy),
+    edges,
     graph: normalized,
   }
 }
 
 function linkedNodes(g: Graph, direction: Direction, node: string): string[] {
-  return direction === "down" ? 
+  if(!g.hasNode(node)) {
+    console.warn("looking for non-graph node", node)
+    return []
+  }
+  return direction === "down" ?
     g.inEdges(node).map(e => e.v) : 
     g.outEdges(node).map(e => e.w)
 }

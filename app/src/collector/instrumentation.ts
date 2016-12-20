@@ -1,7 +1,7 @@
 import "../utils"
 import { ICallRecord } from "./callrecord"
 import { ICollector } from "./logger"
-import { IGNORE, RxCollector } from "./visualizer"
+import { RxCollector } from "./visualizer"
 import * as Rx from "rx"
 
 const rxAny: any = <any>Rx
@@ -14,6 +14,9 @@ export let defaultSubjects = {
   "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
   "Subject.prototype": rxAny.Subject.prototype,
 }
+
+export const HASH = "__hash"
+export const IGNORE = "__ignore"
 
 function now() {
   return typeof performance !== "undefined" ? performance.now() : new Date().getTime()
@@ -45,7 +48,7 @@ function detachedScopeProxy<T>(input: T): T {
     return input
   }
   return new Proxy(input, {
-    get: (target, property: PropertyKey): any => {
+    get: (target: any, property: PropertyKey): any => {
       if (property === "__detached") {
         return true
       }
@@ -110,7 +113,7 @@ export default class Instrumentation {
     let self = this
 
     let instrumented = new Proxy(fn, {
-      apply: (target, thisArg, argumentsList) => {
+      apply: (target: any, thisArg: any, argumentsList: any[]) => {
         // console.log(target.caller)
 
         // find more

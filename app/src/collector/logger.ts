@@ -62,6 +62,7 @@ declare module "rx" {
 export class AddStackFrame {
   public id: number
   public stackframe: StackFrame
+  public parent: number
 }
 
 export class AddObservable {
@@ -85,6 +86,13 @@ class AddSubscriptionImpl implements AddSubscription {
   public observableId: number
   public sinks?: number[]
   public scopeId?: number
+
+  public inspect(depth: number, opts?: any): string {
+    return `AddSubscription(${this.observableId}, sinks: ${this.sinks}, scope: ${this.scopeId})`
+  }
+  public toString() {
+    return this.inspect(0)
+  }
 }
 
 export interface AddSubscription {
@@ -307,19 +315,22 @@ export default class Collector implements RxCollector, ICollector {
       return undefined
     }
     // Code Location
-    let stack = ErrorStackParser.parse(record).slice(1, 2)[0]
-    let id = this.indices.stackframes[stack]
-    if (typeof id === "undefined") {
-      this.indices.stackframes[stack] = id = this.data.length
-      let node = new AddStackFrame()
-      node.id = id
-      node.stackframe = stack
-      this.data.push(node)
-    }
-    return id
+    let parsed = ErrorStackParser.parse(record)
+    return parsed.slice(1, 3).reduceRight((prev: number, stack: StackFrame) => {
+      let id = this.indices.stackframes[stack.source]
+      if (typeof id === "undefined") {
+        this.indices.stackframes[stack.source] = id = this.data.length
+        let node = new AddStackFrame()
+        node.id = id
+        node.stackframe = stack
+        node.parent = prev
+        this.data.push(node)
+      }
+      return id
+    }, undefined)
   }
 
-  private observableForObserver(observer: Rx.Observer<any>): AddObservable {
+  private observableForObserver(observer: Rx.Observer<any>): AddObservable  | undefined {
     let id = this.id(observer).get()
     if (typeof id === "undefined") { return }
     let node = this.getSubscription(id)

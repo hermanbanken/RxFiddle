@@ -3,6 +3,7 @@ import { render as ASCII } from "./ascii"
 import { AddObservable, AddSubscription } from "./logger"
 import { centeredRect, centeredText } from "./shapes"
 import { Visualizer } from "./visualizer"
+import { Grapher } from "./grapher"
 import * as snabbdom from "snabbdom"
 import { PatchFunction, VNode } from "snabbdom"
 
@@ -10,8 +11,8 @@ import { PatchFunction, VNode } from "snabbdom"
 const h = require("snabbdom/h")
 
 export function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]] {
-  let a = []
-  let b = []
+  let a:T[] = []
+  let b:T[] = []
   for (let i = 0; i < array.length; i++) {
     if (fn(array[i], i, array)) {
       a.push(array[i])
@@ -50,12 +51,8 @@ export class RxFiddleNode {
     public id: string,
     public name: string,
     public location: StackFrame,
-    private visualizer: Visualizer
+    // private visualizer: Visualizer
   ) { }
-
-  public get edges(): string[] {
-    return this.visualizer.g.neighbors(this.id)
-  }
 
   public addObservable(instance: AddObservable) {
     this.instances.push(instance)
@@ -98,7 +95,7 @@ export class RxFiddleNode {
   public setHighlight(index?: number) {
     this.highlightIndex = index
     this.highlightId = typeof index !== "undefined" ? (this.observers[index][1] as AddSubscription).id : undefined
-    this.visualizer.highlightSubscriptionSource(this.highlightId)
+    // this.visualizer.highlightSubscriptionSource(this.highlightId)
     return this
   }
 
@@ -140,7 +137,6 @@ export class RxFiddleNode {
         mouseover: () => patch(result, this.setHoover(true).render(patch)),
       },
     }, [
-      this.hoover ? this.dialog() : undefined,
       centeredRect(this.width, this.height, {
         rx: 10, ry: 10,
         "stroke-width": 2,
@@ -159,17 +155,5 @@ export class RxFiddleNode {
 
   private line(i: number) {
     return -this.height / 2 + i * 20 + 10
-  }
-
-  private dialog() {
-    let width = 200
-    let height = 200
-    let triangle = `M ${width / -2 - 5} 0 l 5 -5 l 0 10 Z`
-    return h("g", {
-      attrs: { transform: `translate(${this.width / 2 + width / 2 + 5},${0})`, width, height },
-    }, [
-        h("path", { attrs: { d: triangle, fill: "black" } }),
-        centeredRect(width, height, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
-      ])
   }
 }
