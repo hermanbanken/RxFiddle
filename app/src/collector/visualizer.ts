@@ -210,13 +210,15 @@ export class Visualizer {
     }
 
     let sg = new StructureGraph()
+    
+    let svg = sg.renderSvg(
+      this.grapher.leveledGraph,
+      this.choices,
+      (v) => this.makeChoice(v, graph)
+    )
+
     let app = h("app", [
-      h("master", sg.renderSvg(
-          this.grapher.leveledGraph,
-          this.choices,
-          (v) => this.makeChoice(v, graph)
-        ).concat(sg.renderMarbles(graph, this.choices)),
-      ),
+      h("master", svg.concat(sg.renderMarbles(graph, this.choices))),
       h("detail", [
         h("svg", {
           attrs: {
@@ -333,11 +335,10 @@ class StructureGraph {
     (<any>window).renderSvgGraph = graph
 
     let g = graph
-      .filterNodes((_, n) => n.level === "code")
-      .filterEdges((_, e) => typeof e === "object" && "count" in e)
-
-    let mu = u / 2
+      .filterNodes((_, n) => n.level === "subscription") as TypedGraph<Leveled<AddSubscription>, ShadowEdge>
+      // .filterEdges((_, e) => typeof e === "object" && "count" in e)
     
+    let mu = u / 2
     let structure = structureLayout(g)
     let structureIndex = indexedBy(i => i.node, structure.layout)
     let nodes = structure.layout/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
@@ -353,22 +354,25 @@ class StructureGraph {
         },
       }), h("text", { attrs: { x: mu + mu * item.x + 10, y: mu + mu * item.y + 5 } }, item.isDummy ? "" : `${item.node}`)]
     })
-    let edges = structure.edges.map(({ v, w, points }) => {
+    let edges = structure.edges.flatMap(({ v, w, points }) => {
       let path = points.map(({x,y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
       return h("path", {
             attrs: {
               d: `M${path}`,
               stroke: "gray",
-              "stroke-dasharray": 5
+              "stroke-dasharray": 5,
+              "stroke-width": g.edge(v, w) && g.edge(v, w).count * 4 || 4
             },
             on: { mouseover: () => console.log(graph.edge(v, w)) },
           })
     })
 
+    let xmax = structure.layout.reduce((p, n) => Math.max(p, n.x), 0)
+
     return [h("svg", {
       attrs: {
         id: "structure",
-        style: `width: ${u * 6}px; height: ${u * (0.5 + structure.layout.length)}px`,
+        style: `width: ${xmax * u}px; height: ${u * (0.5 + structure.layout.length)}px`,
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },

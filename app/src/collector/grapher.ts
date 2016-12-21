@@ -40,6 +40,7 @@ export type Leveled<T> = {
   id: string
   level: LevelType
   payload: T
+  hierarchicOrder: number[]
 }
 
 export type LayerCrossingEdge = {
@@ -98,7 +99,8 @@ export class Grapher {
       this.leveledGraph.setNode(`${el.id}`, {
         id: `${el.id}`,
         level: "code",
-        payload: el.stackframe
+        payload: el.stackframe,
+        hierarchicOrder: [],
       })
       if(typeof el.parent !== "undefined") {
         let parent = this.collector.getStack(el.parent)
@@ -124,7 +126,8 @@ export class Grapher {
       this.leveledGraph.setNode(`${el.id}`, {
         id: `${el.id}`,
         level: "observable",
-        payload: el
+        payload: el,
+        hierarchicOrder: [el.stack]
       })
       if(typeof el.stack !== "undefined") {
         this.leveledGraph.setEdge(`${el.stack}`, `${el.id}`, {
@@ -174,11 +177,15 @@ export class Grapher {
       } else {
         this.metroLines[adds.id] = [adds.id]
       }
-
+      
       this.leveledGraph.setNode(`${el.id}`, {
         id: `${el.id}`,
         level: "subscription",
-        payload: el
+        payload: el,
+        hierarchicOrder: [
+          this.collector.getObservable(adds.observableId).stack, 
+          adds.observableId
+        ],
       })
       this.leveledGraph.setEdge(`${adds.observableId}`, `${adds.id}`, {
         upper: "observable",

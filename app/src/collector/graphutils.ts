@@ -1,6 +1,7 @@
 import "../utils"
 import { Edge as GraphEdge, Graph, alg } from "graphlib"
 import * as _ from "lodash"
+import TypedGraph from "./typedgraph"
 
 const TRACE = false
 function trace(...args: any[]) {
@@ -77,13 +78,22 @@ function firstDefined<T>(...args: T[]): T {
   return undefined
 }
 
-function sort<T>(input: T[], byRefIndex: (elem: T) => (number | undefined)): T[] {
+function sort<T>(input: T[], byRefIndex: (elem: T) => (number | number[] | undefined)): T[] {
+  console.log(input.map((item, index) => ({ index, refIndex: byRefIndex(item) })))
   return input.map((item, index) => ({ item, index, refIndex: byRefIndex(item) }))
     .sort((a, b) => {
-      if(typeof a.refIndex !== "undefined" && typeof b.refIndex !== "undefined") {
+      if(Array.isArray(a.refIndex) && Array.isArray(b.refIndex)) {
+        for(let i = 0; i < a.refIndex.length; i++) {
+          if(a.refIndex[i] !== b.refIndex[i]) {
+            return a.refIndex[0] - b.refIndex[0]
+          }
+        }
+      }
+      if(typeof a.refIndex === "number" && typeof b.refIndex === "number") {
         return a.refIndex - b.refIndex;
       } else {
-        return firstDefined(a.refIndex, a.index) - firstDefined(b.refIndex, b.index)
+        return 0;
+        //firstDefined(a.refIndex, a.index) - firstDefined(b.refIndex, b.index)
       }
     }).map(v => v.item)
 }
@@ -151,8 +161,10 @@ export type LayoutItem<Label> = {
   node: Label,
   x: number,
   y: number,
+  fixedX?: number,
   isDummy: boolean,
   barycenter: number,
+  hierarchicOrder: number[],
 }
 
 const ENABLE_NORMALIZE = true
@@ -168,8 +180,12 @@ export type LayouterOutput<Label> = {
   layout: LayoutItem<Label>[]
 }
 
+export type Hierarchy = { hierarchicOrder: number[] }
+export type Fixable = { fixedX?: number }
+export type InGraph<V extends Hierarchy & Fixable,E> = TypedGraph<V,E>
+
 // TODO make it online
-export function structureLayout(g: Graph): LayouterOutput<Label> {
+export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>): LayouterOutput<Label> {
   let ranks  = rankLongestPath(g)
   trace("ranks\n", ranks)
 
@@ -199,9 +215,11 @@ export function structureLayout(g: Graph): LayouterOutput<Label> {
       node: n,
       x,
       y,
+      fixedX: g.node(n).fixedX,
       isDummy: n.startsWith("dummy"),
       barycenter: 0,
       priority: 0,
+      hierarchicOrder: g.node(n).hierarchicOrder,
     }))
   })
 
@@ -211,22 +229,40 @@ export function structureLayout(g: Graph): LayouterOutput<Label> {
       let direction: Direction = iteration % 2 === 0 ? "down" : "up"
       sweep(layers, "down", (subject, ref) => {
         return sort(subject, (item) => {
-          return barycenter(
+          let orderings = <number[]>[]
+          console.log(item.hierarchicOrder.length)
+          // Sort & fix levels: StackFrame + Observable + Subscription
+          for(let dim = 0; dim < item.hierarchicOrder.length; dim++) {
+            let sameLevel: number[] = mapFilter(ref, (r, index) => r.hierarchicOrder[dim] === item.hierarchicOrder[dim] ? index : undefined)
+            orderings.push(avg(sameLevel))
+          }
+          let bary = barycenter(
             normalized,
             direction,
             item.node,
             linked => ref.findIndex(r => r.node === linked)
           )
+          orderings.push(bary)
+          return orderings
         })
       })
       layers.reverse()
     }
 
-    layers.forEach(layer => 
-      layer.forEach(
-        (item, index) => item.x = index
-      )
-    )
+    // Assign x positions after ordering; keep fixed positions
+    layers.forEach(layer => {
+      let fixed = layer.filter(l => l.fixedX).sort((a, b) => a.fixedX - b.fixedX)
+      let nonfixed = layer.filter(l => typeof l.fixedX === "undefined")
+      for(let i = 0, j = 0; i < layer.length; i++, j++) {
+        if(fixed.length && fixed[0].fixedX <= i) {
+          fixed[0].x = i
+          fixed.shift()
+          j--;
+        } else {
+          nonfixed[j].x = i
+        }
+      }
+    })
   }
 
   // Balancing or centering relative to branches
@@ -247,7 +283,7 @@ export function structureLayout(g: Graph): LayouterOutput<Label> {
             linked => head(ref.filter(r => r.node === linked).map(r => r.x))
           )
         })
-        priorityLayoutReorder(subject)
+        priorityLayoutAlign(subject)
         return subject
       })
     }
@@ -306,12 +342,29 @@ function priority(g: Graph, direction: "up" | "down", node: string): number {
   return nodes.length
 }
 
+// Greedy hierarchic sort, according to StoryFlow section 5.2
+// function hierarcySort<Label>(frame: LayoutItem<Label>[], ref: LayoutItem<Label>[]): void {
+//   if(frame.length === 0) { return }
+//   let dim = frame[0].hierarchicOrder.length
+
+//   for(let level = 0; level < dim; level++) {
+//     let index = groupBy(n => n.hierarchicOrder[level]+"", frame)
+//     let maxSize = Object.keys(index).map(k => index[k]).reduce((p, l) => Math.max(p, l.length), 0)
+//     let maxSized = Object.keys(index).map(k => index[k]).find(g => g.length === maxSize)
+//     if(typeof maxSized !== "object") continue
+
+//     let order = [maxSized[0].hierarchicOrder[level]]
+//   }
+
+//   groupBy(n => n.hierarchicOrder[0], frame)
+// }
+
 export type PriorityLayoutItem = { 
   x: number,
   readonly priority: number,
   readonly barycenter: number,
 }
-export function priorityLayoutReorder<Label>(items: PriorityLayoutItem[]): void {
+export function priorityLayoutAlign<Label>(items: PriorityLayoutItem[]): void {
   let move = (priority: number, index: number, requestedShift: number): number => {
     let subject = items[index]
     if(subject.priority > priority || requestedShift === 0) return 0
@@ -416,4 +469,8 @@ export function groupByUniq<T, K extends (string | number)>(selector: (item: T) 
     }
   })
   return obj
+}
+
+function mapFilter<T,V>(list: T[], f: (item: T, index: number, list: T[]) => (V | undefined)) {
+  return list.map(f).filter(v => typeof v !== "undefined")
 }

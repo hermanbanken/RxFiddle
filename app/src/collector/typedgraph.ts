@@ -46,6 +46,18 @@ export default class TypedGraph<V,E> extends Graph {
       return copy as this
     }
 
+    flatMap<V2,E2>(nodeMap: (id: string, label: V) => {id: string,label: V2}[], edgeMap: (id: GraphEdge, label: E) => {id: GraphEdge,label: E2}[]) {
+      let copy = new TypedGraph<V2,E2>(this.options)
+      copy.setGraph(this.graph())
+      _.each(this.nodes(), (n) => {
+        nodeMap(n, this.node(n)).forEach(({id, label}) => copy.setNode(id, label))
+      })
+      _.each(this.edges(), (e) => {
+        edgeMap(e, this.edge(e)).forEach(({id, label}) => copy.setEdge(id.v, id.w, label))
+      })
+      return copy
+    }
+
     setNode(name: string, label?: V): this {
       if(typeof label === "undefined" && super.node(name) === "undefined") {
         throw new Error("IllegalArgument for graph Label!")
