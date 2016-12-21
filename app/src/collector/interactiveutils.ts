@@ -1,7 +1,6 @@
 import "../utils"
 import { Edge as GraphEdge, Graph, alg, GraphOptions } from "graphlib"
 import * as _ from "lodash"
-import { clone } from "./graphutils"
 import TypedGraph from "./typedgraph"
 
 // TODO combine

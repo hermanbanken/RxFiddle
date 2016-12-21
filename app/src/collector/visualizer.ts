@@ -26,10 +26,49 @@ const patch = snabbdom.init([
 // const ErrorStackParser = require("error-stack-parser")
 /* tslint:enable:no-var-requires */
 
-const colors = ["#0066B9", "#E90013", "#8E4397", "#3FB132", "#FDAC00", "#F3681B", "#9FACB3", "#9CA2D4", "#E84CA2"]
-function colorIndex(i: number) {
-  return colors[i % colors.length]
+/**
+ * HSV values from [0..1[
+ * RGB values from 0 to 255
+ * @see http://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+ */
+function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
+  let h_i = ~~(h*6)
+  let f = h * 6 - h_i
+  let p = v * (1 - s)
+  let q = v * (1 - f * s)
+  let t = v * (1 - (1 - f) * s)
+  var r = 0, g = 0, b = 0
+  switch (h_i) {
+    case 0: [r, g, b] = [v, t, p]; break;
+    case 1: [r, g, b] = [q, v, p]; break;
+    case 2: [r, g, b] = [p, v, t]; break;
+    case 3: [r, g, b] = [p, q, v]; break;
+    case 4: [r, g, b] = [t, p, v]; break;
+    case 5: [r, g, b] = [v, p, q]; break;
+  }
+  return [~~(r * 265), ~~(g * 265), ~~(b * 265)]
 }
+
+const golden_ratio_conjugate = 0.618033988749895
+function generateColors(count: number): [number,number,number][] {
+  let cs = <[number,number,number][]>[]
+  let h = Math.random()  // use random start value
+
+  while(count--) {
+    h += golden_ratio_conjugate
+    h %= 1
+    cs.push(hsvToRgb(h, 0.5, 0.95))
+  }
+  return cs
+}
+
+const colors = generateColors(40) // ["#0066B9", "#E90013", "#8E4397", "#3FB132", "#FDAC00", "#F3681B", "#9FACB3", "#9CA2D4", "#E84CA2"]
+function colorIndex(i: number) {
+  if(typeof i === "undefined") return "transparent"
+  let [r,g,b] = colors[i % colors.length]
+  return `rgb(${r},${g},${b})`
+}
+(<any>window).colors = colors;
 
 function toDot<T>(graph: Graph, props?: (n: T) => any): string {
   return "graph g {\n" +
@@ -335,27 +374,36 @@ class StructureGraph {
     (<any>window).renderSvgGraph = graph
 
     let g = graph
+      .filterEdges(v => v.w < v.v)
       .filterNodes((_, n) => n.level === "subscription") as TypedGraph<Leveled<AddSubscription>, ShadowEdge>
       // .filterEdges((_, e) => typeof e === "object" && "count" in e)
     
+    let mapX = (x: number, y: number) => x // y > 14 ? x - 5 * (y - 14) : x
+
     let mu = u / 2
-    let structure = structureLayout(g)
+
+    // Let Observables determine ranking
+    let subRanks = <{ [id: string]: number }>{}
+    let ranks = rankLongestPath(graph.filterNodes((_, n) => n.level === "observable"))
+    g.nodes().map(n => subRanks[n] = ranks[g.node(n).payload.observableId])
+
+    let structure = structureLayout(g, subRanks)
     let structureIndex = indexedBy(i => i.node, structure.layout)
     let nodes = structure.layout/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
       return [h("circle", { 
         attrs: { 
-          cx: mu + mu * item.x, 
+          cx: mu + mu * mapX(item.x, item.y), 
           cy: mu + mu * item.y, 
-          fill: colorIndex(item.isDummy ? 1 : 0), 
+          fill: colorIndex(item.hierarchicOrder[1]), 
           r: item.isDummy ? 2 : 5
         },
         on: {
           click: () => console.log(item),
         },
-      }), h("text", { attrs: { x: mu + mu * item.x + 10, y: mu + mu * item.y + 5 } }, item.isDummy ? "" : `${item.node}`)]
+      }), h("text", { attrs: { x: mu + mu * mapX(item.x, item.y) + 10, y: mu + mu * item.y + 5 } }, item.isDummy ? "" : `${item.node}`)]
     })
     let edges = structure.edges.flatMap(({ v, w, points }) => {
-      let path = points.map(({x,y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
+      let path = points.map(({x,y}) => `${mu + mu * mapX(x, y)} ${mu + mu * y}`).join(" L ")
       return h("path", {
             attrs: {
               d: `M${path}`,

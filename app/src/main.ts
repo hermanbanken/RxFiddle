@@ -11,11 +11,11 @@ import JsonCollector from "./collector/jsonCollector"
 
 const Observable = Rx.Observable
 
-let collector = new Collector()
+let collector = new JsonCollector("C.json")
 // let instrumentation = new Instrumentation(defaultSubjects, collector)
 // instrumentation.setup()
 let vis = new Visualizer(
-  new JsonCollector("C.json"),
+  collector,
   // instrumentation.logger,
   document.querySelector("app") as HTMLElement,
   document.getElementById("controls")

@@ -42,32 +42,6 @@ function absMin(a: number, b: number): number {
   return Math.abs(a) < Math.abs(b) ? a : b
 }
 
-export function clone(g: Graph, edgeFilter?: (e: GraphEdge) => boolean, transform?: (e: GraphEdge) => GraphEdge[]): Graph {
-  let clone = new Graph({
-    multigraph: g.isMultigraph(),
-    directed: g.isDirected(),
-    compound: g.isCompound(),
-  })
-
-  let edges = typeof edgeFilter === "undefined" ? 
-    g.edges() : 
-    g.edges().filter(edgeFilter)
-
-  function add(e: GraphEdge) {
-    clone.setEdge(e.v, e.w, g.edge(e.v, e.w))    
-  }
-
-  edges.forEach(e => {
-    if(typeof transform === "undefined") {
-      add(e)
-    } else {
-      transform(e).forEach(add)
-    }
-  })
-
-  return clone
-}
-
 function firstDefined<T>(...args: T[]): T {
   if (typeof args[0] !== "undefined") {
     return args[0]
@@ -115,7 +89,7 @@ function sweep<T>(input: T[][], direction: Direction, sort: (subject: T[], ref: 
 /**
  * @see https://github.com/cpettitt/dagre/blob/master/lib/rank/util.js
  */
-export function rankLongestPath(g: Graph) {
+export function rankLongestPath(g: Graph): { [id: string]: number } {
   let visited: { [id: string]: boolean } = {}
   let ranks: { [id: string]: number } = {}
 
@@ -184,22 +158,25 @@ export type Fixable = { fixedX?: number }
 export type InGraph<V extends Hierarchy & Fixable,E> = TypedGraph<V,E>
 
 // TODO make it online
-export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>): LayouterOutput<Label> {
-  let ranks  = rankLongestPath(g)
+export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>, ranks: { [id: string]: number }): LayouterOutput<Label> {
+  // let ranks = rankLongestPath(g)
   trace("ranks\n", ranks)
 
   // Without long edges
   let normalized: Graph
   if (ENABLE_NORMALIZE) {
-    normalized = clone(g, undefined, e => {
+    normalized = g.flatMap((id, label) => [{ id, label }], (e) => {
       if(ranks[e.v] + 1 < ranks[e.w]) {
         // Add dummy nodes + edges
         let dummies = range(ranks[e.v] + 1, ranks[e.w]).map(i => ({ label: `dummy-${e.v}-${e.w}(${i})`, rank: i }))
         dummies.forEach(d => ranks[d.label] = d.rank)
         let nodes = [e.v].concat(dummies.map(d => d.label)).concat([e.w])
-        return nodes.slice(1).map((w, i) => ({ v: nodes[i], w }))
+        return nodes.slice(1).map((w, i) => ({ 
+          id: { v: nodes[i], w },
+          label: undefined 
+        }))
       } else {
-        return [e]
+        return [{ id: e, label: undefined }]
       }
     })
   } else {
@@ -214,11 +191,11 @@ export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>
       node: n,
       x,
       y,
-      fixedX: g.node(n).fixedX,
+      fixedX: g.node(n) && g.node(n).fixedX || 0,
       isDummy: n.startsWith("dummy"),
       barycenter: 0,
       priority: 0,
-      hierarchicOrder: g.node(n).hierarchicOrder,
+      hierarchicOrder: g.node(n) && g.node(n).hierarchicOrder || [],
       spacing: 1,
     }))
   })
@@ -264,12 +241,10 @@ export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>
     layer.forEach((item,index,list) => {
       if(index === list.length - 1) {
         item.spacing = 1
-      } else if(item.hierarchicOrder[0] !== list[index+1].hierarchicOrder[0]) {
-        item.spacing = 1
-      } else if(item.hierarchicOrder[1] !== list[index+1].hierarchicOrder[1]) {
-        item.spacing = 0.5
+      } else if(typeof item.hierarchicOrder[1] !== "undefined" && item.hierarchicOrder[1] === list[index+1].hierarchicOrder[1]) {
+        item.spacing = 0.4
       } else {
-        item.spacing = 0.2
+        item.spacing = 1
       }
       item.x = x
       x += item.spacing
@@ -389,6 +364,7 @@ export type PriorityLayoutItem = {
   x: number,
   readonly priority: number,
   readonly barycenter: number,
+  readonly spacing?: number,
 }
 export function priorityLayoutAlign<Label>(items: PriorityLayoutItem[]): void {
   let move = (priority: number, index: number, requestedShift: number): number => {
@@ -402,30 +378,31 @@ export function priorityLayoutAlign<Label>(items: PriorityLayoutItem[]): void {
       subject.x += requestedShift
       return requestedShift
     }
+    let spacing = items[index + Math.min(0, Math.sign(requestedShift))].spacing || 1
     let next = index + Math.sign(requestedShift)
-    let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift))
+    let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift) * spacing)
     // Bubble move
     let nextMoved = move(priority, next, requestedShift - slack)
     subject.x += slack + nextMoved
     return slack + nextMoved
   }
 
-  let backup = items.map(i => i.x)
-  let beforeDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
+  // let backup = items.map(i => i.x)
+  // let beforeDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
 
   items
     .map((item, index) => ({ item, index }))
     .sort((a, b) => b.item.priority - a.item.priority)
     .forEach(({ item, index }) => {
       if (typeof item.barycenter !== "undefined") {
-        move(item.priority, index, Math.round(item.barycenter) - item.x)
+        move(item.priority, index, item.barycenter - item.x)
       }
     })
 
-  let afterDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
-  if(afterDistance > beforeDistance) {
-    backup.forEach((x, index) => items[index].x = x)
-  }
+  // let afterDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
+  // if(afterDistance > beforeDistance) {
+  //   backup.forEach((x, index) => items[index].x = x)
+  // }
 }
 
 function shiftOffset<T extends { x: number }>(layers: T[][]) {

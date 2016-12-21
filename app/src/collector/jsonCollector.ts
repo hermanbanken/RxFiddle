@@ -84,7 +84,11 @@ export default class JsonCollector implements ICollector {
       this.data.push(r)
       // index
       if (typeof r.scopeId !== "undefined") {
-        this.indices.subscriptions[r.scopeId].scoping.push(r.id)
+        if(typeof this.indices.subscriptions[r.scopeId] === "object") {
+          this.indices.subscriptions[r.scopeId].scoping.push(r.id)
+        } else {
+          console.warn("Invalid index", this.indices, "scopeId", r.scopeId, "id", r.id)
+        }
       }
     }
     if("stackframe" in v) {
