@@ -9,9 +9,9 @@ export default class JsonCollector implements ICollector {
   data: (AddStackFrame | AddObservable | AddSubscription | AddEvent)[] = []
   
   indices = {
-    observables: { },
-    stackframes: { },
-    subscriptions: { },
+    observables: {} as { [id: number]: { childs: number[], subscriptions: number[], inner: number[] } },
+    stackframes: {} as { [source: string]: number },
+    subscriptions: {} as { [id: number]: { events: number[], scoping: number[] } },
   }
 
   get length(): number {
@@ -72,18 +72,38 @@ export default class JsonCollector implements ICollector {
         event: Event.fromJson(v.event) 
       })
       this.data.push(r)
+      // index
+      let index = this.indices.subscriptions[r.subscription]
+      if (typeof index === "undefined") {
+        index = this.indices.subscriptions[r.subscription] = { events: [], scoping: [] }
+      }
+      index.events.push(this.data.length - 1)
     }
     if("observableId" in v) {
       let r = this.merge(new AddSubscriptionImpl(), v)
       this.data.push(r)
+      // index
+      if (typeof r.scopeId !== "undefined") {
+        this.indices.subscriptions[r.scopeId].scoping.push(r.id)
+      }
     }
     if("stackframe" in v) {
       let r = this.merge(new AddStackFrame(), v)
       this.data.push(r)
+      // index
+      this.indices.stackframes[r.stackframe.source] = r.id
     }
     if("method" in v) {
       let r = this.merge(new AddObservable(), v)
       this.data.push(r)
+      // index
+      this.indices.observables[r.id] = { childs: [], inner: [], subscriptions: [] }
+      r.parents.forEach(parent => {
+        let index = this.indices.observables[parent]
+        if (typeof index !== "undefined") {
+          index.childs.push(r.id)
+        }
+      })
     }
   }
 
