@@ -7,14 +7,16 @@ import Cycle from "@cycle/rx-run"
 import * as Immutable from "immutable"
 import * as Rx from "rx"
 import RxMarbles from "rxmarbles"
+import JsonCollector from "./collector/jsonCollector"
 
 const Observable = Rx.Observable
 
 let collector = new Collector()
-let instrumentation = new Instrumentation(defaultSubjects, collector)
-instrumentation.setup()
+// let instrumentation = new Instrumentation(defaultSubjects, collector)
+// instrumentation.setup()
 let vis = new Visualizer(
-  instrumentation.logger,
+  new JsonCollector("C.json"),
+  // instrumentation.logger,
   document.querySelector("app") as HTMLElement,
   document.getElementById("controls")
 )
@@ -133,7 +135,7 @@ let trace = document.getElementById("trace") as HTMLInputElement
 let ids = document.getElementById("showIds") as HTMLInputElement
 
 trace.addEventListener("click", () => {
-  instrumentation.stackTraces = trace.checked
+  // instrumentation.stackTraces = trace.checked
 })
 
 ids.addEventListener("click", () => {

@@ -81,7 +81,7 @@ export class AddObservable {
   }
 }
 
-class AddSubscriptionImpl implements AddSubscription {
+export class AddSubscriptionImpl implements AddSubscription {
   public id: number
   public observableId: number
   public sinks?: number[]
@@ -114,6 +114,7 @@ export interface RxCollector {
 }
 
 export interface ICollector {
+  data: (AddStackFrame | AddObservable | AddSubscription | AddEvent)[]
   indices: {
     observables: { [id: number]: { childs: number[], subscriptions: number[] } },
     stackframes: { [source: string]: number },

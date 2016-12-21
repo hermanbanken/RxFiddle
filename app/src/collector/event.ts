@@ -31,6 +31,16 @@ export class Event implements IEvent {
       // console.log("Unknown event", record)
     }
   }
+  public static fromJson(input: any): IEvent | null {
+    switch(input.type) {
+      case "next": return new Next(input.time, input.value)
+      case "error": return new Error(input.time, input.error)
+      case "complete": return new Complete(input.time)
+      case "subscribe": return new Subscribe(input.time)
+      case "dispose": return new Dispose(input.time)
+    }
+    return null
+  }
   constructor(public type: IEventType, public time: number) { }
 }
 

@@ -1,0 +1,2684 @@
+[
+  {
+    "id": 0,
+    "parents": [],
+    "method": "Subject"
+  },
+  {
+    "id": 1,
+    "sinks": [],
+    "observableId": 0
+  },
+  {
+    "id": 2,
+    "parents": [],
+    "stack": 4,
+    "method": "of"
+  },
+  {
+    "id": 3,
+    "stackframe": {
+      "functionName": "Object.Cycle [as default]",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2245,
+      "columnNumber": 17,
+      "source": "    at Object.Cycle [as default] (http://localhost:8085/dist/main.bundle.js:2245:17)"
+    }
+  },
+  {
+    "id": 4,
+    "stackframe": {
+      "functionName": "main",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2093,
+      "columnNumber": 34,
+      "source": "    at main (http://localhost:8085/dist/main.bundle.js:2093:34)"
+    },
+    "parent": 3
+  },
+  {
+    "id": 5,
+    "parents": [],
+    "stack": 6,
+    "method": "of"
+  },
+  {
+    "id": 6,
+    "stackframe": {
+      "functionName": "main",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2094,
+      "columnNumber": 41,
+      "source": "    at main (http://localhost:8085/dist/main.bundle.js:2094:41)"
+    },
+    "parent": 3
+  },
+  {
+    "id": 7,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 8,
+    "stackframe": {
+      "functionName": "MainDOMSource.events",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2727,
+      "columnNumber": 42,
+      "source": "    at MainDOMSource.events (http://localhost:8085/dist/main.bundle.js:2727:42)"
+    }
+  },
+  {
+    "id": 9,
+    "stackframe": {
+      "functionName": "Object.adapt",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 4412,
+      "columnNumber": 30,
+      "source": "    at Object.adapt (http://localhost:8085/dist/main.bundle.js:4412:30)"
+    },
+    "parent": 8
+  },
+  {
+    "id": 10,
+    "parents": [
+      7
+    ],
+    "stack": 12,
+    "method": "map"
+  },
+  {
+    "id": 11,
+    "stackframe": {
+      "functionName": "diagramIntent",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90425,
+      "columnNumber": 21,
+      "source": "    at diagramIntent (http://localhost:8085/dist/main.bundle.js:90425:21)"
+    }
+  },
+  {
+    "id": 12,
+    "stackframe": {
+      "functionName": "makeDeltaTime$",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90390,
+      "columnNumber": 21,
+      "source": "    at makeDeltaTime$ (http://localhost:8085/dist/main.bundle.js:90390:21)"
+    },
+    "parent": 11
+  },
+  {
+    "id": 13,
+    "parents": [
+      10
+    ],
+    "stack": 14,
+    "method": "concatAll"
+  },
+  {
+    "id": 14,
+    "stackframe": {
+      "functionName": "makeDeltaTime$",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90408,
+      "columnNumber": 6,
+      "source": "    at makeDeltaTime$ (http://localhost:8085/dist/main.bundle.js:90408:6)"
+    },
+    "parent": 11
+  },
+  {
+    "id": 15,
+    "parents": [
+      2
+    ],
+    "stack": 17,
+    "method": "distinctUntilChanged"
+  },
+  {
+    "id": 16,
+    "stackframe": {
+      "functionName": "DiagramComponent",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90809,
+      "columnNumber": 42,
+      "source": "    at DiagramComponent (http://localhost:8085/dist/main.bundle.js:90809:42)"
+    }
+  },
+  {
+    "id": 17,
+    "stackframe": {
+      "functionName": "diagramModel",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90509,
+      "columnNumber": 26,
+      "source": "    at diagramModel (http://localhost:8085/dist/main.bundle.js:90509:26)"
+    },
+    "parent": 16
+  },
+  {
+    "id": 18,
+    "parents": [
+      5
+    ],
+    "stack": 19,
+    "method": "startWith"
+  },
+  {
+    "id": 19,
+    "stackframe": {
+      "functionName": "diagramModel",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90510,
+      "columnNumber": 42,
+      "source": "    at diagramModel (http://localhost:8085/dist/main.bundle.js:90510:42)"
+    },
+    "parent": 16
+  },
+  {
+    "id": 20,
+    "parents": [
+      13
+    ],
+    "stack": 22,
+    "method": "map"
+  },
+  {
+    "id": 21,
+    "stackframe": {
+      "functionName": "diagramModel",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90511,
+      "columnNumber": 18,
+      "source": "    at diagramModel (http://localhost:8085/dist/main.bundle.js:90511:18)"
+    }
+  },
+  {
+    "id": 22,
+    "stackframe": {
+      "functionName": "makeNewDiagramData$",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90496,
+      "columnNumber": 22,
+      "source": "    at makeNewDiagramData$ (http://localhost:8085/dist/main.bundle.js:90496:22)"
+    },
+    "parent": 21
+  },
+  {
+    "id": 23,
+    "parents": [
+      15
+    ],
+    "stack": 24,
+    "method": "flatMapLatest"
+  },
+  {
+    "id": 24,
+    "stackframe": {
+      "functionName": "makeNewDiagramData$",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90501,
+      "columnNumber": 16,
+      "source": "    at makeNewDiagramData$ (http://localhost:8085/dist/main.bundle.js:90501:16)"
+    },
+    "parent": 21
+  },
+  {
+    "id": 25,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 26,
+    "parents": [
+      23
+    ],
+    "stack": 27,
+    "method": "map"
+  },
+  {
+    "id": 27,
+    "stackframe": {
+      "functionName": "makeNewDiagramData$",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90505,
+      "columnNumber": 6,
+      "source": "    at makeNewDiagramData$ (http://localhost:8085/dist/main.bundle.js:90505:6)"
+    },
+    "parent": 21
+  },
+  {
+    "id": 28,
+    "parents": [
+      15
+    ],
+    "stack": 30,
+    "method": "flatMapLatest"
+  },
+  {
+    "id": 29,
+    "stackframe": {
+      "functionName": "diagramView",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90766,
+      "columnNumber": 15,
+      "source": "    at diagramView (http://localhost:8085/dist/main.bundle.js:90766:15)"
+    }
+  },
+  {
+    "id": 30,
+    "stackframe": {
+      "functionName": "animateData$",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90730,
+      "columnNumber": 16,
+      "source": "    at animateData$ (http://localhost:8085/dist/main.bundle.js:90730:16)"
+    },
+    "parent": 29
+  },
+  {
+    "id": 31,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 32,
+    "parents": [
+      28,
+      26
+    ],
+    "stack": 34,
+    "method": "merge"
+  },
+  {
+    "id": 33,
+    "stackframe": {
+      "functionName": "DiagramComponent",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90810,
+      "columnNumber": 40,
+      "source": "    at DiagramComponent (http://localhost:8085/dist/main.bundle.js:90810:40)"
+    }
+  },
+  {
+    "id": 34,
+    "stackframe": {
+      "functionName": "diagramView",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90766,
+      "columnNumber": 41,
+      "source": "    at diagramView (http://localhost:8085/dist/main.bundle.js:90766:41)"
+    },
+    "parent": 33
+  },
+  {
+    "id": 35,
+    "parents": [],
+    "method": "FromArrayObservable"
+  },
+  {
+    "id": 36,
+    "parents": [
+      32
+    ],
+    "stack": 38,
+    "method": "map"
+  },
+  {
+    "id": 37,
+    "stackframe": {
+      "functionName": "diagramView",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90768,
+      "columnNumber": 10,
+      "source": "    at diagramView (http://localhost:8085/dist/main.bundle.js:90768:10)"
+    }
+  },
+  {
+    "id": 38,
+    "stackframe": {
+      "functionName": "renderDiagram",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90664,
+      "columnNumber": 20,
+      "source": "    at renderDiagram (http://localhost:8085/dist/main.bundle.js:90664:20)"
+    },
+    "parent": 37
+  },
+  {
+    "id": 39,
+    "parents": [
+      36
+    ],
+    "stack": 40,
+    "method": "flatMap"
+  },
+  {
+    "id": 40,
+    "stackframe": {
+      "functionName": "renderDiagram",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90668,
+      "columnNumber": 22,
+      "source": "    at renderDiagram (http://localhost:8085/dist/main.bundle.js:90668:22)"
+    },
+    "parent": 37
+  },
+  {
+    "id": 41,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 42,
+    "parents": [
+      39
+    ],
+    "stack": 43,
+    "method": "groupByUntil"
+  },
+  {
+    "id": 43,
+    "stackframe": {
+      "functionName": "renderDiagram",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90670,
+      "columnNumber": 6,
+      "source": "    at renderDiagram (http://localhost:8085/dist/main.bundle.js:90670:6)"
+    },
+    "parent": 37
+  },
+  {
+    "id": 44,
+    "parents": [
+      42
+    ],
+    "stack": 45,
+    "method": "map"
+  },
+  {
+    "id": 45,
+    "stackframe": {
+      "functionName": "renderDiagram",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90682,
+      "columnNumber": 6,
+      "source": "    at renderDiagram (http://localhost:8085/dist/main.bundle.js:90682:6)"
+    },
+    "parent": 37
+  },
+  {
+    "id": 46,
+    "parents": [
+      44
+    ],
+    "stack": 48,
+    "method": "publish"
+  },
+  {
+    "id": 47,
+    "stackframe": {
+      "functionName": "renderDiagram",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90684,
+      "columnNumber": 6,
+      "source": "    at renderDiagram (http://localhost:8085/dist/main.bundle.js:90684:6)"
+    }
+  },
+  {
+    "id": 48,
+    "stackframe": {
+      "functionName": "MapObservable.observableProto.collection",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 91962,
+      "columnNumber": 23,
+      "source": "    at MapObservable.observableProto.collection (http://localhost:8085/dist/main.bundle.js:91962:23)"
+    },
+    "parent": 47
+  },
+  {
+    "id": 49,
+    "parents": [
+      46
+    ],
+    "stack": 51,
+    "method": "flatMap"
+  },
+  {
+    "id": 50,
+    "stackframe": {
+      "functionName": "Array.reduce",
+      "fileName": "(native)",
+      "source": "    at Array.reduce (native)"
+    }
+  },
+  {
+    "id": 51,
+    "stackframe": {
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 92039,
+      "columnNumber": 27,
+      "source": "    at http://localhost:8085/dist/main.bundle.js:92039:27"
+    },
+    "parent": 50
+  },
+  {
+    "id": 52,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 53,
+    "parents": [
+      46
+    ],
+    "stack": 51,
+    "method": "flatMap"
+  },
+  {
+    "id": 54,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 55,
+    "parents": [
+      32,
+      18
+    ],
+    "stack": 57,
+    "method": "combineLatest"
+  },
+  {
+    "id": 56,
+    "stackframe": {
+      "functionName": "renderDiagram",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90697,
+      "columnNumber": 22,
+      "source": "    at renderDiagram (http://localhost:8085/dist/main.bundle.js:90697:22)"
+    }
+  },
+  {
+    "id": 57,
+    "stackframe": {
+      "functionName": "renderCompletion$",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90614,
+      "columnNumber": 23,
+      "source": "    at renderCompletion$ (http://localhost:8085/dist/main.bundle.js:90614:23)"
+    },
+    "parent": 56
+  },
+  {
+    "id": 58,
+    "parents": [
+      55
+    ],
+    "stack": 59,
+    "method": "flatMap"
+  },
+  {
+    "id": 59,
+    "stackframe": {
+      "functionName": "renderCompletion$",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90616,
+      "columnNumber": 6,
+      "source": "    at renderCompletion$ (http://localhost:8085/dist/main.bundle.js:90616:6)"
+    },
+    "parent": 56
+  },
+  {
+    "id": 60,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 61,
+    "sinks": [],
+    "observableId": 49
+  },
+  {
+    "id": 62,
+    "sinks": [
+      61
+    ],
+    "observableId": 52
+  },
+  {
+    "id": 63,
+    "sinks": [
+      62
+    ],
+    "observableId": 46
+  },
+  {
+    "id": 64,
+    "parents": [],
+    "method": "Subject"
+  },
+  {
+    "id": 65,
+    "parents": [
+      44,
+      64
+    ],
+    "stack": 67,
+    "method": "multicast"
+  },
+  {
+    "id": 66,
+    "stackframe": {
+      "functionName": "MulticastObservable.tryCatcher",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 47190,
+      "columnNumber": 31,
+      "source": "    at MulticastObservable.tryCatcher (http://localhost:8085/dist/main.bundle.js:47190:31)"
+    }
+  },
+  {
+    "id": 67,
+    "stackframe": {
+      "functionName": "MulticastObservable.subscribeCore",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 55369,
+      "columnNumber": 37,
+      "source": "    at MulticastObservable.subscribeCore (http://localhost:8085/dist/main.bundle.js:55369:37)"
+    },
+    "parent": 66
+  },
+  {
+    "id": 68,
+    "parents": [
+      44
+    ],
+    "stack": 70,
+    "method": "asObservable",
+    "callParent": 65
+  },
+  {
+    "id": 69,
+    "stackframe": {
+      "functionName": "MapObservable.observableProto.multicast",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 55396,
+      "columnNumber": 7,
+      "source": "    at MapObservable.observableProto.multicast (http://localhost:8085/dist/main.bundle.js:55396:7)"
+    }
+  },
+  {
+    "id": 70,
+    "stackframe": {
+      "functionName": "new ConnectableObservable",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 55563,
+      "columnNumber": 29,
+      "source": "    at new ConnectableObservable (http://localhost:8085/dist/main.bundle.js:55563:29)"
+    },
+    "parent": 69
+  },
+  {
+    "id": 71,
+    "parents": [
+      65
+    ],
+    "stack": 73,
+    "method": "flatMap"
+  },
+  {
+    "id": 72,
+    "stackframe": {
+      "functionName": "Array.map",
+      "fileName": "(native)",
+      "source": "    at Array.map (native)"
+    }
+  },
+  {
+    "id": 73,
+    "stackframe": {
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 91967,
+      "columnNumber": 33,
+      "source": "    at http://localhost:8085/dist/main.bundle.js:91967:33"
+    },
+    "parent": 72
+  },
+  {
+    "id": 74,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 75,
+    "parents": [
+      65
+    ],
+    "stack": 76,
+    "method": "map"
+  },
+  {
+    "id": 76,
+    "stackframe": {
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 91983,
+      "columnNumber": 31,
+      "source": "    at http://localhost:8085/dist/main.bundle.js:91983:31"
+    },
+    "parent": 72
+  },
+  {
+    "id": 77,
+    "parents": [
+      75
+    ],
+    "stack": 78,
+    "method": "flatMap"
+  },
+  {
+    "id": 78,
+    "stackframe": {
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 91991,
+      "columnNumber": 14,
+      "source": "    at http://localhost:8085/dist/main.bundle.js:91991:14"
+    },
+    "parent": 72
+  },
+  {
+    "id": 79,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 80,
+    "parents": [
+      77
+    ],
+    "stack": 81,
+    "method": "scan"
+  },
+  {
+    "id": 81,
+    "stackframe": {
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 92001,
+      "columnNumber": 14,
+      "source": "    at http://localhost:8085/dist/main.bundle.js:92001:14"
+    },
+    "parent": 72
+  },
+  {
+    "id": 82,
+    "parents": [
+      80
+    ],
+    "stack": 83,
+    "method": "map"
+  },
+  {
+    "id": 83,
+    "stackframe": {
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 92008,
+      "columnNumber": 18,
+      "source": "    at http://localhost:8085/dist/main.bundle.js:92008:18"
+    },
+    "parent": 72
+  },
+  {
+    "id": 84,
+    "parents": [
+      82
+    ],
+    "stack": 85,
+    "method": "flatMapLatest"
+  },
+  {
+    "id": 85,
+    "stackframe": {
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 92012,
+      "columnNumber": 14,
+      "source": "    at http://localhost:8085/dist/main.bundle.js:92012:14"
+    },
+    "parent": 72
+  },
+  {
+    "id": 86,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2314.175
+    },
+    "subscription": 63
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2315.4350000000004
+    },
+    "subscription": 62
+  },
+  {
+    "id": 89,
+    "sinks": [
+      61
+    ],
+    "observableId": 71,
+    "scopeId": 61
+  },
+  {
+    "id": 90,
+    "sinks": [
+      89
+    ],
+    "observableId": 74
+  },
+  {
+    "id": 91,
+    "sinks": [
+      90
+    ],
+    "observableId": 65
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2318.5350000000003
+    },
+    "subscription": 63
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2319.02
+    },
+    "subscription": 62
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2319.4700000000003
+    },
+    "subscription": 62
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2320.8700000000003
+    },
+    "subscription": 63
+  },
+  {
+    "id": 96,
+    "sinks": [
+      90
+    ],
+    "observableId": 68
+  },
+  {
+    "id": 97,
+    "sinks": [
+      96
+    ],
+    "observableId": 44
+  },
+  {
+    "id": 98,
+    "sinks": [
+      97
+    ],
+    "observableId": 42
+  },
+  {
+    "id": 99,
+    "sinks": [
+      98
+    ],
+    "observableId": 39
+  },
+  {
+    "id": 100,
+    "sinks": [
+      99
+    ],
+    "observableId": 41
+  },
+  {
+    "id": 101,
+    "sinks": [
+      100
+    ],
+    "observableId": 36
+  },
+  {
+    "id": 102,
+    "sinks": [
+      101
+    ],
+    "observableId": 32
+  },
+  {
+    "id": 103,
+    "sinks": [
+      102
+    ],
+    "observableId": 35
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2326.295
+    },
+    "subscription": 103
+  },
+  {
+    "id": 105,
+    "sinks": [
+      102
+    ],
+    "observableId": 28
+  },
+  {
+    "id": 106,
+    "sinks": [
+      105
+    ],
+    "observableId": 31
+  },
+  {
+    "id": 107,
+    "sinks": [
+      106
+    ],
+    "observableId": 15
+  },
+  {
+    "id": 108,
+    "sinks": [
+      107
+    ],
+    "observableId": 2
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2332.7
+    },
+    "subscription": 103
+  },
+  {
+    "id": 110,
+    "sinks": [
+      102
+    ],
+    "observableId": 26
+  },
+  {
+    "id": 111,
+    "sinks": [
+      110
+    ],
+    "observableId": 23
+  },
+  {
+    "id": 112,
+    "sinks": [
+      111
+    ],
+    "observableId": 25
+  },
+  {
+    "id": 113,
+    "sinks": [
+      112
+    ],
+    "observableId": 15
+  },
+  {
+    "id": 114,
+    "sinks": [
+      113
+    ],
+    "observableId": 2
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2339.14
+    },
+    "subscription": 103
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2339.57
+    },
+    "subscription": 103
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2341.09
+    },
+    "subscription": 96
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2341.285
+    },
+    "subscription": 97
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2341.405
+    },
+    "subscription": 98
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2341.6650000000004
+    },
+    "subscription": 99
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2341.8300000000004
+    },
+    "subscription": 100
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2342.005
+    },
+    "subscription": 101
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2342.13
+    },
+    "subscription": 102
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2342.2500000000005
+    },
+    "subscription": 103
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2342.36
+    },
+    "subscription": 105
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2342.505
+    },
+    "subscription": 106
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2342.6250000000005
+    },
+    "subscription": 107
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2342.7400000000002
+    },
+    "subscription": 108
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2342.925
+    },
+    "subscription": 110
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2343.045
+    },
+    "subscription": 111
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2343.1650000000004
+    },
+    "subscription": 112
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2343.29
+    },
+    "subscription": 113
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2343.405
+    },
+    "subscription": 114
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2343.59
+    },
+    "subscription": 63
+  },
+  {
+    "id": 135,
+    "sinks": [],
+    "observableId": 58
+  },
+  {
+    "id": 136,
+    "sinks": [
+      135
+    ],
+    "observableId": 60
+  },
+  {
+    "id": 137,
+    "sinks": [
+      136
+    ],
+    "observableId": 55
+  },
+  {
+    "id": 138,
+    "sinks": [
+      137
+    ],
+    "observableId": 32
+  },
+  {
+    "id": 139,
+    "sinks": [
+      138
+    ],
+    "observableId": 35
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2351.62
+    },
+    "subscription": 139
+  },
+  {
+    "id": 141,
+    "sinks": [
+      138
+    ],
+    "observableId": 28
+  },
+  {
+    "id": 142,
+    "sinks": [
+      141
+    ],
+    "observableId": 31
+  },
+  {
+    "id": 143,
+    "sinks": [
+      142
+    ],
+    "observableId": 15
+  },
+  {
+    "id": 144,
+    "sinks": [
+      143
+    ],
+    "observableId": 2
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2353.9350000000004
+    },
+    "subscription": 139
+  },
+  {
+    "id": 146,
+    "sinks": [
+      138
+    ],
+    "observableId": 26
+  },
+  {
+    "id": 147,
+    "sinks": [
+      146
+    ],
+    "observableId": 23
+  },
+  {
+    "id": 148,
+    "sinks": [
+      147
+    ],
+    "observableId": 25
+  },
+  {
+    "id": 149,
+    "sinks": [
+      148
+    ],
+    "observableId": 15
+  },
+  {
+    "id": 150,
+    "sinks": [
+      149
+    ],
+    "observableId": 2
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2356.9500000000003
+    },
+    "subscription": 139
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2357.225
+    },
+    "subscription": 139
+  },
+  {
+    "id": 153,
+    "sinks": [
+      137
+    ],
+    "observableId": 18
+  },
+  {
+    "id": 154,
+    "parents": [],
+    "method": "FromArrayObservable"
+  },
+  {
+    "id": 155,
+    "sinks": [
+      153
+    ],
+    "observableId": 154
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2358.5200000000004,
+      "value": false
+    },
+    "subscription": 155
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2358.87,
+      "value": false
+    },
+    "subscription": 153
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2359.42
+    },
+    "subscription": 155
+  },
+  {
+    "id": 159,
+    "sinks": [
+      153
+    ],
+    "observableId": 5
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2360.5150000000003
+    },
+    "subscription": 155
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2360.745
+    },
+    "subscription": 155
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2360.985
+    },
+    "subscription": 144
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2361.3250000000003
+    },
+    "subscription": 143
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2362.2650000000003
+    },
+    "subscription": 142
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2363.035
+    },
+    "subscription": 141
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2363.5200000000004
+    },
+    "subscription": 138
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2364.545
+    },
+    "subscription": 137
+  },
+  {
+    "id": 168,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 169,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 170,
+    "parents": [
+      168
+    ],
+    "stack": 172,
+    "method": "map"
+  },
+  {
+    "id": 171,
+    "stackframe": {
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90623,
+      "columnNumber": 54,
+      "source": "    at http://localhost:8085/dist/main.bundle.js:90623:54"
+    }
+  },
+  {
+    "id": 172,
+    "stackframe": {
+      "functionName": "diagramCompletionComponent",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90342,
+      "columnNumber": 70,
+      "source": "    at diagramCompletionComponent (http://localhost:8085/dist/main.bundle.js:90342:70)"
+    },
+    "parent": 171
+  },
+  {
+    "id": 173,
+    "parents": [
+      169
+    ],
+    "stack": 174,
+    "method": "map"
+  },
+  {
+    "id": 174,
+    "stackframe": {
+      "functionName": "diagramCompletionComponent",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 90344,
+      "columnNumber": 22,
+      "source": "    at diagramCompletionComponent (http://localhost:8085/dist/main.bundle.js:90344:22)"
+    },
+    "parent": 171
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2368.135
+    },
+    "subscription": 136
+  },
+  {
+    "id": 176,
+    "sinks": [
+      135
+    ],
+    "observableId": 170
+  },
+  {
+    "id": 177,
+    "sinks": [
+      176
+    ],
+    "observableId": 168
+  },
+  {
+    "id": 178,
+    "sinks": [
+      176
+    ],
+    "observableId": 173
+  },
+  {
+    "id": 179,
+    "sinks": [
+      178
+    ],
+    "observableId": 169
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2374.3350000000005
+    },
+    "subscription": 150
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2374.5600000000004
+    },
+    "subscription": 149
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2375.2400000000002
+    },
+    "subscription": 148
+  },
+  {
+    "id": 183,
+    "sinks": [],
+    "observableId": 5
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2376.665,
+      "value": true
+    },
+    "subscription": 159
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2376.875,
+      "value": true
+    },
+    "subscription": 153
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2377.485
+    },
+    "subscription": 137
+  },
+  {
+    "id": 187,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 188,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 189,
+    "parents": [
+      187
+    ],
+    "stack": 172,
+    "method": "map"
+  },
+  {
+    "id": 190,
+    "parents": [
+      188
+    ],
+    "stack": 174,
+    "method": "map"
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2378.8500000000004
+    },
+    "subscription": 136
+  },
+  {
+    "id": 192,
+    "sinks": [
+      135
+    ],
+    "observableId": 189
+  },
+  {
+    "id": 193,
+    "sinks": [
+      192
+    ],
+    "observableId": 187
+  },
+  {
+    "id": 194,
+    "sinks": [
+      192
+    ],
+    "observableId": 190
+  },
+  {
+    "id": 195,
+    "sinks": [
+      194
+    ],
+    "observableId": 188
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2382.2900000000004
+    },
+    "subscription": 144
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2383.7650000000003,
+      "value": true
+    },
+    "subscription": 183
+  },
+  {
+    "id": 198,
+    "sinks": [
+      147
+    ],
+    "observableId": 20
+  },
+  {
+    "id": 199,
+    "sinks": [
+      198
+    ],
+    "observableId": 13
+  },
+  {
+    "id": 200,
+    "sinks": [
+      199
+    ],
+    "observableId": 10
+  },
+  {
+    "id": 201,
+    "sinks": [
+      200
+    ],
+    "observableId": 7
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2388.885
+    },
+    "subscription": 150
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2389.8650000000002,
+      "value": true
+    },
+    "subscription": 159
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2390.19,
+      "value": true
+    },
+    "subscription": 153
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2390.8
+    },
+    "subscription": 137
+  },
+  {
+    "id": 206,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 207,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 208,
+    "parents": [
+      206
+    ],
+    "stack": 172,
+    "method": "map"
+  },
+  {
+    "id": 209,
+    "parents": [
+      207
+    ],
+    "stack": 174,
+    "method": "map"
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2392.135
+    },
+    "subscription": 136
+  },
+  {
+    "id": 211,
+    "sinks": [
+      135
+    ],
+    "observableId": 208
+  },
+  {
+    "id": 212,
+    "sinks": [
+      211
+    ],
+    "observableId": 206
+  },
+  {
+    "id": 213,
+    "sinks": [
+      211
+    ],
+    "observableId": 209
+  },
+  {
+    "id": 214,
+    "sinks": [
+      213
+    ],
+    "observableId": 207
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2395.315
+    },
+    "subscription": 144
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2395.965,
+      "value": true
+    },
+    "subscription": 183
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2396.1050000000005
+    },
+    "subscription": 150
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2396.665,
+      "value": true
+    },
+    "subscription": 159
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2396.8700000000003,
+      "value": true
+    },
+    "subscription": 153
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2397.4650000000006
+    },
+    "subscription": 137
+  },
+  {
+    "id": 221,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 222,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 223,
+    "parents": [
+      221
+    ],
+    "stack": 172,
+    "method": "map"
+  },
+  {
+    "id": 224,
+    "parents": [
+      222
+    ],
+    "stack": 174,
+    "method": "map"
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2399.75
+    },
+    "subscription": 136
+  },
+  {
+    "id": 226,
+    "sinks": [
+      135
+    ],
+    "observableId": 223
+  },
+  {
+    "id": 227,
+    "sinks": [
+      226
+    ],
+    "observableId": 221
+  },
+  {
+    "id": 228,
+    "sinks": [
+      226
+    ],
+    "observableId": 224
+  },
+  {
+    "id": 229,
+    "sinks": [
+      228
+    ],
+    "observableId": 222
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2403.13
+    },
+    "subscription": 144
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2403.445
+    },
+    "subscription": 143
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2403.675
+    },
+    "subscription": 142
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2403.96
+    },
+    "subscription": 141
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2404.2700000000004
+    },
+    "subscription": 141
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2404.4100000000003
+    },
+    "subscription": 142
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2404.545
+    },
+    "subscription": 143
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2404.6800000000003
+    },
+    "subscription": 144
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2404.8450000000003
+    },
+    "subscription": 141
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2404.965
+    },
+    "subscription": 142
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2405.0800000000004
+    },
+    "subscription": 143
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2405.19
+    },
+    "subscription": 144
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2405.3600000000006,
+      "value": true
+    },
+    "subscription": 183
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2405.5000000000005
+    },
+    "subscription": 150
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2405.7200000000003
+    },
+    "subscription": 149
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2405.965
+    },
+    "subscription": 148
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2406.225
+    },
+    "subscription": 148
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2406.3500000000004
+    },
+    "subscription": 149
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2406.485
+    },
+    "subscription": 150
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2406.6
+    },
+    "subscription": 149
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2406.7000000000003
+    },
+    "subscription": 150
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2406.82,
+      "value": true
+    },
+    "subscription": 159
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2407.0150000000003,
+      "value": true
+    },
+    "subscription": 153
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2407.585
+    },
+    "subscription": 137
+  },
+  {
+    "id": 254,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 255,
+    "parents": [],
+    "stack": 9,
+    "method": "create"
+  },
+  {
+    "id": 256,
+    "parents": [
+      254
+    ],
+    "stack": 172,
+    "method": "map"
+  },
+  {
+    "id": 257,
+    "parents": [
+      255
+    ],
+    "stack": 174,
+    "method": "map"
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2414.3
+    },
+    "subscription": 136
+  },
+  {
+    "id": 259,
+    "sinks": [
+      135
+    ],
+    "observableId": 256
+  },
+  {
+    "id": 260,
+    "sinks": [
+      259
+    ],
+    "observableId": 254
+  },
+  {
+    "id": 261,
+    "sinks": [
+      259
+    ],
+    "observableId": 257
+  },
+  {
+    "id": 262,
+    "sinks": [
+      261
+    ],
+    "observableId": 255
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2416.8650000000002,
+      "value": true
+    },
+    "subscription": 183
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2417.0800000000004
+    },
+    "subscription": 159
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2417.4650000000006
+    },
+    "subscription": 153
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2417.755
+    },
+    "subscription": 153
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2417.94
+    },
+    "subscription": 159
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2418.0950000000003
+    },
+    "subscription": 159
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2419.55
+    },
+    "subscription": 183
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2419.795
+    },
+    "subscription": 183
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2419.9
+    },
+    "subscription": 183
+  },
+  {
+    "id": 272,
+    "sinks": [],
+    "observableId": 53
+  },
+  {
+    "id": 273,
+    "sinks": [
+      272
+    ],
+    "observableId": 54
+  },
+  {
+    "id": 274,
+    "sinks": [
+      273
+    ],
+    "observableId": 46
+  },
+  {
+    "id": 275,
+    "parents": [],
+    "method": "Subject"
+  },
+  {
+    "id": 276,
+    "parents": [
+      44,
+      275
+    ],
+    "stack": 67,
+    "method": "multicast"
+  },
+  {
+    "id": 277,
+    "parents": [
+      44
+    ],
+    "stack": 70,
+    "method": "asObservable",
+    "callParent": 276
+  },
+  {
+    "id": 278,
+    "parents": [
+      276
+    ],
+    "stack": 73,
+    "method": "flatMap"
+  },
+  {
+    "id": 279,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 280,
+    "parents": [
+      276
+    ],
+    "stack": 76,
+    "method": "map"
+  },
+  {
+    "id": 281,
+    "parents": [
+      280
+    ],
+    "stack": 78,
+    "method": "flatMap"
+  },
+  {
+    "id": 282,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "id": 283,
+    "parents": [
+      281
+    ],
+    "stack": 81,
+    "method": "scan"
+  },
+  {
+    "id": 284,
+    "parents": [
+      283
+    ],
+    "stack": 83,
+    "method": "map"
+  },
+  {
+    "id": 285,
+    "parents": [
+      284
+    ],
+    "stack": 85,
+    "method": "flatMapLatest"
+  },
+  {
+    "id": 286,
+    "parents": [],
+    "method": "FlatMapObservable"
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2435.42
+    },
+    "subscription": 274
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2436.0700000000006
+    },
+    "subscription": 273
+  },
+  {
+    "id": 289,
+    "sinks": [
+      272
+    ],
+    "observableId": 285,
+    "scopeId": 272
+  },
+  {
+    "id": 290,
+    "sinks": [
+      289
+    ],
+    "observableId": 286
+  },
+  {
+    "id": 291,
+    "sinks": [
+      290
+    ],
+    "observableId": 284
+  },
+  {
+    "id": 292,
+    "sinks": [
+      291
+    ],
+    "observableId": 283
+  },
+  {
+    "id": 293,
+    "sinks": [
+      292
+    ],
+    "observableId": 281
+  },
+  {
+    "id": 294,
+    "sinks": [
+      293
+    ],
+    "observableId": 282
+  },
+  {
+    "id": 295,
+    "sinks": [
+      294
+    ],
+    "observableId": 280
+  },
+  {
+    "id": 296,
+    "sinks": [
+      295
+    ],
+    "observableId": 276
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2440.8450000000003
+    },
+    "subscription": 274
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2441.125
+    },
+    "subscription": 273
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2441.395
+    },
+    "subscription": 273
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2441.545
+    },
+    "subscription": 274
+  },
+  {
+    "id": 301,
+    "sinks": [
+      295
+    ],
+    "observableId": 277
+  },
+  {
+    "id": 302,
+    "sinks": [
+      301
+    ],
+    "observableId": 44
+  },
+  {
+    "id": 303,
+    "sinks": [
+      302
+    ],
+    "observableId": 42
+  },
+  {
+    "id": 304,
+    "sinks": [
+      303
+    ],
+    "observableId": 39
+  },
+  {
+    "id": 305,
+    "sinks": [
+      304
+    ],
+    "observableId": 41
+  },
+  {
+    "id": 306,
+    "sinks": [
+      305
+    ],
+    "observableId": 36
+  },
+  {
+    "id": 307,
+    "sinks": [
+      306
+    ],
+    "observableId": 32
+  },
+  {
+    "id": 308,
+    "sinks": [
+      307
+    ],
+    "observableId": 35
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2445.735
+    },
+    "subscription": 308
+  },
+  {
+    "id": 310,
+    "sinks": [
+      307
+    ],
+    "observableId": 28
+  },
+  {
+    "id": 311,
+    "sinks": [
+      310
+    ],
+    "observableId": 31
+  },
+  {
+    "id": 312,
+    "sinks": [
+      311
+    ],
+    "observableId": 15
+  },
+  {
+    "id": 313,
+    "sinks": [
+      312
+    ],
+    "observableId": 2
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2448.5950000000003
+    },
+    "subscription": 308
+  },
+  {
+    "id": 315,
+    "sinks": [
+      307
+    ],
+    "observableId": 26
+  },
+  {
+    "id": 316,
+    "sinks": [
+      315
+    ],
+    "observableId": 23
+  },
+  {
+    "id": 317,
+    "sinks": [
+      316
+    ],
+    "observableId": 25
+  },
+  {
+    "id": 318,
+    "sinks": [
+      317
+    ],
+    "observableId": 15
+  },
+  {
+    "id": 319,
+    "sinks": [
+      318
+    ],
+    "observableId": 2
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 2456.695
+    },
+    "subscription": 308
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2457.5250000000005
+    },
+    "subscription": 308
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2458.905
+    },
+    "subscription": 301
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2459.06
+    },
+    "subscription": 302
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2459.1850000000004
+    },
+    "subscription": 303
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2459.7000000000003
+    },
+    "subscription": 304
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2459.985
+    },
+    "subscription": 305
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2460.21
+    },
+    "subscription": 306
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2460.38
+    },
+    "subscription": 307
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2460.5550000000003
+    },
+    "subscription": 308
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2460.735
+    },
+    "subscription": 310
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2460.9150000000004
+    },
+    "subscription": 311
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2461.0950000000003
+    },
+    "subscription": 312
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2461.2850000000003
+    },
+    "subscription": 313
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2461.465
+    },
+    "subscription": 315
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2461.64
+    },
+    "subscription": 316
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2461.82
+    },
+    "subscription": 317
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2462.005
+    },
+    "subscription": 318
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2462.195
+    },
+    "subscription": 319
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 2462.4300000000003
+    },
+    "subscription": 274
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2467.21
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2467.75
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2468.2250000000004
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2468.545
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2469.05
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2470.53
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2471.07
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2471.57
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2471.8150000000005
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2472.0600000000004
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2472.7200000000003
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2472.9700000000003
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2474.025
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2475.5550000000003
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2476.4750000000004
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2477.2400000000002
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2477.77
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2478.0350000000003
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2478.255
+    },
+    "subscription": 135
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 2478.4700000000003
+    },
+    "subscription": 135
+  }
+]
