@@ -79,7 +79,6 @@ function firstDefined<T>(...args: T[]): T {
 }
 
 function sort<T>(input: T[], byRefIndex: (elem: T) => (number | number[] | undefined)): T[] {
-  console.log(input.map((item, index) => ({ index, refIndex: byRefIndex(item) })))
   return input.map((item, index) => ({ item, index, refIndex: byRefIndex(item) }))
     .sort((a, b) => {
       if(Array.isArray(a.refIndex) && Array.isArray(b.refIndex)) {
@@ -220,6 +219,7 @@ export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>
       barycenter: 0,
       priority: 0,
       hierarchicOrder: g.node(n).hierarchicOrder,
+      spacing: 1,
     }))
   })
 
@@ -228,42 +228,68 @@ export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>
     for (let iteration = 0; iteration < 10; iteration++) {
       let direction: Direction = iteration % 2 === 0 ? "down" : "up"
       sweep(layers, "down", (subject, ref) => {
-        return sort(subject, (item) => {
-          let orderings = <number[]>[]
-          console.log(item.hierarchicOrder.length)
-          // Sort & fix levels: StackFrame + Observable + Subscription
-          for(let dim = 0; dim < item.hierarchicOrder.length; dim++) {
-            let sameLevel: number[] = mapFilter(ref, (r, index) => r.hierarchicOrder[dim] === item.hierarchicOrder[dim] ? index : undefined)
-            orderings.push(avg(sameLevel))
-          }
-          let bary = barycenter(
+
+        // Get node bary-center
+        subject.forEach(item => {
+          item.barycenter = barycenter(
             normalized,
             direction,
             item.node,
             linked => ref.findIndex(r => r.node === linked)
           )
-          orderings.push(bary)
-          return orderings
         })
+        // Retrieve hierarchies
+        let groups = groupBy(n => n.hierarchicOrder[1], subject)
+        let perLocation = Object.keys(groups).map(k => groups[k])
+        // Two sorting criteria: Location BC + Node BC
+        let sortable = perLocation.flatMap(v => {
+          let loc = head(v.map(i => i.hierarchicOrder[1]))
+          if(typeof loc === "undefined") {
+            return v.map(i => ({ item: i, sort: [i.barycenter, i.barycenter] }))
+          } else {
+            let loc_bc = avg(v.map(i => i.barycenter))
+            return v.map(i => ({ item: i, sort: [loc_bc, i.barycenter] }))
+          }
+        })
+
+        return sort(sortable, i => i.sort).map(i => i.item)
       })
       layers.reverse()
     }
-
-    // Assign x positions after ordering; keep fixed positions
-    layers.forEach(layer => {
-      let fixed = layer.filter(l => l.fixedX).sort((a, b) => a.fixedX - b.fixedX)
-      let nonfixed = layer.filter(l => typeof l.fixedX === "undefined")
-      for(let i = 0, j = 0; i < layer.length; i++, j++) {
-        if(fixed.length && fixed[0].fixedX <= i) {
-          fixed[0].x = i
-          fixed.shift()
-          j--;
-        } else {
-          nonfixed[j].x = i
-        }
-      }
-    })
   }
+
+  // Bundle same hierarchies
+  layers.forEach(layer => {
+    let x = 0
+    layer.forEach((item,index,list) => {
+      if(index === list.length - 1) {
+        item.spacing = 1
+      } else if(item.hierarchicOrder[0] !== list[index+1].hierarchicOrder[0]) {
+        item.spacing = 1
+      } else if(item.hierarchicOrder[1] !== list[index+1].hierarchicOrder[1]) {
+        item.spacing = 0.5
+      } else {
+        item.spacing = 0.2
+      }
+      item.x = x
+      x += item.spacing
+    })
+  })
+
+    // // Assign x positions after ordering; keep fixed positions
+    // layers.forEach(layer => {
+    //   let fixed = layer.filter(l => l.fixedX).sort((a, b) => a.fixedX - b.fixedX)
+    //   let nonfixed = layer.filter(l => typeof l.fixedX === "undefined")
+    //   for(let i = 0, j = 0; i < layer.length; i++, j++) {
+    //     if(fixed.length && fixed[0].fixedX <= i) {
+    //       fixed[0].x = i
+    //       fixed.shift()
+    //       j--;
+    //     } else {
+    //       nonfixed[j].x = i
+    //     }
+    //   }
+    // })
 
   // Balancing or centering relative to branches
   if(ENABLE_PRIORITYLAYOUT) {
@@ -276,7 +302,7 @@ export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>
             direction,
             item.node
           )
-          item.barycenter = barycenter(
+          item.barycenter =  barycenter(
             normalized,
             direction,
             item.node,
@@ -384,6 +410,9 @@ export function priorityLayoutAlign<Label>(items: PriorityLayoutItem[]): void {
     return slack + nextMoved
   }
 
+  let backup = items.map(i => i.x)
+  let beforeDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
+
   items
     .map((item, index) => ({ item, index }))
     .sort((a, b) => b.item.priority - a.item.priority)
@@ -392,6 +421,11 @@ export function priorityLayoutAlign<Label>(items: PriorityLayoutItem[]): void {
         move(item.priority, index, Math.round(item.barycenter) - item.x)
       }
     })
+
+  let afterDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
+  if(afterDistance > beforeDistance) {
+    backup.forEach((x, index) => items[index].x = x)
+  }
 }
 
 function shiftOffset<T extends { x: number }>(layers: T[][]) {
@@ -449,10 +483,10 @@ export function indexedBy<T>(selector: (item: T) => string, list: T[]): { [key: 
   return obj
 }
 
-export function groupBy<T>(selector: (item: T) => string, list: T[]): { [key: string]: T[] } {
+export function groupBy<T>(selector: (item: T) => string | number, list: T[]): { [key: string]: T[] } {
   let obj = {} as { [key: string]: T[] }
   list.forEach((i: T) => {
-    let k  = selector(i)
+    let k = selector(i)
     obj[k] = obj[k] || []
     obj[k].push(i)
   })
