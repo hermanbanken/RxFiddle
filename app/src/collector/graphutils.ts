@@ -114,6 +114,15 @@ export function rankLongestPath(g: Graph): { [id: string]: number } {
   return ranks
 }
 
+export function rankLongestPathGraph<V,E>(g: TypedGraph<V,E>): TypedGraph<V & Ranked,E> {
+  let ranked = (g as any) as TypedGraph<V & Ranked,E>
+  let ranks = rankLongestPath(g)
+  ranked.nodes().map(n => {
+    ranked.node(n).rank = ranks[n]
+  })
+  return ranked
+}
+
 function leftPad(l: number, a: any): string {
   let r = `${a}`
   while (r.length < l) {
@@ -155,13 +164,17 @@ export type LayouterOutput<Label> = {
 
 export type Hierarchy = { hierarchicOrder: number[] }
 export type Fixable = { fixedX?: number }
+export type Ranked = { rank: number }
 export type InGraph<V extends Hierarchy & Fixable,E> = TypedGraph<V,E>
 
 // TODO make it online
-export function structureLayout<V extends Hierarchy & Fixable,E>(g: InGraph<V,E>, ranks: { [id: string]: number }): LayouterOutput<Label> {
-  // let ranks = rankLongestPath(g)
+export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InGraph<V,E>): LayouterOutput<Label> {
+  let ranks = <{ [id: string]: number }>{}
+  g.nodes().map(n => {
+    ranks[n] = g.node(n).rank
+  })
   trace("ranks\n", ranks)
-
+    
   // Without long edges
   let normalized: Graph
   if (ENABLE_NORMALIZE) {

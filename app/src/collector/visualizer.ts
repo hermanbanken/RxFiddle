@@ -2,7 +2,7 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent } from "./event"
-import { lines, rankLongestPath, structureLayout, indexedBy } from "./graphutils"
+import { lines, rankLongestPath, structureLayout, indexedBy, Ranked } from "./graphutils"
 import { AddEvent, AddObservable, AddStackFrame, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
 import { Edge as GraphEdge, Graph, alg } from "graphlib"
@@ -375,7 +375,7 @@ class StructureGraph {
 
     let g = graph
       .filterEdges(v => v.w < v.v)
-      .filterNodes((_, n) => n.level === "subscription") as TypedGraph<Leveled<AddSubscription>, ShadowEdge>
+      .filterNodes((_, n) => n.level === "subscription") as TypedGraph<Leveled<AddSubscription> & Ranked, ShadowEdge>
       // .filterEdges((_, e) => typeof e === "object" && "count" in e)
     
     let mapX = (x: number, y: number) => x // y > 14 ? x - 5 * (y - 14) : x
@@ -383,11 +383,10 @@ class StructureGraph {
     let mu = u / 2
 
     // Let Observables determine ranking
-    let subRanks = <{ [id: string]: number }>{}
     let ranks = rankLongestPath(graph.filterNodes((_, n) => n.level === "observable"))
-    g.nodes().map(n => subRanks[n] = ranks[g.node(n).payload.observableId])
+    g.nodes().map(n => g.node(n).rank = ranks[g.node(n).payload.observableId])
 
-    let structure = structureLayout(g, subRanks)
+    let structure = structureLayout(g)
     let structureIndex = indexedBy(i => i.node, structure.layout)
     let nodes = structure.layout/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
       return [h("circle", { 

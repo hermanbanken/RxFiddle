@@ -3,7 +3,8 @@ import { assert, expect, use as chaiUse } from "chai"
 import { suite, test } from "mocha-typescript"
 import { Graph } from "graphlib"
 import * as Rx from "rx"
-import { structureLayout, LayoutItem, priorityLayoutReorder } from "../src/collector/graphutils"
+import { structureLayout, LayoutItem, priorityLayoutAlign, rankLongestPathGraph } from "../src/collector/graphutils"
+import TypedGraph from "../src/collector/typedgraph"
 
 function deepCover(actual: any, expected: any, message: string = "__root__") {
   let errors: Error[] = []
@@ -90,7 +91,7 @@ export class LayoutTest extends InstrumentationTest {
     //   |\
     //   c d
     // 
-    let g = new Graph()
+    let g = new TypedGraph<string,any>()
     g.setNode("a", "a")
     g.setNode("b", "b")
     g.setNode("c", "e")
@@ -98,10 +99,12 @@ export class LayoutTest extends InstrumentationTest {
     g.setEdge("a", "b", {})
     g.setEdge("b", "c", {})
     g.setEdge("b", "d", {})
-    
+
+    let f = g.flatMap((id, l) => [{id, label: { hierarchicOrder: [] }}], (id, label) => [{ id, label }])
+
     let lines = [["a", "b", "d"], ["a", "b", "c"]]
 
-    let actual = structureLayout(g).layout.sort((a,b) => a.node.localeCompare(b.node))
+    let actual = structureLayout(rankLongestPathGraph(f)).layout.sort((a,b) => a.node.localeCompare(b.node))
     let expected = [
       { node: "a", x: 1, y: 0, }, // lines: [0, 1], relative: [] },
       { node: "b", x: 1, y: 1, }, // lines: [0, 1], relative: ["a"] },
@@ -123,7 +126,7 @@ export class LayoutTest extends InstrumentationTest {
     //   |\
     //   d c
     // 
-    let g = new Graph()
+    let g = new TypedGraph<string,any>()
     g.setNode("a", "a")
     g.setNode("b", "b")
     g.setNode("c", "e")
@@ -138,7 +141,9 @@ export class LayoutTest extends InstrumentationTest {
     
     let lines = [["a", "b", "c"], ["f", "e", "b", "d"]]
 
-    let actual = structureLayout(g).layout.sort((a,b) => a.node.localeCompare(b.node))
+    let f = g.flatMap((id, l) => [{id, label: { hierarchicOrder: [] }}], (id, label) => [{ id, label }])
+
+    let actual = structureLayout(rankLongestPathGraph(f)).layout.sort((a,b) => a.node.localeCompare(b.node))
     let expected = [
       { node: "f", x: 1, y: 0, }, // lines: [1], relative: [] },
       { node: "e", x: 1, y: 1, }, // lines: [1], relative: ["f"] },
@@ -158,6 +163,7 @@ export class LayoutTest extends InstrumentationTest {
         node: n, x: i, y: 0,
         isDummy, barycenter, priority,
         relative: [] as string[], lines: [] as number[],
+        hierarchicOrder: <number[]>[],
       }
     }
 
@@ -168,14 +174,57 @@ export class LayoutTest extends InstrumentationTest {
       node("v4", 3, 7, 2, false),
     ]
 
-    priorityLayoutReorder(row)
+    priorityLayoutAlign(row)
 
+    expect(row.map(r => r.x)).to.deep.equal([2, 5, 7, 8])
     deepCover(row, [
       node("v1", 2, 2, 5, false),
       node("v2", 5, 5,10, false),
       node("v3", 7, 7, 3, false),
       node("v4", 8, 7, 2, false),
     ])
+  }
+
+  @test
+  public "test priority layout reordering 2"() {
+    let node = (n: string, i: number, barycenter: number, priority: number, isDummy: boolean) => {
+      return {
+        node: n, x: i, y: 0,
+        isDummy, barycenter, priority,
+        relative: [] as string[], lines: [] as number[],
+        hierarchicOrder: <number[]>[],
+      }
+    }
+
+    let prios = [
+      [10, 8, 4, 2],
+      [8, 4, 2, 10],
+      [4, 2, 10, 8],
+      [2, 10, 8, 4],
+      [8, 10, 4, 2],
+      [10, 8, 2, 4],
+      [4, 2, 8, 10],
+      [2, 4, 10, 8],
+    ]
+
+    for(let prio of prios) {
+      let row: (LayoutItem<string> & { priority: number })[] = [
+        node("v1", 2, 0, prio[0], false),
+        node("v2", 5, 4, prio[1], false),
+        node("v3", 7, 8, prio[2], false),
+        node("v4",13,12, prio[3], false),
+      ]
+
+      priorityLayoutAlign(row)
+
+      deepCover(row, [
+        node("v1", 0, 0, prio[0], false),
+        node("v2", 4, 4, prio[1], false),
+        node("v3", 8, 8, prio[2], false),
+        node("v4",12,12, prio[3], false),
+      ])
+    }
+
   }
 
 }
