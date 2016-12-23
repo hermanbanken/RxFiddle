@@ -2,7 +2,7 @@ import "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent } from "./event"
-import { lines, rankLongestPath, structureLayout, indexedBy, Ranked } from "./graphutils"
+import { lines, rankLongestPath, rankLongestPathGraph, structureLayout, indexedBy, Ranked, LayouterOutput } from "./graphutils"
 import { AddEvent, AddObservable, AddStackFrame, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
 import { Edge as GraphEdge, Graph, alg } from "graphlib"
@@ -369,31 +369,53 @@ class StructureGraph {
     return [root]
   }
 
+  private superImpose(root: LayouterOutput<string>, g: TypedGraph<Leveled<StackFrame|AddObservable|AddSubscription>,LayerCrossingEdge|ShadowEdge|undefined>) {
+    // TODO
+    let layout = root.layout.flatMap(item => {
+      let subs = g.outEdges(item.node).flatMap(e => typeof g.edge(e) === "object" && (g.edge(e) as LayerCrossingEdge).lower === "subscription" ? [e.w] : [])
+      console.log("subs", subs)
+      if(subs.length) {
+        return subs.map((sub, index) => Object.assign({}, item, {
+          node: sub,
+          x: item.x + (index/subs.length - 0.5)
+        })).concat([item])
+      } else {
+        return [item]
+      }
+    })
+    return layout
+  }
+
   public renderSvg(graph: TypedGraph<Leveled<StackFrame|AddObservable|AddSubscription>,LayerCrossingEdge|ShadowEdge|undefined>, choices: string[], cb: (choice: string) => void): VNode[] {
     let u = StructureGraph.chunk;
     (<any>window).renderSvgGraph = graph
 
+    let ranked = rankLongestPathGraph(graph
+      // .filterEdges(v => v.w < v.v)
+      .filterNodes((_, n) => n.level === "observable")
+    )
+    let rootLayout = structureLayout(ranked)
+    let fullLayout = rootLayout.layout //this.superImpose(rootLayout, graph)
+
     let g = graph
       .filterEdges(v => v.w < v.v)
       .filterNodes((_, n) => n.level === "subscription") as TypedGraph<Leveled<AddSubscription> & Ranked, ShadowEdge>
-      // .filterEdges((_, e) => typeof e === "object" && "count" in e)
     
     let mapX = (x: number, y: number) => x // y > 14 ? x - 5 * (y - 14) : x
 
     let mu = u / 2
 
     // Let Observables determine ranking
-    let ranks = rankLongestPath(graph.filterNodes((_, n) => n.level === "observable"))
-    g.nodes().map(n => g.node(n).rank = ranks[g.node(n).payload.observableId])
+    // g.nodes().forEach(n => g.node(n).rank = ranked.node(g.node(n).payload.observableId.toString(10)).rank)
 
-    let structure = structureLayout(g)
-    let structureIndex = indexedBy(i => i.node, structure.layout)
-    let nodes = structure.layout/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
+    // let structure = structureLayout(g)
+    let structureIndex = indexedBy(i => i.node, fullLayout)
+    let nodes = fullLayout/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
       return [h("circle", { 
         attrs: { 
           cx: mu + mu * mapX(item.x, item.y), 
           cy: mu + mu * item.y, 
-          fill: colorIndex(item.hierarchicOrder[1]), 
+          fill: colorIndex(parseInt(item.node)), 
           r: item.isDummy ? 2 : 5
         },
         on: {
@@ -401,7 +423,7 @@ class StructureGraph {
         },
       }), h("text", { attrs: { x: mu + mu * mapX(item.x, item.y) + 10, y: mu + mu * item.y + 5 } }, item.isDummy ? "" : `${item.node}`)]
     })
-    let edges = structure.edges.flatMap(({ v, w, points }) => {
+    let edges = rootLayout.edges.flatMap(({ v, w, points }) => {
       let path = points.map(({x,y}) => `${mu + mu * mapX(x, y)} ${mu + mu * y}`).join(" L ")
       return h("path", {
             attrs: {
@@ -414,12 +436,12 @@ class StructureGraph {
           })
     })
 
-    let xmax = structure.layout.reduce((p, n) => Math.max(p, n.x), 0)
+    let xmax = fullLayout.reduce((p, n) => Math.max(p, n.x), 0)
 
     return [h("svg", {
       attrs: {
         id: "structure",
-        style: `width: ${xmax * u}px; height: ${u * (0.5 + structure.layout.length)}px`,
+        style: `width: ${xmax * u}px; height: ${u * (0.5 + fullLayout.length)}px`,
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },

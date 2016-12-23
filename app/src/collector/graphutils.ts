@@ -217,7 +217,7 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
   if(ENABLE_BARYCENTRESORT) {
     for (let iteration = 0; iteration < 10; iteration++) {
       let direction: Direction = iteration % 2 === 0 ? "down" : "up"
-      sweep(layers, "down", (subject, ref) => {
+      sweep(layers, direction, (subject, ref) => {
 
         // Get node bary-center
         subject.forEach(item => {
@@ -229,17 +229,17 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
           )
         })
         // Retrieve hierarchies
-        let groups = groupBy(n => n.hierarchicOrder[1], subject)
+        let groups = groupBy(n => 1/* n.hierarchicOrder[1]*/, subject)
         let perLocation = Object.keys(groups).map(k => groups[k])
         // Two sorting criteria: Location BC + Node BC
         let sortable = perLocation.flatMap(v => {
           let loc = head(v.map(i => i.hierarchicOrder[1]))
-          if(typeof loc === "undefined") {
+          // if(typeof loc === "undefined") {
             return v.map(i => ({ item: i, sort: [i.barycenter, i.barycenter] }))
-          } else {
-            let loc_bc = avg(v.map(i => i.barycenter))
-            return v.map(i => ({ item: i, sort: [loc_bc, i.barycenter] }))
-          }
+          // } else {
+          //   let loc_bc = avg(v.map(i => i.barycenter))
+          //   return v.map(i => ({ item: i, sort: [loc_bc, i.barycenter] }))
+          // }
         })
 
         return sort(sortable, i => i.sort).map(i => i.item)
@@ -264,24 +264,24 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
     })
   })
 
-    // // Assign x positions after ordering; keep fixed positions
-    // layers.forEach(layer => {
-    //   let fixed = layer.filter(l => l.fixedX).sort((a, b) => a.fixedX - b.fixedX)
-    //   let nonfixed = layer.filter(l => typeof l.fixedX === "undefined")
-    //   for(let i = 0, j = 0; i < layer.length; i++, j++) {
-    //     if(fixed.length && fixed[0].fixedX <= i) {
-    //       fixed[0].x = i
-    //       fixed.shift()
-    //       j--;
-    //     } else {
-    //       nonfixed[j].x = i
-    //     }
-    //   }
-    // })
+  // // Assign x positions after ordering; keep fixed positions
+  // layers.forEach(layer => {
+  //   let fixed = layer.filter(l => l.fixedX).sort((a, b) => a.fixedX - b.fixedX)
+  //   let nonfixed = layer.filter(l => typeof l.fixedX === "undefined")
+  //   for(let i = 0, j = 0; i < layer.length; i++, j++) {
+  //     if(fixed.length && fixed[0].fixedX <= i) {
+  //       fixed[0].x = i
+  //       fixed.shift()
+  //       j--;
+  //     } else {
+  //       nonfixed[j].x = i
+  //     }
+  //   }
+  // })
 
   // Balancing or centering relative to branches
   if(ENABLE_PRIORITYLAYOUT) {
-    for (let iteration = 0; iteration < 2; iteration++) {
+    for (let iteration = 0; iteration < 10; iteration++) {
       let direction: Direction = iteration % 2 === 0 ? "down" : "up"
       sweep(layers, direction, (subject, ref) => {
         subject.forEach(item => {
