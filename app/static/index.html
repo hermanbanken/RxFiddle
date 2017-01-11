@@ -2,20 +2,22 @@
 <html>
 
 <head>
+  <title>RxFiddle</title>
   <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
   <script>
-      function script(src) {
-        var s = document.createElement("script");
-        s.src = src;
-        s.async = false;
-        document.head.appendChild(s);
-      }
-      if(typeof require == 'undefined') {
-        script('../dist/main.bundle.js');
-      } else {
-        script('../dist/main.js')
-      }
-    </script>
+    function script(src) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.async = false;
+      document.head.appendChild(s);
+    }
+    if (typeof require == 'undefined') {
+      script('../dist/main.bundle.js');
+    } else {
+      script('../dist/main.js')
+    }
+  </script>
 </head>
 
 <div id="app">
