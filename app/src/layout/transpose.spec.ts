@@ -1,7 +1,7 @@
-import { assert, expect, use as chaiUse } from "chai"
-import { suite, test } from "mocha-typescript"
 import { transpose } from "./transpose"
-import { Graph } from "graphlib" 
+import { expect } from "chai"
+import { Graph } from "graphlib"
+import { suite, test } from "mocha-typescript"
 
 function asGraph(es: { v: string, w: string }[]): Graph {
   let g = new Graph()
@@ -12,7 +12,6 @@ function asGraph(es: { v: string, w: string }[]): Graph {
 @suite
 export default class TransposeSpec {
 
-
   @test
   public "test straight"() {
     ///   -----c-----d----
@@ -21,11 +20,11 @@ export default class TransposeSpec {
     ///   -----a-----b----
 
     let g = asGraph([
-      { w: "a", v: "c" }, 
-      { w: "b", v: "d" }
+      { v: "c", w: "a" },
+      { v: "d", w: "b" },
     ])
     let i = [["c", "d"], ["a", "b"]]
-    let e = i.map(i => i.slice(0))
+    let e = i.map(ii => ii.slice(0))
 
     expect(transpose(i, g, "down")).to.deep.eq(e)
   }
@@ -38,14 +37,14 @@ export default class TransposeSpec {
     ///   -----a-----b----
 
     let g = asGraph([
-      { w: "a", v: "c" }, 
-      { w: "a", v: "d" }, 
-      { w: "b", v: "c" }, 
-      { w: "b", v: "d" }
+      { v: "c", w: "a" },
+      { v: "d", w: "a" },
+      { v: "c", w: "b" },
+      { v: "d", w: "b" },
     ])
     let i = [["c", "d"], ["a", "b"]]
-    let e = i.map(i => i.slice(0))
-    
+    let e = i.map(ii => ii.slice(0))
+
     i = transpose(i, g, "down")
     i = transpose(i, g, "up")
     expect(i).to.deep.eq(e)
@@ -61,11 +60,11 @@ export default class TransposeSpec {
     ///   -----a-----b-c--
 
     let g = asGraph([
-      { w: "a", v: "f" },
-      { w: "a", v: "g" },
-      { w: "a", v: "h" },
-      { w: "b", v: "d" },
-      { w: "c", v: "e" },
+      { v: "f", w: "a" },
+      { v: "g", w: "a" },
+      { v: "h", w: "a" },
+      { v: "d", w: "b" },
+      { v: "e", w: "c" },
     ])
     let i = [["d", "e", "f", "g", "h"], ["a", "b", "c"]]
     let e = [["d", "e", "f", "g", "h"], ["b", "c", "a"]]
@@ -85,11 +84,11 @@ export default class TransposeSpec {
     ///   -----a-----b-c--
 
     let g = asGraph([
-      { w: "a", v: "f" },
-      { w: "a", v: "g" },
-      { w: "a", v: "h" },
-      { w: "b", v: "e" },
-      { w: "c", v: "d" },
+      { v: "f", w: "a" },
+      { v: "g", w: "a" },
+      { v: "h", w: "a" },
+      { v: "e", w: "b" },
+      { v: "d", w: "c" },
     ])
     let i = [["d", "e", "f", "g", "h"], ["a", "b", "c"]]
     let e = [["d", "e", "f", "g", "h"], ["c", "b", "a"]]

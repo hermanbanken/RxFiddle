@@ -2,8 +2,6 @@ import { StackFrame } from "../utils"
 import { render as ASCII } from "./ascii"
 import { AddObservable, AddSubscription } from "./logger"
 import { centeredRect, centeredText } from "./shapes"
-import { Visualizer } from "./visualizer"
-import { Grapher } from "./grapher"
 import * as snabbdom from "snabbdom"
 import { PatchFunction, VNode } from "snabbdom"
 
@@ -11,8 +9,8 @@ import { PatchFunction, VNode } from "snabbdom"
 const h = require("snabbdom/h")
 
 export function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]] {
-  let a:T[] = []
-  let b:T[] = []
+  let a: T[] = []
+  let b: T[] = []
   for (let i = 0; i < array.length; i++) {
     if (fn(array[i], i, array)) {
       a.push(array[i])
@@ -37,7 +35,6 @@ export class RxFiddleNode {
   public x: number
   public y: number
 
-
   public hoover: boolean = false
   public highlightIndex?: number
   public highlightId?: number
@@ -47,11 +44,11 @@ export class RxFiddleNode {
 
   private count: number = 0
 
+  /* tslint:disable:no-constructor-vars */
   constructor(
     public id: string,
     public name: string,
     public location: StackFrame,
-    // private visualizer: Visualizer
   ) { }
 
   public addObservable(instance: AddObservable) {

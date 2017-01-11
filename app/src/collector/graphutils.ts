@@ -5,20 +5,20 @@ import TypedGraph from "./typedgraph"
 
 const TRACE = false
 function trace(...args: any[]) {
-  if(TRACE) console.log.apply(console, arguments)
+  if (TRACE) { console.log.apply(console, arguments) }
 }
 
-function last<T>(list: T[]): T {
+export function last<T>(list: T[]): T {
   return list[list.length - 1]
 }
 
-function head<T>(list: T[]): T {
+export function head<T>(list: T[]): T {
   return list[0]
 }
 
-function takeWhile<T>(list: T[], pred: (item: T) => boolean) {
+export function takeWhile<T>(list: T[], pred: (item: T) => boolean) {
   let ret: T[] = []
-  for(let i = 0; i < list.length && pred(list[i]); i++) {
+  for (let i = 0; i < list.length && pred(list[i]); i++) {
     ret.push(list[i])
   }
   return ret
@@ -26,15 +26,15 @@ function takeWhile<T>(list: T[], pred: (item: T) => boolean) {
 
 function range(start: number, exclusiveEnd: number): number[] {
   let r: number[] = []
-  for(let i = start; i < exclusiveEnd; i++) {
+  for (let i = start; i < exclusiveEnd; i++) {
     r.push(i)
   }
   return r
 }
 
 function avg(list: number[]): number {
-  if(list.length === 0) return undefined
-  if(list.length === 1) return list[0]
+  if (list.length === 0) { return undefined }
+  if (list.length === 1) { return list[0] }
   return list.reduce((sum, v) => sum + (v / list.length), 0)
 }
 
@@ -46,7 +46,7 @@ function firstDefined<T>(...args: T[]): T {
   if (typeof args[0] !== "undefined") {
     return args[0]
   }
-  if(args.length > 1) {
+  if (args.length > 1) {
     return firstDefined(...args.slice(1))
   }
   return undefined
@@ -55,31 +55,31 @@ function firstDefined<T>(...args: T[]): T {
 function sort<T>(input: T[], byRefIndex: (elem: T) => (number | number[] | undefined)): T[] {
   return input.map((item, index) => ({ item, index, refIndex: byRefIndex(item) }))
     .sort((a, b) => {
-      if(Array.isArray(a.refIndex) && Array.isArray(b.refIndex)) {
-        for(let i = 0; i < a.refIndex.length; i++) {
-          if(a.refIndex[i] !== b.refIndex[i]) {
+      if (Array.isArray(a.refIndex) && Array.isArray(b.refIndex)) {
+        for (let i = 0; i < a.refIndex.length; i++) {
+          if (a.refIndex[i] !== b.refIndex[i]) {
             return a.refIndex[0] - b.refIndex[0]
           }
         }
       }
-      if(typeof a.refIndex === "number" && typeof b.refIndex === "number") {
-        return a.refIndex - b.refIndex;
+      if (typeof a.refIndex === "number" && typeof b.refIndex === "number") {
+        return a.refIndex - b.refIndex
       } else {
-        return 0;
-        //firstDefined(a.refIndex, a.index) - firstDefined(b.refIndex, b.index)
+        return 0
+        // firstDefined(a.refIndex, a.index) - firstDefined(b.refIndex, b.index)
       }
     }).map(v => v.item)
 }
 
-type Direction = "down" | "up"
-function sweep<T>(input: T[][], direction: Direction, sort: (subject: T[], ref: T[]) => T[]): T[][] {
+export type Direction = "down" | "up"
+export function sweep<T>(input: T[][], direction: Direction, sort: (subject: T[], ref: T[]) => T[]): T[][] {
   trace("Sweeping", direction)
-  if(direction === "down") {
-    for (let i = 1, ref = i - 1; i < input.length; i++, ref++) {
+  if (direction === "down") {
+    for (let i = 1, ref = i - 1; i < input.length; i++ , ref++) {
       input[i] = sort(input[i], input[ref])
     }
   } else {
-    for (let i = input.length - 2, ref = i + 1; i >= 0; i--, ref--) {
+    for (let i = input.length - 2, ref = i + 1; i >= 0; i-- , ref--) {
       input[i] = sort(input[i], input[ref])
     }
   }
@@ -114,8 +114,8 @@ export function rankLongestPath(g: Graph): { [id: string]: number } {
   return ranks
 }
 
-export function rankLongestPathGraph<V,E>(g: TypedGraph<V,E>): TypedGraph<V & Ranked,E> {
-  let ranked = (g as any) as TypedGraph<V & Ranked,E>
+export function rankLongestPathGraph<V, E>(g: TypedGraph<V, E>): TypedGraph<V & Ranked, E> {
+  let ranked = (g as any) as TypedGraph<V & Ranked, E>
   let ranks = rankLongestPath(g)
   ranked.nodes().map(n => {
     ranked.node(n).rank = ranks[n]
@@ -139,7 +139,7 @@ function rightPad(l: number, a: any): string {
 }
 
 export type Label = string
-export type LayoutItem<Label> = { 
+export type LayoutItem<Label> = {
   node: Label,
   x: number,
   y: number,
@@ -158,35 +158,35 @@ export type LayouterInput = {
 }
 export type LayouterOutput<Label> = {
   graph: Graph,
-  edges: { v: string, w: string, points: {x: number, y: number}[] }[],
+  edges: { v: string, w: string, points: { x: number, y: number }[] }[],
   layout: LayoutItem<Label>[]
 }
 
 export type Hierarchy = { hierarchicOrder: number[] }
 export type Fixable = { fixedX?: number }
 export type Ranked = { rank: number }
-export type InGraph<V extends Hierarchy & Fixable,E> = TypedGraph<V,E>
+export type InGraph<V extends Hierarchy & Fixable, E> = TypedGraph<V, E>
 
 // TODO make it online
-export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InGraph<V,E>): LayouterOutput<Label> {
+export function structureLayout<V extends Hierarchy & Fixable & Ranked, E>(g: InGraph<V, E>): LayouterOutput<Label> {
   let ranks = <{ [id: string]: number }>{}
   g.nodes().map(n => {
     ranks[n] = g.node(n).rank
   })
   trace("ranks\n", ranks)
-    
+
   // Without long edges
   let normalized: Graph
   if (ENABLE_NORMALIZE) {
     normalized = g.flatMap((id, label) => [{ id, label }], (e) => {
-      if(ranks[e.v] + 1 < ranks[e.w]) {
+      if (ranks[e.v] + 1 < ranks[e.w]) {
         // Add dummy nodes + edges
         let dummies = range(ranks[e.v] + 1, ranks[e.w]).map(i => ({ label: `dummy-${e.v}-${e.w}(${i})`, rank: i }))
         dummies.forEach(d => ranks[d.label] = d.rank)
         let nodes = [e.v].concat(dummies.map(d => d.label)).concat([e.w])
-        return nodes.slice(1).map((w, i) => ({ 
+        return nodes.slice(1).map((w, i) => ({
           id: { v: nodes[i], w },
-          label: undefined 
+          label: undefined,
         }))
       } else {
         return [{ id: e, label: undefined }]
@@ -197,24 +197,24 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
   }
 
   let byRank = groupByUniq(node => ranks[node], Object.keys(ranks))
-  
+
   // Convert rank's vertices to layered layout items
   let layers = Object.keys(byRank).sort((a, b) => +a - +b).map((r: string, y: number) => {
     return byRank[r].map((n: Label, x: number) => ({
-      node: n,
       x,
       y,
-      fixedX: g.node(n) && g.node(n).fixedX || 0,
-      isDummy: n.startsWith("dummy"),
       barycenter: 0,
-      priority: 0,
+      fixedX: g.node(n) && g.node(n).fixedX || 0,
       hierarchicOrder: g.node(n) && g.node(n).hierarchicOrder || [],
+      isDummy: n.startsWith("dummy"),
+      node: n,
+      priority: 0,
       spacing: 1,
     }))
   })
 
   // Sort vertices according to BaryCenter's
-  if(ENABLE_BARYCENTRESORT) {
+  if (ENABLE_BARYCENTRESORT) {
     for (let iteration = 0; iteration < 10; iteration++) {
       let direction: Direction = iteration % 2 === 0 ? "down" : "up"
       sweep(layers, direction, (subject, ref) => {
@@ -235,7 +235,7 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
         let sortable = perLocation.flatMap(v => {
           let loc = head(v.map(i => i.hierarchicOrder[1]))
           // if(typeof loc === "undefined") {
-            return v.map(i => ({ item: i, sort: [i.barycenter, i.barycenter] }))
+          return v.map(i => ({ item: i, sort: [i.barycenter, i.barycenter] }))
           // } else {
           //   let loc_bc = avg(v.map(i => i.barycenter))
           //   return v.map(i => ({ item: i, sort: [loc_bc, i.barycenter] }))
@@ -251,10 +251,13 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
   // Bundle same hierarchies
   layers.forEach(layer => {
     let x = 0
-    layer.forEach((item,index,list) => {
-      if(index === list.length - 1) {
+    layer.forEach((item, index, list) => {
+      if (index === list.length - 1) {
         item.spacing = 1
-      } else if(typeof item.hierarchicOrder[1] !== "undefined" && item.hierarchicOrder[1] === list[index+1].hierarchicOrder[1]) {
+      } else if (
+        typeof item.hierarchicOrder[1] !== "undefined" &&
+        item.hierarchicOrder[1] === list[index + 1].hierarchicOrder[1]
+      ) {
         item.spacing = 0.4
       } else {
         item.spacing = 1
@@ -280,7 +283,7 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
   // })
 
   // Balancing or centering relative to branches
-  if(ENABLE_PRIORITYLAYOUT) {
+  if (ENABLE_PRIORITYLAYOUT) {
     for (let iteration = 0; iteration < 10; iteration++) {
       let direction: Direction = iteration % 2 === 0 ? "down" : "up"
       sweep(layers, direction, (subject, ref) => {
@@ -290,7 +293,7 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
             direction,
             item.node
           )
-          item.barycenter =  barycenter(
+          item.barycenter = barycenter(
             normalized,
             direction,
             item.node,
@@ -307,13 +310,13 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
   let layout = layers.flatMap(v => v)
 
   // Convert dummy paths back to full paths
-  let index = indexedBy(i => i.node, layout)  
+  let index = indexedBy(i => i.node, layout)
   let edges = g.edges().map(({v, w}) => {
-    let mids: {x:number,y:number}[]
-    if(ranks[v] + 1 < ranks[w]) {
+    let mids: { x: number, y: number }[]
+    if (ranks[v] + 1 < ranks[w]) {
       mids = range(ranks[v] + 1, ranks[w]).map(i => `dummy-${v}-${w}(${i})`)
         .map(k => index[k])
-        .map(({x,y}) => ({x,y}))
+        .map(({x, y}) => ({ x, y }))
     } else {
       mids = []
     }
@@ -322,25 +325,25 @@ export function structureLayout<V extends Hierarchy & Fixable & Ranked,E>(g: InG
       points: [
         { x: index[v].x, y: index[v].y },
         ...mids,
-        { x: index[w].x, y: index[w].y }
-      ]
+        { x: index[w].x, y: index[w].y },
+      ],
     }
   })
 
   return {
+    graph: normalized,
     layout: layout.filter(v => !v.isDummy),
     edges,
-    graph: normalized,
   }
 }
 
 function linkedNodes(g: Graph, direction: Direction, node: string): string[] {
-  if(!g.hasNode(node)) {
+  if (!g.hasNode(node)) {
     console.warn("looking for non-graph node", node)
     return []
   }
   return direction === "down" ?
-    g.inEdges(node).map(e => e.v) : 
+    g.inEdges(node).map(e => e.v) :
     g.outEdges(node).map(e => e.w)
 }
 
@@ -373,7 +376,7 @@ function priority(g: Graph, direction: "up" | "down", node: string): number {
 //   groupBy(n => n.hierarchicOrder[0], frame)
 // }
 
-export type PriorityLayoutItem = { 
+export type PriorityLayoutItem = {
   x: number,
   readonly priority: number,
   readonly barycenter: number,
@@ -382,12 +385,12 @@ export type PriorityLayoutItem = {
 export function priorityLayoutAlign<Label>(items: PriorityLayoutItem[]): void {
   let move = (priority: number, index: number, requestedShift: number): number => {
     let subject = items[index]
-    if(subject.priority > priority || requestedShift === 0) return 0
-    if(items.length === index + 1 && requestedShift > 0) {
+    if (subject.priority > priority || requestedShift === 0) { return 0 }
+    if (items.length === index + 1 && requestedShift > 0) {
       subject.x += requestedShift
       return requestedShift
     }
-    if(index === 0 && requestedShift < 0) {
+    if (index === 0 && requestedShift < 0) {
       subject.x += requestedShift
       return requestedShift
     }
@@ -483,18 +486,37 @@ export function groupBy<T>(selector: (item: T) => string | number, list: T[]): {
   return obj
 }
 
-export function groupByUniq<T, K extends (string | number)>(selector: (item: T) => K, list: T[]): { [key: string]: T[] } {
+export function groupByUniq<T, K extends (string | number)>(
+  selector: (item: T) => K, list: T[]
+): { [key: string]: T[] } {
   let obj = {} as { [key: string]: T[] }
   list.forEach((i: T) => {
-    let k  = selector(i) as string
+    let k = selector(i) as string
     obj[k] = obj[k] || []
-    if(obj[k].indexOf(i) === -1) {
+    if (obj[k].indexOf(i) === -1) {
       obj[k].push(i)
     }
   })
   return obj
 }
 
-function mapFilter<T,V>(list: T[], f: (item: T, index: number, list: T[]) => (V | undefined)) {
+export function mapFilter<T, V>(list: T[], f: (item: T, index: number, list: T[]) => (V | undefined)) {
   return list.map(f).filter(v => typeof v !== "undefined")
+}
+
+export function toDot<T>(graph: Graph, props?: (n: T) => any): string {
+  return "graph g {\n" +
+    "node [style=filled];\n" +
+    graph.nodes().map((n: any) => {
+      if (props) {
+        let data = props(n)
+        let query = Object.keys(data).map(k => `${k}="${data[k]}"`).join(", ")
+        return `"${n}" [${query}];`
+      }
+      return `"${n}";`
+    }).join("\n") +
+    graph.edges().map((e: GraphEdge) =>
+      e.v + " -- " + e.w + " [type=s];"
+    ).join("\n") +
+    "\n}"
 }

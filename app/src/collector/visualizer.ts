@@ -1,19 +1,22 @@
+import { generateColors } from "../color"
+import "../object/extensions"
 import "../utils"
+import { StackFrame } from "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent } from "./event"
-import { lines, rankLongestPath, rankLongestPathGraph, structureLayout, indexedBy, Ranked, LayouterOutput } from "./graphutils"
-import { AddEvent, AddObservable, AddStackFrame, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
+import { Grapher, LayerCrossingEdge, Leveled, ShadowEdge } from "./grapher"
+import {
+  LayouterOutput, Ranked,
+  indexedBy, rankLongestPath, rankLongestPathGraph, structureLayout,
+  toDot,
+} from "./graphutils"
+import { AddObservable, AddSubscription, ICollector } from "./logger"
 import { RxFiddleNode } from "./node"
-import { Edge as GraphEdge, Graph, alg } from "graphlib"
 import TypedGraph from "./typedgraph"
+import { Graph, alg } from "graphlib"
 import * as snabbdom from "snabbdom"
 import { VNode } from "snabbdom"
-import * as _ from "lodash"
-import "../utils"
-import { StackFrame } from "../utils"
-import "../object/extensions"
-import { Grapher, Leveled, ShadowEdge, LayerCrossingEdge } from "./grapher"
 
 /* tslint:disable:no-var-requires */
 const dagre = require("dagre")
@@ -26,66 +29,13 @@ const patch = snabbdom.init([
 // const ErrorStackParser = require("error-stack-parser")
 /* tslint:enable:no-var-requires */
 
-/**
- * HSV values from [0..1[
- * RGB values from 0 to 255
- * @see http://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
- */
-function hsvToRgb(h: number, s: number, v: number): [number, number, number] {
-  let h_i = ~~(h*6)
-  let f = h * 6 - h_i
-  let p = v * (1 - s)
-  let q = v * (1 - f * s)
-  let t = v * (1 - (1 - f) * s)
-  var r = 0, g = 0, b = 0
-  switch (h_i) {
-    case 0: [r, g, b] = [v, t, p]; break;
-    case 1: [r, g, b] = [q, v, p]; break;
-    case 2: [r, g, b] = [p, v, t]; break;
-    case 3: [r, g, b] = [p, q, v]; break;
-    case 4: [r, g, b] = [t, p, v]; break;
-    case 5: [r, g, b] = [v, p, q]; break;
-  }
-  return [~~(r * 265), ~~(g * 265), ~~(b * 265)]
-}
-
-const golden_ratio_conjugate = 0.618033988749895
-function generateColors(count: number): [number,number,number][] {
-  let cs = <[number,number,number][]>[]
-  let h = Math.random()  // use random start value
-
-  while(count--) {
-    h += golden_ratio_conjugate
-    h %= 1
-    cs.push(hsvToRgb(h, 0.5, 0.95))
-  }
-  return cs
-}
-
-const colors = generateColors(40) // ["#0066B9", "#E90013", "#8E4397", "#3FB132", "#FDAC00", "#F3681B", "#9FACB3", "#9CA2D4", "#E84CA2"]
+const colors = generateColors(40)
 function colorIndex(i: number) {
-  if(typeof i === "undefined") return "transparent"
-  let [r,g,b] = colors[i % colors.length]
+  if (typeof i === "undefined") { return "transparent" }
+  let [r, g, b] = colors[i % colors.length]
   return `rgb(${r},${g},${b})`
 }
-(<any>window).colors = colors;
-
-function toDot<T>(graph: Graph, props?: (n: T) => any): string {
-  return "graph g {\n" +
-    "node [style=filled];\n" +
-    graph.nodes().map((n: any) => {
-      if(props) {
-        let data = props(n)
-        let query = Object.keys(data).map(k => `${k}="${data[k]}"`).join(", ")
-        return `"${n}" [${query}];`
-      }
-      return `"${n}";`
-    }).join("\n") +
-    graph.edges().map((e: GraphEdge) =>
-      e.v + " -- " + e.w + " [type=s];"
-    ).join("\n") +
-    "\n}"
-}
+(window as any).colors = colors
 
 const defs: () => VNode[] = () => [h("defs", [
   h("marker", {
@@ -158,11 +108,11 @@ export class Visualizer {
     this.grapher.g.setGraph({})
 
     if (!!window) {
-      (<any>window).alg = alg;
-      (<any>window).dagre = dagre;
-      (<any>window).combined = this.grapher.combined;
-      (<any>window).toDot = toDot;
-      (<any>window).rankLongestPath = rankLongestPath
+      (window as any).alg = alg;
+      (window as any).dagre = dagre;
+      (window as any).combined = this.grapher.combined;
+      (window as any).toDot = toDot;
+      (window as any).rankLongestPath = rankLongestPath
     }
   }
 
@@ -170,13 +120,13 @@ export class Visualizer {
     return this.grapher.structureDag()
   }
 
-  public layout(graph: TypedGraph<RxFiddleNode,RxFiddleEdge> = this.grapher.g) {
+  public layout(graph: TypedGraph<RxFiddleNode, RxFiddleEdge> = this.grapher.g) {
     graph.setGraph({})
     this.grapher.nodes.forEach(n => n.layout())
     dagre.layout(graph)
   }
 
-  public size(graph: TypedGraph<RxFiddleNode,RxFiddleEdge> = this.grapher.g): { w: number, h: number } {
+  public size(graph: TypedGraph<RxFiddleNode, RxFiddleEdge> = this.grapher.g): { w: number, h: number } {
     if (this.grapher.nodes.length === 0) {
       return { h: 10, w: 10 }
     }
@@ -200,7 +150,7 @@ export class Visualizer {
     }
   }
 
-  public render(graph: TypedGraph<RxFiddleNode,RxFiddleEdge>): VNode {
+  public render(graph: TypedGraph<RxFiddleNode, RxFiddleEdge>): VNode {
     this.rendered = this.collector.length
 
     if (typeof graph === "undefined" || graph.nodes().length === 0) {
@@ -223,7 +173,10 @@ export class Visualizer {
   public selection(graphs: Graph[]): VNode[] {
     return [h("select", {
       on: {
-        change: (e: Event) => { console.log(e); this.component = parseInt((e.target as HTMLSelectElement).value, 10) },
+        change: (e: Event) => {
+          console.log(e)
+          this.component = parseInt((e.target as HTMLSelectElement).value, 10)
+        },
       },
     }, graphs.map((g, i) => h("option", { attrs: { value: i } }, `graph ${i}`)))]
   }
@@ -237,11 +190,12 @@ export class Visualizer {
 
     /* Prepare components */
     let comps = alg.components(this.grapher.dag as any)
-    let graphs: TypedGraph<RxFiddleNode,RxFiddleEdge>[] = comps.map(array => this.grapher.dag.filterNodes(n => array.indexOf(n) >= 0))
+    let graphs: TypedGraph<RxFiddleNode, RxFiddleEdge>[] = comps
+      .map(array => this.grapher.dag.filterNodes(n => array.indexOf(n) >= 0))
     let graph = graphs[this.component]
     patch(this.controls, this.selection(graphs)[0]);
 
-    (<any>window).graph = graph
+    (window as any).graph = graph
 
     let render = this.render(graph)
     if (typeof graph !== "undefined") {
@@ -249,7 +203,7 @@ export class Visualizer {
     }
 
     let sg = new StructureGraph()
-    
+
     let svg = sg.renderSvg(
       this.grapher.leveledGraph,
       this.choices,
@@ -369,26 +323,10 @@ class StructureGraph {
     return [root]
   }
 
-  private superImpose(root: LayouterOutput<string>, g: TypedGraph<Leveled<StackFrame|AddObservable|AddSubscription>,LayerCrossingEdge|ShadowEdge|undefined>) {
-    // TODO
-    let layout = root.layout.flatMap(item => {
-      let subs = g.outEdges(item.node).flatMap(e => typeof g.edge(e) === "object" && (g.edge(e) as LayerCrossingEdge).lower === "subscription" ? [e.w] : [])
-      console.log("subs", subs)
-      if(subs.length) {
-        return subs.map((sub, index) => Object.assign({}, item, {
-          node: sub,
-          x: item.x + (index/subs.length - 0.5)
-        })).concat([item])
-      } else {
-        return [item]
-      }
-    })
-    return layout
-  }
-
-  public renderSvg(graph: TypedGraph<Leveled<StackFrame|AddObservable|AddSubscription>,LayerCrossingEdge|ShadowEdge|undefined>, choices: string[], cb: (choice: string) => void): VNode[] {
+  public renderSvg(graph: TypedGraph<Leveled<StackFrame | AddObservable | AddSubscription>,
+    LayerCrossingEdge | ShadowEdge | undefined>, choices: string[], cb: (choice: string) => void): VNode[] {
     let u = StructureGraph.chunk;
-    (<any>window).renderSvgGraph = graph
+    (window as any).renderSvgGraph = graph
 
     let ranked = rankLongestPathGraph(graph
       // .filterEdges(v => v.w < v.v)
@@ -400,7 +338,7 @@ class StructureGraph {
     let g = graph
       .filterEdges(v => v.w < v.v)
       .filterNodes((_, n) => n.level === "subscription") as TypedGraph<Leveled<AddSubscription> & Ranked, ShadowEdge>
-    
+
     let mapX = (x: number, y: number) => x // y > 14 ? x - 5 * (y - 14) : x
 
     let mu = u / 2
@@ -411,29 +349,34 @@ class StructureGraph {
     // let structure = structureLayout(g)
     let structureIndex = indexedBy(i => i.node, fullLayout)
     let nodes = fullLayout/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
-      return [h("circle", { 
-        attrs: { 
-          cx: mu + mu * mapX(item.x, item.y), 
-          cy: mu + mu * item.y, 
-          fill: colorIndex(parseInt(item.node)), 
+      return [h("circle", {
+        attrs: {
+          cx: mu + mu * mapX(item.x, item.y),
+          cy: mu + mu * item.y,
+          fill: colorIndex(parseInt(item.node, 10)),
           r: item.isDummy ? 2 : 5
         },
         on: {
           click: () => console.log(item),
         },
-      }), h("text", { attrs: { x: mu + mu * mapX(item.x, item.y) + 10, y: mu + mu * item.y + 5 } }, item.isDummy ? "" : `${item.node}`)]
+      }), h("text", {
+        attrs: {
+          x: mu + mu * mapX(item.x, item.y) + 10,
+          y: mu + mu * item.y + 5,
+        },
+      }, item.isDummy ? "" : `${item.node} ${JSON.stringify(graph.node(item.node))}`)]
     })
     let edges = rootLayout.edges.flatMap(({ v, w, points }) => {
-      let path = points.map(({x,y}) => `${mu + mu * mapX(x, y)} ${mu + mu * y}`).join(" L ")
+      let path = points.map(({x, y}) => `${mu + mu * mapX(x, y)} ${mu + mu * y}`).join(" L ")
       return h("path", {
-            attrs: {
-              d: `M${path}`,
-              stroke: "gray",
-              "stroke-dasharray": 5,
-              "stroke-width": g.edge(v, w) && g.edge(v, w).count * 4 || 4
-            },
-            on: { mouseover: () => console.log(graph.edge(v, w)) },
-          })
+        attrs: {
+          d: `M${path}`,
+          stroke: "gray",
+          "stroke-dasharray": 5,
+          "stroke-width": g.edge(v, w) && g.edge(v, w).count * 4 || 4
+        },
+        on: { mouseover: () => console.log(graph.edge(v, w)) },
+      })
     })
 
     let xmax = fullLayout.reduce((p, n) => Math.max(p, n.x), 0)
@@ -446,6 +389,29 @@ class StructureGraph {
         xmlns: "http://www.w3.org/2000/svg",
       },
     }, edges.concat(nodes))]
+  }
+
+  private superImpose(root: LayouterOutput<string>, g: TypedGraph<
+    Leveled<StackFrame | AddObservable | AddSubscription>,
+    LayerCrossingEdge | ShadowEdge | undefined
+    >) {
+    // TODO
+    let layout = root.layout.flatMap(item => {
+      let subs = g.outEdges(item.node)
+        .flatMap(e =>
+          typeof g.edge(e) === "object" && (g.edge(e) as LayerCrossingEdge).lower === "subscription" ? [e.w] : []
+        )
+      console.log("subs", subs)
+      if (subs.length) {
+        return subs.map((sub, index) => Object.assign({}, item, {
+          node: sub,
+          x: item.x + (index / subs.length - 0.5)
+        })).concat([item])
+      } else {
+        return [item]
+      }
+    })
+    return layout
   }
 
 }

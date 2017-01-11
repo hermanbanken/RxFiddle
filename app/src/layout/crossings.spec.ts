@@ -1,7 +1,7 @@
-import { assert, expect, use as chaiUse } from "chai"
-import { suite, test } from "mocha-typescript"
 import { crossings, order_crossings } from "./crossings"
-import { Graph } from "graphlib" 
+import { expect } from "chai"
+import { Graph } from "graphlib"
+import { suite, test } from "mocha-typescript"
 
 function asGraph(es: { v: string, w: string }[]): Graph {
   let g = new Graph()
@@ -9,7 +9,7 @@ function asGraph(es: { v: string, w: string }[]): Graph {
   return g
 }
 
-function both(row: string[], ref: string[], edges: {v:string,w:string}[]): number {
+function both(row: string[], ref: string[], edges: { v: string, w: string }[]): number {
   let c = crossings(row, ref, edges)
   expect(order_crossings([row, ref], asGraph(edges))).to.eq(c)
   return c
@@ -26,8 +26,8 @@ export default class CrossingSpec {
     ///   -----a-----b----
 
     let c = both(["a", "b"], ["c", "d"], [
-      { v: "a", w: "c" }, 
-      { v: "b", w: "d" }
+      { v: "a", w: "c" },
+      { v: "b", w: "d" },
     ])
     expect(c).to.eq(0)
   }
@@ -40,10 +40,10 @@ export default class CrossingSpec {
     ///   -----a-----b----
 
     let c = both(["a", "b"], ["c", "d"], [
-      { v: "a", w: "c" }, 
-      { v: "a", w: "d" }, 
-      { v: "b", w: "c" }, 
-      { v: "b", w: "d" }
+      { v: "a", w: "c" },
+      { v: "a", w: "d" },
+      { v: "b", w: "c" },
+      { v: "b", w: "d" },
     ])
     expect(c).to.eq(1)
   }
