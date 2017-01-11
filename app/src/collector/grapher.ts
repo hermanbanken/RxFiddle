@@ -1,21 +1,16 @@
+import "../object/extensions"
 import "../utils"
+import { StackFrame } from "../utils"
 import { ICallRecord } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
-import { IEvent } from "./event"
-import { lines, rankLongestPath, structureLayout, indexedBy } from "./graphutils"
 import { AddEvent, AddObservable, AddStackFrame, AddSubscription, ICollector, instanceAddSubscription } from "./logger"
 import { RxFiddleNode } from "./node"
-import { Edge as GraphEdge, Graph, alg, json } from "graphlib"
 import TypedGraph from "./typedgraph"
-import * as snabbdom from "snabbdom"
-import { VNode } from "snabbdom"
-import * as _ from "lodash"
-import "../utils"
-import { StackFrame } from "../utils";
-import "../object/extensions"
+import { Edge as GraphEdge, Graph, alg } from "graphlib"
 
+/* tslint:disable:max-line-length */
 /* tslint:disable:no-var-requires */
-const dagre = require("dagre")
+// const dagre = require("dagre")
 // const ErrorStackParser = require("error-stack-parser")
 /* tslint:enable:no-var-requires */
 
@@ -56,37 +51,24 @@ export class Grapher {
 
   public edges: RxFiddleEdge[] = []
   public nodes: RxFiddleNode[] = []
-  public g = new TypedGraph<RxFiddleNode,RxFiddleEdge>("g", { compound: true, multigraph: true })
-  public dag = new TypedGraph<RxFiddleNode,RxFiddleEdge>("dag", { compound: true, multigraph: true })
-  public combined = new TypedGraph<RxFiddleNode,undefined>("combined", { compound: true, multigraph: true })
+  public g = new TypedGraph<RxFiddleNode, RxFiddleEdge>("g", { compound: true, multigraph: true })
+  public dag = new TypedGraph<RxFiddleNode, RxFiddleEdge>("dag", { compound: true, multigraph: true })
+  public combined = new TypedGraph<RxFiddleNode, undefined>("combined", { compound: true, multigraph: true })
   public metroLines: { [sink: number]: number[] } = {}
   public svgZoomInstance: { destroy(): void } | null = null
-  private codePathGraph = new TypedGraph<Node,undefined>()
 
-  public leveledGraph = new TypedGraph<Leveled<(StackFrame|AddObservable|AddSubscription)>, LayerCrossingEdge|ShadowEdge|undefined>()
+  public leveledGraph = new TypedGraph<Leveled<(StackFrame | AddObservable | AddSubscription)>, LayerCrossingEdge | ShadowEdge | undefined>()
 
   private collector: ICollector
+  private processed = 0
 
   constructor(collector: ICollector) {
     this.g.setGraph({})
     this.collector = collector
-    ;(window as any)["leveledGraph"] = this.leveledGraph
-    ;(window as any)["json"] = json
   }
 
   public structureDag(): Graph {
     return this.g.filterEdges((_: GraphEdge, obj: RxFiddleEdge) => obj.type === "structure")
-  }
-
-  private incrementDown(from: number, to: number) {
-    if(typeof from === "undefined" || typeof to === "undefined") { return }
-    
-    let edge: ShadowEdge = this.leveledGraph.edge(`${from}`, `${to}`) as ShadowEdge
-    if(typeof edge === "undefined") {
-      edge = { shadow: true, count: 0 }
-      this.leveledGraph.setEdge(`${from}`, `${to}`, edge)
-    }
-    edge.count = typeof edge.count === "number" ? edge.count + 1 : 1 
   }
 
   public handleLogEntry(el: any) {
@@ -97,12 +79,12 @@ export class Grapher {
 
     if (el instanceof AddStackFrame) {
       this.leveledGraph.setNode(`${el.id}`, {
+        hierarchicOrder: [],
         id: `${el.id}`,
         level: "code",
         payload: el.stackframe,
-        hierarchicOrder: [],
       })
-      if(typeof el.parent !== "undefined") {
+      if (typeof el.parent !== "undefined") {
         let parent = this.collector.getStack(el.parent)
         this.handleLogEntry(parent)
         this.leveledGraph.setEdge(`${parent.id}`, `${el.id}`)
@@ -112,7 +94,7 @@ export class Grapher {
     //
     // Observable
     //
-    
+
     if (el instanceof AddObservable) {
       if (typeof el.callParent !== "undefined") {
         // continue
@@ -124,20 +106,20 @@ export class Grapher {
       ))
 
       this.leveledGraph.setNode(`${el.id}`, {
+        hierarchicOrder: [el.stack],
         id: `${el.id}`,
         level: "observable",
         payload: el,
-        hierarchicOrder: [el.stack]
       })
-      if(typeof el.stack !== "undefined") {
+      if (typeof el.stack !== "undefined") {
         this.leveledGraph.setEdge(`${el.stack}`, `${el.id}`, {
+          lower: "observable",
           upper: "code",
-          lower: "observable"
         })
       }
 
       node.addObservable(el)
-      
+
       for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
         let edge = new RxFiddleEdge(
           this.nodes[p], this.nodes[el.id],
@@ -149,16 +131,17 @@ export class Grapher {
         this.leveledGraph.setEdge(`${p}`, `${el.id}`)
 
         let parent = this.collector.getObservable(p)
-        if(typeof parent.stack !== "undefined" && typeof el.stack !== "undefined")
-        this.incrementDown(parent.stack, el.stack)
+        if (typeof parent.stack !== "undefined" && typeof el.stack !== "undefined") {
+          this.incrementDown(parent.stack, el.stack)
+        }
       }
 
     }
-    
+
     //
     // Subscription
     //
-    
+
     if (instanceAddSubscription(el) && typeof this.nodes[(el as AddSubscription).observableId] !== "undefined") {
       let adds: AddSubscription = (el as AddSubscription)
 
@@ -177,26 +160,26 @@ export class Grapher {
       } else {
         this.metroLines[adds.id] = [adds.id]
       }
-      
+
       this.leveledGraph.setNode(`${el.id}`, {
+        hierarchicOrder: [
+          this.collector.getObservable(adds.observableId).stack,
+          adds.observableId,
+        ],
         id: `${el.id}`,
         level: "subscription",
         payload: el,
-        hierarchicOrder: [
-          this.collector.getObservable(adds.observableId).stack, 
-          adds.observableId
-        ],
       })
       this.leveledGraph.setEdge(`${adds.observableId}`, `${adds.id}`, {
+        lower: "subscription",
         upper: "observable",
-        lower: "subscription"
       })
 
       adds.sinks.forEach((sinkId) => {
         let to = this.collector.getSubscription(sinkId).observableId
         let toNode = this.nodes[this.collector.getSubscription(sinkId).observableId]
-        
-        if(!this.edgeExists(from, to)) {
+
+        if (!this.edgeExists(from, to)) {
           this.setEdge(to, from, new RxFiddleEdge(node, toNode, "subscription", {
             dashed: true,
             stroke: "blue",
@@ -218,7 +201,7 @@ export class Grapher {
         let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId]
         this.setEdge(toId, from, new RxFiddleEdge(to, node, "higherorder", {
           dashed: true,
-          "marker-end": "url(#arrow)"
+          "marker-end": "url(#arrow)",
         }))
 
         this.leveledGraph.setEdge(`${adds.scopeId}`, `${adds.id}`)
@@ -241,8 +224,6 @@ export class Grapher {
       }
     }
   }
-
-  private processed = 0
 
   public process(): number {
     this.g.graph().ranker = "tight-tree"
@@ -281,7 +262,7 @@ export class Grapher {
       this.dag.setNode(to.toString(10), edge.to)
       this.dag.setEdge(from.toString(10), to.toString(10), edge)
     }
-    
+
     this.g.setEdge(`${from}`, `${to}`, edge)
     this.edges.push(edge)
   }
@@ -299,4 +280,16 @@ export class Grapher {
   public node(label: string | number): RxFiddleNode | undefined {
     return this.nodes[typeof label === "number" ? label : parseInt(label, 10)]
   }
+
+  private incrementDown(from: number, to: number) {
+    if (typeof from === "undefined" || typeof to === "undefined") { return }
+
+    let edge: ShadowEdge = this.leveledGraph.edge(`${from}`, `${to}`) as ShadowEdge
+    if (typeof edge === "undefined") {
+      edge = { count: 0, shadow: true }
+      this.leveledGraph.setEdge(`${from}`, `${to}`, edge)
+    }
+    edge.count = typeof edge.count === "number" ? edge.count + 1 : 1
+  }
+
 }

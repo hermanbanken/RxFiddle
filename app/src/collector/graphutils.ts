@@ -1,7 +1,7 @@
 import "../utils"
-import { Edge as GraphEdge, Graph, alg } from "graphlib"
-import * as _ from "lodash"
 import TypedGraph from "./typedgraph"
+import { Edge as GraphEdge, Graph } from "graphlib"
+import * as _ from "lodash"
 
 const TRACE = false
 function trace(...args: any[]) {
@@ -169,7 +169,7 @@ export type InGraph<V extends Hierarchy & Fixable, E> = TypedGraph<V, E>
 
 // TODO make it online
 export function structureLayout<V extends Hierarchy & Fixable & Ranked, E>(g: InGraph<V, E>): LayouterOutput<Label> {
-  let ranks = <{ [id: string]: number }>{}
+  let ranks = {} as { [id: string]: number }
   g.nodes().map(n => {
     ranks[n] = g.node(n).rank
   })
