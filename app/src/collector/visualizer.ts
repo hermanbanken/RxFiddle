@@ -1,4 +1,5 @@
 import { generateColors } from "../color"
+import layoutf from "../layout/layout"
 import "../object/extensions"
 import "../utils"
 import { StackFrame } from "../utils"
@@ -31,7 +32,7 @@ const patch = snabbdom.init([
 
 const colors = generateColors(40)
 function colorIndex(i: number) {
-  if (typeof i === "undefined") { return "transparent" }
+  if (typeof i === "undefined" || isNaN(i)) { return "transparent" }
   let [r, g, b] = colors[i % colors.length]
   return `rgb(${r},${g},${b})`
 }
@@ -328,17 +329,18 @@ class StructureGraph {
     let u = StructureGraph.chunk;
     (window as any).renderSvgGraph = graph
 
-    let ranked = rankLongestPathGraph(graph
-      // .filterEdges(v => v.w < v.v)
-      .filterNodes((_, n) => n.level === "observable")
-    )
-    let rootLayout = structureLayout(ranked)
-    let fullLayout = rootLayout.layout //this.superImpose(rootLayout, graph)
+    let layout = layoutf(graph)
 
+    // commented 2017-01-13 friday 9:50 
+    // let ranked = rankLongestPathGraph(graph
+    //   // .filterEdges(v => v.w < v.v)
+    //   .filterNodes((_, n) => n.level === "observable")
+    // )
+    // let rootLayout = structureLayout(ranked)
+    // let fullLayout = rootLayout.layout //this.superImpose(rootLayout, graph)
     let g = graph
       .filterEdges(v => v.w < v.v)
       .filterNodes((_, n) => n.level === "subscription") as TypedGraph<Leveled<AddSubscription> & Ranked, ShadowEdge>
-
     let mapX = (x: number, y: number) => x // y > 14 ? x - 5 * (y - 14) : x
 
     let mu = u / 2
@@ -347,14 +349,14 @@ class StructureGraph {
     // g.nodes().forEach(n => g.node(n).rank = ranked.node(g.node(n).payload.observableId.toString(10)).rank)
 
     // let structure = structureLayout(g)
-    let structureIndex = indexedBy(i => i.node, fullLayout)
-    let nodes = fullLayout/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
+    let structureIndex = indexedBy(i => i.id, layout.nodes)
+    let nodes = layout.nodes/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
       return [h("circle", {
         attrs: {
           cx: mu + mu * mapX(item.x, item.y),
           cy: mu + mu * item.y,
-          fill: colorIndex(parseInt(item.node, 10)),
-          r: item.isDummy ? 2 : 5
+          fill: colorIndex(parseInt(item.id, 10)),
+          r: 5
         },
         on: {
           click: () => console.log(item),
@@ -364,9 +366,11 @@ class StructureGraph {
           x: mu + mu * mapX(item.x, item.y) + 10,
           y: mu + mu * item.y + 5,
         },
-      }, item.isDummy ? "" : `${item.node} ${JSON.stringify(graph.node(item.node))}`)]
+      } // ,`${item.id} ${JSON.stringify(graph.node(item.id))}`
+      ),
+      ]
     })
-    let edges = rootLayout.edges.flatMap(({ v, w, points }) => {
+    let edges = layout.edges.flatMap(({ v, w, points }) => {
       let path = points.map(({x, y}) => `${mu + mu * mapX(x, y)} ${mu + mu * y}`).join(" L ")
       return h("path", {
         attrs: {
@@ -379,12 +383,12 @@ class StructureGraph {
       })
     })
 
-    let xmax = fullLayout.reduce((p, n) => Math.max(p, n.x), 0)
+    let xmax = layout.nodes.reduce((p, n) => Math.max(p, n.x), 0)
 
     return [h("svg", {
       attrs: {
         id: "structure",
-        style: `width: ${xmax * u}px; height: ${u * (0.5 + fullLayout.length)}px`,
+        style: `width: ${xmax * u}px; height: ${u * (0.5 + layout.nodes.length)}px`,
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },

@@ -24,7 +24,7 @@ export function takeWhile<T>(list: T[], pred: (item: T) => boolean) {
   return ret
 }
 
-function range(start: number, exclusiveEnd: number): number[] {
+export function range(start: number, exclusiveEnd: number): number[] {
   let r: number[] = []
   for (let i = start; i < exclusiveEnd; i++) {
     r.push(i)
@@ -504,7 +504,7 @@ export function mapFilter<T, V>(list: T[], f: (item: T, index: number, list: T[]
   return list.map(f).filter(v => typeof v !== "undefined")
 }
 
-export function toDot<T>(graph: Graph, props?: (n: T) => any): string {
+export function toDot<T>(graph: Graph, props?: (n: T) => any, edgeProps?: (e: GraphEdge) => any): string {
   return "graph g {\n" +
     "node [style=filled];\n" +
     graph.nodes().map((n: any) => {
@@ -515,8 +515,13 @@ export function toDot<T>(graph: Graph, props?: (n: T) => any): string {
       }
       return `"${n}";`
     }).join("\n") +
-    graph.edges().map((e: GraphEdge) =>
-      e.v + " -- " + e.w + " [type=s];"
-    ).join("\n") +
+    graph.edges().map((e: GraphEdge) => {
+      if (edgeProps) {
+        let data = edgeProps(e)
+        let query = Object.keys(data).map(k => `${k}="${data[k]}"`).join(", ")
+        return `${e.v} -- ${e.w} [${query}];`
+      }
+      return e.v + " -- " + e.w + " [type=s];"
+    }).join("\n") +
     "\n}"
 }

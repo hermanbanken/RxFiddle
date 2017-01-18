@@ -3,6 +3,7 @@ import { Graph } from "graphlib"
 
 export function wmedian(ranks: string[][], g: Graph, dir: Direction): void {
   foreachTuple(dir, ranks, (row, ref, rowIndex) => {
+    // Gather position of connected nodes per edge
     let indices = edges(g, dir, row).reduce((store, e) => {
       let index = ref.indexOf(dir === "down" ? e.v : e.w)
       if (index >= 0) {
@@ -12,7 +13,9 @@ export function wmedian(ranks: string[][], g: Graph, dir: Direction): void {
       }
       return store
     }, {} as { [node: string]: number[] })
-
+    // Don't forget unconnected - sad lonely - nodes :(
+    row.forEach(n => indices[n] = indices[n] || [])
+    // Sort by median and update
     let sortable = Object.keys(indices).map((n: string) => ({ n, median: median(indices[n]) }))
     ranks[rowIndex] = sortable.sort((a, b) => {
       if (a.median < 0 || b.median < 0) { return 0 }

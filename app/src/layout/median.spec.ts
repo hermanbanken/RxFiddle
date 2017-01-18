@@ -51,6 +51,30 @@ export default class MedianSpec {
   }
 
   @test
+  public "test disconnected"() {
+    ///   -----a-----b----
+    ///        |     |
+    ///   -----c-----d----
+    ///        |     x
+    ///   -----e-----f----
+    ///        |     |
+    ///   -----g-----h----
+
+    let g = asGraph([
+      { v: "a", w: "c" },
+      { v: "b", w: "d" },
+      { v: "c", w: "e" },
+      { v: "e", w: "g" },
+      { v: "f", w: "h" },
+    ])
+    let i = [["c", "d"], ["e", "f"]]
+    let e = i.map(ii => ii.slice(0))
+
+    wmedian(i, g, "down")
+    expect(i).to.deep.eq(e)
+  }
+
+  @test
   public "test simple"() {
     ///   -----c-----d----
     ///        | \ / |

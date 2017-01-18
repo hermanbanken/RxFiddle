@@ -27,6 +27,7 @@ export function ordering(order: string[][], g: Graph): string[][] {
       bestCrossings = crossings
     }
   }
+
   update(order)
 
   for (let i = 0; i < 20; i++) {

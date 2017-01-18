@@ -7,7 +7,11 @@ export function crossings(vRow: string[], wRow: string[], edges: Edge[]) {
       v: vRow.indexOf(e.v),
       w: wRow.indexOf(e.w),
     }
-    if (m.v < 0 || m.w < 0) { throw new Error(`Invalid edge <${e.v},${e.w}>`) }
+    if (m.v < 0 || m.w < 0) {
+      throw new Error(`Invalid edge <${e.v},${e.w}>; looking in 
+      vRow: ${vRow},\nwRow: ${wRow}, 
+      edges: ${edges.map(v => `${e.v}-${e.w}`).join(",")}`)
+    }
     return m
   }).sort((a, b) => a.v - b.v)
 
@@ -30,8 +34,14 @@ export function crossings(vRow: string[], wRow: string[], edges: Edge[]) {
 export function order_crossings(order: string[][], g: Graph): number {
   let count = 0
   foreachTuple("down", order, (row, ref) => {
+    // console.log("foreachTuple", order, row, ref)
     let es: { v: string, w: string }[] = flip(edges(g, "down", row))
-    count += crossings(row, ref, es)
+    try {
+      count += crossings(row, ref, es)
+    } catch (e) {
+      console.log("Error in down sweep of ordering:\n", order.map(r => r.join(", ")).join("\n"), g)
+      throw e
+    }
   })
   return count
 }
