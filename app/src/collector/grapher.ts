@@ -284,12 +284,12 @@ export class Grapher {
   private incrementDown(from: number, to: number) {
     if (typeof from === "undefined" || typeof to === "undefined") { return }
 
-    let edge: ShadowEdge = this.leveledGraph.edge(`${from}`, `${to}`) as ShadowEdge
-    if (typeof edge === "undefined") {
-      edge = { count: 0, shadow: true }
-      this.leveledGraph.setEdge(`${from}`, `${to}`, edge)
-    }
-    edge.count = typeof edge.count === "number" ? edge.count + 1 : 1
+    // let edge: ShadowEdge = this.leveledGraph.edge(`${from}`, `${to}`) as ShadowEdge
+    // if (typeof edge === "undefined") {
+    //   edge = { count: 0, shadow: true }
+    //   this.leveledGraph.setEdge(`${from}`, `${to}`, edge)
+    // }
+    // edge.count = typeof edge.count === "number" ? edge.count + 1 : 1
   }
 
 }

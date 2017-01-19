@@ -1,5 +1,5 @@
 import { LayerCrossingEdge, Leveled, ShadowEdge } from "../collector/grapher"
-import { rankLongestPathGraph, indexedBy } from "../collector/graphutils"
+import { rankLongestPathGraph, rankLongestPath, indexedBy } from "../collector/graphutils"
 import { AddObservable, AddSubscription } from "../collector/logger"
 import TypedGraph from "../collector/typedgraph"
 import { normalize, denormalize, DummyEdge } from "../layout/normalize"
@@ -12,70 +12,131 @@ import "../utils"
 export default function layout(graph: TypedGraph<
   Leveled<(StackFrame | AddObservable | AddSubscription)>,
   LayerCrossingEdge | ShadowEdge | undefined
-  >) {
+  >): {
+    edges: { points: [{ x: number, y: number }], v: string, w: string }[],
+    nodes: { id: string, x: number, y: number }[]
+  }[] {
 
   let observables = graph.filterNodes((_, n) => n.level === "observable")
   let ranked = normalize(rankLongestPathGraph(observables), v => ({ rank: v.rank }))
+
   let byRank = [] as string[][]
   ranked.nodes().forEach((n: string) => {
     let rank = ranked.node(n).rank
     byRank[-rank] = (byRank[-rank] || []).concat([n])
-  })
+  });
 
-  let ord = ordering(Object.values(byRank).reverse(), ranked.flatMap(
+  let initialOrd = Object.values(byRank).reverse()
+  let rankedAndEdgeFixed = ranked.flatMap(
     (id, label) => [{ id, label }],
     (id, label) => [{ id: ranked.node(id.v).rank < ranked.node(id.w).rank ? id : { v: id.w, w: id.v }, label }]
-  ))
-  console.log("ordening", ord)
-  // throw new Error("abort")
+  )
+
+  // Observable layout
+  let ord = ordering(initialOrd, rankedAndEdgeFixed)
+
+  // Subscription layout
+  let subscriptions = graph.filterNodes(n => graph.node(n).level === "subscription")
+  ord.map(row => row.flatMap(n => {
+    let subs = (graph.inEdges(n) || []).filter(test(graph, e => "upper" in e)).map(e => e.v)
+    return [n].concat(subs)
+  }))
+
 
   let layout = priorityLayout(ord, ranked)
   let byId = indexedBy(n => n.id, layout)
 
-  let edges = ranked.edges().map(e => ranked.edge(e)).filter(e => e.index === 0).map(e => ({
-    points: e.nodes.map(n => byId[n]).map(({ x, y }) => ({ x, y })),
-    v: e.nodes[0],
-    w: e.nodes[e.nodes.length - 1],
-  }))
+  type Expanded = { original: any, index: number, nodes: string[] }
+  function fullEdge(v: string, w: string, edgeLookup: (v: string, w: string) => Expanded, lookup: (id: string) => { x: number, y: number }) {
+    let e = edgeLookup(v, w)
+    if (typeof e === "undefined" || e.index > 0) {
+      return undefined
+    }
+    return ({
+      points: e.nodes.map(lookup),
+      v: e.nodes[0],
+      w: e.nodes[e.nodes.length - 1],
+    })
+  }
 
-  debugger
-  // console.log(layout)
+  let edges = ranked.edges()
+    .map(e => fullEdge(e.v, e.w, (v, w) => ranked.edge(v, w), n => byId[n]))
+    .filter(v => typeof v !== "undefined");
 
-  // console.log(ranked.toDot())
+  (window as any).graph = graph;
+  (window as any).ranked = ranked;
 
-  /*
-    // Convert dummy paths back to full paths
-    let index = indexedBy(i => i.node, layout)
-    let edges = g.edges().map(({v, w}) => {
-      let mids: { x: number, y: number }[]
-      if (ranks[v] + 1 < ranks[w]) {
-        mids = range(ranks[v] + 1, ranks[w]).map(i => `dummy-${v}-${w}(${i})`)
-          .map(k => index[k])
-          .map(({x, y}) => ({ x, y }))
-      } else {
-        mids = []
-      }
+  // var s = (window as any).s = ranked.flatMap(
+  //   (id, label) => graph.inEdges(id)
+  //     .filter(e => "upper" in graph.edge(e))
+  //     .map(e => ({ id: e.v, label: graph.node(e.v) })),
+  //   (id, label) => graph.inEdges(id.v)
+  //     .filter(e => "lower" in graph.edge(e))
+  //     .flatMap(e => graph.outEdges(e.v))
+  //     .map(e => ({ id: e, label: graph.edge(e) }))
+  // )
+
+  function offsetX(index: number, total: number): number {
+    let width = 0.1
+    let left = total * width / -2 + width / 2
+    return left + index * width
+  }
+
+  let level2nodes = layout.flatMap(({ x, y, id }) => (graph.outEdges(id) || [])
+    .filter(test(graph, e => e && "lower" in e && (e as LayerCrossingEdge).lower === "subscription"))
+    .map(e => e.w)
+    .map((w, index, list) => ({
+      x, y,
+      id: w,
+      origin: id,
+      index,
+      total: list.length,
+    }))
+  )
+  let level2byId = indexedBy(i => i.id, level2nodes)
+  let level2edges = graph.edges().filter(e => e.v in level2byId && e.w in level2byId).map(e => {
+    let vo = level2byId[e.v].origin
+    let wo = level2byId[e.w].origin
+    let fe = fullEdge(vo, wo, (v, w) => {
+      return ranked.edge(v, w)
+      // edges.find(e => e.v === v && e.w === w)
+      // if (typeof e === "undefined" || e.index > 0) {
+      //   let full = g.nodeEdges(v, w).find(id => {
+      //     let nodes = g.edge(id).nodes
+      //     return nodes[0] === v && nodes[nodes.length - 1] === w
+      //   })
+      //   if (full)
+      //     return undefined
+      // }
+    }, n => {
+      let level2node = level2byId[vo === n ? e.v : e.w]
       return {
-        v, w,
-        points: [
-          { x: index[v].x, y: index[v].y },
-          ...mids,
-          { x: index[w].x, y: index[w].y },
-        ],
+        x: level2node.x + offsetX(level2node.index, level2node.total),
+        y: level2node.y,
       }
     })
-  
-    return {
-      graph: normalized,
-      layout: layout.filter(v => !v.isDummy),
-      edges,
-    }
-  */
 
-  return {
-    edges: edges as { points: [{ x: number, y: number }], v: string, w: string }[],
-    nodes: layout,
-  }
+    if (typeof fe !== "undefined") {
+      return fe
+    } else {
+      return {
+        points: [byId[vo], byId[wo]],
+        v: e.v,
+        w: e.w,
+      }
+    }
+  })
+
+  return [
+    {
+      edges: edges as { points: [{ x: number, y: number }], v: string, w: string }[],
+      nodes: layout,
+    },
+    {
+      edges: level2edges as { points: [{ x: number, y: number }], v: string, w: string }[],
+      nodes: level2nodes,
+    },
+  ]
 
   // TODO:
   // get <rows> containing node ids
@@ -87,3 +148,12 @@ export default function layout(graph: TypedGraph<
   // profit
 }
 
+function test<T, E>(graph: TypedGraph<T, E>, test: (item: E) => boolean): (e: { v: string, w: string }) => boolean {
+  return (e) => {
+    let label = graph.edge(e)
+    if (typeof label === "undefined") {
+      return false
+    }
+    return test(label)
+  }
+}

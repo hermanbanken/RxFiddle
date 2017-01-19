@@ -208,6 +208,11 @@ export default class Collector implements RxCollector, ICollector {
       case "event":
         let sid = this.id(record.subject).get()
 
+        if (this.getObservable(sid)) {
+          console.log("Subject", this.getObservable(sid), "found", "subs:", this.data.filter(e => sid === (e as any).observableId))
+          sid = (this.data.filter(e => sid === (e as any).observableId)[0] as any).id
+        }
+
         let event = Event.fromRecord(record)
         if (event && event.type === "subscribe" || typeof event === "undefined") {
           return
@@ -331,7 +336,7 @@ export default class Collector implements RxCollector, ICollector {
     }, undefined)
   }
 
-  private observableForObserver(observer: Rx.Observer<any>): AddObservable  | undefined {
+  private observableForObserver(observer: Rx.Observer<any>): AddObservable | undefined {
     let id = this.id(observer).get()
     if (typeof id === "undefined") { return }
     let node = this.getSubscription(id)

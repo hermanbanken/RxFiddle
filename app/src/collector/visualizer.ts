@@ -72,6 +72,7 @@ export interface RxCollector {
 export class Visualizer {
   public metroLines: { [sink: number]: number[] } = {}
   public svgZoomInstance: { destroy(): void } | null = null
+  public collector: ICollector
 
   private showIdsBacking = false
   public get showIds() {
@@ -92,12 +93,12 @@ export class Visualizer {
     this.run()
   }
 
+
   private choices: string[] = []
 
   private app: HTMLElement | VNode
   private controls: HTMLElement | VNode
   private rendered: number = 0
-  private collector: ICollector
 
   private grapher: Grapher
 
@@ -203,7 +204,7 @@ export class Visualizer {
       this.size(graph)
     }
 
-    let sg = new StructureGraph()
+    let sg = new StructureGraph(this)
 
     let svg = sg.renderSvg(
       this.grapher.leveledGraph,
@@ -302,6 +303,12 @@ class StructureGraph {
 
   public static chunk: number = 100
 
+  public visualizer: Visualizer
+  constructor(visualizer: Visualizer) {
+    // intentionally left blank
+    this.visualizer = visualizer
+  }
+
   public renderMarbles(graph: Graph, choices: string[]): VNode[] {
     let coordinator = new MarbleCoordinator()
     let u = StructureGraph.chunk
@@ -331,6 +338,34 @@ class StructureGraph {
 
     let layout = layoutf(graph)
 
+    let styles = [{}, {}]
+    let mapX = (x: number, y: number) => x // y > 14 ? x - 5 * (y - 14) : x
+    let mu = u / 2
+
+    let elements = layout.flatMap((level, levelIndex) => {
+      let nodes = level.nodes.map(item => h("circle", {
+        attrs: {
+          cx: mu + mu * mapX(item.x, item.y),
+          cy: mu + mu * item.y,
+          fill: colorIndex(parseInt(item.id, 10)),
+          r: 5
+        },
+      }))
+      let edges = level.edges.map(({ v, w, points }) => {
+        let path = points.map(({x, y}) => `${mu + mu * mapX(x, y)} ${mu + mu * y}`).join(" L ")
+        return h("path", {
+          attrs: {
+            d: `M${path}`,
+            stroke: levelIndex === 0 ? "rgba(0,0,0,0.1)" : "gray",
+            // "stroke-dasharray": 5,
+            "stroke-width": levelIndex === 0 ? 10 : 1,
+          },
+          on: { mouseover: () => console.log(graph.edge(v, w)) },
+        })
+      })
+      return edges.concat(nodes)
+    })
+
     // commented 2017-01-13 friday 9:50 
     // let ranked = rankLongestPathGraph(graph
     //   // .filterEdges(v => v.w < v.v)
@@ -341,58 +376,19 @@ class StructureGraph {
     let g = graph
       .filterEdges(v => v.w < v.v)
       .filterNodes((_, n) => n.level === "subscription") as TypedGraph<Leveled<AddSubscription> & Ranked, ShadowEdge>
-    let mapX = (x: number, y: number) => x // y > 14 ? x - 5 * (y - 14) : x
 
-    let mu = u / 2
-
-    // Let Observables determine ranking
-    // g.nodes().forEach(n => g.node(n).rank = ranked.node(g.node(n).payload.observableId.toString(10)).rank)
-
-    // let structure = structureLayout(g)
-    let structureIndex = indexedBy(i => i.id, layout.nodes)
-    let nodes = layout.nodes/*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
-      return [h("circle", {
-        attrs: {
-          cx: mu + mu * mapX(item.x, item.y),
-          cy: mu + mu * item.y,
-          fill: colorIndex(parseInt(item.id, 10)),
-          r: 5
-        },
-        on: {
-          click: () => console.log(item),
-        },
-      }), h("text", {
-        attrs: {
-          x: mu + mu * mapX(item.x, item.y) + 10,
-          y: mu + mu * item.y + 5,
-        },
-      } // ,`${item.id} ${JSON.stringify(graph.node(item.id))}`
-      ),
-      ]
-    })
-    let edges = layout.edges.flatMap(({ v, w, points }) => {
-      let path = points.map(({x, y}) => `${mu + mu * mapX(x, y)} ${mu + mu * y}`).join(" L ")
-      return h("path", {
-        attrs: {
-          d: `M${path}`,
-          stroke: "gray",
-          "stroke-dasharray": 5,
-          "stroke-width": g.edge(v, w) && g.edge(v, w).count * 4 || 4
-        },
-        on: { mouseover: () => console.log(graph.edge(v, w)) },
-      })
-    })
-
-    let xmax = layout.nodes.reduce((p, n) => Math.max(p, n.x), 0)
+    let xmax = layout
+      .flatMap(level => level.nodes)
+      .reduce((p: number, n: { x: number }) => Math.max(p, n.x), 0) as number
 
     return [h("svg", {
       attrs: {
         id: "structure",
-        style: `width: ${xmax * u}px; height: ${u * (0.5 + layout.nodes.length)}px`,
+        style: `width: ${xmax * u}px; height: ${u * (0.5 + elements.length)}px`,
         version: "1.1",
         xmlns: "http://www.w3.org/2000/svg",
       },
-    }, edges.concat(nodes))]
+    }, elements)]
   }
 
   private superImpose(root: LayouterOutput<string>, g: TypedGraph<
