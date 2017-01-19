@@ -1,10 +1,8 @@
-import { InstrumentationTest } from "./instrumentationTest"
-import { assert, expect, use as chaiUse } from "chai"
-import { suite, test } from "mocha-typescript"
-import { Graph } from "graphlib"
-import * as Rx from "rx"
-import { structureLayout, LayoutItem, priorityLayoutAlign, rankLongestPathGraph } from "../src/collector/graphutils"
+import { LayoutItem, priorityLayoutAlign, rankLongestPathGraph, structureLayout } from "../src/collector/graphutils"
 import TypedGraph from "../src/collector/typedgraph"
+import { InstrumentationTest } from "./instrumentationTest"
+import { assert, expect } from "chai"
+import { suite, test } from "mocha-typescript"
 
 function deepCover(actual: any, expected: any, message: string = "__root__") {
   let errors: Error[] = []
@@ -12,26 +10,26 @@ function deepCover(actual: any, expected: any, message: string = "__root__") {
     expect(typeof actual).to.be.equal("object")
     for (let key in expected) {
       try {
-        deepCover(actual[key], expected[key], message+`[${key}]`)
-      } catch(e) {
+        deepCover(actual[key], expected[key], message + `[${key}]`)
+      } catch (e) {
         errors.push(e)
       }
     }
-    if(errors.length) {
+    if (errors.length) {
       console.log("20", errors)
       assert.fail(actual, expected, errors.join("\n"))
     }
   }
-  else if(typeof expected === "object") {
+  else if (typeof expected === "object") {
     expect(actual).to.be.instanceof(Array)
     expected.forEach((e: any, index: number) => {
       try {
-        deepCover(actual[index], e, message+`[${index}]`)
-      } catch(e) {
+        deepCover(actual[index], e, message + `[${index}]`)
+      } catch (e) {
         errors.push(e)
       }
     })
-    if(errors.length) {
+    if (errors.length) {
       console.log("34", errors)
       assert.fail(actual, expected, errors.join("\n"))
     }
@@ -47,7 +45,7 @@ function deepCover(actual: any, expected: any, message: string = "__root__") {
 
 //     return function (expected: any) {
 //       let actual = this._obj;
-      
+
 //       let match = (actual: any, expected: any) => {
 //         if (typeof expected === "object" && !Array.isArray(expected)) {
 //           this.expect(typeof actual).to.be.equal("object")
@@ -91,7 +89,7 @@ export class LayoutTest extends InstrumentationTest {
     //   |\
     //   c d
     // 
-    let g = new TypedGraph<string,any>()
+    let g = new TypedGraph<string, any>()
     g.setNode("a", "a")
     g.setNode("b", "b")
     g.setNode("c", "e")
@@ -100,16 +98,16 @@ export class LayoutTest extends InstrumentationTest {
     g.setEdge("b", "c", {})
     g.setEdge("b", "d", {})
 
-    let f = g.flatMap((id, l) => [{id, label: { hierarchicOrder: [] }}], (id, label) => [{ id, label }])
+    let f = g.flatMap((id, l) => [{ id, label: { hierarchicOrder: [] } }], (id, label) => [{ id, label }])
 
     let lines = [["a", "b", "d"], ["a", "b", "c"]]
 
-    let actual = structureLayout(rankLongestPathGraph(f)).layout.sort((a,b) => a.node.localeCompare(b.node))
+    let actual = structureLayout(rankLongestPathGraph(f)).layout.sort((a, b) => a.node.localeCompare(b.node))
     let expected = [
-      { node: "a", x: 1, y: 0, }, // lines: [0, 1], relative: [] },
-      { node: "b", x: 1, y: 1, }, // lines: [0, 1], relative: ["a"] },
-      { node: "c", x: 0, y: 2, }, // lines: [1], relative: ["b"] },
-      { node: "d", x: 1, y: 2, }, // lines: [0], relative: ["b"] },
+      { node: "a" /*, x: 1, y: 0,*/ }, // lines: [0, 1], relative: [] },
+      { node: "b" /*, x: 1, y: 1,*/ }, // lines: [0, 1], relative: ["a"] },
+      { node: "c" /*, x: 0, y: 2,*/ }, // lines: [1], relative: ["b"] },
+      { node: "d" /*, x: 1, y: 2,*/ }, // lines: [0], relative: ["b"] },
     ]
 
     deepCover(actual, expected)
@@ -126,7 +124,7 @@ export class LayoutTest extends InstrumentationTest {
     //   |\
     //   d c
     // 
-    let g = new TypedGraph<string,any>()
+    let g = new TypedGraph<string, any>()
     g.setNode("a", "a")
     g.setNode("b", "b")
     g.setNode("c", "e")
@@ -138,20 +136,20 @@ export class LayoutTest extends InstrumentationTest {
     g.setEdge("b", "d", {})
     g.setEdge("f", "e", {})
     g.setEdge("e", "b", {})
-    
+
     let lines = [["a", "b", "c"], ["f", "e", "b", "d"]]
 
-    let f = g.flatMap((id, l) => [{id, label: { hierarchicOrder: [] }}], (id, label) => [{ id, label }])
+    let f = g.flatMap((id, l) => [{ id, label: { hierarchicOrder: [] } }], (id, label) => [{ id, label }])
 
-    let actual = structureLayout(rankLongestPathGraph(f)).layout.sort((a,b) => a.node.localeCompare(b.node))
+    let actual = structureLayout(rankLongestPathGraph(f)).layout.sort((a, b) => a.node.localeCompare(b.node))
     let expected = [
-      { node: "f", x: 1, y: 0, }, // lines: [1], relative: [] },
-      { node: "e", x: 1, y: 1, }, // lines: [1], relative: ["f"] },
-      { node: "a", x: 0, y: 1, }, // lines: [0], relative: [] },
-      { node: "b", x: 1, y: 2, }, // lines: [0, 1], relative: ["a", "e"] },
-      { node: "c", x: 0, y: 3, }, // lines: [0], relative: ["b"] },
-      { node: "d", x: 1, y: 3, }, // lines: [1], relative: ["b"] },
-    ].sort((a,b) => a.node.localeCompare(b.node))
+      { node: "f" /*, x: 1, y: 0,*/ }, // lines: [1], relative: [] },
+      { node: "e" /*, x: 1, y: 1,*/ }, // lines: [1], relative: ["f"] },
+      { node: "a" /*, x: 0, y: 1,*/ }, // lines: [0], relative: [] },
+      { node: "b" /*, x: 1, y: 2,*/ }, // lines: [0, 1], relative: ["a", "e"] },
+      { node: "c" /*, x: 0, y: 3,*/ }, // lines: [0], relative: ["b"] },
+      { node: "d" /*, x: 1, y: 3,*/ }, // lines: [1], relative: ["b"] },
+    ].sort((a, b) => a.node.localeCompare(b.node))
 
     deepCover(actual, expected)
   }
@@ -169,7 +167,7 @@ export class LayoutTest extends InstrumentationTest {
 
     let row: (LayoutItem<string> & { priority: number })[] = [
       node("v1", 0, 2, 5, false),
-      node("v2", 1, 5,10, false),
+      node("v2", 1, 5, 10, false),
       node("v3", 2, 7, 3, false),
       node("v4", 3, 7, 2, false),
     ]
@@ -179,7 +177,7 @@ export class LayoutTest extends InstrumentationTest {
     expect(row.map(r => r.x)).to.deep.equal([2, 5, 7, 8])
     deepCover(row, [
       node("v1", 2, 2, 5, false),
-      node("v2", 5, 5,10, false),
+      node("v2", 5, 5, 10, false),
       node("v3", 7, 7, 3, false),
       node("v4", 8, 7, 2, false),
     ])
@@ -207,12 +205,12 @@ export class LayoutTest extends InstrumentationTest {
       [2, 4, 10, 8],
     ]
 
-    for(let prio of prios) {
+    for (let prio of prios) {
       let row: (LayoutItem<string> & { priority: number })[] = [
         node("v1", 2, 0, prio[0], false),
         node("v2", 5, 4, prio[1], false),
         node("v3", 7, 8, prio[2], false),
-        node("v4",13,12, prio[3], false),
+        node("v4", 13, 12, prio[3], false),
       ]
 
       priorityLayoutAlign(row)
@@ -221,7 +219,7 @@ export class LayoutTest extends InstrumentationTest {
         node("v1", 0, 0, prio[0], false),
         node("v2", 4, 4, prio[1], false),
         node("v3", 8, 8, prio[2], false),
-        node("v4",12,12, prio[3], false),
+        node("v4", 12, 12, prio[3], false),
       ])
     }
 

@@ -47,7 +47,11 @@ export default function layout(graph: TypedGraph<
   let byId = indexedBy(n => n.id, layout)
 
   type Expanded = { original: any, index: number, nodes: string[] }
-  function fullEdge(v: string, w: string, edgeLookup: (v: string, w: string) => Expanded, lookup: (id: string) => { x: number, y: number }) {
+  function fullEdge(
+    v: string, w: string,
+    edgeLookup: (v: string, w: string) => Expanded,
+    lookup: (id: string) => { x: number, y: number }
+  ) {
     let e = edgeLookup(v, w)
     if (typeof e === "undefined" || e.index > 0) {
       return undefined
@@ -55,7 +59,7 @@ export default function layout(graph: TypedGraph<
     return ({
       points: e.nodes.map(lookup),
       v: e.nodes[0],
-      w: e.nodes[e.nodes.length - 1],
+      w: last(e.nodes),
     })
   }
 
@@ -98,16 +102,9 @@ export default function layout(graph: TypedGraph<
     let vo = level2byId[e.v].origin
     let wo = level2byId[e.w].origin
     let fe = fullEdge(vo, wo, (v, w) => {
-      return ranked.edge(v, w)
-      // edges.find(e => e.v === v && e.w === w)
-      // if (typeof e === "undefined" || e.index > 0) {
-      //   let full = g.nodeEdges(v, w).find(id => {
-      //     let nodes = g.edge(id).nodes
-      //     return nodes[0] === v && nodes[nodes.length - 1] === w
-      //   })
-      //   if (full)
-      //     return undefined
-      // }
+      let firstTry = ranked.edge(v, w)
+      if (typeof firstTry !== "undefined") { return firstTry }
+      return ranked.nodeEdges(v).map(a => ranked.edge(a)).find(a => last(a.nodes) === w)
     }, n => {
       let level2node = level2byId[vo === n ? e.v : e.w]
       return {
@@ -156,4 +153,11 @@ function test<T, E>(graph: TypedGraph<T, E>, test: (item: E) => boolean): (e: { 
     }
     return test(label)
   }
+}
+
+function last<T>(list: T[]): T {
+  if (Array.isArray(list) && list.length > 0) {
+    return list[list.length - 1]
+  }
+  return undefined
 }

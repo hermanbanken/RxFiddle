@@ -30,7 +30,7 @@ export function ordering(order: string[][], g: Graph): string[][] {
 
   update(order)
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 40; i++) {
     wmedian(order, g, i % 2 === 0 ? "up" : "down")
     transpose(order, g, "down")
     update(order)

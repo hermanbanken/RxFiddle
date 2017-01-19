@@ -1,0 +1,732 @@
+[
+  {
+    "id": 0,
+    "parents": [],
+    "stack": 2,
+    "arguments": [
+      1,
+      2,
+      3
+    ],
+    "method": "of"
+  },
+  {
+    "id": 1,
+    "stackframe": {
+      "functionName": "run",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2699,
+      "columnNumber": 5,
+      "source": "    at run (http://localhost:8085/dist/main.bundle.js:2699:5)"
+    }
+  },
+  {
+    "id": 2,
+    "stackframe": {
+      "functionName": "a",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2626,
+      "columnNumber": 19,
+      "source": "    at a (http://localhost:8085/dist/main.bundle.js:2626:19)"
+    },
+    "parent": 1
+  },
+  {
+    "id": 3,
+    "parents": [
+      0
+    ],
+    "stack": 4,
+    "arguments": [
+      null
+    ],
+    "method": "map"
+  },
+  {
+    "id": 4,
+    "stackframe": {
+      "functionName": "a",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2627,
+      "columnNumber": 10,
+      "source": "    at a (http://localhost:8085/dist/main.bundle.js:2627:10)"
+    },
+    "parent": 1
+  },
+  {
+    "id": 5,
+    "parents": [
+      3
+    ],
+    "stack": 6,
+    "arguments": [
+      null
+    ],
+    "method": "groupBy"
+  },
+  {
+    "id": 6,
+    "stackframe": {
+      "functionName": "a",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2628,
+      "columnNumber": 10,
+      "source": "    at a (http://localhost:8085/dist/main.bundle.js:2628:10)"
+    },
+    "parent": 1
+  },
+  {
+    "id": 7,
+    "parents": [
+      5
+    ],
+    "stack": 8,
+    "arguments": [],
+    "method": "mergeAll"
+  },
+  {
+    "id": 8,
+    "stackframe": {
+      "functionName": "a",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 2629,
+      "columnNumber": 10,
+      "source": "    at a (http://localhost:8085/dist/main.bundle.js:2629:10)"
+    },
+    "parent": 1
+  },
+  {
+    "id": 9,
+    "sinks": [],
+    "observableId": 7
+  },
+  {
+    "id": 10,
+    "sinks": [
+      9
+    ],
+    "observableId": 5
+  },
+  {
+    "id": 11,
+    "sinks": [
+      10
+    ],
+    "observableId": 3
+  },
+  {
+    "id": 12,
+    "sinks": [
+      11
+    ],
+    "observableId": 0
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1514.595,
+      "value": 1
+    },
+    "subscription": 12
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1515.3550000000002,
+      "value": 1
+    },
+    "subscription": 11
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1516.1350000000002,
+      "value": {
+        "key": 1,
+        "underlyingObservable": {
+          "_m": {
+            "underlyingDisposable": {
+              "disposables": [],
+              "isDisposed": true,
+              "length": 0
+            },
+            "isDisposed": true,
+            "isPrimaryDisposed": true,
+            "count": 0
+          },
+          "_u": {
+            "isDisposed": false,
+            "isStopped": true,
+            "observers": [],
+            "hasError": false,
+            "__hash": 19
+          },
+          "__hash": 18
+        },
+        "__hash": 16
+      }
+    },
+    "subscription": 10
+  },
+  {
+    "id": 16,
+    "parents": [],
+    "method": "GroupedObservable"
+  },
+  {
+    "id": 17,
+    "sinks": [
+      9
+    ],
+    "observableId": 16
+  },
+  {
+    "id": 18,
+    "parents": [],
+    "method": "UnderlyingObservable"
+  },
+  {
+    "id": 19,
+    "parents": [],
+    "method": "Subject"
+  },
+  {
+    "id": 20,
+    "sinks": [
+      17
+    ],
+    "observableId": 19
+  },
+  {
+    "id": 21,
+    "parents": [],
+    "method": "NeverObservable"
+  },
+  {
+    "id": 22,
+    "parents": [
+      21
+    ],
+    "stack": 24,
+    "arguments": [
+      1
+    ],
+    "method": "take"
+  },
+  {
+    "id": 23,
+    "stackframe": {
+      "functionName": "AnonymousObserver.wrapper",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 1261,
+      "columnNumber": 33,
+      "source": "    at AnonymousObserver.wrapper (http://localhost:8085/dist/main.bundle.js:1261:33)"
+    }
+  },
+  {
+    "id": 24,
+    "stackframe": {
+      "functionName": "AnonymousObserver.<anonymous>",
+      "fileName": "http://localhost:8085/dist/main.bundle.js",
+      "lineNumber": 53254,
+      "columnNumber": 41,
+      "source": "    at AnonymousObserver.<anonymous> (http://localhost:8085/dist/main.bundle.js:53254:41)"
+    },
+    "parent": 23
+  },
+  {
+    "id": 25,
+    "sinks": [],
+    "observableId": 22
+  },
+  {
+    "id": 26,
+    "sinks": [
+      25
+    ],
+    "observableId": 21
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1518.96,
+      "value": 1
+    },
+    "subscription": 19
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1519.2850000000003,
+      "value": 1
+    },
+    "subscription": 17
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1519.635,
+      "value": 1
+    },
+    "subscription": 9
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1520.48,
+      "value": 2
+    },
+    "subscription": 12
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1520.9100000000003,
+      "value": 2
+    },
+    "subscription": 11
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1521.2700000000002,
+      "value": {
+        "key": 2,
+        "underlyingObservable": {
+          "_m": {
+            "underlyingDisposable": {
+              "disposables": [],
+              "isDisposed": true,
+              "length": 0
+            },
+            "isDisposed": true,
+            "isPrimaryDisposed": true,
+            "count": 0
+          },
+          "_u": {
+            "isDisposed": false,
+            "isStopped": true,
+            "observers": [],
+            "hasError": false,
+            "__hash": 36
+          },
+          "__hash": 35
+        },
+        "__hash": 33
+      }
+    },
+    "subscription": 10
+  },
+  {
+    "id": 33,
+    "parents": [],
+    "method": "GroupedObservable"
+  },
+  {
+    "id": 34,
+    "sinks": [
+      9
+    ],
+    "observableId": 33
+  },
+  {
+    "id": 35,
+    "parents": [],
+    "method": "UnderlyingObservable"
+  },
+  {
+    "id": 36,
+    "parents": [],
+    "method": "Subject"
+  },
+  {
+    "id": 37,
+    "sinks": [
+      34
+    ],
+    "observableId": 36
+  },
+  {
+    "id": 38,
+    "parents": [],
+    "method": "NeverObservable"
+  },
+  {
+    "id": 39,
+    "parents": [
+      38
+    ],
+    "stack": 24,
+    "arguments": [
+      1
+    ],
+    "method": "take"
+  },
+  {
+    "id": 40,
+    "sinks": [],
+    "observableId": 39
+  },
+  {
+    "id": 41,
+    "sinks": [
+      40
+    ],
+    "observableId": 38
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1523.265,
+      "value": 2
+    },
+    "subscription": 36
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1523.39,
+      "value": 2
+    },
+    "subscription": 34
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1523.7450000000001,
+      "value": 2
+    },
+    "subscription": 9
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1524.72,
+      "value": 3
+    },
+    "subscription": 12
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1526.38,
+      "value": 3
+    },
+    "subscription": 11
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1526.96,
+      "value": {
+        "key": 3,
+        "underlyingObservable": {
+          "_m": {
+            "underlyingDisposable": {
+              "disposables": [],
+              "isDisposed": true,
+              "length": 0
+            },
+            "isDisposed": true,
+            "isPrimaryDisposed": true,
+            "count": 0
+          },
+          "_u": {
+            "isDisposed": false,
+            "isStopped": true,
+            "observers": [],
+            "hasError": false,
+            "__hash": 51
+          },
+          "__hash": 50
+        },
+        "__hash": 48
+      }
+    },
+    "subscription": 10
+  },
+  {
+    "id": 48,
+    "parents": [],
+    "method": "GroupedObservable"
+  },
+  {
+    "id": 49,
+    "sinks": [
+      9
+    ],
+    "observableId": 48
+  },
+  {
+    "id": 50,
+    "parents": [],
+    "method": "UnderlyingObservable"
+  },
+  {
+    "id": 51,
+    "parents": [],
+    "method": "Subject"
+  },
+  {
+    "id": 52,
+    "sinks": [
+      49
+    ],
+    "observableId": 51
+  },
+  {
+    "id": 53,
+    "parents": [],
+    "method": "NeverObservable"
+  },
+  {
+    "id": 54,
+    "parents": [
+      53
+    ],
+    "stack": 24,
+    "arguments": [
+      1
+    ],
+    "method": "take"
+  },
+  {
+    "id": 55,
+    "sinks": [],
+    "observableId": 54
+  },
+  {
+    "id": 56,
+    "sinks": [
+      55
+    ],
+    "observableId": 53
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1529.4800000000002,
+      "value": 3
+    },
+    "subscription": 51
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1529.5900000000001,
+      "value": 3
+    },
+    "subscription": 49
+  },
+  {
+    "event": {
+      "type": "next",
+      "time": 1529.8250000000003,
+      "value": 3
+    },
+    "subscription": 9
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1530.275
+    },
+    "subscription": 12
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1530.525
+    },
+    "subscription": 11
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1531.0000000000002
+    },
+    "subscription": 19
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1531.16
+    },
+    "subscription": 17
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1531.4650000000001
+    },
+    "subscription": 17
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1531.73
+    },
+    "subscription": 17
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1531.835
+    },
+    "subscription": 36
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1531.9450000000002
+    },
+    "subscription": 34
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1532.16
+    },
+    "subscription": 34
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1532.2900000000002
+    },
+    "subscription": 34
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1532.39
+    },
+    "subscription": 51
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1532.4850000000001
+    },
+    "subscription": 49
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1532.69
+    },
+    "subscription": 49
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1532.8050000000003
+    },
+    "subscription": 49
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1532.8950000000002
+    },
+    "subscription": 10
+  },
+  {
+    "event": {
+      "type": "complete",
+      "time": 1533.125
+    },
+    "subscription": 9
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1533.515
+    },
+    "subscription": 9
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1533.695
+    },
+    "subscription": 10
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1533.8550000000002
+    },
+    "subscription": 11
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1533.965
+    },
+    "subscription": 12
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.0800000000002
+    },
+    "subscription": 25
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.18
+    },
+    "subscription": 26
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.285
+    },
+    "subscription": 40
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.39
+    },
+    "subscription": 41
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.4900000000002
+    },
+    "subscription": 55
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.5900000000001
+    },
+    "subscription": 56
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.6850000000002
+    },
+    "subscription": 10
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.845
+    },
+    "subscription": 11
+  },
+  {
+    "event": {
+      "type": "dispose",
+      "time": 1534.9650000000001
+    },
+    "subscription": 12
+  }
+]

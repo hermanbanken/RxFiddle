@@ -331,40 +331,44 @@ class StructureGraph {
     return [root]
   }
 
-  public renderSvg(graph: TypedGraph<Leveled<StackFrame | AddObservable | AddSubscription>,
-    LayerCrossingEdge | ShadowEdge | undefined>, choices: string[], cb: (choice: string) => void): VNode[] {
+  public renderSvg(
+    graph: TypedGraph<
+      Leveled<StackFrame | AddObservable | AddSubscription>,
+      LayerCrossingEdge | ShadowEdge | undefined>,
+    choices: string[], cb: (choice: string) => void
+  ): VNode[] {
     let u = StructureGraph.chunk;
     (window as any).renderSvgGraph = graph
 
     let layout = layoutf(graph)
 
-    let styles = [{}, {}]
-    let mapX = (x: number, y: number) => x // y > 14 ? x - 5 * (y - 14) : x
     let mu = u / 2
 
     let elements = layout.flatMap((level, levelIndex) => {
-      let nodes = level.nodes.map(item => h("circle", {
-        attrs: {
-          cx: mu + mu * mapX(item.x, item.y),
-          cy: mu + mu * item.y,
-          fill: colorIndex(parseInt(item.id, 10)),
-          r: 5
-        },
-      }))
       let edges = level.edges.map(({ v, w, points }) => {
-        let path = points.map(({x, y}) => `${mu + mu * mapX(x, y)} ${mu + mu * y}`).join(" L ")
+        let path = points.map(({x, y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
         return h("path", {
           attrs: {
             d: `M${path}`,
             stroke: levelIndex === 0 ? "rgba(0,0,0,0.1)" : "gray",
             // "stroke-dasharray": 5,
-            "stroke-width": levelIndex === 0 ? 10 : 1,
+            "stroke-width": levelIndex === 0 ? 10 : 2,
           },
           on: { mouseover: () => console.log(graph.edge(v, w)) },
         })
       })
-      return edges.concat(nodes)
-    })
+      return edges
+    }).concat(layout[0].nodes.map(item => h("circle", {
+      attrs: {
+        cx: mu + mu * item.x,
+        cy: mu + mu * item.y,
+        fill: colorIndex(parseInt(item.id, 10)),
+        r: 5,
+      },
+      on: {
+        click: (e: any) => console.log(item.id, this.visualizer.collector.data[parseInt(item.id, 10)]),
+      }
+    })))
 
     // commented 2017-01-13 friday 9:50 
     // let ranked = rankLongestPathGraph(graph

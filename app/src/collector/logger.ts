@@ -209,8 +209,12 @@ export default class Collector implements RxCollector, ICollector {
         let sid = this.id(record.subject).get()
 
         if (this.getObservable(sid)) {
-          console.log("Subject", this.getObservable(sid), "found", "subs:", this.data.filter(e => sid === (e as any).observableId))
-          sid = (this.data.filter(e => sid === (e as any).observableId)[0] as any).id
+          console.log("Subject", this.getObservable(sid), "found", "subs:",
+            this.data.filter(e => sid === (e as any).observableId))
+          let subs = this.data.filter(e => sid === (e as any).observableId)
+          if (subs.length === 1) {
+            sid = (subs[0] as AddSubscription).id
+          }
         }
 
         let event = Event.fromRecord(record)

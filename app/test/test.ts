@@ -6,8 +6,8 @@ import MedianTest from "../src/layout/median.spec"
 import PriorityLayoutSpec from "../src/layout/priority.spec"
 
 new OperatorTest()
-new SubscriptionTest()
-new CrossingTest()
-new TransposeTest()
-new MedianTest()
-new PriorityLayoutSpec()
+// new SubscriptionTest()
+// new CrossingTest()
+// new TransposeTest()
+// new MedianTest()
+// new PriorityLayoutSpec()
