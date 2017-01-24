@@ -1,7 +1,7 @@
 import { Edge, Graph } from "graphlib"
 import * as GraphLib from "graphlib"
 import * as rx from "rx"
-import { PatchFunction, VNode } from "snabbdom"
+import { VNode } from "snabbdom/vnode"
 import { RxFiddleNode } from "./collector/node"
 
 /* tslint:disable:no-namespace */

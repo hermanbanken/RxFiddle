@@ -65,11 +65,12 @@ export default function layout(graph: TypedGraph<
 
   let edges = ranked.edges()
     .map(e => fullEdge(e.v, e.w, (v, w) => ranked.edge(v, w), n => byId[n]))
-    .filter(v => typeof v !== "undefined");
+    .filter(v => typeof v !== "undefined")
 
-  (window as any).graph = graph;
-  (window as any).ranked = ranked;
-
+  if (typeof window === "object") {
+    (window as any).graph = graph;
+    (window as any).ranked = ranked
+  }
   // var s = (window as any).s = ranked.flatMap(
   //   (id, label) => graph.inEdges(id)
   //     .filter(e => "upper" in graph.edge(e))

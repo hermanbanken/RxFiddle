@@ -1,5 +1,5 @@
 import "../utils"
-import { ICallRecord } from "./callrecord"
+import { ICallRecord, ICallStart, ICallEnd } from "./callrecord"
 import { ICollector } from "./logger"
 import { RxCollector } from "./visualizer"
 import * as Rx from "rx"
@@ -9,6 +9,7 @@ const rxAny: any = <any>Rx
 export let defaultSubjects = {
   Observable: Rx.Observable,
   "Observable.prototype": rxAny.Observable.prototype,
+  "ConnectableObservable.prototype": rxAny.ConnectableObservable.prototype,
   "ObservableBase.prototype": rxAny.ObservableBase.prototype,
   "AbstractObserver.prototype": rxAny.internals.AbstractObserver.prototype,
   "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
@@ -69,7 +70,7 @@ function detachedScopeProxy<T>(input: T): T {
 /**
  * Tweaks specific for RxJS 4
  */
-function rxTweaks<T>(call: ICallRecord): void {
+function rxTweaks<T>(call: ICallStart): void {
   // Detach reuse of NeverObservable
   let fields: [any, PropertyKey][] = []
   fields.push([call, "subject"], [call, "returned"])
@@ -88,16 +89,16 @@ function rxTweaks<T>(call: ICallRecord): void {
 let i = 0
 
 export default class Instrumentation {
-  public logger: ICollector & RxCollector
+  public logger: RxCollector
   public open: any[] = []
   public stackTraces: boolean = true
 
   private subjects: { [name: string]: any; }
-  private calls: ICallRecord[] = []
+  private calls: (ICallStart | ICallRecord)[] = []
 
   private prototypes: any[] = []
 
-  constructor(subjects: { [name: string]: any; } = defaultSubjects, logger: ICollector & RxCollector) {
+  constructor(subjects: { [name: string]: any; } = defaultSubjects, logger: RxCollector) {
     this.subjects = subjects
     this.logger = logger
     Object.keys(subjects).slice(0, 1).forEach((s: string) => subjects[s][IGNORE] = true)
@@ -122,12 +123,11 @@ export default class Instrumentation {
           .filter((v: any) => !v.hasOwnProperty("__instrumented"))
           .forEach((t: any) => this.setupPrototype(t))
 
-        let call: ICallRecord = {
+        let call: ICallStart = {
           arguments: [].slice.call(argumentsList, 0),
           childs: [],
           id: i++,
           method: extras["methodName"],
-          returned: null,
           stack: self.stackTraces ? new Error().stack : undefined,
           subject: thisArg,
           subjectName: extras["subjectName"],
@@ -151,22 +151,24 @@ export default class Instrumentation {
           argumentsList,
           instanceLogger.wrapHigherOrder.bind(instanceLogger, call.subject))
         )
-        call.returned = returned
+
+        let end: ICallRecord = call as ICallRecord
+        end.returned = returned
 
         // Nicen up Rx performance tweaks
-        rxTweaks(call)
+        rxTweaks(end)
 
-        instanceLogger.after(call)
+        instanceLogger.after(end)
 
         // find more
-        new Array(call.returned)
+        new Array(end.returned)
           .filter(hasRxPrototype)
           .filter((v: any) => !v.hasOwnProperty("__instrumented"))
           .forEach((t: any) => this.setupPrototype(t))
 
         // Cleanup
         open.pop()
-        return call.returned
+        return end.returned
       },
       construct: (target: { new (...args: any[]): any }, args) => {
         console.warn("TODO, instrument constructor", target, args)

@@ -5,37 +5,24 @@
 import { Graph } from "graphlib"
 import "dagre"
 
-declare namespace Dagre {
-  interface DagreFactory {
-    graphlib: GraphLib;
-    layout(graph: Graph): void;
-  }
+export as namespace dagre;
 
-  //     interface Graph {
-  //         new (): Graph;
-  //         edges(): Edge[];
-  //         edge(id: any): any;
-  //         nodes(): string[];
-  //         node(id: any): any;
-  //         setDefaultEdgeLabel(callback: () => void): Graph;
-  //         setEdge(sourceId: string, targetId: string, options?: { [key: string]: any }): Graph;
-  //         setGraph(options: { [key: string]: any }): Graph;
-  //         setNode(id: string, node: { [key: string]: any }): Graph;
-  //     }
-
-  //     interface Edge {
-  //         v: string;
-  //         w: string;
-  //     }
-
-  interface GraphLib {
-    Graph: Graph;
-  }
-  // }
+export namespace graphlib {
+    class Graph {
+        edges(): Edge[];
+        edge(id: any): any;
+        nodes(): string[];
+        node(id: any): any;
+        setDefaultEdgeLabel(callback: () => void): Graph;
+        setEdge(sourceId: string, targetId: string, options?: { [key: string]: any }): Graph;
+        setGraph(options: { [key: string]: any }): Graph;
+        setNode(id: string, node: { [key: string]: any }): Graph;
+    }
 }
 
-declare var dagre: Dagre.DagreFactory;
+export function layout(graph: graphlib.Graph): void;
 
-declare module "dagre" {
-  export = dagre;
+interface Edge {
+    v: string;
+    w: string;
 }

@@ -3,7 +3,7 @@ import layoutf from "../layout/layout"
 import "../object/extensions"
 import "../utils"
 import { StackFrame } from "../utils"
-import { ICallRecord } from "./callrecord"
+import { ICallRecord, ICallStart } from "./callrecord"
 import { RxFiddleEdge } from "./edge"
 import { IEvent } from "./event"
 import { Grapher, LayerCrossingEdge, Leveled, ShadowEdge } from "./grapher"
@@ -17,12 +17,12 @@ import { RxFiddleNode } from "./node"
 import TypedGraph from "./typedgraph"
 import { Graph, alg } from "graphlib"
 import * as snabbdom from "snabbdom"
-import { VNode } from "snabbdom"
+import { h } from "snabbdom/h"
+import { VNode } from "snabbdom/vnode"
 
 /* tslint:disable:no-var-requires */
 const dagre = require("dagre")
 const svgPanZoom = typeof window !== "undefined" ? require("svg-pan-zoom") : {}
-const h = require("snabbdom/h")
 const patch = snabbdom.init([
   require("snabbdom/modules/attributes"),
   require("snabbdom/modules/eventlisteners"),
@@ -65,7 +65,7 @@ const defs: () => VNode[] = () => [h("defs", [
 
 export interface RxCollector {
   wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T
-  before(record: ICallRecord, parents?: ICallRecord[]): this
+  before(record: ICallStart, parents?: ICallStart[]): this
   after(record: ICallRecord): void
 }
 

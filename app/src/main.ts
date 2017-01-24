@@ -16,8 +16,7 @@ let collector = new Collector()
 let instrumentation = new Instrumentation(defaultSubjects, collector)
 instrumentation.setup()
 let vis = new Visualizer(
-  // collector,
-  instrumentation.logger,
+  collector,
   document.querySelector("app") as HTMLElement,
   document.getElementById("controls")
 )

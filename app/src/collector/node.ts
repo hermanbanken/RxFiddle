@@ -3,10 +3,11 @@ import { render as ASCII } from "./ascii"
 import { AddObservable, AddSubscription } from "./logger"
 import { centeredRect, centeredText } from "./shapes"
 import * as snabbdom from "snabbdom"
-import { PatchFunction, VNode } from "snabbdom"
+import { PatchFunction } from "snabbdom"
+import { h } from "snabbdom/h"
+import { VNode } from "snabbdom/vnode"
 
 /* tslint:disable:no-var-requires */
-const h = require("snabbdom/h")
 
 export function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]] {
   let a: T[] = []

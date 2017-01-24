@@ -34,7 +34,7 @@ export class IntegrationTest extends InstrumentationTest {
 
     merged.subscribe()
 
-    let grapher = new Grapher(this.collector)
+    let grapher = new Grapher(this.rxcollector)
     grapher.process()
 
     // let leveledDot = toDot(
@@ -54,7 +54,7 @@ export class IntegrationTest extends InstrumentationTest {
     // )
     // console.log(leveledDot)
 
-    console.log(layout(grapher.leveledGraph))
+    // console.log(layout(grapher.leveledGraph))
 
     // TODO:
     // get <rows> containing node ids

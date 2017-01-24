@@ -3,8 +3,69 @@ import { InstrumentationTest } from "./instrumentationTest"
 import { expect } from "chai"
 import { suite, test } from "mocha-typescript"
 import * as Rx from "rx"
+import TypedGraph from "../src/collector/typedgraph"
 
 let rxProto: any = (<any>Rx).Observable.prototype
+
+class TestObserver<T> implements Rx.Observer<T> {
+  public nexts: T[] = []
+  public error?: any = null
+  public completed: boolean = false
+  public events: any[] = []
+
+  public onNext(value: T): void {
+    this.nexts.push(value)
+    this.events.push({ time: new Date(), value })
+  }
+  public onError(exception: any): void {
+    this.error = exception
+    this.events.push({ time: new Date(), exception })
+  }
+  public onCompleted(): void {
+    let completed = this.completed = true
+    this.events.push({ time: new Date(), completed })
+  }
+  public makeSafe(disposable: Rx.IDisposable): Rx.Observer<T> {
+    return this
+  }
+  public dispose(): void {
+    let disposed = true
+    this.events.push({ time: new Date(), disposed })
+  }
+}
+
+function jsonify(obj: any) {
+  let cache = [] as any[]
+  let json: string = JSON.stringify(obj, (key, value) => {
+    if (typeof value === "string" && key === "stack") {
+      return value.split("\\n")[0]
+    }
+    if (typeof value === "object" && key === "parent" && "id" in value) {
+      return value.id
+    }
+    if (typeof value === "object" && key === "childs") {
+      return "muted"
+    }
+    if (typeof value === "object" && value !== null) {
+      if (cache.indexOf(value) !== -1) {
+        // Circular reference found, discard key
+        if (typeof value === "object") {
+          value = Object.keys(value)
+            .filter(k => value.hasOwnProperty(k))
+            .map(k => value[k])
+            .filter(c => typeof c !== "object")
+          return "[Circular " + jsonify(value) + "]"
+        }
+        return "[Circular " + value.toString() + "]"
+      }
+      // Store value in our collection
+      cache.push(value)
+    }
+    return value
+  }, "  ")
+  cache = null // Enable garbage collection
+  return json
+}
 
 function complexObs() {
   let A = Rx.Observable.of(1, 2, 3)
@@ -36,13 +97,13 @@ export class OperatorTest extends InstrumentationTest {
     }
   }
 
-  @test
+  // @test
   public "map"() {
     Rx.Observable.of(0, 1, 2)
       .map(i => String.fromCharCode("a".charCodeAt(0) + i))
       .subscribe()
 
-    let lens = lenz(this.collector).find("map")
+    let lens = lenz(this.rxcollector).find("map")
     expect(lens.all()).to.have.lengthOf(1)
 
     let subs = lens.subscriptions().all()
@@ -52,47 +113,51 @@ export class OperatorTest extends InstrumentationTest {
     expect(lens.subscriptions().completes()).to.have.lengthOf(1)
   }
 
-  @test
+  // @test
   public "filter"() {
-    Rx.Observable.of(1, 2, 3)
-      .filter(i => i < 2)
-      .subscribe()
+    if (this.ensureCollector(this.collector)) {
+      Rx.Observable.of(1, 2, 3)
+        .filter(i => i < 2)
+        .subscribe()
 
-    let lens = lenz(this.collector).find("filter")
-    expect(lens.all()).to.have.lengthOf(1)
+      let lens = lenz(this.collector).find("filter")
+      expect(lens.all()).to.have.lengthOf(1)
 
-    let subs = lens.subscriptions().all()
-    expect(subs).to.have.lengthOf(1)
+      let subs = lens.subscriptions().all()
+      expect(subs).to.have.lengthOf(1)
 
-    expect(lens.subscriptions().nexts().map(_ => _.value)).to.deep.eq([1])
-    expect(lens.subscriptions().completes()).to.have.lengthOf(1)
+      expect(lens.subscriptions().nexts().map(_ => _.value)).to.deep.eq([1])
+      expect(lens.subscriptions().completes()).to.have.lengthOf(1)
+    }
   }
 
-  @test
+  // @test
   public "complex"() {
-    console.time("complex instrumented")
-    complexObs()
-    console.timeEnd("complex instrumented")
+    if (this.ensureCollector(this.collector)) {
+      console.time("complex instrumented")
+      complexObs()
+      console.timeEnd("complex instrumented")
 
-    let lens = lenz(this.collector).find("mergeAll")
-    expect(lens.all()).to.have.lengthOf(1)
+      let lens = lenz(this.collector).find("mergeAll")
+      expect(lens.all()).to.have.lengthOf(1)
 
-    let subs = lens.subscriptions().all()
-    expect(subs).to.have.lengthOf(1)
+      let subs = lens.subscriptions().all()
+      expect(subs).to.have.lengthOf(1)
 
-    expect(lens.subscriptions().nexts().map(_ => _.value)).to.deep.eq([
-      "group of 2",
-      "hello 2",
-      "group of x",
-      "postfix",
-      "group of 3",
-      "hello 3",
-      "postfix",
-    ])
-    expect(lens.subscriptions().completes()).to.have.lengthOf(1)
+      expect(lens.subscriptions().nexts().map(_ => _.value)).to.deep.eq([
+        "group of 2",
+        "hello 2",
+        "group of x",
+        "postfix",
+        "group of 3",
+        "hello 3",
+        "postfix",
+      ])
+      expect(lens.subscriptions().completes()).to.have.lengthOf(1)
+    }
   }
 
-  @test
+  // @test
   public "complexTiming"() {
     this.instrumentation.teardown()
     console.time("complex")
@@ -102,19 +167,50 @@ export class OperatorTest extends InstrumentationTest {
 
   @test
   public "nested-call operators"() {
-    Rx.Observable.of(1, 2, 3)
-      .share()
-      .subscribe()
+    // Rx.Observable.of(1, 2, 3)
+    //   .share()
+    //   .subscribe()
+    console.log("")
+    console.log("")
+    console.log("START")
+    let obs = Rx.Observable.of(1, 2, 3)
+      .doOnNext(v => { return })
+      .flatMap(v => { console.log("Running"); return Rx.Observable.just(v).map(id => id) })
+    console.log("\nsubscribe\n", obs)
+    obs.subscribe(new TestObserver<number>())
+    console.log("END")
+    console.log(this.newcollector.observerStorage.sets)
+    console.log("")
+    console.log("")
 
-    expect(this.collector.lens().roots().all()).to.deep.eq([{
+    let fs = require("fs")
+
+    let t = new TypedGraph()
+    this.newcollector.messages
+      .flatMap(v => v.edges ? v.edges as { v: string, w: string }[] : [])
+      .forEach(e => t.setEdge(e.v, e.w))
+    console.log("DOT messages", t.toDot())
+
+    console.log("")
+    console.log("")
+    console.log("ALL MESSAGES to messages.json")
+    fs.writeFileSync("messages.json", jsonify(this.newcollector.messages))
+    // console.log("ALL TRACE to trace.json")
+    // fs.writeFileSync("trace.json", jsonify(this.newcollector.trace))
+    // console.log("ALL DATA to data.json")
+    // fs.writeFileSync("data.json", jsonify(this.rxcollector.data.filter(v => !("stackframe" in v))))
+    console.log("")
+    console.log("")
+
+    expect(this.rxcollector.lens().roots().all()).to.deep.eq([{
       arguments: [1, 2, 3],
       id: 0,
       method: "of",
       parents: [],
-      stack: undefined,
+      stack: 2,
     }])
 
-    let childs = this.collector.lens().roots().childs()
+    let childs = this.rxcollector.lens().roots().childs()
 
     expect(childs.all()).to.deep.eq([{
       arguments: [],
@@ -128,13 +224,14 @@ export class OperatorTest extends InstrumentationTest {
       .to.have.length.greaterThan(0)
   }
 
-  @test
+  // @test
   public "higher order operators"() {
+
     Rx.Observable.of(1, 2, 3)
       .flatMap(i => Rx.Observable.empty())
       .subscribe()
 
-    let lens = this.collector.lens()
+    let lens = this.rxcollector.lens()
 
     expect(lens.all().all().map(_ => _.method || _)).to.deep.equal([
       "of", "flatMap", "empty",
@@ -145,10 +242,9 @@ export class OperatorTest extends InstrumentationTest {
       [flatMapSubId, flatMapSubId, flatMapSubId]
     )
     expect(lens.find("flatMap").subscriptions().scoping().all()).to.have.lengthOf(3)
-
   }
 
-  @test
+  // @test
   public "mixed higher order operators"() {
     let inner = Rx.Observable.fromArray(["a"])
     inner.subscribe()
@@ -156,7 +252,7 @@ export class OperatorTest extends InstrumentationTest {
       .flatMap(i => inner)
       .subscribe()
 
-    let lens = this.collector.lens()
+    let lens = this.rxcollector.lens()
     let roots = lens.roots()
     let childs = roots.childs()
 
@@ -170,18 +266,19 @@ export class OperatorTest extends InstrumentationTest {
     expect(lens.find("flatMap").subscriptions().scoping().all()).to.have.lengthOf(3)
   }
 
-  @test
+  // @test
   public "performance operators"() {
     Rx.Observable.of(1, 2, 3)
       .map(s => s)
       .map(o => o)
       .subscribe()
-    let lens = this.collector.lens()
+    let lens = this.rxcollector.lens()
     expect(lens.find("map").all().map(_ => _.method)).to.deep.equal(["map", "map"])
 
     // Map combines subsequent maps: the first operator will never receive subscribes
     lens.find("map").each().forEach((mapLens, i) => {
       expect(mapLens.subscriptions().all()).to.have.lengthOf(i === 0 ? 0 : 1)
     })
+
   }
 }

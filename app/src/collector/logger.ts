@@ -1,5 +1,5 @@
 import { StackFrame } from "../utils"
-import { ICallRecord, callRecordType } from "./callrecord"
+import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
 import { Event, IEvent } from "./event"
 import { ILens, lens } from "./lens"
 import * as Rx from "rx"
@@ -8,6 +8,42 @@ const ErrorStackParser = require("error-stack-parser")
 
 function isStream(v: Rx.Observable<any>): boolean {
   return v instanceof (<any>Rx).Observable
+}
+
+function isSubscription(v: any): boolean {
+  return typeof v === "object" && v !== null && typeof v.dispose === "function"
+}
+
+function isObservable(v: any): boolean {
+  return typeof v === "object" && v !== null && typeof v.subscribe === "function"
+}
+
+function last<T>(list: T[]): T {
+  return list.length >= 1 ? list[list.length - 1] : undefined
+}
+function head<T>(list: T[]): T {
+  return list.length >= 1 ? list[0] : undefined
+}
+
+function elvis(item: any, path: string[]): any[] {
+  let next = typeof item === "object" && path.length && path[0] in item ? item[path[0]] : undefined
+  if (path.length > 1) {
+    return elvis(next, path.slice(1))
+  } else if (typeof next !== "undefined") {
+    return [next]
+  } else {
+    return []
+  }
+}
+
+function keys<T, K extends keyof T>(obj: T): K[] {
+  return Object.keys(obj) as any as K[]
+}
+
+function numkeys<T>(obj: { [id: number]: T }): number[] {
+  return Object.keys(obj)
+    .map(v => typeof v === "number" ? v : parseInt(v, 10))
+    .filter(v => !isNaN(v)) as any as number[]
 }
 
 export function instanceAddSubscription(input: any) {
@@ -60,12 +96,21 @@ declare module "rx" {
 }
 
 export class AddStackFrame {
+  public kind: "stackframe"
   public id: number
   public stackframe: StackFrame
   public parent: number
 }
 
+export class AddStructureEntry {
+  public kind: "observable"
+  public id: number
+  public parents?: number[]
+  public method?: string
+}
+
 export class AddObservable {
+  public kind: "observable"
   public id: number
   public callParent?: number
   public parents?: number[]
@@ -74,7 +119,7 @@ export class AddObservable {
   public arguments?: IArguments
 
   public inspect(depth: number, opts?: any): string {
-    return `AddObservable(${this.method || this.constructor.name}, id: ${this.id})`
+    return `AddObservable(${this.method || this.constructor.name}, id: ${this.id}, parents: [${this.parents}])`
   }
   public toString() {
     return this.inspect(0)
@@ -86,9 +131,11 @@ export class AddSubscriptionImpl implements AddSubscription {
   public observableId: number
   public sinks?: number[]
   public scopeId?: number
+  public kind: "subscription"
 
   public inspect(depth: number, opts?: any): string {
-    return `AddSubscription(${this.observableId}, sinks: ${this.sinks}, scope: ${this.scopeId})`
+    return `AddSubscription(${this.id}, 
+      observable: ${this.observableId}, sinks: [${this.sinks}], scope: ${this.scopeId})`
   }
   public toString() {
     return this.inspect(0)
@@ -96,6 +143,7 @@ export class AddSubscriptionImpl implements AddSubscription {
 }
 
 export interface AddSubscription {
+  kind: "subscription"
   id: number
   observableId: number
   sinks?: number[]
@@ -103,29 +151,301 @@ export interface AddSubscription {
 }
 
 export class AddEvent {
+  public kind: "event"
   public subscription: number
   public event: IEvent
 }
 
 export interface RxCollector {
-  before(record: ICallRecord, parents?: ICallRecord[]): Collector
+  before(record: ICallStart, parents?: ICallStart[]): this
   after(record: ICallRecord): void
   wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T
 }
 
+export type All = AddStackFrame | AddObservable | AddSubscription | AddEvent | AddStructureEntry
+
 export interface ICollector {
-  data: (AddStackFrame | AddObservable | AddSubscription | AddEvent)[]
+  data: All[]
   indices: {
     observables: { [id: number]: { childs: number[], subscriptions: number[] } },
     stackframes: { [source: string]: number },
     subscriptions: { [id: number]: { events: number[], scoping: number[] } },
   }
   length: number
-  getLog(id: number): AddObservable | AddSubscription | AddEvent | AddStackFrame
+  getLog(id: number): All
   getStack(id: number): AddStackFrame | null
   getObservable(id: number): AddObservable | null
   getSubscription(id: number): AddSubscription | null
   getEvent(id: number): AddEvent | null
+}
+
+type Group = {
+  call: ICallStart
+  id: number
+}
+
+export class ObserverSet {
+  public observable: number
+  public ids: number[] = []
+  public relations: number[] = []
+  public tags: { [id: number]: string[] } = {}
+  constructor(observable: number) {
+    this.observable = observable
+  }
+
+  public inspect(depth: number, opts?: any): string {
+    let ts = depth > 0 ? numkeys(this.tags).map(v => {
+      return this.tags[v] ? `\n\t${v}: ${this.tags[v].join(",")}` : v
+    }) : "[..]"
+    return `ObservableSet(o: ${this.observable}, [${this.ids}], ${ts})`
+  }
+  public toString() {
+    return this.inspect(1)
+  }
+}
+
+export class ObserverStorage {
+  public sets: ObserverSet[] = []
+  public observableToSets: { [id: number]: ObserverSet[] } = {}
+  public observerToSet: { [id: number]: number } = {}
+  public observerToObservable: { [id: number]: number } = {}
+
+  public set(forObservable: number, forObserver: number) {
+    let set: ObserverSet
+    let setId: number
+
+    if (typeof this.observerToSet[forObserver] !== "undefined") {
+      setId = this.observerToSet[forObserver]
+      set = this.sets[setId]
+    } else {
+      set = new ObserverSet(forObservable)
+      this.observableToSets[forObservable] = (this.observableToSets[forObservable] || []).concat([set])
+      setId = this.sets.push(set) - 1
+    }
+
+    function addTag(observer: number, tag: string) {
+      if (typeof set.tags[observer] === "undefined") { set.tags[observer] = [] }
+      if (set.tags[observer].indexOf(tag) < 0) {
+        set.tags[observer].push(tag)
+      }
+    }
+
+    return {
+      addCore: (observer: number, ...tags: string[]) => {
+        if (set.ids.indexOf(observer) < 0) { set.ids.push(observer) }
+        tags.forEach(t => addTag(observer, t))
+        this.observerToSet[observer] = setId
+        this.observerToObservable[observer] = forObservable
+      },
+      addRelation: (observer: number, ...tags: string[]) => {
+        if (set.relations.indexOf(observer) < 0) { set.relations.push(observer) }
+        tags.forEach(t => addTag(observer, t))
+      },
+    }
+  }
+}
+
+function existsSomewhereIn(obj: any, search: any[]): string {
+  let searched: any[] = []
+  let depth = 0
+  let toBeSearched = keys(obj).map(key => ({ key, value: obj[key] }))
+  while (toBeSearched.length && depth++ < 3) {
+    let found = toBeSearched.find(v => search.indexOf(v.value) >= 0)
+    if (found) { return found.key }
+    searched.push(...toBeSearched.map(pair => pair.value))
+    toBeSearched = toBeSearched
+      .filter(pair => typeof pair.value === "object" && pair.value !== null)
+      .flatMap(p => keys(p.value).map(k => ({ key: p.key + "." + k, value: p.value[k] })))
+      .filter(pair => searched.indexOf(pair.value) < 0)
+  }
+  return
+}
+
+export class NewCollector implements RxCollector {
+  public collectorId = Collector.collectorId++
+  public hash: string
+  public messages: any[] = []
+  public observerStorage: ObserverStorage = new ObserverStorage()
+  private groups: Group[] = []
+  private groupId: number = 0
+
+  public constructor() {
+    this.collectorId = Collector.collectorId++
+    this.hash = this.collectorId ? `__hash${this.collectorId}` : "__hash"
+  }
+
+  public before(record: ICallStart, parents?: ICallStart[]): this {
+    this.tags(record.subject, ...record.arguments)
+
+    switch (callRecordType(record)) {
+      case "setup":
+        // Track group entry
+        this.groups.push({ call: record, id: this.groupId++ })
+        break
+      case "subscribe":
+        [].filter.call(record.arguments, isSubscription)
+          .forEach((sub: any) => {
+            let set = this.observerStorage.set(this.id(record.subject).get(), this.id(sub).get())
+            set.addCore(this.id(sub).get(), "1")
+
+            // Add subscription label
+            this.messages.push({
+              id: this.messages.length,
+              node: this.id(record.subject).get(),
+              type: "label",
+              value: {
+                id: this.id(sub).get(),
+                type: "subscription",
+              },
+            })
+
+            // Find higher order sink:
+            // see if this sup has higher order sinks
+            // TODO verify robustness of .parent & add other patterns
+            if (sub.parent) {
+              console.log(record.subject.constructor.name, "=|>", sub.parent.constructor.name)
+              set.addRelation(this.id(sub.parent).get(), "3 higher sink")
+              let parentObs = this.observerStorage.observerToObservable[this.id(sub.parent).get()]
+
+              // Add subscription link
+              this.messages.push({
+                edge: {
+                  v: this.id(record.subject).get(),
+                  w: parentObs,
+                },
+                id: this.messages.length,
+                type: "label",
+                value: {
+                  id: this.id(sub).get(),
+                  parent: this.id(sub.parent).get(),
+                  type: "higherOrderSubscription",
+                },
+              })
+            }
+
+            // Find sink:
+            // see if this sup links to record.parent.arguments.0 => link
+            if (record.parent) {
+              let ps = [].filter.call(record.parent.arguments, isSubscription)
+              let key = existsSomewhereIn(sub, ps)
+              if (key) {
+                let sinks = elvis(sub, key.split("."))
+                console.log(
+                  record.subject.constructor.name, "-|>",
+                  sinks.map(v => v.constructor.name))
+                sinks.forEach(sink => {
+                  set.addRelation(this.id(sink).get(), "2 sink")
+                })
+              }
+            }
+          })
+
+        break
+      default:
+    }
+
+    return this
+  }
+
+  public visited: any[] = []
+
+  public after(record: ICallRecord): void {
+    this.tags(record.returned)
+
+    switch (callRecordType(record)) {
+      case "setup":
+        this.groups.pop()
+        if (!isObservable(record.returned)) {
+          break
+        }
+        let observable: number = this.id(record.returned).get()
+        let observableSources: number[] = [record.subject, ...record.arguments]
+          .filter(v => isObservable(v) && !isSubscription(v))
+          .map(v => this.id(v).get())
+        this.messages.push({
+          kind: "structure",
+          id: this.messages.length,
+          groups: this.groups.map(g => g.id),
+          name: record.method || record.subjectName,
+          type: "edge",
+          observable,
+          observableSources,
+          edges: observableSources.map(v => ({ v, w: observable })),
+        })
+        break
+
+      case "subscribe":
+        this.tags(record.returned.observer, record.returned.m, record.returned.observer.o)
+        break
+
+      default:
+    }
+    return
+  }
+
+  public obsIdForSub(id: number): number {
+    return this.messages[id] && this.messages[id].observable
+  }
+
+  public wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any {
+    let self = this
+    if (typeof fn === "function") {
+      return function wrapper(val: any, id: any, subjectSuspect: Rx.Observable<any>) {
+        let result = fn.apply(this, arguments)
+        if (typeof result === "object" && isStream(result) && subjectSuspect) {
+          return self.proxy(result)
+        }
+        return result
+      }
+    }
+    return fn
+  }
+
+  private proxy<T>(target: T): T {
+    return new Proxy(target, {
+      get: (obj: any, name: string) => {
+        if (name === "isScoped") { return true }
+        return obj[name]
+      },
+    })
+  }
+
+  private tags(...items: any[]): void {
+    items.forEach(item => {
+      if (typeof item !== "object") { return }
+      if (isSubscription(item) || isObservable(item)) {
+        // Find in structure
+        if (isSubscription(item) && isSubscription(item.observer)) {
+          this.tags(item.observer)
+        }
+        this.id(item).getOrSet(() => {
+          let id = this.messages.length
+          let kind = isObservable(item) ? "observable" : "subscription"
+          // if (kind === "subscription") console.log(item)
+          this.messages.push({
+            kind,
+            id,
+            name: item.constructor.name || item.toString(),
+            type: "node",
+          })
+          return id
+        })
+      }
+    })
+  }
+
+  private id<T>(obs: T) {
+    return {
+      get: () => typeof obs !== "undefined" && obs !== null ? (<any>obs)[this.hash] : undefined,
+      getOrSet: (orSet: () => number) => {
+        if (typeof (<any>obs)[this.hash] === "undefined") {
+          (<any>obs)[this.hash] = orSet()
+        }
+        return (<any>obs)[this.hash]
+      },
+      set: (n: number) => (<any>obs)[this.hash] = n,
+    }
+  }
 }
 
 export default class Collector implements RxCollector, ICollector {
@@ -144,9 +464,13 @@ export default class Collector implements RxCollector, ICollector {
     subscriptions: {} as { [id: number]: { events: number[], scoping: number[] } },
   }
 
-  public data: (AddStackFrame | AddObservable | AddSubscription | AddEvent)[] = []
+  public data: All[] = []
 
-  private queue: ICallRecord[] = []
+  public allRecords: ICallStart[] = []
+  public trace: any[] = []
+  private queue: ICallStart[] = []
+
+  private groups: Group[] = []
 
   public constructor() {
     this.collectorId = Collector.collectorId++
@@ -157,18 +481,49 @@ export default class Collector implements RxCollector, ICollector {
     return lens(this)
   }
 
-  public before(record: ICallRecord, parents?: ICallRecord[]): Collector {
+  public before(record: ICallStart, parents?: ICallRecord[]): this {
+    this.allRecords.push(record)
     this.queue.push(record)
+    this.trace.push({
+      groups: this.groups.map(g => g.call.method),
+      kind: "before",
+      method: record.method,
+    })
+
+    switch (callRecordType(record)) {
+      case "setup": {
+        // Track group entry
+        this.groups.push({
+          call: record,
+          id: 0,
+        })
+
+        let item = new AddStructureEntry()
+        item.id = this.data.length
+        item.method = record.method
+        item.parents = []
+        if (typeof record.subject !== "undefined") {
+          item.parents.push(this.observable(record.subject));
+          // (item as any).subject = JSON.stringify(record.subject)
+        }
+        this.data.push(item)
+        break
+      }
+      default: break
+    }
+
     return this
   }
 
   public after(record: ICallRecord) {
+    this.trace.push({
+      kind: "after",
+      method: record.method,
+    })
 
-    // Trampoline
-    if (this.queue[0] === record) {
-      this.queue.shift()
-    } else if (this.queue.length > 0) {
-      return
+    if (callRecordType(record) === "setup") {
+      // Track group entry
+      this.groups.pop()
     }
 
     switch (callRecordType(record)) {
@@ -209,8 +564,8 @@ export default class Collector implements RxCollector, ICollector {
         let sid = this.id(record.subject).get()
 
         if (this.getObservable(sid)) {
-          console.log("Subject", this.getObservable(sid), "found", "subs:",
-            this.data.filter(e => sid === (e as any).observableId))
+          // console.log("Subject", this.getObservable(sid), "found", "subs:",
+          //   this.data.filter(e => sid === (e as any).observableId))
           let subs = this.data.filter(e => sid === (e as any).observableId)
           if (subs.length === 1) {
             sid = (subs[0] as AddSubscription).id
@@ -243,18 +598,13 @@ export default class Collector implements RxCollector, ICollector {
       default:
         throw new Error("unreachable")
     }
-
-    // Run trampoline
-    if (this.queue.length) {
-      this.queue.splice(0, this.queue.length).forEach(this.after.bind(this))
-    }
   }
 
   public get length() {
     return this.data.length
   }
 
-  public getLog(id: number): AddObservable | AddSubscription | AddEvent | AddStackFrame {
+  public getLog(id: number): All {
     return this.data[id]
   }
 
@@ -265,7 +615,7 @@ export default class Collector implements RxCollector, ICollector {
 
   public getSubscription(id: number): AddSubscription | null {
     let node = this.data[id]
-    if (instanceAddSubscription(node)) { return node as AddSubscription }
+    if (node && node.kind === "subscription") { return node as AddSubscription }
   }
 
   public getStack(id: number): AddStackFrame | null {
@@ -357,8 +707,11 @@ export default class Collector implements RxCollector, ICollector {
     node.method = record && record.method || observable.constructor.name
 
     // Add call-parent
-    if (record && record.parent && record.subject === record.parent.subject) {
-      node.callParent = this.id(record.parent.returned).get()
+    if (record && record.parent) {
+      // TODO reintroduce call-parent like thing
+      // node.callParent = this.id(record.parent.returned).get()
+    } else if (this.queue.length > 0) {
+      // console.log("queue while processing", node.method, "\n", this.queue)
     }
 
     let parents = [record && record.subject].concat(record && record.arguments)
