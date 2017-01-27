@@ -1,6 +1,15 @@
 import { Edge, edges, flip, foreachTuple } from "./index"
 import { Graph } from "graphlib"
 
+function sorting(a: { v: number, w: number }, b: { v: number, w: number }) {
+  // Sort on v, 
+  if (a.v !== b.v) {
+    return a.v - b.v
+  }
+  // or - only if equal v - we can swap w's as lines from same origin never cross
+  return a.w - b.w
+}
+
 export function crossings(vRow: string[], wRow: string[], edges: Edge[]) {
   let map = edges.map(e => {
     let m = {
@@ -13,7 +22,7 @@ export function crossings(vRow: string[], wRow: string[], edges: Edge[]) {
       edges: ${edges.map(v => `${e.v}-${e.w}`).join(",")}`)
     }
     return m
-  }).sort((a, b) => a.v - b.v)
+  }).sort(sorting)
 
   // Short-circuit if 0-crossings
   let max: number
