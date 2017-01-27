@@ -170,9 +170,9 @@ export class OperatorTest extends InstrumentationTest {
     // Rx.Observable.of(1, 2, 3)
     //   .share()
     //   .subscribe()
-    console.log("")
-    console.log("")
-    console.log("START")
+    // console.log("")
+    // console.log("")
+    // console.log("START")
 
     complexObs()
     // let obs = Rx.Observable.of(1, 2, 3)
@@ -180,10 +180,10 @@ export class OperatorTest extends InstrumentationTest {
     //   .flatMap(v => { console.log("Running"); return Rx.Observable.just(v).map(id => id) })
     // obs.subscribe(new TestObserver<number>())
 
-    console.log("END")
-    console.log(this.newcollector.observerStorage.sets)
-    console.log("")
-    console.log("")
+    // console.log("END")
+    // console.log(this.newcollector.observerStorage.sets)
+    // console.log("")
+    // console.log("")
 
     let fs = require("fs")
 
@@ -191,18 +191,18 @@ export class OperatorTest extends InstrumentationTest {
     this.newcollector.messages
       .flatMap(v => v.type === "edge" ? [v.edge as { v: number, w: number, label: any }] : [])
       .forEach(e => t2.setEdge(e.v.toString(), e.w.toString(), e.label))
-    console.log("DOT messages", t2.toDot())
+    // console.log("DOT messages", t2.toDot())
 
-    console.log("")
-    console.log("")
-    console.log("ALL MESSAGES to messages.json")
+    // console.log("")
+    // console.log("")
+    // console.log("ALL MESSAGES to messages.json")
     fs.writeFileSync("messages.json", jsonify(this.newcollector.messages))
     // console.log("ALL TRACE to trace.json")
     // fs.writeFileSync("trace.json", jsonify(this.newcollector.trace))
     // console.log("ALL DATA to data.json")
     // fs.writeFileSync("data.json", jsonify(this.rxcollector.data.filter(v => !("stackframe" in v))))
-    console.log("")
-    console.log("")
+    // console.log("")
+    // console.log("")
 
     expect(this.rxcollector.lens().roots().all()).to.deep.eq([{
       arguments: [1, 2, 3],

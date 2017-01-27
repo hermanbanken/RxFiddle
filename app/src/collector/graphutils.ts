@@ -114,9 +114,43 @@ export function rankLongestPath(g: Graph): { [id: string]: number } {
   return ranks
 }
 
+export function rankFromTop(g: Graph): { [id: string]: number } {
+  let visited: { [id: string]: boolean } = {}
+  let ranks: { [id: string]: number } = {}
+
+  function dfs(v: string): number {
+    if (_.has(visited, v)) {
+      return ranks[v]
+    }
+    visited[v] = true
+
+    let rank = _.max(_.map(g.inEdges(v), (e) => {
+      return dfs(e.v) + (g.edge(e) && g.edge(e).minlen || 1)
+    }))
+
+    if (rank === Number.NEGATIVE_INFINITY || typeof rank === "undefined") {
+      rank = 0
+    }
+
+    return (ranks[v] = rank)
+  }
+
+  _.each(g.sinks(), dfs)
+  return ranks
+}
+
 export function rankLongestPathGraph<V, E>(g: TypedGraph<V, E>): TypedGraph<V & Ranked, E> {
   let ranked = (g as any) as TypedGraph<V & Ranked, E>
   let ranks = rankLongestPath(g)
+  ranked.nodes().map(n => {
+    ranked.node(n).rank = ranks[n]
+  })
+  return ranked
+}
+
+export function rankFromTopGraph<V, E>(g: TypedGraph<V, E>): TypedGraph<V & Ranked, E> {
+  let ranked = (g as any) as TypedGraph<V & Ranked, E>
+  let ranks = rankFromTop(g)
   ranked.nodes().map(n => {
     ranked.node(n).rank = ranks[n]
   })

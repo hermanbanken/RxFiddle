@@ -385,9 +385,9 @@ export class NewCollector implements RxCollector {
               let key = existsSomewhereIn(sub, ps)
               if (key) {
                 let sinks = elvis(sub, key.split("."))
-                console.log(
-                  record.subject.constructor.name, "-|>",
-                  sinks.map(v => v.constructor.name))
+                // console.log(
+                //   record.subject.constructor.name, "-|>",
+                //   sinks.map(v => v.constructor.name))
                 sinks.forEach(sink => {
                   set.addRelation(this.id(sink).get(), "2 sink")
                   this.messages.push({

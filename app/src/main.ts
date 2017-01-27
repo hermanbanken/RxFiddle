@@ -1,6 +1,6 @@
 import Instrumentation, { defaultSubjects } from "./collector/instrumentation"
 import Collector from "./collector/logger"
-import { Visualizer } from "./collector/visualizer"
+import Visualizer, { Grapher } from "./visualization"
 import { VNode, makeDOMDriver } from "@cycle/dom"
 import { DOMSource } from "@cycle/dom/rx-typings"
 import Cycle from "@cycle/rx-run"
@@ -9,22 +9,22 @@ import * as Rx from "rx"
 import RxMarbles from "rxmarbles"
 import JsonCollector from "./collector/jsonCollector"
 
-const Observable = Rx.Observable
+const Observable = Rx.Observable;
+(window as any).Rx = Rx
 
 let collector = new JsonCollector("E_newstyle.json")
 // let collector = new Collector()
 // let instrumentation = new Instrumentation(defaultSubjects, collector)
 // instrumentation.setup()
 let vis = new Visualizer(
-  collector,
+  new Grapher(collector),
   document.querySelector("app") as HTMLElement,
   document.getElementById("controls")
 )
 
 vis.step();
-(<any>window).collector = collector;
-(<any>window).visualizer = vis;
-(<any>window).Rx = Rx
+(window as any).collector = collector;
+(window as any).visualizer = vis;
 
 //      /\    
 //     /  \   
@@ -139,7 +139,7 @@ trace.addEventListener("click", () => {
 })
 
 ids.addEventListener("click", () => {
-  vis.showIds = ids.checked
+  // vis.showIds = ids.checked
 })
 
 c()

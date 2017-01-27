@@ -8,13 +8,6 @@ export type RecreatedEdge<V, E> = { original: E, nodes: V[] }
 
 export type Pathed<E> = { path?: E[] }
 
-function forward(e: Edge) {
-  if (parseInt(e.v, 10) > parseInt(e.w, 10)) {
-    return { v: e.w, w: e.v, name }
-  }
-  return e
-}
-
 export function normalize<V extends Ranked, E>(
   g: TypedGraph<V, E>,
   createDummy: (dummyData: { id: string, rank: number }) => V
@@ -25,7 +18,10 @@ export function normalize<V extends Ranked, E>(
 
   // Without long edges
   let normalized = g.flatMap<V, DummyEdge<E>>((id, label) => [{ id, label }], (e, label: E) => {
-    e = forward(e)
+    if (e.v === e.w || rank(e.v) === rank(e.w)) {
+      return []
+    }
+
     if (rank(e.v) + 1 < rank(e.w)) {
       // Add dummy nodes + edges
       let dummies = range(rank(e.v) + 1, rank(e.w)).map(i => ({ id: `dummy-${e.v}-${e.w}(${i})`, rank: i }))
@@ -44,7 +40,12 @@ export function normalize<V extends Ranked, E>(
     normalized.setNode(n.id, createDummy(n))
   }))
 
-  console.log(normalized.toDot())
+  // Assert ok
+  normalized.edges().forEach(e => {
+    if (normalized.node(e.v).rank + 1 !== normalized.node(e.w).rank) {
+      throw new Error("Invalid edge from normalization")
+    }
+  })
 
   return normalized
 }

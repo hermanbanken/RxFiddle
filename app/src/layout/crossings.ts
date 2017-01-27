@@ -43,12 +43,14 @@ export function crossings(vRow: string[], wRow: string[], edges: Edge[]) {
 export function order_crossings(order: string[][], g: Graph): number {
   let count = 0
   foreachTuple("down", order, (row, ref) => {
-    // console.log("foreachTuple", order, row, ref)
     let es: { v: string, w: string }[] = flip(edges(g, "down", row))
     try {
       count += crossings(row, ref, es)
     } catch (e) {
-      console.log("Error in down sweep of ordering:\n", order.map(r => r.join(", ")).join("\n"), g)
+      console.log("Error in down sweep of ordering:\n" + order.map(r => {
+        let prefix = row === r && "row -> " || ref === r && "ref -> " || "       "
+        return prefix + r.join(", ")
+      }).join("\n") + "\nEdges: " + es.map(e => e.v + "->" + e.w).join("; ") + "\n", g)
       throw e
     }
   })
