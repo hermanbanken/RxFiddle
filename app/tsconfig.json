@@ -13,6 +13,7 @@
     ],
     "target": "ES6",
     "jsx": "preserve",
+    "strictNullChecks": false,
     "removeComments": false,
     "noImplicitAny": true,
     "experimentalDecorators": true,

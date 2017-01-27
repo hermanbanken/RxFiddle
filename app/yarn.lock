@@ -3043,13 +3043,13 @@ snabbdom-to-html@^2.0.1:
     lodash.kebabcase "^3.0.1"
     lodash.union "^3.1.0"
 
-snabbdom@^0.5.3:
-  version "0.5.4"
-  resolved "https://registry.yarnpkg.com/snabbdom/-/snabbdom-0.5.4.tgz#82d726fd495843d8920d54ac3ca670b7e503375e"
-
 snabbdom@0.5.0:
   version "0.5.0"
   resolved "https://registry.yarnpkg.com/snabbdom/-/snabbdom-0.5.0.tgz#be46231942602154b74cd94985dd9deda5b41761"
+
+snabbdom@0.6.3:
+  version "0.6.3"
+  resolved "https://registry.yarnpkg.com/snabbdom/-/snabbdom-0.6.3.tgz#5eaa55a74b1e542e5fffbe6b8eaf170b0c4ba533"
 
 sntp@1.x.x:
   version "1.0.9"
@@ -3349,9 +3349,9 @@ typedarray@~0.0.5:
   version "0.0.6"
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
 
-typescript@^2.1.0-dev.20161018:
-  version "2.1.0-dev.20161025"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.1.0-dev.20161025.tgz#183de682d0b22b23fd1a040d6559b193d1bc0c7c"
+typescript@2.1.5:
+  version "2.1.5"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.1.5.tgz#6fe9479e00e01855247cea216e7561bafcdbcd4a"
 
 uid-number@~0.0.6:
   version "0.0.6"
