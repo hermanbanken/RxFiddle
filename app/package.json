@@ -34,9 +34,9 @@
     "lodash": "4.17.2",
     "rx": "^4.1.0",
     "rxmarbles": "file:../../rxmarbles",
-    "snabbdom": "^0.5.3",
+    "snabbdom": "0.6.3",
     "svg-pan-zoom": "github:ariutta/svg-pan-zoom",
-    "typescript": "^2.1.0-dev.20161018"
+    "typescript": "2.1.5"
   },
   "devDependencies": {
     "@types/chai": "^3.4.34",

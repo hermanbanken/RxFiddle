@@ -1,0 +1,585 @@
+[
+	{
+		"id": 0,
+		"node": {
+			"name": "FromArrayObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [],
+		"label": {
+			"args": "[1,2,3]",
+			"kind": "observable",
+			"method": "of"
+		},
+		"node": 0,
+		"type": "label"
+	},
+	{
+		"id": 2,
+		"node": {
+			"name": "TapObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [
+			1
+		],
+		"label": {
+			"args": "[null]",
+			"kind": "observable",
+			"method": "tap"
+		},
+		"node": 2,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"time": 1485353928645
+			},
+			"v": 0,
+			"w": 2
+		},
+		"groups": [
+			1
+		],
+		"type": "edge"
+	},
+	{
+		"group": 1,
+		"groups": [],
+		"label": {
+			"args": "[null]",
+			"kind": "observable",
+			"method": "doOnNext"
+		},
+		"node": 2,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"time": 1485353928645
+			},
+			"v": 0,
+			"w": 2
+		},
+		"groups": [],
+		"type": "edge"
+	},
+	{
+		"id": 7,
+		"node": {
+			"name": "FlatMapObservable"
+		},
+		"type": "node"
+	},
+	{
+		"id": 8,
+		"node": {
+			"name": "MergeAllObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [
+			3
+		],
+		"label": {
+			"args": "[]",
+			"kind": "observable",
+			"method": "mergeAll"
+		},
+		"node": 8,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"time": 1485353928646
+			},
+			"v": 7,
+			"w": 8
+		},
+		"groups": [
+			3
+		],
+		"type": "edge"
+	},
+	{
+		"group": 3,
+		"groups": [],
+		"label": {
+			"args": "[null]",
+			"kind": "observable",
+			"method": "flatMap"
+		},
+		"node": 8,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"time": 1485353928646
+			},
+			"v": 2,
+			"w": 8
+		},
+		"groups": [],
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 13,
+			"type": "subscription"
+		},
+		"node": 8,
+		"type": "label"
+	},
+	{
+		"label": {
+			"id": 13,
+			"type": "subscription"
+		},
+		"node": 8,
+		"type": "label"
+	},
+	{
+		"label": {
+			"id": 15,
+			"type": "subscription"
+		},
+		"node": 7,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"type": "subscription sink",
+				"v": 15,
+				"w": 13
+			},
+			"v": 7,
+			"w": 8
+		},
+		"id": 16,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 15,
+			"type": "subscription"
+		},
+		"node": 7,
+		"type": "label"
+	},
+	{
+		"label": {
+			"id": 18,
+			"type": "subscription"
+		},
+		"node": 2,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"type": "subscription sink",
+				"v": 18,
+				"w": 15
+			},
+			"v": 2,
+			"w": 7
+		},
+		"id": 19,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 18,
+			"type": "subscription"
+		},
+		"node": 2,
+		"type": "label"
+	},
+	{
+		"label": {
+			"id": 21,
+			"type": "subscription"
+		},
+		"node": 0,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"type": "subscription sink",
+				"v": 21,
+				"w": 18
+			},
+			"v": 0,
+			"w": 2
+		},
+		"id": 22,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 21,
+			"type": "subscription"
+		},
+		"node": 0,
+		"type": "label"
+	},
+	{
+		"id": 24,
+		"node": {
+			"name": "JustObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [],
+		"label": {
+			"args": "[1]",
+			"kind": "observable",
+			"method": "just"
+		},
+		"node": 24,
+		"type": "label"
+	},
+	{
+		"id": 26,
+		"node": {
+			"name": "MapObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [],
+		"label": {
+			"args": "[null]",
+			"kind": "observable",
+			"method": "map"
+		},
+		"node": 26,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"time": 1485353928673
+			},
+			"v": 24,
+			"w": 26
+		},
+		"groups": [],
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 29,
+			"type": "subscription"
+		},
+		"node": 26,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"id": 29,
+				"parent": 15,
+				"type": "higherOrderSubscription sink"
+			},
+			"v": 26,
+			"w": 7
+		},
+		"id": 30,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 29,
+			"type": "subscription"
+		},
+		"node": 26,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"id": 29,
+				"parent": 15,
+				"type": "higherOrderSubscription sink"
+			},
+			"v": 26,
+			"w": 7
+		},
+		"id": 32,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 33,
+			"type": "subscription"
+		},
+		"node": 24,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"type": "subscription sink",
+				"v": 33,
+				"w": 29
+			},
+			"v": 24,
+			"w": 26
+		},
+		"id": 34,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 33,
+			"type": "subscription"
+		},
+		"node": 24,
+		"type": "label"
+	},
+	{
+		"id": 36,
+		"node": {
+			"name": "JustObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [],
+		"label": {
+			"args": "[2]",
+			"kind": "observable",
+			"method": "just"
+		},
+		"node": 36,
+		"type": "label"
+	},
+	{
+		"id": 38,
+		"node": {
+			"name": "MapObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [],
+		"label": {
+			"args": "[null]",
+			"kind": "observable",
+			"method": "map"
+		},
+		"node": 38,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"time": 1485353928725
+			},
+			"v": 36,
+			"w": 38
+		},
+		"groups": [],
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 41,
+			"type": "subscription"
+		},
+		"node": 38,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"id": 41,
+				"parent": 15,
+				"type": "higherOrderSubscription sink"
+			},
+			"v": 38,
+			"w": 7
+		},
+		"id": 42,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 41,
+			"type": "subscription"
+		},
+		"node": 38,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"id": 41,
+				"parent": 15,
+				"type": "higherOrderSubscription sink"
+			},
+			"v": 38,
+			"w": 7
+		},
+		"id": 44,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 45,
+			"type": "subscription"
+		},
+		"node": 36,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"type": "subscription sink",
+				"v": 45,
+				"w": 41
+			},
+			"v": 36,
+			"w": 38
+		},
+		"id": 46,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 45,
+			"type": "subscription"
+		},
+		"node": 36,
+		"type": "label"
+	},
+	{
+		"id": 48,
+		"node": {
+			"name": "JustObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [],
+		"label": {
+			"args": "[3]",
+			"kind": "observable",
+			"method": "just"
+		},
+		"node": 48,
+		"type": "label"
+	},
+	{
+		"id": 50,
+		"node": {
+			"name": "MapObservable"
+		},
+		"type": "node"
+	},
+	{
+		"groups": [],
+		"label": {
+			"args": "[null]",
+			"kind": "observable",
+			"method": "map"
+		},
+		"node": 50,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"time": 1485353928773
+			},
+			"v": 48,
+			"w": 50
+		},
+		"groups": [],
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 53,
+			"type": "subscription"
+		},
+		"node": 50,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"id": 53,
+				"parent": 15,
+				"type": "higherOrderSubscription sink"
+			},
+			"v": 50,
+			"w": 7
+		},
+		"id": 54,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 53,
+			"type": "subscription"
+		},
+		"node": 50,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"id": 53,
+				"parent": 15,
+				"type": "higherOrderSubscription sink"
+			},
+			"v": 50,
+			"w": 7
+		},
+		"id": 56,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 57,
+			"type": "subscription"
+		},
+		"node": 48,
+		"type": "label"
+	},
+	{
+		"edge": {
+			"label": {
+				"type": "subscription sink",
+				"v": 57,
+				"w": 53
+			},
+			"v": 48,
+			"w": 50
+		},
+		"id": 58,
+		"type": "edge"
+	},
+	{
+		"label": {
+			"id": 57,
+			"type": "subscription"
+		},
+		"node": 48,
+		"type": "label"
+	}
+]

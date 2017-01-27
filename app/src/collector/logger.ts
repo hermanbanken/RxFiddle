@@ -18,6 +18,30 @@ function isObservable(v: any): boolean {
   return typeof v === "object" && v !== null && typeof v.subscribe === "function"
 }
 
+export function formatArguments(args: IArguments | any[]): string {
+  return [].map.call(args, (a: any) => {
+    switch (typeof a) {
+      case "undefined": return "undefined"
+      case "object":
+        if (Array.isArray(a)) {
+          return `[${formatArguments(a)}]`
+        } else {
+          return a.toString() === "[object Object]" ? `[object ${a.constructor.name}]` : a
+        }
+      case "function":
+        if (typeof a.__original === "function") {
+          return a.__original.toString()
+        }
+        return a.toString()
+      case "string":
+        return a.substring(0, 512)
+      case "number":
+        return a
+      default: throw new TypeError(`Invalid type ${typeof a}`)
+    }
+  }).join(", ")
+}
+
 function last<T>(list: T[]): T {
   return list.length >= 1 ? list[list.length - 1] : undefined
 }
@@ -182,6 +206,7 @@ export interface ICollector {
 type Group = {
   call: ICallStart
   id: number
+  used: boolean
 }
 
 export class ObserverSet {
@@ -261,10 +286,36 @@ function existsSomewhereIn(obj: any, search: any[]): string {
   return
 }
 
+export type Node = {
+  id: number
+  type: "node"
+  node: {
+    name: string
+  }
+}
+export type Edge = {
+  type: "edge"
+  edge: {
+    v: number
+    w: number
+    label: {}
+  }
+}
+export type NodeLabel = {
+  group?: number
+  groups?: number[]
+  type: "label"
+  label: {}
+  node: number
+}
+
+export type Message = Node | Edge | NodeLabel
+
 export class NewCollector implements RxCollector {
   public collectorId = Collector.collectorId++
   public hash: string
-  public messages: any[] = []
+
+  public messages: Message[] = []
   public observerStorage: ObserverStorage = new ObserverStorage()
   private groups: Group[] = []
   private groupId: number = 0
@@ -274,13 +325,19 @@ export class NewCollector implements RxCollector {
     this.hash = this.collectorId ? `__hash${this.collectorId}` : "__hash"
   }
 
+  public observerToObs(observer: number | any) {
+    let oid = typeof observer === "number" ? observer : this.id(observer).get()
+    return this.observerStorage.observerToObservable[oid]
+  }
+
   public before(record: ICallStart, parents?: ICallStart[]): this {
     this.tags(record.subject, ...record.arguments)
 
     switch (callRecordType(record)) {
       case "setup":
         // Track group entry
-        this.groups.push({ call: record, id: this.groupId++ })
+        this.groups.slice(-1).forEach(g => g.used = true)
+        this.groups.push({ call: record, id: this.groupId++, used: false })
         break
       case "subscribe":
         [].filter.call(record.arguments, isSubscription)
@@ -290,41 +347,39 @@ export class NewCollector implements RxCollector {
 
             // Add subscription label
             this.messages.push({
-              id: this.messages.length,
-              node: this.id(record.subject).get(),
-              type: "label",
-              value: {
+              label: {
                 id: this.id(sub).get(),
                 type: "subscription",
               },
+              node: this.id(record.subject).get(),
+              type: "label",
             })
 
             // Find higher order sink:
-            // see if this sup has higher order sinks
+            // see if this sub has higher order sinks
             // TODO verify robustness of .parent & add other patterns
             if (sub.parent) {
-              console.log(record.subject.constructor.name, "=|>", sub.parent.constructor.name)
               set.addRelation(this.id(sub.parent).get(), "3 higher sink")
-              let parentObs = this.observerStorage.observerToObservable[this.id(sub.parent).get()]
+              let parentObs = this.observerToObs(sub.parent)
 
               // Add subscription link
               this.messages.push({
                 edge: {
+                  label: {
+                    id: this.id(sub).get(),
+                    parent: this.id(sub.parent).get(),
+                    type: "higherOrderSubscription sink",
+                  },
                   v: this.id(record.subject).get(),
                   w: parentObs,
                 },
                 id: this.messages.length,
-                type: "label",
-                value: {
-                  id: this.id(sub).get(),
-                  parent: this.id(sub.parent).get(),
-                  type: "higherOrderSubscription",
-                },
+                type: "edge",
               })
             }
 
             // Find sink:
-            // see if this sup links to record.parent.arguments.0 => link
+            // see if this sub links to record.parent.arguments.0 => link
             if (record.parent) {
               let ps = [].filter.call(record.parent.arguments, isSubscription)
               let key = existsSomewhereIn(sub, ps)
@@ -335,68 +390,99 @@ export class NewCollector implements RxCollector {
                   sinks.map(v => v.constructor.name))
                 sinks.forEach(sink => {
                   set.addRelation(this.id(sink).get(), "2 sink")
+                  this.messages.push({
+                    edge: {
+                      label: {
+                        type: "subscription sink",
+                        v: this.id(sub).get(),
+                        w: this.id(sink).get(),
+                      },
+                      v: this.observerToObs(sub),
+                      w: this.observerToObs(sink),
+                    },
+                    id: this.messages.length,
+                    type: "edge",
+                  })
                 })
               }
             }
           })
-
         break
+      case "event":
+        let event = Event.fromRecord(record)
+        if (event && event.type === "subscribe" || typeof event === "undefined") {
+          break
+        }
+        let e: Edge = {
+          edge: { label: event, v: 0, w: 0 },
+          type: "edge",
+        }
+        this.messages.push(e)
       default:
     }
 
     return this
   }
 
-  public visited: any[] = []
-
   public after(record: ICallRecord): void {
     this.tags(record.returned)
 
     switch (callRecordType(record)) {
       case "setup":
-        this.groups.pop()
+        let group = this.groups.pop()
         if (!isObservable(record.returned)) {
           break
         }
+
         let observable: number = this.id(record.returned).get()
         let observableSources: number[] = [record.subject, ...record.arguments]
           .filter(v => isObservable(v) && !isSubscription(v))
           .map(v => this.id(v).get())
+
         this.messages.push({
-          kind: "structure",
-          id: this.messages.length,
+          group: group.used ? group.id : undefined,
           groups: this.groups.map(g => g.id),
-          name: record.method || record.subjectName,
+          label: {
+            args: formatArguments(record.arguments),
+            kind: "observable",
+            method: record.method,
+          },
+          node: observable,
+          type: "label",
+        } as NodeLabel)
+
+        this.messages.push(...observableSources.map(source => ({
+          edge: {
+            label: {
+              time: record.time,
+            },
+            v: source,
+            w: observable,
+          },
+          groups: this.groups.map(g => g.id),
           type: "edge",
-          observable,
-          observableSources,
-          edges: observableSources.map(v => ({ v, w: observable })),
-        })
+        } as Edge)))
         break
 
       case "subscribe":
-        this.tags(record.returned.observer, record.returned.m, record.returned.observer.o)
         break
-
       default:
     }
     return
   }
 
-  public obsIdForSub(id: number): number {
-    return this.messages[id] && this.messages[id].observable
-  }
-
   public wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any {
     let self = this
     if (typeof fn === "function") {
-      return function wrapper(val: any, id: any, subjectSuspect: Rx.Observable<any>) {
+      let wrap = function wrapper(val: any, id: any, subjectSuspect: Rx.Observable<any>) {
         let result = fn.apply(this, arguments)
         if (typeof result === "object" && isStream(result) && subjectSuspect) {
           return self.proxy(result)
         }
         return result
-      }
+      };
+      (wrap as any).__original = fn
+      return wrap
     }
     return fn
   }
@@ -420,14 +506,15 @@ export class NewCollector implements RxCollector {
         }
         this.id(item).getOrSet(() => {
           let id = this.messages.length
-          let kind = isObservable(item) ? "observable" : "subscription"
-          // if (kind === "subscription") console.log(item)
-          this.messages.push({
-            kind,
-            id,
-            name: item.constructor.name || item.toString(),
-            type: "node",
-          })
+          if (isObservable(item)) {
+            this.messages.push({
+              id,
+              node: {
+                name: item.constructor.name || item.toString(),
+              },
+              type: "node",
+            })
+          }
           return id
         })
       }
@@ -496,6 +583,7 @@ export default class Collector implements RxCollector, ICollector {
         this.groups.push({
           call: record,
           id: 0,
+          used: false,
         })
 
         let item = new AddStructureEntry()

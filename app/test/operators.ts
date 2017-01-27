@@ -173,11 +173,13 @@ export class OperatorTest extends InstrumentationTest {
     console.log("")
     console.log("")
     console.log("START")
-    let obs = Rx.Observable.of(1, 2, 3)
-      .doOnNext(v => { return })
-      .flatMap(v => { console.log("Running"); return Rx.Observable.just(v).map(id => id) })
-    console.log("\nsubscribe\n", obs)
-    obs.subscribe(new TestObserver<number>())
+
+    complexObs()
+    // let obs = Rx.Observable.of(1, 2, 3)
+    //   .doOnNext(v => { return })
+    //   .flatMap(v => { console.log("Running"); return Rx.Observable.just(v).map(id => id) })
+    // obs.subscribe(new TestObserver<number>())
+
     console.log("END")
     console.log(this.newcollector.observerStorage.sets)
     console.log("")
@@ -185,11 +187,11 @@ export class OperatorTest extends InstrumentationTest {
 
     let fs = require("fs")
 
-    let t = new TypedGraph()
+    let t2 = new TypedGraph()
     this.newcollector.messages
-      .flatMap(v => v.edges ? v.edges as { v: string, w: string }[] : [])
-      .forEach(e => t.setEdge(e.v, e.w))
-    console.log("DOT messages", t.toDot())
+      .flatMap(v => v.type === "edge" ? [v.edge as { v: number, w: number, label: any }] : [])
+      .forEach(e => t2.setEdge(e.v.toString(), e.w.toString(), e.label))
+    console.log("DOT messages", t2.toDot())
 
     console.log("")
     console.log("")

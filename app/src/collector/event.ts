@@ -1,4 +1,5 @@
-import { ICallRecord } from "./callrecord"
+import { ICallStart } from "./callrecord"
+import { formatArguments } from "./logger"
 
 export type IEventType = "next" | "error" | "complete" | "subscribe" | "dispose"
 
@@ -8,7 +9,7 @@ export interface IEvent {
 }
 
 export class Event implements IEvent {
-  public static fromRecord(record: ICallRecord): IEvent | null {
+  public static fromRecord(record: ICallStart): IEvent | null {
     switch (record.method) {
       case "next":
       case "error":
@@ -32,27 +33,31 @@ export class Event implements IEvent {
     }
   }
   public static fromJson(input: any): IEvent | null {
-    switch(input.type) {
+    switch (input.type) {
       case "next": return new Next(input.time, input.value)
       case "error": return new Error(input.time, input.error)
       case "complete": return new Complete(input.time)
       case "subscribe": return new Subscribe(input.time)
       case "dispose": return new Dispose(input.time)
+      default: return null
     }
-    return null
   }
   constructor(public type: IEventType, public time: number) { }
 }
 
 export class Next<T> extends Event {
-  constructor(time: number, public value: T) {
-    super("next", time);
+  public value: string
+  constructor(time: number, value: T) {
+    super("next", time)
+    this.value = formatArguments([value])
   }
 }
 
 export class Error extends Event {
-  constructor(time: number, public error: Error) {
+  public error: Error
+  constructor(time: number, error: Error) {
     super("error", time)
+    this.error = error
   }
 }
 
