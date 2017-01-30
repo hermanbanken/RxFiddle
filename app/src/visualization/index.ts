@@ -194,7 +194,8 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
   function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
     let { v, w, points } = edge
     let labels = graph.edge(v, w).labels
-    console.log(v, w, labels)
+
+    let isHigher = labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
 
     let path = points.map(({x, y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
     return h("path", {
@@ -202,11 +203,11 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
         d: `M${path}`,
         fill: "transparent",
         id: `${v}/${w}`,
-        stroke: "rgba(0,0,0,0.1)",
+        stroke: isHigher ? "rgba(200,0,0,0.1)" : "rgba(0,0,0,0.1)",
         "stroke-width": 10,
       },
       key: `${v}/${w}`,
-      on: { mouseover: () => console.log(/*graph.edge(v, w)*/) },
+      on: { click: () => console.log(v, w, labels) },
       style: {
         transition: "d 1s",
       },
@@ -216,7 +217,6 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
   function circle(item: { id: string, x: number, y: number }): { svg: VNode[], html: VNode[] } {
     let node = graph.node(item.id)
     let labels = node.labels
-    console.log(item.id, labels)
     let methods = labels.map(nl => nl.label)
       .filter((label: any) => typeof label.kind !== "undefined" && label.kind === "observable")
 
@@ -226,9 +226,11 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
       attrs: {
         cx: mu + mu * item.x,
         cy: mu + mu * item.y,
-        fill: focusNodes.indexOf(item.id) >= 0 ? "black" : colorIndex(parseInt(item.id, 10)),
+        fill: colorIndex(parseInt(item.id, 10)),
         id: `circle-${item.id}`,
         r: 5,
+        stroke: "black",
+        "stroke-width": focusNodes.indexOf(item.id) >= 0 ? 1 : 0,
       },
       key: `circle-${item.id}`,
       on: { click: (e: any) => clicks.onNext(item.id) },
@@ -303,7 +305,7 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
       top: 0,
       width: (xmax + 2) * mu,
     },
-  }, elements)
+  }, elements.concat(defs()))
 
   let mask = h("div", {
     attrs: {
@@ -331,6 +333,16 @@ function colorIndex(i: number) {
 (window as any).colors = colors
 
 const defs: () => VNode[] = () => [h("defs", [
+  h("filter", {
+    attrs: { height: "200%", id: "dropshadow", width: "200%" },
+  }, [
+      h("feGaussianBlur", { attrs: { in: "SourceAlpha", stdDeviation: "2" } }),
+      h("feOffset", { attrs: { dx: 0, dy: 0, result: "offsetblur" } }),
+      h("feMerge", [
+        h("feMergeNode"),
+        h("feMergeNode", { attrs: { in: "SourceGraphic" } }),
+      ]),
+    ]),
   h("marker", {
     attrs: {
       id: "arrow",
