@@ -1,14 +1,12 @@
 import { StackFrame } from "../utils";
 import { AddObservable, AddSubscription } from "./logger";
-import { Visualizer } from "./visualizer";
 import * as snabbdom from "snabbdom";
-import { VNode } from "snabbdom";
+import { VNode } from "snabbdom/vnode";
 export declare function partition<T>(array: T[], fn: (item: T, index?: number, list?: T[]) => boolean): [T[], T[]];
 export declare class RxFiddleNode {
     id: string;
     name: string;
     location: StackFrame;
-    private visualizer;
     static wrap(inner: RxFiddleNode, outer: RxFiddleNode): RxFiddleNode;
     instances: ({
         id: number;
@@ -28,8 +26,7 @@ export declare class RxFiddleNode {
     rendered: VNode;
     nested: RxFiddleNode[];
     private count;
-    constructor(id: string, name: string, location: StackFrame, visualizer: Visualizer);
-    readonly edges: string[];
+    constructor(id: string, name: string, location: StackFrame);
     addObservable(instance: AddObservable): this;
     readonly locationText: string;
     addObserver(observable: AddObservable, observer: AddSubscription): [{
@@ -45,7 +42,6 @@ export declare class RxFiddleNode {
     layout(): void;
     setHighlight(index?: number): this;
     setHighlightId(patch: snabbdom.PatchFunction, id?: number): this;
-    render(patch: snabbdom.PatchFunction, showIds?: boolean): any;
+    render(patch: snabbdom.PatchFunction, showIds?: boolean): VNode;
     private line(i);
-    private dialog();
 }

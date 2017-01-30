@@ -10,13 +10,35 @@ const logger_1 = require("../src/collector/logger");
 const mocha_typescript_1 = require("mocha-typescript");
 let InstrumentationTest = class InstrumentationTest {
     before() {
-        logger_1.default.reset();
-        this.collector = new logger_1.default();
+        // Collector.reset()
+        // this.collector = new Collector()
+        // this.instrumentation = new Instrumentation(defaultSubjects, this.collector)
+        // this.instrumentation.setup()
+        this.collector = new logger_1.NewCollector();
         this.instrumentation = new instrumentation_1.default(instrumentation_1.defaultSubjects, this.collector);
         this.instrumentation.setup();
     }
     after() {
         this.instrumentation.teardown();
+    }
+    ensureCollector(arg) {
+        if (this instanceof logger_1.default) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    rxCheck() {
+        if (!this.ensureCollector(this.collector)) {
+            throw new Error("RxCollector is no Collector");
+        }
+    }
+    get rxcollector() {
+        return this.collector;
+    }
+    get newcollector() {
+        return this.collector;
     }
 };
 InstrumentationTest = __decorate([

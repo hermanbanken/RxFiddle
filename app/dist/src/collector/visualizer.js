@@ -1,34 +1,33 @@
 "use strict";
+const color_1 = require("../color");
+const layout_1 = require("../layout/layout");
+require("../object/extensions");
 require("../utils");
-const edge_1 = require("./edge");
+const grapher_1 = require("./grapher");
 const graphutils_1 = require("./graphutils");
-const logger_1 = require("./logger");
-const node_1 = require("./node");
 const graphlib_1 = require("graphlib");
 const snabbdom = require("snabbdom");
-require("../utils");
-require("../object/extensions");
+const h_1 = require("snabbdom/h");
 /* tslint:disable:no-var-requires */
 const dagre = require("dagre");
 const svgPanZoom = typeof window !== "undefined" ? require("svg-pan-zoom") : {};
-const h = require("snabbdom/h");
 const patch = snabbdom.init([
     require("snabbdom/modules/attributes"),
     require("snabbdom/modules/eventlisteners"),
 ]);
 // const ErrorStackParser = require("error-stack-parser")
 /* tslint:enable:no-var-requires */
-const colors = ["#0066B9", "#E90013", "#8E4397", "#3FB132", "#FDAC00", "#F3681B", "#9FACB3", "#9CA2D4", "#E84CA2"];
+const colors = color_1.generateColors(40);
 function colorIndex(i) {
-    return colors[i % colors.length];
+    if (typeof i === "undefined" || isNaN(i)) {
+        return "transparent";
+    }
+    let [r, g, b] = colors[i % colors.length];
+    return `rgb(${r},${g},${b})`;
 }
-function toDot(graph) {
-    return "graph g {\n" +
-        this.visualizer.subs.edges().map((e) => e.v + " -- " + e.w + " [type=s];").join("\n") +
-        "\n}";
-}
-const defs = () => [h("defs", [
-        h("marker", {
+window.colors = colors;
+const defs = () => [h_1.h("defs", [
+        h_1.h("marker", {
             attrs: {
                 id: "arrow",
                 markerHeight: 10,
@@ -38,8 +37,8 @@ const defs = () => [h("defs", [
                 overflow: "visible",
                 refx: 0, refy: 3,
             },
-        }, [h("path", { attrs: { d: "M-4,-2 L-4,2 L0,0 z", fill: "inherit" } })]),
-        h("marker", {
+        }, [h_1.h("path", { attrs: { d: "M-4,-2 L-4,2 L0,0 z", fill: "inherit" } })]),
+        h_1.h("marker", {
             attrs: {
                 id: "arrow-reverse",
                 markerHeight: 10,
@@ -49,32 +48,26 @@ const defs = () => [h("defs", [
                 overflow: "visible",
                 refx: 0, refy: 3,
             },
-        }, [h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
+        }, [h_1.h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
     ])];
-exports.HASH = "__hash";
-exports.IGNORE = "__ignore";
 class Visualizer {
     constructor(collector, dom, controls) {
-        this.edges = [];
-        this.nodes = [];
-        this.g = new graphlib_1.Graph({ compound: true, multigraph: true });
-        this.dag = new graphlib_1.Graph({ compound: true, multigraph: true });
-        this.combined = new graphlib_1.Graph({ compound: true, multigraph: true });
         this.metroLines = {};
         this.svgZoomInstance = null;
         this.showIdsBacking = false;
         this.componentId = 0;
         this.choices = [];
         this.rendered = 0;
-        this.g.setGraph({});
         this.app = dom;
         this.controls = controls;
         this.collector = collector;
+        this.grapher = new grapher_1.Grapher(collector);
+        this.grapher.g.setGraph({});
         if (!!window) {
             window.alg = graphlib_1.alg;
             window.dagre = dagre;
-            window.combined = this.combined;
-            window.toDot = toDot;
+            window.combined = this.grapher.combined;
+            window.toDot = graphutils_1.toDot;
             window.rankLongestPath = graphutils_1.rankLongestPath;
         }
     }
@@ -94,29 +87,15 @@ class Visualizer {
         this.run();
     }
     structureDag() {
-        let edges = this.g.edges();
-        let clone = new graphlib_1.Graph();
-        edges.forEach(({ v, w }) => {
-            let edge = this.g.edge({ v, w });
-            if (edge.type !== "structure") {
-                return;
-            }
-            console.log(edge, v, w);
-            edge.from = this.g.node(v);
-            edge.to = this.g.node(w);
-            clone.setNode(v, this.g.node(v));
-            clone.setNode(w, this.g.node(w));
-            clone.setEdge(v, w, edge);
-        });
-        return (clone);
+        return this.grapher.structureDag();
     }
-    layout(graph = this.g) {
+    layout(graph = this.grapher.g) {
         graph.setGraph({});
-        this.nodes.forEach(n => n.layout());
+        this.grapher.nodes.forEach(n => n.layout());
         dagre.layout(graph);
     }
-    size(graph = this.g) {
-        if (this.nodes.length === 0) {
+    size(graph = this.grapher.g) {
+        if (this.grapher.nodes.length === 0) {
             return { h: 10, w: 10 };
         }
         this.layout(graph);
@@ -132,149 +111,63 @@ class Visualizer {
             sub.sinks.forEach(p => {
                 this.highlightSubscriptionSource(p, level * 0.9);
                 let parent = this.collector.getSubscription(p);
-                let node = this.nodes[parent.observableId];
+                let node = this.grapher.nodes[parent.observableId];
                 if (node) {
                     node.setHighlightId(patch, parent.id);
                 }
             });
         }
         else {
-            this.nodes.forEach(n => { n.setHighlightId(patch); });
+            this.grapher.nodes.forEach(n => { n.setHighlightId(patch); });
         }
-    }
-    // public metroData(): { obs: string[], subs: string[], color: string }[] {
-    //   return Object.values(this.metroLines).map((line: number[], index: number) => ({
-    //     color: colorIndex(index),
-    //     obs: line.map((subId: number) => this.collector.getSubscription(subId).observableId).map(s => s.toString()),
-    //     subs: line,
-    //   }))
-    // }
-    handleLogEntry(el) {
-        if (el instanceof logger_1.AddObservable) {
-            if (typeof el.callParent !== "undefined") {
-            }
-            let node = this.setNode(el.id, new node_1.RxFiddleNode(`${el.id}`, el.method, this.collector.getStack(el.stack) && this.collector.getStack(el.stack).stackframe, this));
-            node.addObservable(el);
-            for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
-                // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
-                let edge = new edge_1.RxFiddleEdge(this.nodes[p], this.nodes[el.id], "structure", {
-                    "marker-end": "url(#arrow)",
-                });
-                this.setEdge(p, el.id, edge);
-            }
-        }
-        if (logger_1.instanceAddSubscription(el) && typeof this.nodes[el.observableId] !== "undefined") {
-            let adds = el;
-            // subs-graph
-            this.combined.setNode(`${adds.id}`, el);
-            adds.sinks.forEach(s => this.combined.setEdge(`${adds.id}`, `${s}`));
-            let node = this.nodes[adds.observableId];
-            let from = adds.observableId;
-            node.addObserver(this.collector.getObservable(adds.observableId), adds);
-            // add metro lines
-            if (adds.sinks.length > 0) {
-                this.metroLines[adds.id] = (this.metroLines[adds.sinks[0]] || [adds.sinks[0]]).concat([adds.id]);
-                delete this.metroLines[adds.sinks[0]];
-            }
-            else {
-                this.metroLines[adds.id] = [adds.id];
-            }
-            adds.sinks.forEach((parentId) => {
-                let to = this.collector.getSubscription(parentId).observableId;
-                let toNode = this.nodes[this.collector.getSubscription(parentId).observableId];
-                let existing = this.edge(from, to);
-                if (typeof existing === "undefined") {
-                    this.setEdge(to, from, new edge_1.RxFiddleEdge(node, toNode, "subscription", {
-                        dashed: true,
-                        stroke: "blue",
-                        "marker-start": "url(#arrow-reverse)",
-                    }));
-                }
-                else if (existing instanceof edge_1.RxFiddleEdge) {
-                    existing.options.stroke = "purple";
-                    existing.options["marker-start"] = "url(#arrow-reverse)";
-                }
-                else {
-                    console.warn("What edge?", existing);
-                }
-            });
-            // Dashed link
-            if (typeof adds.scopeId !== "undefined") {
-                let toId = (this.collector.getSubscription(adds.scopeId)).observableId;
-                let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId];
-                this.setEdge(toId, from, new edge_1.RxFiddleEdge(to, node, "higherorder", {
-                    dashed: true,
-                    "marker-end": "url(#arrow)",
-                }));
-            }
-        }
-        if (el instanceof logger_1.AddEvent && typeof this.collector.getSubscription(el.subscription) !== "undefined") {
-            let oid = (this.collector.getSubscription(el.subscription)).observableId;
-            if (typeof this.nodes[oid] === "undefined") {
-                return;
-            }
-            for (let row of this.nodes[oid].observers) {
-                if (row[1].id === el.subscription) {
-                    row[2].push(el.event);
-                }
-            }
-        }
-    }
-    process() {
-        this.g.graph().ranker = "tight-tree";
-        // this.g.graph().rankdir = "RL"
-        let start = this.rendered;
-        this.rendered = this.collector.length;
-        for (let i = start; i < this.collector.length; i++) {
-            let el = this.collector.getLog(i);
-            this.handleLogEntry(el);
-        }
-        return this.collector.length - start;
     }
     render(graph) {
         this.rendered = this.collector.length;
         if (typeof graph === "undefined" || graph.nodes().length === 0) {
-            return h("g");
+            return h_1.h("g");
         }
         this.layout(graph);
-        let ns = graph.nodes().map((id) => this.node(id).render(patch, this.showIds))
+        let ns = graph.nodes().map((id) => this.grapher.node(id).render(patch, this.showIds))
             .reduce((p, c) => p.concat(c), []);
         let es = graph.edges().map((e) => {
-            let edge = this.edge(e);
+            let edge = this.grapher.edge(e);
             return edge.render();
         });
         let childs = es.concat(ns);
-        return h("g", { attrs: { class: "visualizer" } }, childs);
+        return h_1.h("g", { attrs: { class: "visualizer" } }, childs);
     }
     selection(graphs) {
-        return [h("select", {
+        return [h_1.h("select", {
                 on: {
-                    change: (e) => { console.log(e); this.component = parseInt(e.target.value, 10); },
+                    change: (e) => {
+                        console.log(e);
+                        this.component = parseInt(e.target.value, 10);
+                    },
                 },
-            }, graphs.map((g, i) => h("option", { attrs: { value: i } }, `graph ${i}`)))];
+            }, graphs.map((g, i) => h_1.h("option", { attrs: { value: i } }, `graph ${i}`)))];
     }
     run() {
         if (this.app instanceof HTMLElement) {
             this.app.innerHTML = "";
         }
-        let changes = this.process();
+        let changes = this.grapher.process();
         /* Prepare components */
-        let comps = graphlib_1.alg.components(this.dag);
-        let graphs = comps.map(array => this.dag.filterNodes(n => array.indexOf(n) >= 0));
+        let comps = graphlib_1.alg.components(this.grapher.dag);
+        let graphs = comps
+            .map(array => this.grapher.dag.filterNodes(n => array.indexOf(n) >= 0));
         let graph = graphs[this.component];
         patch(this.controls, this.selection(graphs)[0]);
         window.graph = graph;
-        console.log(StructureGraph.traverse(graph), this.choices);
-        console.log("choices", this.choices);
         let render = this.render(graph);
         if (typeof graph !== "undefined") {
             this.size(graph);
         }
-        let sg = new StructureGraph();
-        let app = h("app", [
-            h("master", sg.renderSvg(graph, this.choices, (v) => this.makeChoice(v, graph), this.dag, Object.values(this.metroLines)).concat(sg.renderMarbles(graph, this.choices))),
-            h("detail", [
-                h("svg", {
+        let sg = new StructureGraph(this);
+        let svg = sg.renderSvg(this.grapher.leveledGraph, this.choices, (v) => this.makeChoice(v, graph));
+        let app = h_1.h("app", [
+            h_1.h("master", svg.concat(sg.renderMarbles(graph, this.choices))),
+            h_1.h("detail", [
+                h_1.h("svg", {
                     attrs: {
                         id: "svg",
                         style: "width: 200px; height: 200px",
@@ -326,36 +219,13 @@ class Visualizer {
         }
         this.run();
     }
-    setNode(id, label) {
-        this.nodes[id] = label;
-        this.g.setNode(`${id}`, label);
-        return label;
-    }
-    setEdge(from, to, edge) {
-        if (edge.type === "structure") {
-            this.dag.setNode(`${from}`, this.nodes[from]);
-            this.dag.setNode(`${to}`, this.nodes[to]);
-            this.dag.setEdge(`${from}`, `${to}`, edge);
-        }
-        this.g.setEdge(`${from}`, `${to}`, edge);
-        this.edges.push(edge);
-    }
-    edge(from, to) {
-        let edge;
-        if (typeof from === "number") {
-            edge = this.g.edge(`${from}`, `${to}`);
-        }
-        else {
-            edge = this.g.edge(from);
-        }
-        return typeof edge !== "undefined" ? edge : undefined;
-    }
-    node(label) {
-        return this.nodes[typeof label === "number" ? label : parseInt(label, 10)];
-    }
 }
 exports.Visualizer = Visualizer;
 class StructureGraph {
+    constructor(visualizer) {
+        // intentionally left blank
+        this.visualizer = visualizer;
+    }
     static traverse(graph, choices = []) {
         if (typeof graph === "undefined") {
             return [];
@@ -382,60 +252,92 @@ class StructureGraph {
         let coordinator = new MarbleCoordinator();
         let u = StructureGraph.chunk;
         let main = StructureGraph.traverse(graph, choices);
-        main.map((v) => graph.node(v)).forEach(v => coordinator.add(v));
-        let root = h("div", {
+        main.forEach((v) => coordinator.add(graph.node(v)));
+        let root = h_1.h("div", {
             attrs: {
                 id: "marbles",
                 style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
             },
         }, main.flatMap((v, i) => {
             let clazz = "operator " + (typeof graph.node(v).locationText !== "undefined" ? "withStack" : "");
-            let box = h("div", { attrs: { class: clazz } }, [
-                h("div", [], graph.node(v).name),
-                h("div", [], graph.node(v).locationText),
+            let box = h_1.h("div", { attrs: { class: clazz } }, [
+                h_1.h("div", [], graph.node(v).name),
+                h_1.h("div", [], graph.node(v).locationText),
             ]);
             return [box, coordinator.render(graph.node(v))];
         }));
         return [root];
     }
-    renderSvg(graph, choices, cb, dag, lines) {
+    renderSvg(graph, choices, cb) {
         let u = StructureGraph.chunk;
         window.renderSvgGraph = graph;
+        let layout = layout_1.default(graph);
         let mu = u / 2;
-        let structure = graphutils_1.structureLayout(graph);
-        let structureIndex = graphutils_1.indexedBy(i => i.node, structure.layout);
-        console.log("structure layout", structure);
-        let nodes = structure.layout /*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
-            return [h("circle", {
+        let elements = layout.flatMap((level, levelIndex) => {
+            let edges = level.edges.map(({ v, w, points }) => {
+                let path = points.map(({ x, y }) => `${mu + mu * x} ${mu + mu * y}`).join(" L ");
+                return h_1.h("path", {
                     attrs: {
-                        cx: mu + mu * item.x,
-                        cy: mu + mu * item.y,
-                        fill: colorIndex(item.isDummy ? 1 : 0),
-                        r: item.isDummy ? 2 : 5
+                        d: `M${path}`,
+                        stroke: levelIndex === 0 ? "rgba(0,0,0,0.1)" : "gray",
+                        // "stroke-dasharray": 5,
+                        "stroke-width": levelIndex === 0 ? 10 : 2,
                     },
-                    on: {
-                        click: () => console.log(item),
-                    },
-                }), h("text", { attrs: { x: mu + mu * item.x + 10, y: mu + mu * item.y + 5 } }, item.isDummy ? "" : `${item.node}`)];
-        });
-        let edges = structure.graph.edges().map(g => {
-            let v = structureIndex[g.v];
-            let w = structureIndex[g.w];
-            if (!v || !w)
-                console.log(g, v, w);
-            return h("path", {
-                attrs: { d: `M${mu + mu * v.x} ${mu + mu * v.y} L ${mu + mu * w.x} ${mu + mu * w.y}`,
-                    stroke: "gray", "stroke-dasharray": 5 },
+                    on: { mouseover: () => console.log(graph.edge(v, w)) },
+                });
             });
-        });
-        return [h("svg", {
+            return edges;
+        }).concat(layout[0].nodes.map(item => h_1.h("circle", {
+            attrs: {
+                cx: mu + mu * item.x,
+                cy: mu + mu * item.y,
+                fill: colorIndex(parseInt(item.id, 10)),
+                id: `circle-${item.id}`,
+                r: 5,
+            },
+            on: {
+                click: (e) => console.log(item.id, this.visualizer.collector.data[parseInt(item.id, 10)]),
+            },
+        })));
+        // commented 2017-01-13 friday 9:50 
+        // let ranked = rankLongestPathGraph(graph
+        //   // .filterEdges(v => v.w < v.v)
+        //   .filterNodes((_, n) => n.level === "observable")
+        // )
+        // let rootLayout = structureLayout(ranked)
+        // let fullLayout = rootLayout.layout //this.superImpose(rootLayout, graph)
+        let g = graph
+            .filterEdges(v => v.w < v.v)
+            .filterNodes((_, n) => n.level === "subscription");
+        let xmax = layout
+            .flatMap(level => level.nodes)
+            .reduce((p, n) => Math.max(p, n.x), 0);
+        return [h_1.h("svg", {
                 attrs: {
                     id: "structure",
-                    style: `width: ${u * 6}px; height: ${u * (0.5 + structure.layout.length)}px`,
+                    style: `width: ${xmax * u}px; height: ${u * (0.5 + elements.length)}px`,
                     version: "1.1",
                     xmlns: "http://www.w3.org/2000/svg",
                 },
-            }, edges.concat(nodes))];
+            }, elements)];
+    }
+    superImpose(root, g) {
+        // TODO
+        let layout = root.layout.flatMap(item => {
+            let subs = g.outEdges(item.node)
+                .flatMap(e => typeof g.edge(e) === "object" && g.edge(e).lower === "subscription" ? [e.w] : []);
+            console.log("subs", subs);
+            if (subs.length) {
+                return subs.map((sub, index) => Object.assign({}, item, {
+                    node: sub,
+                    x: item.x + (index / subs.length - 0.5)
+                })).concat([item]);
+            }
+            else {
+                return [item];
+            }
+        });
+        return layout;
     }
 }
 StructureGraph.chunk = 100;
@@ -447,19 +349,19 @@ class MarbleCoordinator {
     }
     render(node) {
         let events = node.observers.flatMap(v => v[2]);
-        let marbles = events.map(e => h("svg", {
+        let marbles = events.map(e => h_1.h("svg", {
             attrs: { x: `${this.relTime(e.time)}%`, y: "50%" },
-        }, [h("path", {
+        }, [h_1.h("path", {
                 attrs: { class: "arrow", d: "M 0 -50 L 0 48" },
-            }), h("circle", {
+            }), h_1.h("circle", {
                 attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
             })]));
-        return h("svg", {
+        return h_1.h("svg", {
             attrs: {
                 class: "marblediagram",
             },
         }, [
-            h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
+            h_1.h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
         ].concat(marbles).concat(defs()));
     }
     relTime(t) {

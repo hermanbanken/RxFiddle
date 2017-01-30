@@ -1,7 +1,7 @@
 "use strict";
-const h = require("snabbdom/h");
+const h_1 = require("snabbdom/h");
 function centeredRect(width, height, opts = {}) {
-    return h("rect", {
+    return h_1.h("rect", {
         attrs: Object.assign({
             fill: "transparent",
             stroke: "black",
@@ -15,7 +15,7 @@ function centeredRect(width, height, opts = {}) {
 }
 exports.centeredRect = centeredRect;
 function centeredText(text, attrs = {}, opts = {}) {
-    return h("text", Object.assign({
+    return h_1.h("text", Object.assign({
         attrs: Object.assign({
             x: 0,
             y: 0,

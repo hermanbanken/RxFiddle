@@ -1,3 +1,4 @@
+import { VNode } from "snabbdom/vnode";
 declare module "rx" {
     interface Observable<T> {
     }
@@ -41,4 +42,3 @@ declare module "snabbdom" {
     }
 }
 export declare function endsWith(self: string, suffix: string): boolean;
-export {};

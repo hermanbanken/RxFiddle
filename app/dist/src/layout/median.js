@@ -1,6 +1,6 @@
 "use strict";
 const index_1 = require("./index");
-function wmedian(ranks, g, dir) {
+function wmedian(ranks, g, dir, externalSort) {
     index_1.foreachTuple(dir, ranks, (row, ref, rowIndex) => {
         // Gather position of connected nodes per edge
         let indices = index_1.edges(g, dir, row).reduce((store, e) => {
@@ -22,6 +22,10 @@ function wmedian(ranks, g, dir) {
             }
             return a.median - b.median;
         }).map(i => i.n);
+        // Apply external sorting
+        if (typeof externalSort !== "undefined") {
+            ranks[rowIndex] = ranks[rowIndex].sort(externalSort);
+        }
     });
 }
 exports.wmedian = wmedian;

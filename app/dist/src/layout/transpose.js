@@ -2,10 +2,13 @@
 require("../utils");
 const crossings_1 = require("./crossings");
 const index_1 = require("./index");
+exports.debug = {
+    on: false,
+};
 /*
  * @see http://www.graphviz.org/Documentation/TSE93.pdf page 16
  */
-function transpose(ranks, g, direction) {
+function transpose(ranks, g, direction, externalSort) {
     let improved = true;
     while (improved) {
         improved = false;
@@ -17,11 +20,10 @@ function transpose(ranks, g, direction) {
                 if (direction === "down") {
                     es = index_1.flip(es);
                 }
-                if (crossings_1.crossings([v, w], ref, es) > crossings_1.crossings([w, v], ref, es)) {
+                let xsort = typeof externalSort === "undefined" ? 0 : externalSort(v, w);
+                if (xsort > 0 || xsort === 0 && crossings_1.crossings([v, w], ref, es) > crossings_1.crossings([w, v], ref, es)) {
                     improved = true;
-                    let tmp = rank[i];
-                    rank[i] = rank[j];
-                    rank[j] = tmp;
+                    swap(rank, i, j);
                 }
             });
         });
@@ -29,4 +31,9 @@ function transpose(ranks, g, direction) {
     return ranks;
 }
 exports.transpose = transpose;
+function swap(list, i, j) {
+    let tmp = list[i];
+    list[i] = list[j];
+    list[j] = tmp;
+}
 //# sourceMappingURL=transpose.js.map

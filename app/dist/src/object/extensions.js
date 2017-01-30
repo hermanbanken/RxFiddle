@@ -2,7 +2,9 @@
 Object.values = function objectValues(obj) {
     let values = [];
     for (let key in obj) {
-        values.push(obj[key]);
+        if (obj.hasOwnProperty(key)) {
+            values.push(obj[key]);
+        }
     }
     return values;
 };

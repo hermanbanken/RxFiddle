@@ -1,8 +1,9 @@
 import { StackFrame } from "../utils";
-import { ICallRecord } from "./callrecord";
+import { ICallRecord, ICallStart } from "./callrecord";
 import { IEvent } from "./event";
 import { ILens } from "./lens";
 import * as Rx from "rx";
+export declare function formatArguments(args: IArguments | any[]): string;
 export declare function instanceAddSubscription(input: any): boolean;
 declare module "rx" {
     interface Observable<T> {
@@ -15,10 +16,19 @@ declare module "rx" {
     }
 }
 export declare class AddStackFrame {
+    kind: "stackframe";
     id: number;
     stackframe: StackFrame;
+    parent: number;
+}
+export declare class AddStructureEntry {
+    kind: "observable";
+    id: number;
+    parents?: number[];
+    method?: string;
 }
 export declare class AddObservable {
+    kind: "observable";
     id: number;
     callParent?: number;
     parents?: number[];
@@ -28,22 +38,35 @@ export declare class AddObservable {
     inspect(depth: number, opts?: any): string;
     toString(): string;
 }
+export declare class AddSubscriptionImpl implements AddSubscription {
+    id: number;
+    observableId: number;
+    sinks?: number[];
+    scopeId?: number;
+    kind: "subscription";
+    inspect(depth: number, opts?: any): string;
+    toString(): string;
+}
 export interface AddSubscription {
+    kind: "subscription";
     id: number;
     observableId: number;
     sinks?: number[];
     scopeId?: number;
 }
 export declare class AddEvent {
+    kind: "event";
     subscription: number;
     event: IEvent;
 }
 export interface RxCollector {
-    before(record: ICallRecord, parents?: ICallRecord[]): Collector;
+    before(record: ICallStart, parents?: ICallStart[]): this;
     after(record: ICallRecord): void;
     wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T;
 }
+export declare type All = AddStackFrame | AddObservable | AddSubscription | AddEvent | AddStructureEntry;
 export interface ICollector {
+    data: All[];
     indices: {
         observables: {
             [id: number]: {
@@ -62,11 +85,77 @@ export interface ICollector {
         };
     };
     length: number;
-    getLog(id: number): AddObservable | AddSubscription | AddEvent | AddStackFrame;
+    getLog(id: number): All;
     getStack(id: number): AddStackFrame | null;
     getObservable(id: number): AddObservable | null;
     getSubscription(id: number): AddSubscription | null;
     getEvent(id: number): AddEvent | null;
+}
+export declare class ObserverSet {
+    observable: number;
+    ids: number[];
+    relations: number[];
+    tags: {
+        [id: number]: string[];
+    };
+    constructor(observable: number);
+    inspect(depth: number, opts?: any): string;
+    toString(): string;
+}
+export declare class ObserverStorage {
+    sets: ObserverSet[];
+    observableToSets: {
+        [id: number]: ObserverSet[];
+    };
+    observerToSet: {
+        [id: number]: number;
+    };
+    observerToObservable: {
+        [id: number]: number;
+    };
+    set(forObservable: number, forObserver: number): {
+        addCore: (observer: number, ...tags: string[]) => void;
+        addRelation: (observer: number, ...tags: string[]) => void;
+    };
+}
+export declare type Node = {
+    id: number;
+    type: "node";
+    node: {
+        name: string;
+    };
+};
+export declare type Edge = {
+    type: "edge";
+    edge: {
+        v: number;
+        w: number;
+        label: {};
+    };
+};
+export declare type NodeLabel = {
+    group?: number;
+    groups?: number[];
+    type: "label";
+    label: {};
+    node: number;
+};
+export declare type Message = Node | Edge | NodeLabel;
+export declare class NewCollector implements RxCollector {
+    collectorId: number;
+    hash: string;
+    messages: Message[];
+    observerStorage: ObserverStorage;
+    private groups;
+    private groupId;
+    constructor();
+    observerToObs(observer: number | any): number;
+    before(record: ICallStart, parents?: ICallStart[]): this;
+    after(record: ICallRecord): void;
+    wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any;
+    private proxy<T>(target);
+    private tags(...items);
+    private id<T>(obs);
 }
 export default class Collector implements RxCollector, ICollector {
     static collectorId: number;
@@ -91,14 +180,17 @@ export default class Collector implements RxCollector, ICollector {
             };
         };
     };
-    data: (AddStackFrame | AddObservable | AddSubscription | AddEvent)[];
+    data: All[];
+    allRecords: ICallStart[];
+    trace: any[];
     private queue;
+    private groups;
     constructor();
     lens(): ILens<{}>;
-    before(record: ICallRecord, parents?: ICallRecord[]): Collector;
+    before(record: ICallStart, parents?: ICallRecord[]): this;
     after(record: ICallRecord): void;
     readonly length: number;
-    getLog(id: number): AddObservable | AddSubscription | AddEvent | AddStackFrame;
+    getLog(id: number): All;
     getObservable(id: number): AddObservable | null;
     getSubscription(id: number): AddSubscription | null;
     getStack(id: number): AddStackFrame | null;

@@ -5,6 +5,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
+const ordering_1 = require("./ordering");
 const transpose_1 = require("./transpose");
 const chai_1 = require("chai");
 const graphlib_1 = require("graphlib");
@@ -85,6 +86,32 @@ let TransposeSpec = class TransposeSpec {
         i = transpose_1.transpose(i, g, "up");
         chai_1.expect(i).to.deep.eq(e);
     }
+    "test 7 external sort"() {
+        ///   -----d-e-f-g-h--
+        ///           / / /
+        ///          ////
+        ///         //   e d
+        ///        /     | |
+        ///   -----a-----b-c--
+        let g = asGraph([
+            { v: "f", w: "a" },
+            { v: "g", w: "a" },
+            { v: "h", w: "a" },
+            { v: "e", w: "b" },
+            { v: "d", w: "c" },
+        ]);
+        let i = [["d", "e", "f", "g", "h"], ["a", "b", "c"]];
+        ///   -e-d-f-g-h--
+        ///    | | | | |
+        ///    | | | | |
+        ///    | | | |/ 
+        ///    | | | /   
+        ///   -b-c-a------
+        let e = [["e", "d", "f", "g", "h"], ["b", "c", "a"]];
+        i = transpose_1.transpose(i, g, "down", ordering_1.fixingSort(["e", "b"]));
+        i = transpose_1.transpose(i, g, "up", ordering_1.fixingSort(["e", "b"]));
+        chai_1.expect(i).to.deep.eq(e);
+    }
 };
 __decorate([
     mocha_typescript_1.test
@@ -98,6 +125,9 @@ __decorate([
 __decorate([
     mocha_typescript_1.test
 ], TransposeSpec.prototype, "test 7", null);
+__decorate([
+    mocha_typescript_1.test
+], TransposeSpec.prototype, "test 7 external sort", null);
 TransposeSpec = __decorate([
     mocha_typescript_1.suite
 ], TransposeSpec);

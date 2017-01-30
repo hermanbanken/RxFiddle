@@ -1,32 +1,25 @@
+import "../object/extensions";
 import "../utils";
-import { ICallRecord } from "./callrecord";
+import { ICallRecord, ICallStart } from "./callrecord";
 import { RxFiddleEdge } from "./edge";
 import { ICollector } from "./logger";
 import { RxFiddleNode } from "./node";
+import TypedGraph from "./typedgraph";
 import { Graph } from "graphlib";
-import { VNode } from "snabbdom";
-import "../utils";
-import "../object/extensions";
-export declare const HASH = "__hash";
-export declare const IGNORE = "__ignore";
-export declare type MethodName = string;
+import { VNode } from "snabbdom/vnode";
 export interface RxCollector {
     wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T;
-    before(record: ICallRecord, parents?: ICallRecord[]): this;
+    before(record: ICallStart, parents?: ICallStart[]): this;
     after(record: ICallRecord): void;
 }
 export declare class Visualizer {
-    edges: RxFiddleEdge[];
-    nodes: RxFiddleNode[];
-    g: Graph;
-    dag: Graph;
-    combined: Graph;
     metroLines: {
         [sink: number]: number[];
     };
     svgZoomInstance: {
         destroy(): void;
     } | null;
+    collector: ICollector;
     private showIdsBacking;
     showIds: boolean;
     private componentId;
@@ -35,26 +28,20 @@ export declare class Visualizer {
     private app;
     private controls;
     private rendered;
-    private collector;
+    private grapher;
     constructor(collector: ICollector, dom?: HTMLElement, controls?: HTMLElement);
     structureDag(): Graph;
-    layout(graph?: Graph): void;
-    size(graph?: Graph): {
+    layout(graph?: TypedGraph<RxFiddleNode, RxFiddleEdge>): void;
+    size(graph?: TypedGraph<RxFiddleNode, RxFiddleEdge>): {
         w: number;
         h: number;
     };
     highlightSubscriptionSource(id?: number, level?: number): void;
-    handleLogEntry(el: any): void;
-    process(): number;
-    render(graph: Graph): VNode;
+    render(graph: TypedGraph<RxFiddleNode, RxFiddleEdge>): VNode;
     selection(graphs: Graph[]): VNode[];
     run(): void;
     makeChoice(v: string, graph: Graph): void;
     descendants(graph: Graph, v: string): string[];
     attach(node: HTMLElement): void;
     step(): void;
-    private setNode(id, label);
-    private setEdge(from, to, edge);
-    private edge(from, to?);
-    private node(label);
 }

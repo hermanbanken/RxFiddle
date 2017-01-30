@@ -1,16 +1,18 @@
 "use strict";
 require("../utils");
-const visualizer_1 = require("./visualizer");
 const Rx = require("rx");
 const rxAny = Rx;
 exports.defaultSubjects = {
     Observable: Rx.Observable,
     "Observable.prototype": rxAny.Observable.prototype,
+    "ConnectableObservable.prototype": rxAny.ConnectableObservable.prototype,
     "ObservableBase.prototype": rxAny.ObservableBase.prototype,
     "AbstractObserver.prototype": rxAny.internals.AbstractObserver.prototype,
     "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
     "Subject.prototype": rxAny.Subject.prototype,
 };
+exports.HASH = "__hash";
+exports.IGNORE = "__ignore";
 function now() {
     return typeof performance !== "undefined" ? performance.now() : new Date().getTime();
 }
@@ -70,7 +72,7 @@ class Instrumentation {
         this.prototypes = [];
         this.subjects = subjects;
         this.logger = logger;
-        Object.keys(subjects).slice(0, 1).forEach((s) => subjects[s][visualizer_1.IGNORE] = true);
+        Object.keys(subjects).slice(0, 1).forEach((s) => subjects[s][exports.IGNORE] = true);
     }
     /* tslint:disable:only-arrow-functions */
     /* tslint:disable:no-string-literal */
@@ -93,7 +95,6 @@ class Instrumentation {
                     childs: [],
                     id: i++,
                     method: extras["methodName"],
-                    returned: null,
                     stack: self.stackTraces ? new Error().stack : undefined,
                     subject: thisArg,
                     subjectName: extras["subjectName"],
@@ -111,18 +112,19 @@ class Instrumentation {
                 // Actual method
                 let instanceLogger = logger.before(call, open.slice(0, -1));
                 let returned = target.apply(call.subject, [].map.call(argumentsList, instanceLogger.wrapHigherOrder.bind(instanceLogger, call.subject)));
-                call.returned = returned;
+                let end = call;
+                end.returned = returned;
                 // Nicen up Rx performance tweaks
-                rxTweaks(call);
-                instanceLogger.after(call);
+                rxTweaks(end);
+                instanceLogger.after(end);
                 // find more
-                new Array(call.returned)
+                new Array(end.returned)
                     .filter(hasRxPrototype)
                     .filter((v) => !v.hasOwnProperty("__instrumented"))
                     .forEach((t) => this.setupPrototype(t));
                 // Cleanup
                 open.pop();
-                return call.returned;
+                return end.returned;
             },
             construct: (target, args) => {
                 console.warn("TODO, instrument constructor", target, args);

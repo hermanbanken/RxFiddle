@@ -2,7 +2,7 @@
 const logger_1 = require("./logger");
 function subsLens(collector, subs) {
     let events = () => {
-        let subsIds = subs().map(s => s.id);
+        let subsIds = subs().map(s => s && s.id).filter(v => typeof v !== "undefined");
         return subsIds
             .map(subId => collector.indices.subscriptions[subId].events)
             .map(eventIds => eventIds.map(eid => collector.getEvent(eid)))

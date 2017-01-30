@@ -22,7 +22,10 @@ class JsonCollector {
         }
         else {
             fetch(url).then(res => res.json()).then(data => {
-                console.log("JSONCollector data", data);
+                if (typeof window !== "undefined") {
+                    window.data = data;
+                    console.info("window.data is now filled with JSON data of", url);
+                }
                 if (typeof data === "object" && Array.isArray(data)) {
                     data.forEach(v => this.receive(v));
                 }

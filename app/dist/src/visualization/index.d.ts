@@ -1,15 +1,15 @@
+import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger";
+import TypedGraph from "../collector/typedgraph";
 import "../object/extensions";
 import "../utils";
-import TypedGraph from "../collector/typedgraph";
-import { VNode } from "snabbdom/vnode";
 import * as Rx from "rx";
-import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger";
+import { VNode } from "snabbdom/vnode";
 export interface DataSource {
     dataObs: Rx.Observable<Message>;
 }
 export declare type ViewState = {
-    focusNodes: number[];
-    openGroups: number[];
+    focusNodes: string[];
+    openGroups: string[];
     openGroupsAll: boolean;
 };
 export declare type GraphNode = {
@@ -21,16 +21,20 @@ export declare type GraphEdge = {
 };
 export declare class Grapher {
     graph: Rx.Observable<TypedGraph<GraphNode, GraphEdge>>;
-    constructor(collector: DataSource, viewState?: Rx.Observable<ViewState>);
+    constructor(collector: DataSource);
     private next(graph, event);
-    private filter(graph, viewState);
 }
 export default class Visualizer {
+    focusNodes: Rx.Subject<string[]>;
+    openGroups: Rx.Subject<string[]>;
     DOM: Rx.Observable<VNode>;
+    readonly viewState: Rx.Observable<ViewState>;
+    private clicks;
     private grapher;
     private app;
     constructor(grapher: Grapher, dom?: HTMLElement, controls?: HTMLElement);
     run(): void;
     attach(node: HTMLElement): void;
     step(): void;
+    private filter(graph, viewState);
 }

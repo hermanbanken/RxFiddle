@@ -1,34 +1,10 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
-function marble(event) {
-    return event[0].toLowerCase();
-}
-function render(inputs) {
-    let times = inputs.reduce((store, { events: list }) => store.concat(list.map(_ => _.time)), []);
-    times.sort();
-    return inputs.map(({ events: stream, id }, index) => {
-        let result = "";
-        let ts = times.slice(0);
-        let es = stream.slice(0).sort((a, b) => a.time - b.time);
-        for (let t = 0, s = 0; t < ts.length; t++) {
-            if (s < es.length && ts[t] === es[s].time) {
-                result += marble(es[s++].type);
-            }
-            else {
-                result += "-";
-            }
-        }
-        return id ? `${id} ${result}` : result;
-    });
-}
-exports.render = render;
-
-},{}],2:[function(require,module,exports){
-"use strict";
 function callRecordType(record) {
     if (record.subjectName === "Observable" ||
         record.subjectName === "Observable.prototype" ||
-        record.subjectName === "ObservableBase.prototype") {
+        record.subjectName === "ObservableBase.prototype" ||
+        record.subjectName.indexOf("Observable") >= 0) {
         if (record.method === "subscribe" || record.method === "_subscribe" || record.method === "__subscribe") {
             return "subscribe";
         }
@@ -40,50 +16,9 @@ function callRecordType(record) {
 }
 exports.callRecordType = callRecordType;
 
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 "use strict";
-const h = require("snabbdom/h");
-class RxFiddleEdge {
-    constructor(from, to, type, options = {}) {
-        this.from = from;
-        this.to = to;
-        this.type = type;
-        this.points = [];
-        this.options = Object.assign({
-            dashed: false,
-            fill: "transparent",
-            stroke: "black",
-            "stroke-width": 2,
-        }, options);
-    }
-    render() {
-        let path = qubicPath(this.points);
-        let attrs = Object.assign({
-            d: path,
-        }, this.options);
-        if (attrs.dashed) {
-            attrs["stroke-dasharray"] = "5, 5";
-        }
-        delete attrs.dashed;
-        return h("path", { attrs });
-    }
-}
-exports.RxFiddleEdge = RxFiddleEdge;
-function qubicPath(points) {
-    if (points.length % 2 === 1) {
-        let path = `M ${points[0].x} ${points[0].y}`;
-        for (let i = 1; i < points.length; i += 2) {
-            path += `Q ${points[i].x} ${points[i].y}, ${points[i + 1].x} ${points[i + 1].y}`;
-        }
-        return path;
-    }
-    else {
-        return "M " + points.map((p) => `${p.x} ${p.y}`).join(" T ");
-    }
-}
-
-},{"snabbdom/h":191}],4:[function(require,module,exports){
-"use strict";
+const logger_1 = require("./logger");
 class Event {
     constructor(type, time) {
         this.type = type;
@@ -111,12 +46,22 @@ class Event {
             default: break;
         }
     }
+    static fromJson(input) {
+        switch (input.type) {
+            case "next": return new Next(input.time, input.value);
+            case "error": return new Error(input.time, input.error);
+            case "complete": return new Complete(input.time);
+            case "subscribe": return new Subscribe(input.time);
+            case "dispose": return new Dispose(input.time);
+            default: return null;
+        }
+    }
 }
 exports.Event = Event;
 class Next extends Event {
     constructor(time, value) {
         super("next", time);
-        this.value = value;
+        this.value = logger_1.formatArguments([value]);
     }
 }
 exports.Next = Next;
@@ -140,22 +85,25 @@ class Dispose extends Event {
 }
 exports.Dispose = Dispose;
 
-},{}],5:[function(require,module,exports){
+},{"./logger":6}],3:[function(require,module,exports){
 "use strict";
 require("../utils");
 const graphlib_1 = require("graphlib");
 const _ = require("lodash");
 const TRACE = false;
 function trace(...args) {
-    if (TRACE)
+    if (TRACE) {
         console.log.apply(console, arguments);
+    }
 }
 function last(list) {
     return list[list.length - 1];
 }
+exports.last = last;
 function head(list) {
     return list[0];
 }
+exports.head = head;
 function takeWhile(list, pred) {
     let ret = [];
     for (let i = 0; i < list.length && pred(list[i]); i++) {
@@ -163,6 +111,7 @@ function takeWhile(list, pred) {
     }
     return ret;
 }
+exports.takeWhile = takeWhile;
 function range(start, exclusiveEnd) {
     let r = [];
     for (let i = start; i < exclusiveEnd; i++) {
@@ -170,39 +119,19 @@ function range(start, exclusiveEnd) {
     }
     return r;
 }
+exports.range = range;
 function avg(list) {
-    if (list.length === 0)
+    if (list.length === 0) {
         return undefined;
-    if (list.length === 1)
+    }
+    if (list.length === 1) {
         return list[0];
+    }
     return list.reduce((sum, v) => sum + (v / list.length), 0);
 }
 function absMin(a, b) {
     return Math.abs(a) < Math.abs(b) ? a : b;
 }
-function clone(g, edgeFilter, transform) {
-    let clone = new graphlib_1.Graph({
-        multigraph: g.isMultigraph(),
-        directed: g.isDirected(),
-        compound: g.isCompound(),
-    });
-    let edges = typeof edgeFilter === "undefined" ?
-        g.edges() :
-        g.edges().filter(edgeFilter);
-    function add(e) {
-        clone.setEdge(e.v, e.w, g.edge(e.v, e.w));
-    }
-    edges.forEach(e => {
-        if (typeof transform === "undefined") {
-            add(e);
-        }
-        else {
-            transform(e).forEach(add);
-        }
-    });
-    return clone;
-}
-exports.clone = clone;
 function firstDefined(...args) {
     if (typeof args[0] !== "undefined") {
         return args[0];
@@ -215,11 +144,18 @@ function firstDefined(...args) {
 function sort(input, byRefIndex) {
     return input.map((item, index) => ({ item, index, refIndex: byRefIndex(item) }))
         .sort((a, b) => {
-        if (typeof a.refIndex !== "undefined" && typeof b.refIndex !== "undefined") {
+        if (Array.isArray(a.refIndex) && Array.isArray(b.refIndex)) {
+            for (let i = 0; i < a.refIndex.length; i++) {
+                if (a.refIndex[i] !== b.refIndex[i]) {
+                    return a.refIndex[0] - b.refIndex[0];
+                }
+            }
+        }
+        if (typeof a.refIndex === "number" && typeof b.refIndex === "number") {
             return a.refIndex - b.refIndex;
         }
         else {
-            return firstDefined(a.refIndex, a.index) - firstDefined(b.refIndex, b.index);
+            return 0;
         }
     }).map(v => v.item);
 }
@@ -237,6 +173,7 @@ function sweep(input, direction, sort) {
     }
     return input;
 }
+exports.sweep = sweep;
 /**
  * @see https://github.com/cpettitt/dagre/blob/master/lib/rank/util.js
  */
@@ -249,7 +186,7 @@ function rankLongestPath(g) {
         }
         visited[v] = true;
         let rank = _.min(_.map(g.outEdges(v), (e) => {
-            return dfs(e.w) - (g.edge(e).minlen || 1);
+            return dfs(e.w) - (g.edge(e) && g.edge(e).minlen || 1);
         }));
         if (rank === Number.POSITIVE_INFINITY || typeof rank === "undefined") {
             rank = 0;
@@ -260,6 +197,52 @@ function rankLongestPath(g) {
     return ranks;
 }
 exports.rankLongestPath = rankLongestPath;
+function rankFromTop(g) {
+    let sanitized = new graphlib_1.Graph();
+    g.edges().filter(e => e.v !== e.w).forEach(e => sanitized.setEdge(e.v, e.w));
+    g.nodes().forEach(n => sanitized.setNode(n));
+    let visited = {};
+    let ranks = {};
+    function dfs(v) {
+        if (_.has(visited, v)) {
+            return ranks[v];
+        }
+        visited[v] = true;
+        let rank = _.max(_.map(sanitized.inEdges(v), (e) => {
+            return dfs(e.v) + (g.edge(e) && g.edge(e).minlen || 1);
+        }));
+        if (rank === Number.NEGATIVE_INFINITY || typeof rank === "undefined") {
+            rank = 0;
+        }
+        return (ranks[v] = rank);
+    }
+    _.each(sanitized.sinks(), dfs);
+    return ranks;
+}
+exports.rankFromTop = rankFromTop;
+function rankLongestPathGraph(g) {
+    let ranked = g;
+    let ranks = rankLongestPath(g);
+    ranked.nodes().map(n => {
+        ranked.node(n).rank = ranks[n];
+    });
+    return ranked;
+}
+exports.rankLongestPathGraph = rankLongestPathGraph;
+function rankFromTopGraph(g) {
+    let ranked = g;
+    let ranks = rankFromTop(g);
+    let allSet = true;
+    ranked.nodes().map(n => {
+        ranked.node(n).rank = ranks[n];
+        if (typeof ranks[n] === "undefined") {
+            allSet = false;
+            console.error("No rank for " + n, ranks);
+        }
+    });
+    return ranked;
+}
+exports.rankFromTopGraph = rankFromTopGraph;
 function leftPad(l, a) {
     let r = `${a}`;
     while (r.length < l) {
@@ -279,21 +262,27 @@ const ENABLE_BARYCENTRESORT = true;
 const ENABLE_PRIORITYLAYOUT = true;
 // TODO make it online
 function structureLayout(g) {
-    let ranks = rankLongestPath(g);
+    let ranks = {};
+    g.nodes().map(n => {
+        ranks[n] = g.node(n).rank;
+    });
     trace("ranks\n", ranks);
     // Without long edges
     let normalized;
     if (ENABLE_NORMALIZE) {
-        normalized = clone(g, undefined, e => {
+        normalized = g.flatMap((id, label) => [{ id, label }], (e) => {
             if (ranks[e.v] + 1 < ranks[e.w]) {
                 // Add dummy nodes + edges
                 let dummies = range(ranks[e.v] + 1, ranks[e.w]).map(i => ({ label: `dummy-${e.v}-${e.w}(${i})`, rank: i }));
                 dummies.forEach(d => ranks[d.label] = d.rank);
                 let nodes = [e.v].concat(dummies.map(d => d.label)).concat([e.w]);
-                return nodes.slice(1).map((w, i) => ({ v: nodes[i], w }));
+                return nodes.slice(1).map((w, i) => ({
+                    id: { v: nodes[i], w },
+                    label: undefined,
+                }));
             }
             else {
-                return [e];
+                return [{ id: e, label: undefined }];
             }
         });
     }
@@ -304,50 +293,125 @@ function structureLayout(g) {
     // Convert rank's vertices to layered layout items
     let layers = Object.keys(byRank).sort((a, b) => +a - +b).map((r, y) => {
         return byRank[r].map((n, x) => ({
-            node: n,
             x,
             y,
-            isDummy: n.startsWith("dummy"),
             barycenter: 0,
+            fixedX: g.node(n) && g.node(n).fixedX || 0,
+            hierarchicOrder: g.node(n) && g.node(n).hierarchicOrder || [],
+            isDummy: n.startsWith("dummy"),
+            node: n,
             priority: 0,
+            spacing: 1,
         }));
     });
     // Sort vertices according to BaryCenter's
     if (ENABLE_BARYCENTRESORT) {
         for (let iteration = 0; iteration < 10; iteration++) {
             let direction = iteration % 2 === 0 ? "down" : "up";
-            sweep(layers, "down", (subject, ref) => {
-                return sort(subject, (item) => {
-                    return barycenter(normalized, direction, item.node, linked => ref.findIndex(r => r.node === linked));
+            sweep(layers, direction, (subject, ref) => {
+                // Get node bary-center
+                subject.forEach(item => {
+                    item.barycenter = barycenter(normalized, direction, item.node, linked => ref.findIndex(r => r.node === linked));
                 });
+                // Retrieve hierarchies
+                let groups = groupBy(n => 1 /* n.hierarchicOrder[1]*/, subject);
+                let perLocation = Object.keys(groups).map(k => groups[k]);
+                // Two sorting criteria: Location BC + Node BC
+                let sortable = perLocation.flatMap(v => {
+                    let loc = head(v.map(i => i.hierarchicOrder[1]));
+                    // if(typeof loc === "undefined") {
+                    return v.map(i => ({ item: i, sort: [i.barycenter, i.barycenter] }));
+                    // } else {
+                    //   let loc_bc = avg(v.map(i => i.barycenter))
+                    //   return v.map(i => ({ item: i, sort: [loc_bc, i.barycenter] }))
+                    // }
+                });
+                return sort(sortable, i => i.sort).map(i => i.item);
             });
             layers.reverse();
         }
-        layers.forEach(layer => layer.forEach((item, index) => item.x = index));
     }
+    // Bundle same hierarchies
+    layers.forEach(layer => {
+        let x = 0;
+        layer.forEach((item, index, list) => {
+            if (index === list.length - 1) {
+                item.spacing = 1;
+            }
+            else if (typeof item.hierarchicOrder[1] !== "undefined" &&
+                item.hierarchicOrder[1] === list[index + 1].hierarchicOrder[1]) {
+                item.spacing = 0.4;
+            }
+            else {
+                item.spacing = 1;
+            }
+            item.x = x;
+            x += item.spacing;
+        });
+    });
+    // // Assign x positions after ordering; keep fixed positions
+    // layers.forEach(layer => {
+    //   let fixed = layer.filter(l => l.fixedX).sort((a, b) => a.fixedX - b.fixedX)
+    //   let nonfixed = layer.filter(l => typeof l.fixedX === "undefined")
+    //   for(let i = 0, j = 0; i < layer.length; i++, j++) {
+    //     if(fixed.length && fixed[0].fixedX <= i) {
+    //       fixed[0].x = i
+    //       fixed.shift()
+    //       j--;
+    //     } else {
+    //       nonfixed[j].x = i
+    //     }
+    //   }
+    // })
     // Balancing or centering relative to branches
     if (ENABLE_PRIORITYLAYOUT) {
-        for (let iteration = 0; iteration < 2; iteration++) {
+        for (let iteration = 0; iteration < 10; iteration++) {
             let direction = iteration % 2 === 0 ? "down" : "up";
             sweep(layers, direction, (subject, ref) => {
                 subject.forEach(item => {
                     item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(normalized, direction, item.node);
                     item.barycenter = barycenter(normalized, direction, item.node, linked => head(ref.filter(r => r.node === linked).map(r => r.x)));
                 });
-                priorityLayoutReorder(subject);
+                priorityLayoutAlign(subject);
                 return subject;
             });
         }
         shiftOffset(layers);
     }
     let layout = layers.flatMap(v => v);
+    // Convert dummy paths back to full paths
+    let index = indexedBy(i => i.node, layout);
+    let edges = g.edges().map(({ v, w }) => {
+        let mids;
+        if (ranks[v] + 1 < ranks[w]) {
+            mids = range(ranks[v] + 1, ranks[w]).map(i => `dummy-${v}-${w}(${i})`)
+                .map(k => index[k])
+                .map(({ x, y }) => ({ x, y }));
+        }
+        else {
+            mids = [];
+        }
+        return {
+            v, w,
+            points: [
+                { x: index[v].x, y: index[v].y },
+                ...mids,
+                { x: index[w].x, y: index[w].y },
+            ],
+        };
+    });
     return {
-        layout,
         graph: normalized,
+        layout: layout.filter(v => !v.isDummy),
+        edges,
     };
 }
 exports.structureLayout = structureLayout;
 function linkedNodes(g, direction, node) {
+    if (!g.hasNode(node)) {
+        console.warn("looking for non-graph node", node);
+        return [];
+    }
     return direction === "down" ?
         g.inEdges(node).map(e => e.v) :
         g.outEdges(node).map(e => e.w);
@@ -362,11 +426,12 @@ function priority(g, direction, node) {
     let nodes = linkedNodes(g, direction, node);
     return nodes.length;
 }
-function priorityLayoutReorder(items) {
+function priorityLayoutAlign(items) {
     let move = (priority, index, requestedShift) => {
         let subject = items[index];
-        if (subject.priority > priority || requestedShift === 0)
+        if (subject.priority > priority || requestedShift === 0) {
             return 0;
+        }
         if (items.length === index + 1 && requestedShift > 0) {
             subject.x += requestedShift;
             return requestedShift;
@@ -375,23 +440,30 @@ function priorityLayoutReorder(items) {
             subject.x += requestedShift;
             return requestedShift;
         }
+        let spacing = items[index + Math.min(0, Math.sign(requestedShift))].spacing || 1;
         let next = index + Math.sign(requestedShift);
-        let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift));
+        let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift) * spacing);
         // Bubble move
         let nextMoved = move(priority, next, requestedShift - slack);
         subject.x += slack + nextMoved;
         return slack + nextMoved;
     };
+    // let backup = items.map(i => i.x)
+    // let beforeDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
     items
         .map((item, index) => ({ item, index }))
         .sort((a, b) => b.item.priority - a.item.priority)
         .forEach(({ item, index }) => {
         if (typeof item.barycenter !== "undefined") {
-            move(item.priority, index, Math.round(item.barycenter) - item.x);
+            move(item.priority, index, item.barycenter - item.x);
         }
     });
+    // let afterDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
+    // if(afterDistance > beforeDistance) {
+    //   backup.forEach((x, index) => items[index].x = x)
+    // }
 }
-exports.priorityLayoutReorder = priorityLayoutReorder;
+exports.priorityLayoutAlign = priorityLayoutAlign;
 function shiftOffset(layers) {
     let max = Number.MAX_SAFE_INTEGER;
     let offset = layers.reduce((l, layer) => Math.min(l, layer.reduce((p, item) => Math.min(p, item.x), max)), max);
@@ -461,194 +533,173 @@ function groupByUniq(selector, list) {
     return obj;
 }
 exports.groupByUniq = groupByUniq;
+function mapFilter(list, f) {
+    return list.map(f).filter(v => typeof v !== "undefined");
+}
+exports.mapFilter = mapFilter;
+function toDot(graph, props, edgeProps) {
+    return "graph g {\n" +
+        "node [style=filled];\n" +
+        graph.nodes().map((n) => {
+            if (props) {
+                let data = props(n);
+                let query = Object.keys(data).map(k => `${k}="${data[k]}"`).join(", ");
+                return `"${n}" [${query}];`;
+            }
+            return `"${n}";`;
+        }).join("\n") +
+        graph.edges().map((e) => {
+            if (edgeProps) {
+                let data = edgeProps(e);
+                let query = Object.keys(data).map(k => `${k}="${data[k]}"`).join(", ");
+                return `${e.v} -- ${e.w} [${query}];`;
+            }
+            return e.v + " -- " + e.w + " [type=s];";
+        }).join("\n") +
+        "\n}";
+}
+exports.toDot = toDot;
 
-},{"../utils":14,"graphlib":137,"lodash":178}],6:[function(require,module,exports){
+},{"../utils":18,"graphlib":112,"lodash":153}],4:[function(require,module,exports){
 "use strict";
-require("../utils");
-const visualizer_1 = require("./visualizer");
+const event_1 = require("./event");
+const logger_1 = require("./logger");
 const Rx = require("rx");
-const rxAny = Rx;
-exports.defaultSubjects = {
-    Observable: Rx.Observable,
-    "Observable.prototype": rxAny.Observable.prototype,
-    "ObservableBase.prototype": rxAny.ObservableBase.prototype,
-    "AbstractObserver.prototype": rxAny.internals.AbstractObserver.prototype,
-    "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
-    "Subject.prototype": rxAny.Subject.prototype,
-};
-function now() {
-    return typeof performance !== "undefined" ? performance.now() : new Date().getTime();
-}
-function hasRxPrototype(input) {
-    return typeof input === "object" && (rxAny.Observable.prototype.isPrototypeOf(input) ||
-        rxAny.internals.AbstractObserver.prototype.isPrototypeOf(input));
-}
-function startsWith(input, matcher) {
-    let r = input.substr(0, matcher.length) === matcher;
-    return r;
-}
-function detachedScopeProxy(input) {
-    let hashes = {};
-    if (input.__detached === true) {
-        return input;
-    }
-    return new Proxy(input, {
-        get: (target, property) => {
-            if (property === "__detached") {
-                return true;
-            }
-            if (typeof property === "string" && startsWith(property, "__hash")) {
-                return hashes[property];
-            }
-            return target[property];
-        },
-        set: (target, property, value) => {
-            if (typeof property === "string" && startsWith(property, "__hash")) {
-                hashes[property] = value;
-            }
-            return true;
-        },
-    });
-}
-/**
- * Tweaks specific for RxJS 4
- */
-function rxTweaks(call) {
-    // Detach reuse of NeverObservable
-    let fields = [];
-    fields.push([call, "subject"], [call, "returned"]);
-    fields.push(...[].map.call(call.arguments, (a, i) => [call.arguments, i]));
-    fields.forEach(([subject, prop]) => {
-        if (typeof subject[prop] !== "undefined" && subject[prop] !== null &&
-            subject[prop].constructor.name === "NeverObservable") {
-            subject[prop] = detachedScopeProxy(subject[prop]);
+class JsonCollector {
+    constructor(url) {
+        this.data = [];
+        this.indices = {
+            observables: {},
+            stackframes: {},
+            subscriptions: {},
+        };
+        this.subject = new Rx.Subject();
+        this.write = () => {
+            // intentionally left blank
+        };
+        this.url = url;
+        if (url.startsWith("ws://")) {
+            let socket = new WebSocket(url);
+            socket.onmessage = (m) => this.receive(JSON.parse(m.data));
+            this.write = (d) => socket.send(JSON.stringify(d));
         }
-    });
-    // Other tweaks here...
-}
-let i = 0;
-class Instrumentation {
-    constructor(subjects = exports.defaultSubjects, logger) {
-        this.open = [];
-        this.stackTraces = true;
-        this.calls = [];
-        this.prototypes = [];
-        this.subjects = subjects;
-        this.logger = logger;
-        Object.keys(subjects).slice(0, 1).forEach((s) => subjects[s][visualizer_1.IGNORE] = true);
-    }
-    /* tslint:disable:only-arrow-functions */
-    /* tslint:disable:no-string-literal */
-    /* tslint:disable:no-string-literal */
-    instrument(fn, extras) {
-        let calls = this.calls;
-        let logger = this.logger;
-        let open = this.open;
-        let self = this;
-        let instrumented = new Proxy(fn, {
-            apply: (target, thisArg, argumentsList) => {
-                // console.log(target.caller)
-                // find more
-                argumentsList
-                    .filter(hasRxPrototype)
-                    .filter((v) => !v.hasOwnProperty("__instrumented"))
-                    .forEach((t) => this.setupPrototype(t));
-                let call = {
-                    arguments: [].slice.call(argumentsList, 0),
-                    childs: [],
-                    id: i++,
-                    method: extras["methodName"],
-                    returned: null,
-                    stack: self.stackTraces ? new Error().stack : undefined,
-                    subject: thisArg,
-                    subjectName: extras["subjectName"],
-                    time: now(),
-                };
-                // Prepare
-                calls.push(call);
-                if (open.length > 0) {
-                    call.parent = open[open.length - 1];
-                    call.parent.childs.push(call);
+        else {
+            fetch(url).then(res => res.json()).then(data => {
+                if (typeof window !== "undefined") {
+                    window.data = data;
+                    console.info("window.data is now filled with JSON data of", url);
                 }
-                open.push(call);
-                // Nicen up Rx performance tweaks
-                rxTweaks(call);
-                // Actual method
-                let instanceLogger = logger.before(call, open.slice(0, -1));
-                let returned = target.apply(call.subject, [].map.call(argumentsList, instanceLogger.wrapHigherOrder.bind(instanceLogger, call.subject)));
-                call.returned = returned;
-                // Nicen up Rx performance tweaks
-                rxTweaks(call);
-                instanceLogger.after(call);
-                // find more
-                new Array(call.returned)
-                    .filter(hasRxPrototype)
-                    .filter((v) => !v.hasOwnProperty("__instrumented"))
-                    .forEach((t) => this.setupPrototype(t));
-                // Cleanup
-                open.pop();
-                return call.returned;
-            },
-            construct: (target, args) => {
-                console.warn("TODO, instrument constructor", target, args);
-                return new target(...args);
-            },
-        });
-        instrumented.__originalFunction = fn;
-        return instrumented;
-    }
-    deinstrument(fn) {
-        return fn.__originalFunction || fn;
-    }
-    /* tslint:enable:only-arrow-functions */
-    /* tslint:enable:no-string-literal */
-    /* tslint:enable:no-string-literal */
-    setup() {
-        Object.keys(this.subjects)
-            .forEach(name => this.setupPrototype(this.subjects[name], name));
-        rxAny.Subject = this.instrument(rxAny.Subject, {
-            methodName: "new",
-            subjectName: "Rx.Subject",
-        });
-    }
-    setupPrototype(prototype, name) {
-        if (typeof name !== "undefined") {
-            prototype.__dynamicallyInstrumented = true;
-        }
-        let methods = Object.keys(prototype)
-            .filter((key) => typeof prototype[key] === "function");
-        // log, preparing for teardown
-        this.prototypes.push(prototype);
-        methods.forEach(key => {
-            prototype[key].__instrumented = true;
-            prototype[key] = this.instrument(prototype[key], {
-                methodName: key,
-                subjectName: name || prototype.constructor.name,
+                if (typeof data === "object" && Array.isArray(data)) {
+                    data.forEach(v => this.receive(v));
+                }
             });
-        });
+        }
+        this.dataObs = this.subject.asObservable();
     }
-    teardown() {
-        rxAny.Subject = this.deinstrument(rxAny.Subject);
-        let properties = this.prototypes
-            .map(subject => Object.keys(subject).map(key => ({ key, subject })))
-            .reduce((prev, next) => prev.concat(next), []);
-        let methods = properties
-            .filter(({ key, subject }) => typeof subject[key] === "function");
-        methods.forEach(({ key, subject }) => {
-            subject[key] = this.deinstrument(subject[key]);
-            delete subject.__instrumented;
-        });
+    get length() {
+        return this.data.length;
+    }
+    getLog(id) {
+        return this.data[id];
+    }
+    getStack(id) {
+        if (this.data[id] instanceof logger_1.AddStackFrame) {
+            return this.data[id];
+        }
+        else {
+            return null;
+        }
+    }
+    getObservable(id) {
+        if (this.data[id] instanceof logger_1.AddObservable) {
+            return this.data[id];
+        }
+        else {
+            return null;
+        }
+    }
+    getSubscription(id) {
+        if ("observableId" in this.data[id]) {
+            return this.data[id];
+        }
+        else {
+            return null;
+        }
+    }
+    getEvent(id) {
+        if (this.data[id] instanceof logger_1.AddEvent) {
+            return this.data[id];
+        }
+        else {
+            return null;
+        }
+    }
+    receive(v) {
+        this.subject.onNext(v);
+        if ("event" in v && "subscription" in v) {
+            let r = this.merge(new logger_1.AddEvent(), v, {
+                event: event_1.Event.fromJson(v.event)
+            });
+            this.data.push(r);
+            // index
+            let index = this.indices.subscriptions[r.subscription];
+            if (typeof index === "undefined") {
+                index = this.indices.subscriptions[r.subscription] = { events: [], scoping: [] };
+            }
+            index.events.push(this.data.length - 1);
+        }
+        if ("observableId" in v) {
+            let r = this.merge(new logger_1.AddSubscriptionImpl(), v);
+            this.data.push(r);
+            // index
+            if (typeof r.scopeId !== "undefined") {
+                if (typeof this.indices.subscriptions[r.scopeId] === "object") {
+                    this.indices.subscriptions[r.scopeId].scoping.push(r.id);
+                }
+                else {
+                    console.warn("Invalid index", this.indices, "scopeId", r.scopeId, "id", r.id);
+                }
+            }
+        }
+        if ("stackframe" in v) {
+            let r = this.merge(new logger_1.AddStackFrame(), v);
+            this.data.push(r);
+            // index
+            this.indices.stackframes[r.stackframe.source] = r.id;
+        }
+        if ("method" in v) {
+            let r = this.merge(new logger_1.AddObservable(), v);
+            this.data.push(r);
+            // index
+            this.indices.observables[r.id] = { childs: [], inner: [], subscriptions: [] };
+            r.parents.forEach(parent => {
+                let index = this.indices.observables[parent];
+                if (typeof index !== "undefined") {
+                    index.childs.push(r.id);
+                }
+            });
+        }
+    }
+    merge(fresh, ...inputs) {
+        for (let input of inputs) {
+            for (let key in input) {
+                if (input.hasOwnProperty(key)) {
+                    fresh[key] = input[key];
+                }
+            }
+        }
+        return fresh;
     }
 }
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = Instrumentation;
+exports.default = JsonCollector;
 
-},{"../utils":14,"./visualizer":11,"rx":181}],7:[function(require,module,exports){
+},{"./event":2,"./logger":6,"rx":156}],5:[function(require,module,exports){
 "use strict";
 const logger_1 = require("./logger");
 function subsLens(collector, subs) {
     let events = () => {
-        let subsIds = subs().map(s => s.id);
+        let subsIds = subs().map(s => s && s.id).filter(v => typeof v !== "undefined");
         return subsIds
             .map(subId => collector.indices.subscriptions[subId].events)
             .map(eventIds => eventIds.map(eid => collector.getEvent(eid)))
@@ -725,7 +776,7 @@ function lens(collector) {
 }
 exports.lens = lens;
 
-},{"./logger":8}],8:[function(require,module,exports){
+},{"./logger":6}],6:[function(require,module,exports){
 "use strict";
 const callrecord_1 = require("./callrecord");
 const event_1 = require("./event");
@@ -734,6 +785,63 @@ const Rx = require("rx");
 const ErrorStackParser = require("error-stack-parser");
 function isStream(v) {
     return v instanceof Rx.Observable;
+}
+function isSubscription(v) {
+    return typeof v === "object" && v !== null && typeof v.dispose === "function";
+}
+function isObservable(v) {
+    return typeof v === "object" && v !== null && typeof v.subscribe === "function";
+}
+function formatArguments(args) {
+    return [].map.call(args, (a) => {
+        switch (typeof a) {
+            case "undefined": return "undefined";
+            case "object":
+                if (Array.isArray(a)) {
+                    return `[${formatArguments(a)}]`;
+                }
+                else {
+                    return a.toString() === "[object Object]" ? `[object ${a.constructor.name}]` : a;
+                }
+            case "function":
+                if (typeof a.__original === "function") {
+                    return a.__original.toString();
+                }
+                return a.toString();
+            case "string":
+                return a.substring(0, 512);
+            case "number":
+                return a;
+            default: throw new TypeError(`Invalid type ${typeof a}`);
+        }
+    }).join(", ");
+}
+exports.formatArguments = formatArguments;
+function last(list) {
+    return list.length >= 1 ? list[list.length - 1] : undefined;
+}
+function head(list) {
+    return list.length >= 1 ? list[0] : undefined;
+}
+function elvis(item, path) {
+    let next = typeof item === "object" && path.length && path[0] in item ? item[path[0]] : undefined;
+    if (path.length > 1) {
+        return elvis(next, path.slice(1));
+    }
+    else if (typeof next !== "undefined") {
+        return [next];
+    }
+    else {
+        return [];
+    }
+}
+function keys(obj) {
+    return Object.keys(obj);
+}
+function numkeys(obj) {
+    return Object.keys(obj)
+        .map(v => typeof v === "number" ? v : parseInt(v, 10))
+        .filter(v => !isNaN(v));
 }
 function instanceAddSubscription(input) {
     return typeof input !== "undefined" && "observableId" in input && "id" in input;
@@ -771,9 +879,12 @@ function ascendingFind(target, test, maxLevel = 10) {
 class AddStackFrame {
 }
 exports.AddStackFrame = AddStackFrame;
+class AddStructureEntry {
+}
+exports.AddStructureEntry = AddStructureEntry;
 class AddObservable {
     inspect(depth, opts) {
-        return `AddObservable(${this.method || this.constructor.name}, id: ${this.id})`;
+        return `AddObservable(${this.method || this.constructor.name}, id: ${this.id}, parents: [${this.parents}])`;
     }
     toString() {
         return this.inspect(0);
@@ -781,10 +892,306 @@ class AddObservable {
 }
 exports.AddObservable = AddObservable;
 class AddSubscriptionImpl {
+    inspect(depth, opts) {
+        return `AddSubscription(${this.id}, 
+      observable: ${this.observableId}, sinks: [${this.sinks}], scope: ${this.scopeId})`;
+    }
+    toString() {
+        return this.inspect(0);
+    }
 }
+exports.AddSubscriptionImpl = AddSubscriptionImpl;
 class AddEvent {
 }
 exports.AddEvent = AddEvent;
+class ObserverSet {
+    constructor(observable) {
+        this.ids = [];
+        this.relations = [];
+        this.tags = {};
+        this.observable = observable;
+    }
+    inspect(depth, opts) {
+        let ts = depth > 0 ? numkeys(this.tags).map(v => {
+            return this.tags[v] ? `\n\t${v}: ${this.tags[v].join(",")}` : v;
+        }) : "[..]";
+        return `ObservableSet(o: ${this.observable}, [${this.ids}], ${ts})`;
+    }
+    toString() {
+        return this.inspect(1);
+    }
+}
+exports.ObserverSet = ObserverSet;
+class ObserverStorage {
+    constructor() {
+        this.sets = [];
+        this.observableToSets = {};
+        this.observerToSet = {};
+        this.observerToObservable = {};
+    }
+    set(forObservable, forObserver) {
+        let set;
+        let setId;
+        if (typeof this.observerToSet[forObserver] !== "undefined") {
+            setId = this.observerToSet[forObserver];
+            set = this.sets[setId];
+        }
+        else {
+            set = new ObserverSet(forObservable);
+            this.observableToSets[forObservable] = (this.observableToSets[forObservable] || []).concat([set]);
+            setId = this.sets.push(set) - 1;
+        }
+        function addTag(observer, tag) {
+            if (typeof set.tags[observer] === "undefined") {
+                set.tags[observer] = [];
+            }
+            if (set.tags[observer].indexOf(tag) < 0) {
+                set.tags[observer].push(tag);
+            }
+        }
+        return {
+            addCore: (observer, ...tags) => {
+                if (set.ids.indexOf(observer) < 0) {
+                    set.ids.push(observer);
+                }
+                tags.forEach(t => addTag(observer, t));
+                this.observerToSet[observer] = setId;
+                this.observerToObservable[observer] = forObservable;
+            },
+            addRelation: (observer, ...tags) => {
+                if (set.relations.indexOf(observer) < 0) {
+                    set.relations.push(observer);
+                }
+                tags.forEach(t => addTag(observer, t));
+            },
+        };
+    }
+}
+exports.ObserverStorage = ObserverStorage;
+function existsSomewhereIn(obj, search) {
+    let searched = [];
+    let depth = 0;
+    let toBeSearched = keys(obj).map(key => ({ key, value: obj[key] }));
+    while (toBeSearched.length && depth++ < 3) {
+        let found = toBeSearched.find(v => search.indexOf(v.value) >= 0);
+        if (found) {
+            return found.key;
+        }
+        searched.push(...toBeSearched.map(pair => pair.value));
+        toBeSearched = toBeSearched
+            .filter(pair => typeof pair.value === "object" && pair.value !== null)
+            .flatMap(p => keys(p.value).map(k => ({ key: p.key + "." + k, value: p.value[k] })))
+            .filter(pair => searched.indexOf(pair.value) < 0);
+    }
+    return;
+}
+class NewCollector {
+    constructor() {
+        this.collectorId = Collector.collectorId++;
+        this.messages = [];
+        this.observerStorage = new ObserverStorage();
+        this.groups = [];
+        this.groupId = 0;
+        this.collectorId = Collector.collectorId++;
+        this.hash = this.collectorId ? `__hash${this.collectorId}` : "__hash";
+    }
+    observerToObs(observer) {
+        let oid = typeof observer === "number" ? observer : this.id(observer).get();
+        return this.observerStorage.observerToObservable[oid];
+    }
+    before(record, parents) {
+        this.tags(record.subject, ...record.arguments);
+        switch (callrecord_1.callRecordType(record)) {
+            case "setup":
+                // Track group entry
+                this.groups.slice(-1).forEach(g => g.used = true);
+                this.groups.push({ call: record, id: this.groupId++, used: false });
+                break;
+            case "subscribe":
+                [].filter.call(record.arguments, isSubscription)
+                    .forEach((sub) => {
+                    let set = this.observerStorage.set(this.id(record.subject).get(), this.id(sub).get());
+                    set.addCore(this.id(sub).get(), "1");
+                    // Add subscription label
+                    this.messages.push({
+                        label: {
+                            id: this.id(sub).get(),
+                            type: "subscription",
+                        },
+                        node: this.id(record.subject).get(),
+                        type: "label",
+                    });
+                    // Find higher order sink:
+                    // see if this sub has higher order sinks
+                    // TODO verify robustness of .parent & add other patterns
+                    if (sub.parent) {
+                        set.addRelation(this.id(sub.parent).get(), "3 higher sink");
+                        let parentObs = this.observerToObs(sub.parent);
+                        // Add subscription link
+                        this.messages.push({
+                            edge: {
+                                label: {
+                                    id: this.id(sub).get(),
+                                    parent: this.id(sub.parent).get(),
+                                    type: "higherOrderSubscription sink",
+                                },
+                                v: this.id(record.subject).get(),
+                                w: parentObs,
+                            },
+                            id: this.messages.length,
+                            type: "edge",
+                        });
+                    }
+                    // Find sink:
+                    // see if this sub links to record.parent.arguments.0 => link
+                    if (record.parent) {
+                        let ps = [].filter.call(record.parent.arguments, isSubscription);
+                        let key = existsSomewhereIn(sub, ps);
+                        if (key) {
+                            let sinks = elvis(sub, key.split("."));
+                            // console.log(
+                            //   record.subject.constructor.name, "-|>",
+                            //   sinks.map(v => v.constructor.name))
+                            sinks.forEach(sink => {
+                                set.addRelation(this.id(sink).get(), "2 sink");
+                                this.messages.push({
+                                    edge: {
+                                        label: {
+                                            type: "subscription sink",
+                                            v: this.id(sub).get(),
+                                            w: this.id(sink).get(),
+                                        },
+                                        v: this.observerToObs(sub),
+                                        w: this.observerToObs(sink),
+                                    },
+                                    id: this.messages.length,
+                                    type: "edge",
+                                });
+                            });
+                        }
+                    }
+                });
+                break;
+            case "event":
+                let event = event_1.Event.fromRecord(record);
+                if (event && event.type === "subscribe" || typeof event === "undefined") {
+                    break;
+                }
+                let e = {
+                    edge: { label: event, v: 0, w: 0 },
+                    type: "edge",
+                };
+                this.messages.push(e);
+            default:
+        }
+        return this;
+    }
+    after(record) {
+        this.tags(record.returned);
+        switch (callrecord_1.callRecordType(record)) {
+            case "setup":
+                let group = this.groups.pop();
+                if (!isObservable(record.returned)) {
+                    break;
+                }
+                let observable = this.id(record.returned).get();
+                let observableSources = [record.subject, ...record.arguments]
+                    .filter(v => isObservable(v) && !isSubscription(v))
+                    .map(v => this.id(v).get());
+                this.messages.push({
+                    group: group.used ? group.id : undefined,
+                    groups: this.groups.map(g => g.id),
+                    label: {
+                        args: formatArguments(record.arguments),
+                        kind: "observable",
+                        method: record.method,
+                    },
+                    node: observable,
+                    type: "label",
+                });
+                this.messages.push(...observableSources.map(source => ({
+                    edge: {
+                        label: {
+                            time: record.time,
+                        },
+                        v: source,
+                        w: observable,
+                    },
+                    groups: this.groups.map(g => g.id),
+                    type: "edge",
+                })));
+                break;
+            case "subscribe":
+                break;
+            default:
+        }
+        return;
+    }
+    wrapHigherOrder(subject, fn) {
+        let self = this;
+        if (typeof fn === "function") {
+            let wrap = function wrapper(val, id, subjectSuspect) {
+                let result = fn.apply(this, arguments);
+                if (typeof result === "object" && isStream(result) && subjectSuspect) {
+                    return self.proxy(result);
+                }
+                return result;
+            };
+            wrap.__original = fn;
+            return wrap;
+        }
+        return fn;
+    }
+    proxy(target) {
+        return new Proxy(target, {
+            get: (obj, name) => {
+                if (name === "isScoped") {
+                    return true;
+                }
+                return obj[name];
+            },
+        });
+    }
+    tags(...items) {
+        items.forEach(item => {
+            if (typeof item !== "object") {
+                return;
+            }
+            if (isSubscription(item) || isObservable(item)) {
+                // Find in structure
+                if (isSubscription(item) && isSubscription(item.observer)) {
+                    this.tags(item.observer);
+                }
+                this.id(item).getOrSet(() => {
+                    let id = this.messages.length;
+                    if (isObservable(item)) {
+                        this.messages.push({
+                            id,
+                            node: {
+                                name: item.constructor.name || item.toString(),
+                            },
+                            type: "node",
+                        });
+                    }
+                    return id;
+                });
+            }
+        });
+    }
+    id(obs) {
+        return {
+            get: () => typeof obs !== "undefined" && obs !== null ? obs[this.hash] : undefined,
+            getOrSet: (orSet) => {
+                if (typeof obs[this.hash] === "undefined") {
+                    obs[this.hash] = orSet();
+                }
+                return obs[this.hash];
+            },
+            set: (n) => obs[this.hash] = n,
+        };
+    }
+}
+exports.NewCollector = NewCollector;
 class Collector {
     constructor() {
         this.indices = {
@@ -793,7 +1200,10 @@ class Collector {
             subscriptions: {},
         };
         this.data = [];
+        this.allRecords = [];
+        this.trace = [];
         this.queue = [];
+        this.groups = [];
         this.collectorId = Collector.collectorId++;
         this.hash = this.collectorId ? `__hash${this.collectorId}` : "__hash";
     }
@@ -804,16 +1214,43 @@ class Collector {
         return lens_1.lens(this);
     }
     before(record, parents) {
+        this.allRecords.push(record);
         this.queue.push(record);
+        this.trace.push({
+            groups: this.groups.map(g => g.call.method),
+            kind: "before",
+            method: record.method,
+        });
+        switch (callrecord_1.callRecordType(record)) {
+            case "setup": {
+                // Track group entry
+                this.groups.push({
+                    call: record,
+                    id: 0,
+                    used: false,
+                });
+                let item = new AddStructureEntry();
+                item.id = this.data.length;
+                item.method = record.method;
+                item.parents = [];
+                if (typeof record.subject !== "undefined") {
+                    item.parents.push(this.observable(record.subject));
+                }
+                this.data.push(item);
+                break;
+            }
+            default: break;
+        }
         return this;
     }
     after(record) {
-        // Trampoline
-        if (this.queue[0] === record) {
-            this.queue.shift();
-        }
-        else if (this.queue.length > 0) {
-            return;
+        this.trace.push({
+            kind: "after",
+            method: record.method,
+        });
+        if (callrecord_1.callRecordType(record) === "setup") {
+            // Track group entry
+            this.groups.pop();
         }
         switch (callrecord_1.callRecordType(record)) {
             case "setup": {
@@ -848,6 +1285,14 @@ class Collector {
                 break;
             case "event":
                 let sid = this.id(record.subject).get();
+                if (this.getObservable(sid)) {
+                    // console.log("Subject", this.getObservable(sid), "found", "subs:",
+                    //   this.data.filter(e => sid === (e as any).observableId))
+                    let subs = this.data.filter(e => sid === e.observableId);
+                    if (subs.length === 1) {
+                        sid = subs[0].id;
+                    }
+                }
                 let event = event_1.Event.fromRecord(record);
                 if (event && event.type === "subscribe" || typeof event === "undefined") {
                     return;
@@ -871,10 +1316,6 @@ class Collector {
             default:
                 throw new Error("unreachable");
         }
-        // Run trampoline
-        if (this.queue.length) {
-            this.queue.splice(0, this.queue.length).forEach(this.after.bind(this));
-        }
     }
     get length() {
         return this.data.length;
@@ -890,7 +1331,7 @@ class Collector {
     }
     getSubscription(id) {
         let node = this.data[id];
-        if (instanceAddSubscription(node)) {
+        if (node && node.kind === "subscription") {
             return node;
         }
     }
@@ -952,16 +1393,19 @@ class Collector {
             return undefined;
         }
         // Code Location
-        let stack = ErrorStackParser.parse(record).slice(1, 2)[0];
-        let id = this.indices.stackframes[stack];
-        if (typeof id === "undefined") {
-            this.indices.stackframes[stack] = id = this.data.length;
-            let node = new AddStackFrame();
-            node.id = id;
-            node.stackframe = stack;
-            this.data.push(node);
-        }
-        return id;
+        let parsed = ErrorStackParser.parse(record);
+        return parsed.slice(1, 3).reduceRight((prev, stack) => {
+            let id = this.indices.stackframes[stack.source];
+            if (typeof id === "undefined") {
+                this.indices.stackframes[stack.source] = id = this.data.length;
+                let node = new AddStackFrame();
+                node.id = id;
+                node.stackframe = stack;
+                node.parent = prev;
+                this.data.push(node);
+            }
+            return id;
+        }, undefined);
     }
     observableForObserver(observer) {
         let id = this.id(observer).get();
@@ -980,8 +1424,9 @@ class Collector {
         node.arguments = record && record.arguments;
         node.method = record && record.method || observable.constructor.name;
         // Add call-parent
-        if (record && record.parent && record.subject === record.parent.subject) {
-            node.callParent = this.id(record.parent.returned).get();
+        if (record && record.parent) {
+        }
+        else if (this.queue.length > 0) {
         }
         let parents = [record && record.subject].concat(record && record.arguments)
             .filter(isStream)
@@ -1075,679 +1520,651 @@ class Collector {
         };
     }
 }
+Collector.collectorId = 0;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Collector;
-Collector.collectorId = 0;
 
-},{"./callrecord":2,"./event":4,"./lens":7,"error-stack-parser":85,"rx":181}],9:[function(require,module,exports){
+},{"./callrecord":1,"./event":2,"./lens":5,"error-stack-parser":60,"rx":156}],7:[function(require,module,exports){
 "use strict";
-const ascii_1 = require("./ascii");
-const shapes_1 = require("./shapes");
-/* tslint:disable:no-var-requires */
-const h = require("snabbdom/h");
-function partition(array, fn) {
-    let a = [];
-    let b = [];
-    for (let i = 0; i < array.length; i++) {
-        if (fn(array[i], i, array)) {
-            a.push(array[i]);
+const graphlib_1 = require("graphlib");
+const _ = require("lodash");
+class TypedGraph extends graphlib_1.Graph {
+    constructor(arg1, arg2) {
+        super(typeof arg1 === "string" ? arg2 : arg1);
+        if (typeof arg1 === "string") {
+            this.setGraph(arg1);
+        }
+        this.options = typeof arg1 === "string" ? arg2 : arg1;
+    }
+    filterNodes(filter) {
+        let copy = new TypedGraph(this.options);
+        copy.setGraph(this.graph());
+        _.each(this.nodes(), (v) => {
+            if (filter(v, this.node(v))) {
+                copy.setNode(v, this.node(v));
+            }
+        });
+        _.each(this.edges(), (e) => {
+            if (copy.hasNode(e.v) && copy.hasNode(e.w)) {
+                copy.setEdge(e.v, e.w, this.edge(e));
+            }
+        });
+        return copy;
+    }
+    filterEdges(filter) {
+        let copy = new TypedGraph(this.options);
+        copy.setGraph(this.graph());
+        _.each(this.edges(), (e) => {
+            let label = this.edge(e);
+            if (filter(e, label)) {
+                if (!copy.hasNode(e.v)) {
+                    copy.setNode(e.v, this.node(e.v));
+                }
+                if (!copy.hasNode(e.w)) {
+                    copy.setNode(e.w, this.node(e.w));
+                }
+                copy.setEdge(e.v, e.w, label);
+            }
+        });
+        return copy;
+    }
+    flatMap(nodeMap, edgeMap) {
+        let copy = new TypedGraph(this.options);
+        copy.setGraph(this.graph());
+        _.each(this.nodes(), (n) => {
+            nodeMap(n, this.node(n)).forEach(({ id, label }) => copy.setNode(id, label));
+        });
+        _.each(this.edges(), (e) => {
+            edgeMap(e, this.edge(e)).forEach(({ id, label }) => copy.setEdge(id.v, id.w, label));
+        });
+        return copy;
+    }
+    setNode(name, label) {
+        if (typeof label === "undefined" && super.node(name) === "undefined") {
+            throw new Error("IllegalArgument for graph Label!");
+        }
+        else if (typeof label === "undefined") {
+            super.setNode(name);
         }
         else {
-            b.push(array[i]);
+            super.setNode(name, label);
+        }
+        return this;
+    }
+    node(name) {
+        return super.node(name);
+    }
+    setEdge(v, w, label) {
+        super.setEdge(v, w, label);
+        return this;
+    }
+    edge(v, w) {
+        if (typeof v === "string" && typeof w === "string") {
+            return super.edge(v, w);
+        }
+        else if (typeof v === "object") {
+            return super.edge(v);
+        }
+        else {
+            throw new Error("Illegal argument to edge_t function");
         }
     }
-    return [a, b];
-}
-exports.partition = partition;
-class RxFiddleNode {
-    constructor(id, name, location, visualizer) {
-        this.id = id;
-        this.name = name;
-        this.location = location;
-        this.visualizer = visualizer;
-        this.instances = [];
-        this.observers = [];
-        this.width = 120;
-        this.height = 20;
-        this.hoover = false;
-        this.nested = [];
-        this.count = 0;
-    }
-    static wrap(inner, outer) {
-        outer.nested.push(inner);
-        return outer;
-    }
-    get edges() {
-        return this.visualizer.g.neighbors(this.id);
-    }
-    addObservable(instance) {
-        this.instances.push(instance);
-        return this;
-    }
-    get locationText() {
-        return typeof this.location !== "undefined" ? this.location.source.replace(window.location.origin, "") : undefined;
-    }
-    addObserver(observable, observer) {
-        this.observers.push([observable, observer, []]);
-        this.size();
-        return this.observers[this.observers.length - 1];
-    }
-    size() {
-        let extra = { h: 0, w: 0 };
-        let size = {
-            h: this.observers.length * 20 + 20 + extra.h,
-            w: Math.max(120, extra.w),
-        };
-        this.width = size.w;
-        this.height = size.h;
-        return size;
-    }
-    setHoover(enabled) {
-        this.hoover = enabled;
-        return this;
-    }
-    layout() {
-        this.size();
-    }
-    setHighlight(index) {
-        this.highlightIndex = index;
-        this.highlightId = typeof index !== "undefined" ? this.observers[index][1].id : undefined;
-        this.visualizer.highlightSubscriptionSource(this.highlightId);
-        return this;
-    }
-    setHighlightId(patch, id) {
-        this.highlightIndex = this.observers.findIndex((o) => o[1].id === id);
-        this.highlightId = id;
-        try {
-            if (this.rendered) {
-                patch(this.rendered, this.render(patch));
+    toDot(nodeProps, edgeProps = () => ({ type: "s" }), cluster = () => "") {
+        let ns = this.nodes().map((n) => {
+            let data = nodeProps && nodeProps(this.node(n));
+            if (data) {
+                let query = Object.keys(data).map(k => `${k}="${data[k]}"`).join(", ");
+                return `${dotEscape(n)} [${query}];`;
             }
+            return `${dotEscape(n)};`;
+        });
+        let es = this.edges().map((e) => {
+            let data = edgeProps && edgeProps(this.edge(e));
+            if (data) {
+                let query = Object.keys(data).map(k => `${k}="${data[k]}"`).join(", ");
+                return `${dotEscape(e.v)} -> ${dotEscape(e.w)} [${query}];`;
+            }
+            return `${dotEscape(e.v)} -> ${dotEscape(e.w)};`;
+        });
+        let clusters = {};
+        this.nodes().forEach((v) => {
+            let k = cluster(this.node(v));
+            if (!clusters[k]) {
+                clusters[k] = [];
+            }
+            clusters[k].push(`${dotEscape(v)}`);
+        });
+        let cs = Object.keys(clusters).map((k, index) => {
+            let cns = clusters[k].join(" ");
+            if (k) {
+                return `subgraph cluster${k} { ${cns}; label = "${k}" };`;
+            }
+            return `subgraph cluster${index} { ${cns} };`;
+        });
+        return ["digraph g", "{",
+            "rankdir=LR",
+            "splines=line",
+            ...cs,
+            ...ns,
+            ...es,
+            "}"].join("\n");
+    }
+}
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = TypedGraph;
+function dotEscape(n) {
+    return n.match(/[\-.()]/) ? `"${n.replace(/[()]/g, "")}"` : n;
+}
+
+},{"graphlib":112,"lodash":153}],8:[function(require,module,exports){
+/* tslint:disable:one-variable-per-declaration */
+/* tslint:disable:switch-default */
+/* tslint:disable:no-bitwise */
+/* tslint:disable:variable-name */
+"use strict";
+/**
+ * HSV values from [0..1[
+ * RGB values from 0 to 255
+ * @see http://martin.ankerl.com/2009/12/09/how-to-create-random-colors-programmatically/
+ */
+function hsvToRgb(h, s, v) {
+    let h_i = ~~(h * 6);
+    let f = h * 6 - h_i;
+    let p = v * (1 - s);
+    let q = v * (1 - f * s);
+    let t = v * (1 - (1 - f) * s);
+    let r = 0, g = 0, b = 0;
+    switch (h_i) {
+        case 0:
+            [r, g, b] = [v, t, p];
+            break;
+        case 1:
+            [r, g, b] = [q, v, p];
+            break;
+        case 2:
+            [r, g, b] = [p, v, t];
+            break;
+        case 3:
+            [r, g, b] = [p, q, v];
+            break;
+        case 4:
+            [r, g, b] = [t, p, v];
+            break;
+        case 5:
+            [r, g, b] = [v, p, q];
+            break;
+    }
+    return [~~(r * 265), ~~(g * 265), ~~(b * 265)];
+}
+exports.hsvToRgb = hsvToRgb;
+const golden_ratio_conjugate = 0.618033988749895;
+function generateColors(count) {
+    let cs = [];
+    let h = Math.random(); // use random start value
+    while (count--) {
+        h += golden_ratio_conjugate;
+        h %= 1;
+        cs.push(hsvToRgb(h, 0.5, 0.95));
+    }
+    return cs;
+}
+exports.generateColors = generateColors;
+
+},{}],9:[function(require,module,exports){
+"use strict";
+const index_1 = require("./index");
+function sorting(a, b) {
+    // Sort on v, 
+    if (a.v !== b.v) {
+        return a.v - b.v;
+    }
+    // or - only if equal v - we can swap w's as lines from same origin never cross
+    return a.w - b.w;
+}
+function crossings(vRow, wRow, edges) {
+    let map = edges.map(e => {
+        let m = {
+            v: vRow.indexOf(e.v),
+            w: wRow.indexOf(e.w),
+        };
+        if (m.v < 0 || m.w < 0) {
+            throw new Error(`Invalid edge <${e.v},${e.w}>; looking in 
+      vRow: ${vRow},\nwRow: ${wRow}, 
+      edges: ${edges.map(v => `${e.v}-${e.w}`).join(",")}`);
+        }
+        return m;
+    }).sort(sorting);
+    // Short-circuit if 0-crossings
+    let max;
+    max = map.reduce((p, n) => n.w > p ? n.w : Number.MAX_SAFE_INTEGER, -1);
+    if (max !== Number.MAX_SAFE_INTEGER) {
+        return 0;
+    }
+    let crossings = 0;
+    for (let i = 0; i < map.length; i++) {
+        for (let j = 0; j < i; j++) {
+            if (map[i].w < map[j].w) {
+                crossings++;
+            }
+        }
+    }
+    return crossings;
+}
+exports.crossings = crossings;
+function order_crossings(order, g) {
+    let count = 0;
+    index_1.foreachTuple("down", order, (row, ref) => {
+        let es = index_1.flip(index_1.edges(g, "down", row));
+        try {
+            count += crossings(row, ref, es);
         }
         catch (e) {
-            console.warn("error while rendering", this, this.count, e);
+            console.log("Error in down sweep of ordering:\n" + order.map(r => {
+                let prefix = row === r && "row -> " || ref === r && "ref -> " || "       ";
+                return prefix + r.join(", ");
+            }).join("\n") + "\nEdges: " + es.map(e => e.v + "->" + e.w).join("; ") + "\n", g);
+            throw e;
         }
-        return this;
-    }
-    render(patch, showIds = false) {
-        let streams = ascii_1.render(this.observers.map(_ => ({ events: _[2], id: showIds ? _[1].id + "" : undefined })))
-            .map((stream, i) => shapes_1.centeredText(stream || "?", {
-            fill: this.highlightIndex === i ? "red" : "black",
-            y: this.line(i + 1), "font-family": "monospace",
-        }, {
-            on: {
-                mouseout: () => patch(result, this.setHighlight().render(patch)),
-                mouseover: () => patch(result, this.setHighlight(i).render(patch)),
-            },
-        }));
-        if (typeof this.x === "undefined") {
-            console.log("Undefined coords", this);
+    });
+    return count;
+}
+exports.order_crossings = order_crossings;
+
+},{"./index":10}],10:[function(require,module,exports){
+"use strict";
+require("../utils");
+function neg(d) { return d === "up" ? "down" : "up"; }
+exports.neg = neg;
+function foreachTuple(direction, list, f) {
+    if (direction === "down") {
+        for (let i = 1, ref = i - 1; i < list.length; i++, ref++) {
+            f(list[i], list[ref], i, ref);
         }
-        let result = h("g", {
-            attrs: {
-                height: this.height,
-                id: `node-${this.id}`,
-                transform: `translate(${this.x},${this.y})`,
-                width: this.width,
-            },
-            on: {
-                click: () => console.log(this),
-                mouseout: () => patch(result, this.setHoover(false).render(patch)),
-                mouseover: () => patch(result, this.setHoover(true).render(patch)),
-            },
-        }, [
-            this.hoover ? this.dialog() : undefined,
-            shapes_1.centeredRect(this.width, this.height, {
-                rx: 10, ry: 10,
-                "stroke-width": 2,
-                stroke: this.hoover || typeof this.highlightId !== "undefined" ? "red" : "black",
-            }),
-            shapes_1.centeredText(showIds ? `${this.id} ${this.name}` : this.name, { y: this.line(0) }),
-            // subgraph
-            h("g", {
-                attrs: { transform: `translate(${this.width / -2}, ${this.line(this.observers.length) + 10})` },
-            }),
-        ].concat(streams).filter(id => id));
-        this.rendered = result;
-        this.count++;
-        return result;
     }
-    line(i) {
-        return -this.height / 2 + i * 20 + 10;
-    }
-    dialog() {
-        let width = 200;
-        let height = 200;
-        let triangle = `M ${width / -2 - 5} 0 l 5 -5 l 0 10 Z`;
-        return h("g", {
-            attrs: { transform: `translate(${this.width / 2 + width / 2 + 5},${0})`, width, height },
-        }, [
-            h("path", { attrs: { d: triangle, fill: "black" } }),
-            shapes_1.centeredRect(width, height, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
-        ]);
+    else {
+        for (let i = list.length - 2, ref = i + 1; i >= 0; i--, ref--) {
+            f(list[i], list[ref], i, ref);
+        }
     }
 }
-exports.RxFiddleNode = RxFiddleNode;
-
-},{"./ascii":1,"./shapes":10,"snabbdom/h":191}],10:[function(require,module,exports){
-"use strict";
-const h = require("snabbdom/h");
-function centeredRect(width, height, opts = {}) {
-    return h("rect", {
-        attrs: Object.assign({
-            fill: "transparent",
-            stroke: "black",
-            "stroke-width": 2,
-            width,
-            height,
-            x: -width / 2,
-            y: -height / 2,
-        }, opts),
+exports.foreachTuple = foreachTuple;
+function flip(es) {
+    return es.map(({ v, w }) => ({ v: w, w: v }));
+}
+exports.flip = flip;
+function edges(g, direction, nodes) {
+    return nodes.flatMap(node => {
+        if (!g.hasNode(node)) {
+            console.warn("looking for non-graph node", node);
+            return [];
+        }
+        return direction === "down" ?
+            g.inEdges(node) :
+            g.outEdges(node);
     });
 }
-exports.centeredRect = centeredRect;
-function centeredText(text, attrs = {}, opts = {}) {
-    return h("text", Object.assign({
-        attrs: Object.assign({
-            x: 0,
-            y: 0,
-            "text-anchor": "middle",
-            "alignment-baseline": "middle",
-        }, attrs),
-    }, opts), text);
-}
-exports.centeredText = centeredText;
+exports.edges = edges;
 
-},{"snabbdom/h":191}],11:[function(require,module,exports){
-(function (process){
+},{"../utils":18}],11:[function(require,module,exports){
 "use strict";
-require("../utils");
-const edge_1 = require("./edge");
-const graphutils_1 = require("./graphutils");
-const logger_1 = require("./logger");
-const node_1 = require("./node");
-const graphlib_1 = require("graphlib");
-const snabbdom = require("snabbdom");
-require("../utils");
-require("../object/extensions");
-/* tslint:disable:no-var-requires */
-const dagre = require("dagre");
-const svgPanZoom = typeof window !== "undefined" ? require("svg-pan-zoom") : {};
-const h = require("snabbdom/h");
-const patch = snabbdom.init([
-    require("snabbdom/modules/attributes"),
-    require("snabbdom/modules/eventlisteners"),
-]);
-// const ErrorStackParser = require("error-stack-parser")
-/* tslint:enable:no-var-requires */
-const colors = ["#0066B9", "#E90013", "#8E4397", "#3FB132", "#FDAC00", "#F3681B", "#9FACB3", "#9CA2D4", "#E84CA2"];
-function colorIndex(i) {
-    return colors[i % colors.length];
-}
-function toDot(graph) {
-    return "graph g {\n" +
-        this.visualizer.subs.edges().map((e) => e.v + " -- " + e.w + " [type=s];").join("\n") +
-        "\n}";
-}
-const defs = () => [h("defs", [
-        h("marker", {
-            attrs: {
-                id: "arrow",
-                markerHeight: 10,
-                markerUnits: "strokeWidth",
-                markerWidth: 10,
-                orient: "auto",
-                overflow: "visible",
-                refx: 0, refy: 3,
-            },
-        }, [h("path", { attrs: { d: "M-4,-2 L-4,2 L0,0 z", fill: "inherit" } })]),
-        h("marker", {
-            attrs: {
-                id: "arrow-reverse",
-                markerHeight: 10,
-                markerUnits: "strokeWidth",
-                markerWidth: 10,
-                orient: "auto",
-                overflow: "visible",
-                refx: 0, refy: 3,
-            },
-        }, [h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
-    ])];
-exports.HASH = "__hash";
-exports.IGNORE = "__ignore";
-class Visualizer {
-    constructor(collector, dom, controls) {
-        this.edges = [];
-        this.nodes = [];
-        this.g = new graphlib_1.Graph({ compound: true, multigraph: true });
-        this.dag = new graphlib_1.Graph({ compound: true, multigraph: true });
-        this.combined = new graphlib_1.Graph({ compound: true, multigraph: true });
-        this.metroLines = {};
-        this.svgZoomInstance = null;
-        this.showIdsBacking = false;
-        this.componentId = 0;
-        this.choices = [];
-        this.rendered = 0;
-        this.g.setGraph({});
-        this.app = dom;
-        this.controls = controls;
-        this.collector = collector;
-        if (!!window) {
-            window.alg = graphlib_1.alg;
-            window.dagre = dagre;
-            window.combined = this.combined;
-            window.toDot = toDot;
-            window.rankLongestPath = graphutils_1.rankLongestPath;
-        }
-    }
-    get showIds() {
-        return this.showIdsBacking;
-    }
-    set showIds(value) {
-        this.showIdsBacking = value;
-        this.run();
-    }
-    get component() {
-        return this.componentId;
-    }
-    set component(value) {
-        this.componentId = value;
-        this.choices = [];
-        this.run();
-    }
-    structureDag() {
-        let edges = this.g.edges();
-        let clone = new graphlib_1.Graph();
-        edges.forEach(({ v, w }) => {
-            let edge = this.g.edge({ v, w });
-            if (edge.type !== "structure") {
-                return;
+const index_1 = require("./index");
+function wmedian(ranks, g, dir, externalSort) {
+    index_1.foreachTuple(dir, ranks, (row, ref, rowIndex) => {
+        // Gather position of connected nodes per edge
+        let indices = index_1.edges(g, dir, row).reduce((store, e) => {
+            let index = ref.indexOf(dir === "down" ? e.v : e.w);
+            if (index >= 0) {
+                let n = dir === "down" ? e.w : e.v;
+                store[n] = store[n] || [];
+                store[n].push(index);
             }
-            console.log(edge, v, w);
-            edge.from = this.g.node(v);
-            edge.to = this.g.node(w);
-            clone.setNode(v, this.g.node(v));
-            clone.setNode(w, this.g.node(w));
-            clone.setEdge(v, w, edge);
-        });
-        return (clone);
-    }
-    layout(graph = this.g) {
-        graph.setGraph({});
-        this.nodes.forEach(n => n.layout());
-        dagre.layout(graph);
-    }
-    size(graph = this.g) {
-        if (this.nodes.length === 0) {
-            return { h: 10, w: 10 };
-        }
-        this.layout(graph);
-        let g = graph.graph();
-        return { h: g.height, w: g.width };
-    }
-    highlightSubscriptionSource(id, level = 1) {
-        let sub = this.collector.getSubscription(id);
-        if (typeof sub !== "undefined") {
-            if (level < 0.1) {
-                return;
+            return store;
+        }, {});
+        // Don't forget unconnected - sad lonely - nodes :(
+        row.forEach(n => indices[n] = indices[n] || []);
+        // Sort by median and update
+        let sortable = Object.keys(indices).map((n) => ({ n, median: median(indices[n]) }));
+        ranks[rowIndex] = sortable.sort((a, b) => {
+            if (a.median < 0 || b.median < 0) {
+                return 0;
             }
-            sub.sinks.forEach(p => {
-                this.highlightSubscriptionSource(p, level * 0.9);
-                let parent = this.collector.getSubscription(p);
-                let node = this.nodes[parent.observableId];
-                if (node) {
-                    node.setHighlightId(patch, parent.id);
-                }
-            });
+            return a.median - b.median;
+        }).map(i => i.n);
+        // Apply external sorting
+        if (typeof externalSort !== "undefined") {
+            ranks[rowIndex] = ranks[rowIndex].sort(externalSort);
+        }
+    });
+}
+exports.wmedian = wmedian;
+function median(list) {
+    let m = Math.floor(list.length / 2);
+    if (list.length === 0) {
+        return -1;
+    }
+    else if (list.length % 2 === 1) {
+        return list[m];
+    }
+    else if (list.length === 2) {
+        return (list[0] + list[1]) / 2;
+    }
+    else {
+        let left = list[m - 1] - list[0];
+        let right = list[list.length - 1] - list[m];
+        return list[m - 1] * right + list[m] * left / (left + right);
+    }
+}
+exports.median = median;
+
+},{"./index":10}],12:[function(require,module,exports){
+"use strict";
+const graphutils_1 = require("../collector/graphutils");
+function normalize(g, createDummy) {
+    let rank = (v) => g.node(v).rank;
+    let dummyNodes = [];
+    // Without long edges
+    let normalized = g.flatMap((id, label) => [{ id, label }], (e, label) => {
+        if (e.v === e.w || rank(e.v) === rank(e.w)) {
+            // TODO prepare backlinks to be put back again in denormalize
+            return [];
+        }
+        // Reverse
+        if (rank(e.v) > rank(e.w)) {
+            // TODO make sure original is reversed again
+            e = { v: e.w, w: e.v };
+        }
+        if (rank(e.v) + 1 < rank(e.w)) {
+            // Add dummy nodes + edges
+            let dummies = graphutils_1.range(rank(e.v) + 1, rank(e.w)).map(i => ({ id: `dummy-${e.v}-${e.w}(${i})`, rank: i }));
+            let nodes = [{ id: e.v, rank: rank(e.v) }].concat(dummies).concat([{ id: e.w, rank: rank(e.w) }]);
+            dummyNodes.push(nodes);
+            return paired(nodes, (v, w, i) => ({
+                id: { v: v.id, w: w.id },
+                label: { index: i, nodes: nodes.map(n => n.id), original: label },
+            }));
         }
         else {
-            this.nodes.forEach(n => { n.setHighlightId(patch); });
+            return [{ id: e, label: { index: 0, nodes: [e.v, e.w], original: label } }];
+        }
+    });
+    dummyNodes.forEach(ns => ns.forEach(n => {
+        normalized.setNode(n.id, createDummy(n));
+    }));
+    // Assert ok
+    normalized.edges().forEach(e => {
+        if (normalized.node(e.v).rank + 1 !== normalized.node(e.w).rank) {
+            throw new Error("Invalid edge from normalization");
+        }
+    });
+    return normalized;
+}
+exports.normalize = normalize;
+function denormalize(g) {
+    return g.flatMap((id, label) => id.indexOf("dummy") === 0 ? [] : [{ id, label }], (id, label) => {
+        return [{
+                id: { v: label.nodes[0], w: label.nodes[label.nodes.length - 1] },
+                label: {
+                    nodes: label.nodes.slice(1, -1).map(n => g.node(n)),
+                    original: label.original,
+                },
+            }];
+    });
+}
+exports.denormalize = denormalize;
+function paired(list, f) {
+    return list.slice(1).map((w, i) => f(list[i], w, i));
+}
+
+},{"../collector/graphutils":3}],13:[function(require,module,exports){
+"use strict";
+const crossings_1 = require("./crossings");
+const median_1 = require("./median");
+const transpose_1 = require("./transpose");
+/*
+ * @see http://www.graphviz.org/Documentation/TSE93.pdf page 14
+ *
+ * 1. init order
+ * 2. for maxiterations
+ * 3. wmedian
+ * 4. transpose
+ * 5. if (crossing < crossing)
+ * 6.   best = order
+ * 7. return best
+ *
+ */
+function ordering(order, g, externalSort) {
+    let best;
+    let bestCrossings = Number.MAX_SAFE_INTEGER;
+    let bestIt = -1;
+    let sameCount = 0;
+    let lastCrossings = Number.MAX_SAFE_INTEGER;
+    let update = (next, i) => {
+        try {
+            // See if improved: store better results
+            let crossings = crossings_1.order_crossings(next, g);
+            if (crossings < bestCrossings) {
+                best = next.map(o => o.slice(0));
+                bestCrossings = crossings;
+                bestIt = i;
+            }
+            // Abort if stable
+            if (lastCrossings === crossings || crossings === 0) {
+                sameCount++;
+                if (sameCount > 3 || crossings === 0) {
+                    return false;
+                }
+            }
+            lastCrossings = crossings;
+        }
+        catch (e) {
+            console.warn("Error working with", next);
+            throw e;
+        }
+        return true;
+    };
+    if (!externalSort) {
+        update(order, 0);
+    }
+    for (let i = 0; i < 40; i++) {
+        median_1.wmedian(order, g, i % 2 === 0 ? "up" : "down", externalSort);
+        transpose_1.transpose(order, g, "down", externalSort);
+        transpose_1.transpose(order, g, "up", externalSort);
+        if (!update(order, i + 1)) {
+            break;
         }
     }
-    // public metroData(): { obs: string[], subs: string[], color: string }[] {
-    //   return Object.values(this.metroLines).map((line: number[], index: number) => ({
-    //     color: colorIndex(index),
-    //     obs: line.map((subId: number) => this.collector.getSubscription(subId).observableId).map(s => s.toString()),
-    //     subs: line,
-    //   }))
-    // }
-    handleLogEntry(el) {
-        if (el instanceof logger_1.AddObservable) {
-            if (typeof el.callParent !== "undefined") {
-            }
-            let node = this.setNode(el.id, new node_1.RxFiddleNode(`${el.id}`, el.method, this.collector.getStack(el.stack) && this.collector.getStack(el.stack).stackframe, this));
-            node.addObservable(el);
-            for (let p of el.parents.filter(_ => typeof _ !== "undefined")) {
-                // typeof this.nodes[p] === "undefined" && console.warn(p, "node is undefined, to", el.id)
-                let edge = new edge_1.RxFiddleEdge(this.nodes[p], this.nodes[el.id], "structure", {
-                    "marker-end": "url(#arrow)",
-                });
-                this.setEdge(p, el.id, edge);
-            }
+    return best;
+}
+exports.ordering = ordering;
+function fixingSort(fixed) {
+    // if a should come first: -1
+    // if b should come first: 1
+    return fixed.length ? (a, b) => {
+        let f = fixed.indexOf(a) >= 0;
+        let s = fixed.indexOf(b) >= 0;
+        if (!f && !s || f && s) {
+            return 0;
         }
-        if (logger_1.instanceAddSubscription(el) && typeof this.nodes[el.observableId] !== "undefined") {
-            let adds = el;
-            // subs-graph
-            this.combined.setNode(`${adds.id}`, el);
-            adds.sinks.forEach(s => this.combined.setEdge(`${adds.id}`, `${s}`));
-            let node = this.nodes[adds.observableId];
-            let from = adds.observableId;
-            node.addObserver(this.collector.getObservable(adds.observableId), adds);
-            // add metro lines
-            if (adds.sinks.length > 0) {
-                this.metroLines[adds.id] = (this.metroLines[adds.sinks[0]] || [adds.sinks[0]]).concat([adds.id]);
-                delete this.metroLines[adds.sinks[0]];
-            }
-            else {
-                this.metroLines[adds.id] = [adds.id];
-            }
-            adds.sinks.forEach((parentId) => {
-                let to = this.collector.getSubscription(parentId).observableId;
-                let toNode = this.nodes[this.collector.getSubscription(parentId).observableId];
-                let existing = this.edge(from, to);
-                if (typeof existing === "undefined") {
-                    this.setEdge(to, from, new edge_1.RxFiddleEdge(node, toNode, "subscription", {
-                        dashed: true,
-                        stroke: "blue",
-                        "marker-start": "url(#arrow-reverse)",
-                    }));
-                }
-                else if (existing instanceof edge_1.RxFiddleEdge) {
-                    existing.options.stroke = "purple";
-                    existing.options["marker-start"] = "url(#arrow-reverse)";
+        return f && !s ? -1 : 1;
+    } : undefined;
+}
+exports.fixingSort = fixingSort;
+
+},{"./crossings":9,"./median":11,"./transpose":15}],14:[function(require,module,exports){
+"use strict";
+const index_1 = require("./index");
+function priorityLayout(ranks, g, focusNodes = []) {
+    let nodes = ranks.map((row, y) => row.map((n, x) => ({
+        y,
+        x,
+        barycenter: 0,
+        id: n,
+        isDummy: false,
+        priority: 0,
+    })));
+    for (let i = 0; i < 20; i++) {
+        let direction = i % 2 === 0 ? "down" : "up";
+        index_1.foreachTuple(direction, nodes, (row, ref) => {
+            row.forEach(item => {
+                if (focusNodes.indexOf(item.id) >= 0) {
+                    item.priority = Number.MAX_SAFE_INTEGER;
+                    item.barycenter = 0;
                 }
                 else {
-                    console.warn("What edge?", existing);
+                    item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER / 2 : priority(g, direction, item.id);
+                    item.barycenter = barycenter(g, direction, item.id, linked => head(ref.filter(r => r.id === linked).map(r => r.x)));
                 }
             });
-            // Dashed link
-            if (typeof adds.scopeId !== "undefined") {
-                let toId = (this.collector.getSubscription(adds.scopeId)).observableId;
-                let to = this.nodes[(this.collector.getSubscription(adds.scopeId)).observableId];
-                this.setEdge(toId, from, new edge_1.RxFiddleEdge(to, node, "higherorder", {
-                    dashed: true,
-                    "marker-end": "url(#arrow)",
-                }));
-            }
-        }
-        if (el instanceof logger_1.AddEvent && typeof this.collector.getSubscription(el.subscription) !== "undefined") {
-            let oid = (this.collector.getSubscription(el.subscription)).observableId;
-            if (typeof this.nodes[oid] === "undefined") {
-                return;
-            }
-            for (let row of this.nodes[oid].observers) {
-                if (row[1].id === el.subscription) {
-                    row[2].push(el.event);
-                }
-            }
-        }
-    }
-    process() {
-        this.g.graph().ranker = "tight-tree";
-        // this.g.graph().rankdir = "RL"
-        let start = this.rendered;
-        this.rendered = this.collector.length;
-        for (let i = start; i < this.collector.length; i++) {
-            let el = this.collector.getLog(i);
-            this.handleLogEntry(el);
-        }
-        return this.collector.length - start;
-    }
-    render(graph) {
-        this.rendered = this.collector.length;
-        if (typeof graph === "undefined" || graph.nodes().length === 0) {
-            return h("g");
-        }
-        this.layout(graph);
-        let ns = graph.nodes().map((id) => this.node(id).render(patch, this.showIds))
-            .reduce((p, c) => p.concat(c), []);
-        let es = graph.edges().map((e) => {
-            let edge = this.edge(e);
-            return edge.render();
+            priorityLayoutAlign(row);
+            return row;
         });
-        let childs = es.concat(ns);
-        return h("g", { attrs: { class: "visualizer" } }, childs);
     }
-    selection(graphs) {
-        return [h("select", {
-                on: {
-                    change: (e) => { console.log(e); this.component = parseInt(e.target.value, 10); },
-                },
-            }, graphs.map((g, i) => h("option", { attrs: { value: i } }, `graph ${i}`)))];
-    }
-    run() {
-        if (this.app instanceof HTMLElement) {
-            this.app.innerHTML = "";
-        }
-        let changes = this.process();
-        /* Prepare components */
-        let comps = graphlib_1.alg.components(this.dag);
-        let graphs = comps.map(array => this.dag.filterNodes(n => array.indexOf(n) >= 0));
-        let graph = graphs[this.component];
-        patch(this.controls, this.selection(graphs)[0]);
-        window.graph = graph;
-        console.log(StructureGraph.traverse(graph), this.choices);
-        console.log("choices", this.choices);
-        let render = this.render(graph);
-        if (typeof graph !== "undefined") {
-            this.size(graph);
-        }
-        let sg = new StructureGraph();
-        let app = h("app", [
-            h("master", sg.renderSvg(graph, this.choices, (v) => this.makeChoice(v, graph), this.dag, Object.values(this.metroLines)).concat(sg.renderMarbles(graph, this.choices))),
-            h("detail", [
-                h("svg", {
-                    attrs: {
-                        id: "svg",
-                        style: "width: 200px; height: 200px",
-                        version: "1.1",
-                        xmlns: "http://www.w3.org/2000/svg",
-                    },
-                }, [render].concat(defs())),
-            ]),
-        ]);
-        patch(this.app, app);
-        this.app = app;
-        if (this.svgZoomInstance && changes) {
-            this.svgZoomInstance.destroy();
-        }
-        if (typeof graph !== "undefined" && (!this.svgZoomInstance || changes)) {
-            console.log("svgZoomInstance");
-            this.svgZoomInstance = svgPanZoom("#svg", { maxZoom: 30 });
-        }
-    }
-    makeChoice(v, graph) {
-        let node = graph.node(v);
-        console.log(v, graph, node);
-        let newChoices = this.choices;
-        graph.predecessors(v).flatMap(p => this.descendants(graph, p)).forEach(n => {
-            let index = newChoices.findIndex(c => c === n);
-            if (index >= 0) {
-                newChoices.splice(index, 1);
-            }
-        });
-        newChoices.push(v);
-        this.choices = newChoices;
-        this.run();
-    }
-    descendants(graph, v) {
-        if (!graphlib_1.alg.isAcyclic(graph)) {
-            throw new Error("Only use this on acyclic graphs!");
-        }
-        let sc = graph.successors(v);
-        return sc.concat(sc.flatMap(s => this.descendants(graph, s)));
-    }
-    attach(node) {
-        this.app = node;
-        this.step();
-    }
-    step() {
-        window.requestAnimationFrame(() => this.step());
-        if (this.rendered === this.collector.length) {
-            return;
-        }
-        this.run();
-    }
-    setNode(id, label) {
-        this.nodes[id] = label;
-        this.g.setNode(`${id}`, label);
-        return label;
-    }
-    setEdge(from, to, edge) {
-        if (edge.type === "structure") {
-            this.dag.setNode(`${from}`, this.nodes[from]);
-            this.dag.setNode(`${to}`, this.nodes[to]);
-            this.dag.setEdge(`${from}`, `${to}`, edge);
-        }
-        this.g.setEdge(`${from}`, `${to}`, edge);
-        this.edges.push(edge);
-    }
-    edge(from, to) {
-        let edge;
-        if (typeof from === "number") {
-            edge = this.g.edge(`${from}`, `${to}`);
-        }
-        else {
-            edge = this.g.edge(from);
-        }
-        return typeof edge !== "undefined" ? edge : undefined;
-    }
-    node(label) {
-        return this.nodes[typeof label === "number" ? label : parseInt(label, 10)];
-    }
+    shiftOffset(nodes);
+    return nodes.flatMap(id => id);
 }
-exports.Visualizer = Visualizer;
-class StructureGraph {
-    static traverse(graph, choices = []) {
-        if (typeof graph === "undefined") {
-            return [];
+exports.priorityLayout = priorityLayout;
+function shiftOffset(layers) {
+    let max = Number.MAX_SAFE_INTEGER;
+    let offset = layers.reduce((l, layer) => Math.min(l, layer.reduce((p, item) => Math.min(p, item.x), max)), max);
+    layers.forEach(layer => layer.forEach(item => {
+        item.x -= offset;
+    }));
+}
+function head(list) {
+    return list[0];
+}
+exports.head = head;
+function linkedNodes(g, direction, node) {
+    if (!g.hasNode(node)) {
+        console.warn("looking for non-graph node", node);
+        return [];
+    }
+    return direction === "down" ?
+        g.inEdges(node).map(e => e.v) :
+        g.outEdges(node).map(e => e.w);
+}
+function avg(list) {
+    if (list.length === 0) {
+        return undefined;
+    }
+    if (list.length === 1) {
+        return list[0];
+    }
+    return list.reduce((sum, v) => sum + (v / list.length), 0);
+}
+function barycenter(g, direction, node, ref) {
+    let nodes = linkedNodes(g, direction, node);
+    // Find Barycenter
+    let positions = nodes.map(ref).filter(v => typeof v === "number");
+    return avg(positions);
+}
+function priority(g, direction, node) {
+    let nodes = linkedNodes(g, direction, node);
+    return nodes.length;
+}
+function absMin(a, b) {
+    return Math.abs(a) < Math.abs(b) ? a : b;
+}
+function priorityLayoutAlign(items) {
+    let move = (priority, index, requestedShift) => {
+        let subject = items[index];
+        if (subject.priority > priority || requestedShift === 0) {
+            return 0;
         }
-        let path = [];
-        let sources = graph.sources();
-        do {
-            // select first from choices or from successors otherwise
-            let current = sources.find(source => choices.indexOf(source) >= 0) || sources[0];
-            path.unshift(current);
-            sources = graph.successors(current);
-        } while (sources.length);
-        return path.reverse();
-    }
-    static branches(graph, node, choices) {
-        if (typeof graph === "undefined") {
-            return [];
+        if (items.length === index + 1 && requestedShift > 0) {
+            subject.x += requestedShift;
+            return requestedShift;
         }
-        let successors = graph.successors(node);
-        let chosen = successors.find(n => choices.indexOf(n) >= 0) || successors[0];
-        return successors.filter(s => s !== chosen);
-    }
-    renderMarbles(graph, choices) {
-        let coordinator = new MarbleCoordinator();
-        let u = StructureGraph.chunk;
-        let main = StructureGraph.traverse(graph, choices);
-        main.map((v) => graph.node(v)).forEach(v => coordinator.add(v));
-        let root = h("div", {
-            attrs: {
-                id: "marbles",
-                style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
-            },
-        }, main.flatMap((v, i) => {
-            let clazz = "operator " + (typeof graph.node(v).locationText !== "undefined" ? "withStack" : "");
-            let box = h("div", { attrs: { class: clazz } }, [
-                h("div", [], graph.node(v).name),
-                h("div", [], graph.node(v).locationText),
-            ]);
-            return [box, coordinator.render(graph.node(v))];
-        }));
-        return [root];
-    }
-    renderSvg(graph, choices, cb, dag, lines) {
-        let u = StructureGraph.chunk;
-        window.renderSvgGraph = graph;
-        let mu = u / 2;
-        let structure = graphutils_1.structureLayout(graph);
-        let structureIndex = graphutils_1.indexedBy(i => i.node, structure.layout);
-        console.log("structure layout", structure);
-        let nodes = structure.layout /*.filter(item => !item.isDummy)*/.flatMap((item, i) => {
-            return [h("circle", {
-                    attrs: {
-                        cx: mu + mu * item.x,
-                        cy: mu + mu * item.y,
-                        fill: colorIndex(item.isDummy ? 1 : 0),
-                        r: item.isDummy ? 2 : 5
-                    },
-                    on: {
-                        click: () => console.log(item),
-                    },
-                }), h("text", { attrs: { x: mu + mu * item.x + 10, y: mu + mu * item.y + 5 } }, item.isDummy ? "" : `${item.node}`)];
-        });
-        let edges = structure.graph.edges().map(g => {
-            let v = structureIndex[g.v];
-            let w = structureIndex[g.w];
-            if (!v || !w)
-                console.log(g, v, w);
-            return h("path", {
-                attrs: { d: `M${mu + mu * v.x} ${mu + mu * v.y} L ${mu + mu * w.x} ${mu + mu * w.y}`,
-                    stroke: "gray", "stroke-dasharray": 5 },
+        if (index === 0 && requestedShift < 0) {
+            let slack = Math.max(0, subject.x);
+            let moved = Math.max(requestedShift, -slack);
+            subject.x += moved;
+            return moved;
+        }
+        let spacing = items[index + Math.min(0, Math.sign(requestedShift))].spacing || 1;
+        let next = index + Math.sign(requestedShift);
+        let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift) * spacing);
+        // Bubble move
+        let nextMoved = move(priority, next, requestedShift - slack);
+        subject.x += slack + nextMoved;
+        return slack + nextMoved;
+    };
+    // let backup = items.map(i => i.x)
+    // let beforeDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
+    items
+        .map((item, index) => ({ item, index }))
+        .sort((a, b) => b.item.priority - a.item.priority)
+        .forEach(({ item, index }) => {
+        if (typeof item.barycenter !== "undefined") {
+            move(item.priority, index, item.barycenter - item.x);
+        }
+    });
+    // let afterDistance = items.map(i => i.barycenter - i.x).reduce((sum, n) => sum + n, 0)
+    // if(afterDistance > beforeDistance) {
+    //   backup.forEach((x, index) => items[index].x = x)
+    // }
+}
+exports.priorityLayoutAlign = priorityLayoutAlign;
+
+},{"./index":10}],15:[function(require,module,exports){
+"use strict";
+require("../utils");
+const crossings_1 = require("./crossings");
+const index_1 = require("./index");
+exports.debug = {
+    on: false,
+};
+/*
+ * @see http://www.graphviz.org/Documentation/TSE93.pdf page 16
+ */
+function transpose(ranks, g, direction, externalSort) {
+    let improved = true;
+    while (improved) {
+        improved = false;
+        // walk tuples of ranks
+        index_1.foreachTuple(direction, ranks, (rank, ref) => {
+            // walk single rank by node tuples left-to-right
+            index_1.foreachTuple("down", rank, (w, v, j, i) => {
+                let es = index_1.edges(g, direction, [v, w]);
+                if (direction === "down") {
+                    es = index_1.flip(es);
+                }
+                let xsort = typeof externalSort === "undefined" ? 0 : externalSort(v, w);
+                if (xsort > 0 || xsort === 0 && crossings_1.crossings([v, w], ref, es) > crossings_1.crossings([w, v], ref, es)) {
+                    improved = true;
+                    swap(rank, i, j);
+                }
             });
         });
-        return [h("svg", {
-                attrs: {
-                    id: "structure",
-                    style: `width: ${u * 6}px; height: ${u * (0.5 + structure.layout.length)}px`,
-                    version: "1.1",
-                    xmlns: "http://www.w3.org/2000/svg",
-                },
-            }, edges.concat(nodes))];
     }
+    return ranks;
 }
-StructureGraph.chunk = 100;
-class MarbleCoordinator {
-    add(node) {
-        let times = node.observers.flatMap(v => v[2]).map(e => e.time);
-        this.min = times.reduce((m, n) => typeof m !== "undefined" ? Math.min(m, n) : n, this.min);
-        this.max = times.reduce((m, n) => typeof m !== "undefined" ? Math.max(m, n) : n, this.max);
-    }
-    render(node) {
-        let events = node.observers.flatMap(v => v[2]);
-        let marbles = events.map(e => h("svg", {
-            attrs: { x: `${this.relTime(e.time)}%`, y: "50%" },
-        }, [h("path", {
-                attrs: { class: "arrow", d: "M 0 -50 L 0 48" },
-            }), h("circle", {
-                attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
-            })]));
-        return h("svg", {
-            attrs: {
-                class: "marblediagram",
-            },
-        }, [
-            h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
-        ].concat(marbles).concat(defs()));
-    }
-    relTime(t) {
-        return (t - this.min) / (this.max - this.min) * 95 + 2.5;
-    }
+exports.transpose = transpose;
+function swap(list, i, j) {
+    let tmp = list[i];
+    list[i] = list[j];
+    list[j] = tmp;
 }
 
-}).call(this,require('_process'))
-},{"../object/extensions":13,"../utils":14,"./edge":3,"./graphutils":5,"./logger":8,"./node":9,"_process":180,"dagre":54,"graphlib":137,"snabbdom":196,"snabbdom/h":191,"snabbdom/modules/attributes":194,"snabbdom/modules/eventlisteners":195,"svg-pan-zoom":200}],12:[function(require,module,exports){
+},{"../utils":18,"./crossings":9,"./index":10}],16:[function(require,module,exports){
 "use strict";
-const instrumentation_1 = require("./collector/instrumentation");
-const logger_1 = require("./collector/logger");
-const visualizer_1 = require("./collector/visualizer");
+const visualization_1 = require("./visualization");
 const dom_1 = require("@cycle/dom");
 const rx_run_1 = require("@cycle/rx-run");
 const Immutable = require("immutable");
 const Rx = require("rx");
 const rxmarbles_1 = require("rxmarbles");
+const jsonCollector_1 = require("./collector/jsonCollector");
 const Observable = Rx.Observable;
-let collector = new logger_1.default();
-let instrumentation = new instrumentation_1.default(instrumentation_1.defaultSubjects, collector);
-instrumentation.setup();
-let vis = new visualizer_1.Visualizer(instrumentation.logger, document.querySelector("app"), document.getElementById("controls"));
+window.Rx = Rx;
+let collector = new jsonCollector_1.default("F_newstyle.json");
+// let collector = new Collector()
+// let instrumentation = new Instrumentation(defaultSubjects, collector)
+// instrumentation.setup()
+let vis = new visualization_1.default(new visualization_1.Grapher(collector), document.querySelector("app"), document.getElementById("controls"));
 vis.step();
 window.collector = collector;
 window.visualizer = vis;
-window.Rx = Rx;
 //      /\    
 //     /  \   
 //    / /\ \  
@@ -1835,23 +2252,26 @@ document.getElementById("c").onclick = run.bind(null, c);
 let trace = document.getElementById("trace");
 let ids = document.getElementById("showIds");
 trace.addEventListener("click", () => {
-    instrumentation.stackTraces = trace.checked;
+    // instrumentation.stackTraces = trace.checked
 });
 ids.addEventListener("click", () => {
-    vis.showIds = ids.checked;
+    // vis.showIds = ids.checked
 });
+c();
 
-},{"./collector/instrumentation":6,"./collector/logger":8,"./collector/visualizer":11,"@cycle/dom":27,"@cycle/rx-run":49,"immutable":158,"rx":181,"rxmarbles":212}],13:[function(require,module,exports){
+},{"./collector/jsonCollector":4,"./visualization":19,"@cycle/dom":33,"@cycle/rx-run":55,"immutable":133,"rx":156,"rxmarbles":182}],17:[function(require,module,exports){
 ///<reference path="extensions.d.ts"/>
 Object.values = function objectValues(obj) {
     let values = [];
     for (let key in obj) {
-        values.push(obj[key]);
+        if (obj.hasOwnProperty(key)) {
+            values.push(obj[key]);
+        }
     }
     return values;
 };
 
-},{}],14:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 "use strict";
 function flatMap(f) {
     return this.reduce((p, n, index) => p.concat(f(n, index)), []);
@@ -1870,7 +2290,354 @@ function endsWith(self, suffix) {
 exports.endsWith = endsWith;
 ;
 
-},{}],15:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
+"use strict";
+const typedgraph_1 = require("../collector/typedgraph");
+const color_1 = require("../color");
+require("../object/extensions");
+require("../utils");
+const layout_1 = require("./layout");
+const Rx = require("rx");
+const snabbdom_1 = require("snabbdom");
+const attributes_1 = require("snabbdom/modules/attributes");
+const class_1 = require("snabbdom/modules/class");
+const eventlisteners_1 = require("snabbdom/modules/eventlisteners");
+const style_1 = require("snabbdom/modules/style");
+const patch = snabbdom_1.init([class_1.default, attributes_1.default, style_1.default, eventlisteners_1.default]);
+const emptyViewState = {
+    focusNodes: ["5", "39", "2"],
+    openGroups: [],
+    openGroupsAll: true,
+};
+class Grapher {
+    constructor(collector) {
+        // this.viewState = viewState.startWith(emptyViewState)
+        this.graph = collector.dataObs
+            .scan(this.next, new typedgraph_1.default());
+        // .combineLatest(this.viewState, this.filter)
+    }
+    next(graph, event) {
+        switch (event.type) {
+            case "node":
+                graph.setNode(`${event.id}`, {
+                    labels: [],
+                    name: event.node.name,
+                });
+                break;
+            case "edge":
+                let e = graph.edge(`${event.edge.v}`, `${event.edge.w}`) || {
+                    labels: [],
+                };
+                e.labels.push(event);
+                graph.setEdge(`${event.edge.v}`, `${event.edge.w}`, e);
+                break;
+            case "label":
+                graph.node(`${event.node}`).labels.push(event);
+                break;
+            default: break;
+        }
+        return graph;
+    }
+}
+exports.Grapher = Grapher;
+class Visualizer {
+    constructor(grapher, dom, controls) {
+        // TODO workaround for Rx.Subject's
+        this.focusNodes = new Rx.Subject();
+        this.openGroups = new Rx.Subject();
+        this.grapher = grapher;
+        this.app = dom;
+        let inp = grapher.graph
+            .debounce(10)
+            .combineLatest(this.viewState, (graph, state) => {
+            let filtered = this.filter(graph, state);
+            return ({
+                focusNodes: state.focusNodes,
+                graph: filtered,
+                layout: layout_1.default(filtered, state.focusNodes),
+            });
+        });
+        let { svg, clicks } = graph$(inp);
+        this.DOM = svg;
+        this.clicks = clicks;
+        // new StructureGraph().renderMarbles(graph, choices)
+        // let render: VNode[] = []
+        // let marbles: VNode[] = []
+        // sg.renderMarbles(graph, this.choices)
+        // let app = h("app", [
+        //   h("master", [svg(l)].concat(marbles)),
+        //   h("detail", [
+        //     h("svg", {
+        //       attrs: {
+        //         id: "svg",
+        //         style: "width: 200px; height: 200px",
+        //         version: "1.1",
+        //         xmlns: "http://www.w3.org/2000/svg",
+        //       },
+        //     }, render.concat(defs())),
+        //   ]),
+        // ])
+        // return app
+    }
+    get viewState() {
+        return this.focusNodes.startWith([]).combineLatest(this.openGroups.startWith([]), (fn, og) => ({
+            focusNodes: fn,
+            openGroups: og,
+            openGroupsAll: true,
+        }));
+    }
+    run() {
+        this.DOM
+            .subscribe(d => this.app = patch(this.app, d));
+        this.clicks
+            .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
+            .startWith([])
+            .subscribe(this.focusNodes);
+    }
+    attach(node) {
+        this.app = node;
+        this.step();
+    }
+    step() {
+        this.run();
+    }
+    filter(graph, viewState) {
+        return graph.filterNodes((id, node) => {
+            let groups = node.labels.flatMap(l => l.groups || []);
+            return viewState.openGroupsAll ||
+                !groups ||
+                groups.length === 0 ||
+                (groups.slice(-1).find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true);
+        });
+    }
+}
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = Visualizer;
+function graph$(inp) {
+    let result = inp.map(data => {
+        return graph(data.layout, data.focusNodes, data.graph);
+    }).publish().refCount();
+    return {
+        clicks: result.flatMap(_ => _.clicks),
+        svg: result.map(_ => _.svg),
+    };
+}
+const u = 100;
+const mu = u / 2;
+function graph(l, focusNodes, graph) {
+    console.log("Layout", l);
+    function edge(edge) {
+        let { v, w, points } = edge;
+        let labels = graph.edge(v, w).labels;
+        let isHigher = labels.map(_ => _.edge.label).map((_) => _.type).indexOf("higherOrderSubscription sink") >= 0;
+        let path = points.map(({ x, y }) => `${mu + mu * x} ${mu + mu * y}`).join(" L ");
+        return snabbdom_1.h("path", {
+            attrs: {
+                d: `M${path}`,
+                fill: "transparent",
+                id: `${v}/${w}`,
+                stroke: isHigher ? "rgba(200,0,0,0.1)" : "rgba(0,0,0,0.1)",
+                "stroke-width": 10,
+            },
+            key: `${v}/${w}`,
+            on: { click: () => console.log(v, w, labels) },
+            style: {
+                transition: "d 1s",
+            },
+        });
+    }
+    function circle(item) {
+        let node = graph.node(item.id);
+        let labels = node.labels;
+        let methods = labels.map(nl => nl.label)
+            .filter((label) => typeof label.kind !== "undefined" && label.kind === "observable");
+        let text = methods.slice(-1).map((l) => `${l.method}(${l.args})`)[0] || node.name || item.id;
+        let svg = snabbdom_1.h("circle", {
+            attrs: {
+                cx: mu + mu * item.x,
+                cy: mu + mu * item.y,
+                fill: colorIndex(parseInt(item.id, 10)),
+                id: `circle-${item.id}`,
+                r: 5,
+                stroke: "black",
+                "stroke-width": focusNodes.indexOf(item.id) >= 0 ? 1 : 0,
+            },
+            key: `circle-${item.id}`,
+            on: { click: (e) => clicks.onNext(item.id) },
+            style: { transition: "all 1s" },
+        });
+        let html = snabbdom_1.h("div", {
+            attrs: { class: "graph-label" },
+            key: `overlay-${item.id}`,
+            on: { click: (e) => clicks.onNext(item.id) },
+            style: {
+                left: `${mu + mu * item.x}px`,
+                top: `${mu + mu * item.y}px`,
+                transition: "all 1s",
+            },
+        }, [snabbdom_1.h("span", text)]);
+        // [
+        //   h("rect", {
+        //     attrs: {
+        //       fill: "rgba(0,0,0,.75)",
+        //       height: 20,
+        //       id: `rect-${item.id}`,
+        //       rx: 4,
+        //       ry: 4,
+        //       width: 30,
+        //       x: mu + mu * item.x + 8,
+        //       y: mu + mu * item.y - 10,
+        //     },
+        //     key: `rect-${item.id}`,
+        //     style: { transition: "all 1s" },
+        //   }),
+        //   h("text", {
+        //     attrs: {
+        //       fill: "white",
+        //       id: `text-${item.id}`,
+        //       x: mu + mu * item.x + 10,
+        //       y: mu + mu * item.y + 5,
+        //     },
+        //     key: `text-${item.id}`,
+        //     style: { transition: "all 1s" },
+        //   }, text),
+        // ])
+        return { html: [html], svg: [svg] };
+    }
+    let ns = l[0].nodes.map(circle);
+    let elements = l
+        .flatMap((level, levelIndex) => level.edges.map(edge))
+        .concat(ns.flatMap(n => n.svg));
+    let xmax = l
+        .flatMap(level => level.nodes)
+        .reduce((p, n) => Math.max(p, n.x), 0);
+    let ymax = l
+        .flatMap(level => level.nodes)
+        .reduce((p, n) => Math.max(p, n.y), 0);
+    let clicks = new Rx.Subject();
+    let svg = snabbdom_1.h("svg", {
+        attrs: {
+            id: "structure",
+            version: "1.1",
+            xmlns: "http://www.w3.org/2000/svg",
+        },
+        style: {
+            height: (ymax + 2) * mu,
+            left: 0,
+            position: "absolute",
+            top: 0,
+            width: (xmax + 2) * mu,
+        },
+    }, elements.concat(defs()));
+    let mask = snabbdom_1.h("div", {
+        attrs: {
+            id: "structure-mask",
+        },
+        style: {
+            height: (ymax + 2) * mu,
+            position: "relative",
+            width: (xmax + 2) * mu,
+        },
+    }, [svg].concat(ns.flatMap(n => n.html)));
+    return {
+        svg: mask,
+        clicks,
+    };
+}
+const colors = color_1.generateColors(40);
+function colorIndex(i) {
+    if (typeof i === "undefined" || isNaN(i)) {
+        return "transparent";
+    }
+    let [r, g, b] = colors[i % colors.length];
+    return `rgb(${r},${g},${b})`;
+}
+window.colors = colors;
+const defs = () => [snabbdom_1.h("defs", [
+        snabbdom_1.h("filter", {
+            attrs: { height: "130%", id: "dropshadow" },
+        }, [
+            snabbdom_1.h("feGaussianBlur", { attrs: { in: "SourceAlpha", stdDeviation: "3" } }),
+            snabbdom_1.h("feOffset", { attrs: { dx: 2, dy: 2, result: "offsetblur" } }),
+            snabbdom_1.h("feMerge", [
+                snabbdom_1.h("feMergeNode"),
+                snabbdom_1.h("feMergeNode", { attrs: { in: "SourceGraphic" } }),
+            ]),
+        ]),
+        snabbdom_1.h("marker", {
+            attrs: {
+                id: "arrow",
+                markerHeight: 10,
+                markerUnits: "strokeWidth",
+                markerWidth: 10,
+                orient: "auto",
+                overflow: "visible",
+                refx: 0, refy: 3,
+            },
+        }, [snabbdom_1.h("path", { attrs: { d: "M-4,-2 L-4,2 L0,0 z", fill: "inherit" } })]),
+        snabbdom_1.h("marker", {
+            attrs: {
+                id: "arrow-reverse",
+                markerHeight: 10,
+                markerUnits: "strokeWidth",
+                markerWidth: 10,
+                orient: "auto",
+                overflow: "visible",
+                refx: 0, refy: 3,
+            },
+        }, [snabbdom_1.h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
+    ])];
+
+},{"../collector/typedgraph":7,"../color":8,"../object/extensions":17,"../utils":18,"./layout":20,"rx":156,"snabbdom":173,"snabbdom/modules/attributes":169,"snabbdom/modules/class":170,"snabbdom/modules/eventlisteners":171,"snabbdom/modules/style":172}],20:[function(require,module,exports){
+"use strict";
+const graphutils_1 = require("../collector/graphutils");
+const normalize_1 = require("../layout/normalize");
+const ordering_1 = require("../layout/ordering");
+const priority_1 = require("../layout/priority");
+require("../object/extensions");
+require("../utils");
+function layout(graph, focusNodes = []) {
+    let ranked = normalize_1.normalize(graphutils_1.rankFromTopGraph(graph), v => ({ rank: v.rank }));
+    let byRank = [];
+    ranked.nodes().forEach((n) => {
+        let rank = ranked.node(n).rank;
+        byRank[rank] = (byRank[rank] || []).concat([n]);
+    });
+    let initialOrd = Object.values(byRank);
+    // TODO verify neccessity of this step
+    let rankedAndEdgeFixed = ranked.flatMap((id, label) => [{ id, label }], (id, label) => [{ id: ranked.node(id.v).rank < ranked.node(id.w).rank ? id : { v: id.w, w: id.v }, label }]);
+    let ord = ordering_1.ordering(initialOrd, rankedAndEdgeFixed, ordering_1.fixingSort(focusNodes));
+    let layout = priority_1.priorityLayout(ord, ranked, focusNodes);
+    let byId = graphutils_1.indexedBy(n => n.id, layout);
+    function fullEdge(v, w, edgeLookup, lookup) {
+        let e = edgeLookup(v, w);
+        if (typeof e === "undefined" || e.index > 0) {
+            return undefined;
+        }
+        return ({
+            points: e.nodes.map(lookup),
+            v: e.nodes[0],
+            w: e.nodes.slice(-1)[0],
+        });
+    }
+    let edges = ranked.edges()
+        .map(e => fullEdge(e.v, e.w, (v, w) => ranked.edge(v, w), n => byId[n]))
+        .filter(v => typeof v !== "undefined");
+    if (typeof window === "object") {
+        window.graph = graph;
+        window.ranked = ranked;
+    }
+    return [
+        {
+            edges: edges,
+            nodes: layout.filter(node => node.id.indexOf("dummy") === -1),
+        },
+    ];
+}
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = layout;
+
+},{"../collector/graphutils":3,"../layout/normalize":12,"../layout/ordering":13,"../layout/priority":14,"../object/extensions":17,"../utils":18}],21:[function(require,module,exports){
 "use strict";
 function logToConsoleError(err) {
     var target = err.stack || err;
@@ -1981,7 +2748,7 @@ function Cycle(main, drivers, options) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Cycle;
 
-},{}],16:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
@@ -2018,7 +2785,7 @@ var BodyDOMSource = (function () {
 }());
 exports.BodyDOMSource = BodyDOMSource;
 
-},{"./fromEvent":24,"@cycle/xstream-adapter":50,"xstream":211}],17:[function(require,module,exports){
+},{"./fromEvent":30,"@cycle/xstream-adapter":56,"xstream":181}],23:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
@@ -2055,7 +2822,7 @@ var DocumentDOMSource = (function () {
 }());
 exports.DocumentDOMSource = DocumentDOMSource;
 
-},{"./fromEvent":24,"@cycle/xstream-adapter":50,"xstream":211}],18:[function(require,module,exports){
+},{"./fromEvent":30,"@cycle/xstream-adapter":56,"xstream":181}],24:[function(require,module,exports){
 "use strict";
 var ScopeChecker_1 = require('./ScopeChecker');
 var utils_1 = require('./utils');
@@ -2098,7 +2865,7 @@ var ElementFinder = (function () {
 }());
 exports.ElementFinder = ElementFinder;
 
-},{"./ScopeChecker":22,"./utils":35,"matches-selector":179}],19:[function(require,module,exports){
+},{"./ScopeChecker":28,"./utils":41,"matches-selector":154}],25:[function(require,module,exports){
 "use strict";
 var ScopeChecker_1 = require('./ScopeChecker');
 var utils_1 = require('./utils');
@@ -2233,7 +3000,7 @@ var EventDelegator = (function () {
 }());
 exports.EventDelegator = EventDelegator;
 
-},{"./ScopeChecker":22,"./utils":35,"matches-selector":179}],20:[function(require,module,exports){
+},{"./ScopeChecker":28,"./utils":41,"matches-selector":154}],26:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
@@ -2261,7 +3028,7 @@ var HTMLSource = (function () {
 }());
 exports.HTMLSource = HTMLSource;
 
-},{"@cycle/xstream-adapter":50,"xstream":211}],21:[function(require,module,exports){
+},{"@cycle/xstream-adapter":56,"xstream":181}],27:[function(require,module,exports){
 "use strict";
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
 var DocumentDOMSource_1 = require('./DocumentDOMSource');
@@ -2459,7 +3226,7 @@ var MainDOMSource = (function () {
 }());
 exports.MainDOMSource = MainDOMSource;
 
-},{"./BodyDOMSource":16,"./DocumentDOMSource":17,"./ElementFinder":18,"./EventDelegator":19,"./fromEvent":24,"./isolate":28,"./utils":35,"@cycle/xstream-adapter":50,"matches-selector":179,"xstream":211}],22:[function(require,module,exports){
+},{"./BodyDOMSource":22,"./DocumentDOMSource":23,"./ElementFinder":24,"./EventDelegator":25,"./fromEvent":30,"./isolate":34,"./utils":41,"@cycle/xstream-adapter":56,"matches-selector":154,"xstream":181}],28:[function(require,module,exports){
 "use strict";
 var ScopeChecker = (function () {
     function ScopeChecker(scope, isolateModule) {
@@ -2482,7 +3249,7 @@ var ScopeChecker = (function () {
 }());
 exports.ScopeChecker = ScopeChecker;
 
-},{}],23:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 "use strict";
 var hyperscript_1 = require('./hyperscript');
 var classNameFromVNode_1 = require('snabbdom-selector/lib/classNameFromVNode');
@@ -2515,7 +3282,7 @@ var VNodeWrapper = (function () {
 }());
 exports.VNodeWrapper = VNodeWrapper;
 
-},{"./hyperscript":26,"snabbdom-selector/lib/classNameFromVNode":182,"snabbdom-selector/lib/selectorParser":183}],24:[function(require,module,exports){
+},{"./hyperscript":32,"snabbdom-selector/lib/classNameFromVNode":157,"snabbdom-selector/lib/selectorParser":158}],30:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 function fromEvent(element, eventName, useCapture) {
@@ -2534,7 +3301,7 @@ function fromEvent(element, eventName, useCapture) {
 }
 exports.fromEvent = fromEvent;
 
-},{"xstream":211}],25:[function(require,module,exports){
+},{"xstream":181}],31:[function(require,module,exports){
 "use strict";
 var hyperscript_1 = require('./hyperscript');
 function isValidString(param) {
@@ -2607,7 +3374,7 @@ TAG_NAMES.forEach(function (n) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exported;
 
-},{"./hyperscript":26}],26:[function(require,module,exports){
+},{"./hyperscript":32}],32:[function(require,module,exports){
 "use strict";
 var is = require('snabbdom/is');
 var vnode = require('snabbdom/vnode');
@@ -2671,7 +3438,7 @@ function h(sel, b, c) {
 exports.h = h;
 ;
 
-},{"snabbdom/is":38,"snabbdom/vnode":47}],27:[function(require,module,exports){
+},{"snabbdom/is":44,"snabbdom/vnode":53}],33:[function(require,module,exports){
 "use strict";
 var thunk = require('snabbdom/thunk');
 exports.thunk = thunk;
@@ -2956,7 +3723,7 @@ exports.u = hyperscript_helpers_1.default.u;
 exports.ul = hyperscript_helpers_1.default.ul;
 exports.video = hyperscript_helpers_1.default.video;
 
-},{"./hyperscript":26,"./hyperscript-helpers":25,"./makeDOMDriver":30,"./makeHTMLDriver":31,"./mockDOMSource":32,"snabbdom/thunk":46}],28:[function(require,module,exports){
+},{"./hyperscript":32,"./hyperscript-helpers":31,"./makeDOMDriver":36,"./makeHTMLDriver":37,"./mockDOMSource":38,"snabbdom/thunk":52}],34:[function(require,module,exports){
 "use strict";
 var utils_1 = require('./utils');
 function isolateSource(source, scope) {
@@ -2982,7 +3749,7 @@ function isolateSink(sink, scope) {
 }
 exports.isolateSink = isolateSink;
 
-},{"./utils":35}],29:[function(require,module,exports){
+},{"./utils":41}],35:[function(require,module,exports){
 "use strict";
 var MapPolyfill = require('es6-map');
 var IsolateModule = (function () {
@@ -3087,7 +3854,7 @@ var IsolateModule = (function () {
 }());
 exports.IsolateModule = IsolateModule;
 
-},{"es6-map":125}],30:[function(require,module,exports){
+},{"es6-map":100}],36:[function(require,module,exports){
 "use strict";
 var snabbdom_1 = require('snabbdom');
 var xstream_1 = require('xstream');
@@ -3146,7 +3913,7 @@ function makeDOMDriver(container, options) {
 }
 exports.makeDOMDriver = makeDOMDriver;
 
-},{"./MainDOMSource":21,"./VNodeWrapper":23,"./isolateModule":29,"./modules":33,"./transposition":34,"./utils":35,"@cycle/xstream-adapter":50,"es6-map":125,"snabbdom":45,"xstream":211}],31:[function(require,module,exports){
+},{"./MainDOMSource":27,"./VNodeWrapper":29,"./isolateModule":35,"./modules":39,"./transposition":40,"./utils":41,"@cycle/xstream-adapter":56,"es6-map":100,"snabbdom":51,"xstream":181}],37:[function(require,module,exports){
 "use strict";
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
 var transposition_1 = require('./transposition');
@@ -3175,7 +3942,7 @@ function makeHTMLDriver(effect, options) {
 }
 exports.makeHTMLDriver = makeHTMLDriver;
 
-},{"./HTMLSource":20,"./transposition":34,"@cycle/xstream-adapter":50,"snabbdom-to-html":185}],32:[function(require,module,exports){
+},{"./HTMLSource":26,"./transposition":40,"@cycle/xstream-adapter":56,"snabbdom-to-html":160}],38:[function(require,module,exports){
 "use strict";
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
 var xstream_1 = require('xstream');
@@ -3246,7 +4013,7 @@ function mockDOMSource(streamAdapter, mockConfig) {
 }
 exports.mockDOMSource = mockDOMSource;
 
-},{"@cycle/xstream-adapter":50,"xstream":211}],33:[function(require,module,exports){
+},{"@cycle/xstream-adapter":56,"xstream":181}],39:[function(require,module,exports){
 "use strict";
 var ClassModule = require('snabbdom/modules/class');
 exports.ClassModule = ClassModule;
@@ -3263,7 +4030,7 @@ exports.HeroModule = HeroModule;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = [StyleModule, ClassModule, PropsModule, AttrsModule];
 
-},{"snabbdom/modules/attributes":39,"snabbdom/modules/class":40,"snabbdom/modules/eventlisteners":41,"snabbdom/modules/hero":42,"snabbdom/modules/props":43,"snabbdom/modules/style":44}],34:[function(require,module,exports){
+},{"snabbdom/modules/attributes":45,"snabbdom/modules/class":46,"snabbdom/modules/eventlisteners":47,"snabbdom/modules/hero":48,"snabbdom/modules/props":49,"snabbdom/modules/style":50}],40:[function(require,module,exports){
 "use strict";
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
 var xstream_1 = require('xstream');
@@ -3315,7 +4082,7 @@ function makeTransposeVNode(runStreamAdapter) {
 }
 exports.makeTransposeVNode = makeTransposeVNode;
 
-},{"@cycle/xstream-adapter":50,"xstream":211}],35:[function(require,module,exports){
+},{"@cycle/xstream-adapter":56,"xstream":181}],41:[function(require,module,exports){
 "use strict";
 function isElement(obj) {
     return typeof HTMLElement === "object" ?
@@ -3351,7 +4118,7 @@ function getSelectors(namespace) {
 }
 exports.getSelectors = getSelectors;
 
-},{}],36:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 var VNode = require('./vnode');
 var is = require('./is');
 
@@ -3386,7 +4153,7 @@ module.exports = function h(sel, b, c) {
   return VNode(sel, data, children, text, undefined);
 };
 
-},{"./is":38,"./vnode":47}],37:[function(require,module,exports){
+},{"./is":44,"./vnode":53}],43:[function(require,module,exports){
 function createElement(tagName){
   return document.createElement(tagName);
 }
@@ -3442,13 +4209,13 @@ module.exports = {
   setTextContent: setTextContent
 };
 
-},{}],38:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 module.exports = {
   array: Array.isArray,
   primitive: function(s) { return typeof s === 'string' || typeof s === 'number'; },
 };
 
-},{}],39:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 var booleanAttrs = ["allowfullscreen", "async", "autofocus", "autoplay", "checked", "compact", "controls", "declare", 
                 "default", "defaultchecked", "defaultmuted", "defaultselected", "defer", "disabled", "draggable", 
                 "enabled", "formnovalidate", "hidden", "indeterminate", "inert", "ismap", "itemscope", "loop", "multiple", 
@@ -3489,7 +4256,7 @@ function updateAttrs(oldVnode, vnode) {
 
 module.exports = {create: updateAttrs, update: updateAttrs};
 
-},{}],40:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 function updateClass(oldVnode, vnode) {
   var cur, name, elm = vnode.elm,
       oldClass = oldVnode.data.class || {},
@@ -3509,7 +4276,7 @@ function updateClass(oldVnode, vnode) {
 
 module.exports = {create: updateClass, update: updateClass};
 
-},{}],41:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 var is = require('../is');
 
 function arrInvoker(arr) {
@@ -3569,7 +4336,7 @@ function updateEventListeners(oldVnode, vnode) {
 
 module.exports = {create: updateEventListeners, update: updateEventListeners};
 
-},{"../is":38}],42:[function(require,module,exports){
+},{"../is":44}],48:[function(require,module,exports){
 var raf = (typeof window !== 'undefined' && window.requestAnimationFrame) || setTimeout;
 var nextFrame = function(fn) { raf(function() { raf(fn); }); };
 
@@ -3723,7 +4490,7 @@ function post() {
 
 module.exports = {pre: pre, create: create, destroy: destroy, post: post};
 
-},{}],43:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 function updateProps(oldVnode, vnode) {
   var key, cur, old, elm = vnode.elm,
       oldProps = oldVnode.data.props || {}, props = vnode.data.props || {};
@@ -3743,7 +4510,7 @@ function updateProps(oldVnode, vnode) {
 
 module.exports = {create: updateProps, update: updateProps};
 
-},{}],44:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 var raf = (typeof window !== 'undefined' && window.requestAnimationFrame) || setTimeout;
 var nextFrame = function(fn) { raf(function() { raf(fn); }); };
 
@@ -3809,7 +4576,7 @@ function applyRemoveStyle(vnode, rm) {
 
 module.exports = {create: updateStyle, update: updateStyle, destroy: applyDestroyStyle, remove: applyRemoveStyle};
 
-},{}],45:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 // jshint newcap: false
 /* global require, module, document, Node */
 'use strict';
@@ -4069,7 +4836,7 @@ function init(modules, api) {
 
 module.exports = {init: init};
 
-},{"./htmldomapi":37,"./is":38,"./vnode":47}],46:[function(require,module,exports){
+},{"./htmldomapi":43,"./is":44,"./vnode":53}],52:[function(require,module,exports){
 var h = require('./h');
 
 function copyToThunk(vnode, thunk) {
@@ -4117,14 +4884,14 @@ module.exports = function(sel, key, fn, args) {
   });
 };
 
-},{"./h":36}],47:[function(require,module,exports){
+},{"./h":42}],53:[function(require,module,exports){
 module.exports = function(sel, data, children, text, elm) {
   var key = data === undefined ? undefined : data.key;
   return {sel: sel, data: data, children: children,
           text: text, elm: elm, key: key};
 };
 
-},{}],48:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
 "use strict";
 var Rx = require('rx');
 var RxJSAdapter = {
@@ -4172,7 +4939,7 @@ var RxJSAdapter = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = RxJSAdapter;
 
-},{"rx":181}],49:[function(require,module,exports){
+},{"rx":156}],55:[function(require,module,exports){
 "use strict";
 var base_1 = require('@cycle/base');
 var rx_adapter_1 = require('@cycle/rx-adapter');
@@ -4243,7 +5010,7 @@ Cycle.run = run;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Cycle;
 
-},{"@cycle/base":15,"@cycle/rx-adapter":48}],50:[function(require,module,exports){
+},{"@cycle/base":21,"@cycle/rx-adapter":54}],56:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 var XStreamAdapter = {
@@ -4289,7 +5056,7 @@ var XStreamAdapter = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = XStreamAdapter;
 
-},{"xstream":211}],51:[function(require,module,exports){
+},{"xstream":181}],57:[function(require,module,exports){
 /*!
  * Cross-Browser Split 1.1.1
  * Copyright 2007-2012 Steven Levithan <stevenlevithan.com>
@@ -4397,7 +5164,7 @@ module.exports = (function split(undef) {
   return self;
 })();
 
-},{}],52:[function(require,module,exports){
+},{}],58:[function(require,module,exports){
 'use strict';
 
 var copy       = require('es5-ext/object/copy')
@@ -4430,7 +5197,7 @@ module.exports = function (props/*, bindTo*/) {
 	});
 };
 
-},{"es5-ext/object/copy":98,"es5-ext/object/map":106,"es5-ext/object/valid-callable":112,"es5-ext/object/valid-value":113}],53:[function(require,module,exports){
+},{"es5-ext/object/copy":73,"es5-ext/object/map":81,"es5-ext/object/valid-callable":87,"es5-ext/object/valid-value":88}],59:[function(require,module,exports){
 'use strict';
 
 var assign        = require('es5-ext/object/assign')
@@ -4495,850 +5262,2631 @@ d.gs = function (dscr, get, set/*, options*/) {
 	return !options ? desc : assign(normalizeOpts(options), desc);
 };
 
-},{"es5-ext/object/assign":95,"es5-ext/object/is-callable":101,"es5-ext/object/normalize-options":107,"es5-ext/string/#/contains":114}],54:[function(require,module,exports){
-/*
-Copyright (c) 2012-2014 Chris Pettitt
+},{"es5-ext/object/assign":70,"es5-ext/object/is-callable":76,"es5-ext/object/normalize-options":82,"es5-ext/string/#/contains":89}],60:[function(require,module,exports){
+(function(root, factory) {
+    'use strict';
+    // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js, Rhino, and browsers.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+    /* istanbul ignore next */
+    if (typeof define === 'function' && define.amd) {
+        define('error-stack-parser', ['stackframe'], factory);
+    } else if (typeof exports === 'object') {
+        module.exports = factory(require('stackframe'));
+    } else {
+        root.ErrorStackParser = factory(root.StackFrame);
+    }
+}(this, function ErrorStackParser(StackFrame) {
+    'use strict';
 
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+    var FIREFOX_SAFARI_STACK_REGEXP = /(^|@)\S+\:\d+/;
+    var CHROME_IE_STACK_REGEXP = /^\s*at .*(\S+\:\d+|\(native\))/m;
+    var SAFARI_NATIVE_CODE_REGEXP = /^(eval@)?(\[native code\])?$/;
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
+    function _map(array, fn, thisArg) {
+        if (typeof Array.prototype.map === 'function') {
+            return array.map(fn, thisArg);
+        } else {
+            var output = new Array(array.length);
+            for (var i = 0; i < array.length; i++) {
+                output[i] = fn.call(thisArg, array[i]);
+            }
+            return output;
+        }
+    }
 
-module.exports = {
-  graphlib: require("./lib/graphlib"),
+    function _filter(array, fn, thisArg) {
+        if (typeof Array.prototype.filter === 'function') {
+            return array.filter(fn, thisArg);
+        } else {
+            var output = [];
+            for (var i = 0; i < array.length; i++) {
+                if (fn.call(thisArg, array[i])) {
+                    output.push(array[i]);
+                }
+            }
+            return output;
+        }
+    }
 
-  layout: require("./lib/layout"),
-  debug: require("./lib/debug"),
-  util: {
-    time: require("./lib/util").time,
-    notime: require("./lib/util").notime
-  },
-  version: require("./lib/version")
+    function _indexOf(array, target) {
+        if (typeof Array.prototype.indexOf === 'function') {
+            return array.indexOf(target);
+        } else {
+            for (var i = 0; i < array.length; i++) {
+                if (array[i] === target) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+    }
+
+    return {
+        /**
+         * Given an Error object, extract the most information from it.
+         *
+         * @param {Error} error object
+         * @return {Array} of StackFrames
+         */
+        parse: function ErrorStackParser$$parse(error) {
+            if (typeof error.stacktrace !== 'undefined' || typeof error['opera#sourceloc'] !== 'undefined') {
+                return this.parseOpera(error);
+            } else if (error.stack && error.stack.match(CHROME_IE_STACK_REGEXP)) {
+                return this.parseV8OrIE(error);
+            } else if (error.stack) {
+                return this.parseFFOrSafari(error);
+            } else {
+                throw new Error('Cannot parse given Error object');
+            }
+        },
+
+        // Separate line and column numbers from a string of the form: (URI:Line:Column)
+        extractLocation: function ErrorStackParser$$extractLocation(urlLike) {
+            // Fail-fast but return locations like "(native)"
+            if (urlLike.indexOf(':') === -1) {
+                return [urlLike];
+            }
+
+            var regExp = /(.+?)(?:\:(\d+))?(?:\:(\d+))?$/;
+            var parts = regExp.exec(urlLike.replace(/[\(\)]/g, ''));
+            return [parts[1], parts[2] || undefined, parts[3] || undefined];
+        },
+
+        parseV8OrIE: function ErrorStackParser$$parseV8OrIE(error) {
+            var filtered = _filter(error.stack.split('\n'), function(line) {
+                return !!line.match(CHROME_IE_STACK_REGEXP);
+            }, this);
+
+            return _map(filtered, function(line) {
+                if (line.indexOf('(eval ') > -1) {
+                    // Throw away eval information until we implement stacktrace.js/stackframe#8
+                    line = line.replace(/eval code/g, 'eval').replace(/(\(eval at [^\()]*)|(\)\,.*$)/g, '');
+                }
+                var tokens = line.replace(/^\s+/, '').replace(/\(eval code/g, '(').split(/\s+/).slice(1);
+                var locationParts = this.extractLocation(tokens.pop());
+                var functionName = tokens.join(' ') || undefined;
+                var fileName = _indexOf(['eval', '<anonymous>'], locationParts[0]) > -1 ? undefined : locationParts[0];
+
+                return new StackFrame(functionName, undefined, fileName, locationParts[1], locationParts[2], line);
+            }, this);
+        },
+
+        parseFFOrSafari: function ErrorStackParser$$parseFFOrSafari(error) {
+            var filtered = _filter(error.stack.split('\n'), function(line) {
+                return !line.match(SAFARI_NATIVE_CODE_REGEXP);
+            }, this);
+
+            return _map(filtered, function(line) {
+                // Throw away eval information until we implement stacktrace.js/stackframe#8
+                if (line.indexOf(' > eval') > -1) {
+                    line = line.replace(/ line (\d+)(?: > eval line \d+)* > eval\:\d+\:\d+/g, ':$1');
+                }
+
+                if (line.indexOf('@') === -1 && line.indexOf(':') === -1) {
+                    // Safari eval frames only have function names and nothing else
+                    return new StackFrame(line);
+                } else {
+                    var tokens = line.split('@');
+                    var locationParts = this.extractLocation(tokens.pop());
+                    var functionName = tokens.join('@') || undefined;
+                    return new StackFrame(functionName,
+                        undefined,
+                        locationParts[0],
+                        locationParts[1],
+                        locationParts[2],
+                        line);
+                }
+            }, this);
+        },
+
+        parseOpera: function ErrorStackParser$$parseOpera(e) {
+            if (!e.stacktrace || (e.message.indexOf('\n') > -1 &&
+                e.message.split('\n').length > e.stacktrace.split('\n').length)) {
+                return this.parseOpera9(e);
+            } else if (!e.stack) {
+                return this.parseOpera10(e);
+            } else {
+                return this.parseOpera11(e);
+            }
+        },
+
+        parseOpera9: function ErrorStackParser$$parseOpera9(e) {
+            var lineRE = /Line (\d+).*script (?:in )?(\S+)/i;
+            var lines = e.message.split('\n');
+            var result = [];
+
+            for (var i = 2, len = lines.length; i < len; i += 2) {
+                var match = lineRE.exec(lines[i]);
+                if (match) {
+                    result.push(new StackFrame(undefined, undefined, match[2], match[1], undefined, lines[i]));
+                }
+            }
+
+            return result;
+        },
+
+        parseOpera10: function ErrorStackParser$$parseOpera10(e) {
+            var lineRE = /Line (\d+).*script (?:in )?(\S+)(?:: In function (\S+))?$/i;
+            var lines = e.stacktrace.split('\n');
+            var result = [];
+
+            for (var i = 0, len = lines.length; i < len; i += 2) {
+                var match = lineRE.exec(lines[i]);
+                if (match) {
+                    result.push(
+                        new StackFrame(
+                            match[3] || undefined,
+                            undefined,
+                            match[2],
+                            match[1],
+                            undefined,
+                            lines[i]
+                        )
+                    );
+                }
+            }
+
+            return result;
+        },
+
+        // Opera 10.65+ Error.stack very similar to FF/Safari
+        parseOpera11: function ErrorStackParser$$parseOpera11(error) {
+            var filtered = _filter(error.stack.split('\n'), function(line) {
+                return !!line.match(FIREFOX_SAFARI_STACK_REGEXP) && !line.match(/^Error created at/);
+            }, this);
+
+            return _map(filtered, function(line) {
+                var tokens = line.split('@');
+                var locationParts = this.extractLocation(tokens.pop());
+                var functionCall = (tokens.shift() || '');
+                var functionName = functionCall
+                        .replace(/<anonymous function(: (\w+))?>/, '$2')
+                        .replace(/\([^\)]*\)/g, '') || undefined;
+                var argsRaw;
+                if (functionCall.match(/\(([^\)]*)\)/)) {
+                    argsRaw = functionCall.replace(/^[^\(]+\(([^\)]*)\)$/, '$1');
+                }
+                var args = (argsRaw === undefined || argsRaw === '[arguments not available]') ?
+                    undefined : argsRaw.split(',');
+                return new StackFrame(
+                    functionName,
+                    args,
+                    locationParts[0],
+                    locationParts[1],
+                    locationParts[2],
+                    line);
+            }, this);
+        }
+    };
+}));
+
+
+},{"stackframe":176}],61:[function(require,module,exports){
+// Inspired by Google Closure:
+// http://closure-library.googlecode.com/svn/docs/
+// closure_goog_array_array.js.html#goog.array.clear
+
+'use strict';
+
+var value = require('../../object/valid-value');
+
+module.exports = function () {
+	value(this).length = 0;
+	return this;
 };
 
-},{"./lib/debug":59,"./lib/graphlib":60,"./lib/layout":62,"./lib/util":82,"./lib/version":83}],55:[function(require,module,exports){
-"use strict";
+},{"../../object/valid-value":88}],62:[function(require,module,exports){
+'use strict';
 
-var _ = require("./lodash"),
-    greedyFAS = require("./greedy-fas");
+var toPosInt = require('../../number/to-pos-integer')
+  , value    = require('../../object/valid-value')
 
-module.exports = {
-  run: run,
-  undo: undo
+  , indexOf = Array.prototype.indexOf
+  , hasOwnProperty = Object.prototype.hasOwnProperty
+  , abs = Math.abs, floor = Math.floor;
+
+module.exports = function (searchElement/*, fromIndex*/) {
+	var i, l, fromIndex, val;
+	if (searchElement === searchElement) { //jslint: ignore
+		return indexOf.apply(this, arguments);
+	}
+
+	l = toPosInt(value(this).length);
+	fromIndex = arguments[1];
+	if (isNaN(fromIndex)) fromIndex = 0;
+	else if (fromIndex >= 0) fromIndex = floor(fromIndex);
+	else fromIndex = toPosInt(this.length) - floor(abs(fromIndex));
+
+	for (i = fromIndex; i < l; ++i) {
+		if (hasOwnProperty.call(this, i)) {
+			val = this[i];
+			if (val !== val) return i; //jslint: ignore
+		}
+	}
+	return -1;
 };
 
-function run(g) {
-  var fas = (g.graph().acyclicer === "greedy"
-                ? greedyFAS(g, weightFn(g))
-                : dfsFAS(g));
-  _.each(fas, function(e) {
-    var label = g.edge(e);
-    g.removeEdge(e);
-    label.forwardName = e.name;
-    label.reversed = true;
-    g.setEdge(e.w, e.v, label, _.uniqueId("rev"));
+},{"../../number/to-pos-integer":68,"../../object/valid-value":88}],63:[function(require,module,exports){
+'use strict';
+
+var toString = Object.prototype.toString
+
+  , id = toString.call((function () { return arguments; }()));
+
+module.exports = function (x) { return (toString.call(x) === id); };
+
+},{}],64:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./is-implemented')()
+	? Math.sign
+	: require('./shim');
+
+},{"./is-implemented":65,"./shim":66}],65:[function(require,module,exports){
+'use strict';
+
+module.exports = function () {
+	var sign = Math.sign;
+	if (typeof sign !== 'function') return false;
+	return ((sign(10) === 1) && (sign(-20) === -1));
+};
+
+},{}],66:[function(require,module,exports){
+'use strict';
+
+module.exports = function (value) {
+	value = Number(value);
+	if (isNaN(value) || (value === 0)) return value;
+	return (value > 0) ? 1 : -1;
+};
+
+},{}],67:[function(require,module,exports){
+'use strict';
+
+var sign = require('../math/sign')
+
+  , abs = Math.abs, floor = Math.floor;
+
+module.exports = function (value) {
+	if (isNaN(value)) return 0;
+	value = Number(value);
+	if ((value === 0) || !isFinite(value)) return value;
+	return sign(value) * floor(abs(value));
+};
+
+},{"../math/sign":64}],68:[function(require,module,exports){
+'use strict';
+
+var toInteger = require('./to-integer')
+
+  , max = Math.max;
+
+module.exports = function (value) { return max(0, toInteger(value)); };
+
+},{"./to-integer":67}],69:[function(require,module,exports){
+// Internal method, used by iteration functions.
+// Calls a function for each key-value pair found in object
+// Optionally takes compareFn to iterate object in specific order
+
+'use strict';
+
+var callable = require('./valid-callable')
+  , value    = require('./valid-value')
+
+  , bind = Function.prototype.bind, call = Function.prototype.call, keys = Object.keys
+  , propertyIsEnumerable = Object.prototype.propertyIsEnumerable;
+
+module.exports = function (method, defVal) {
+	return function (obj, cb/*, thisArg, compareFn*/) {
+		var list, thisArg = arguments[2], compareFn = arguments[3];
+		obj = Object(value(obj));
+		callable(cb);
+
+		list = keys(obj);
+		if (compareFn) {
+			list.sort((typeof compareFn === 'function') ? bind.call(compareFn, obj) : undefined);
+		}
+		if (typeof method !== 'function') method = list[method];
+		return call.call(method, list, function (key, index) {
+			if (!propertyIsEnumerable.call(obj, key)) return defVal;
+			return call.call(cb, thisArg, obj[key], key, obj, index);
+		});
+	};
+};
+
+},{"./valid-callable":87,"./valid-value":88}],70:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./is-implemented')()
+	? Object.assign
+	: require('./shim');
+
+},{"./is-implemented":71,"./shim":72}],71:[function(require,module,exports){
+'use strict';
+
+module.exports = function () {
+	var assign = Object.assign, obj;
+	if (typeof assign !== 'function') return false;
+	obj = { foo: 'raz' };
+	assign(obj, { bar: 'dwa' }, { trzy: 'trzy' });
+	return (obj.foo + obj.bar + obj.trzy) === 'razdwatrzy';
+};
+
+},{}],72:[function(require,module,exports){
+'use strict';
+
+var keys  = require('../keys')
+  , value = require('../valid-value')
+
+  , max = Math.max;
+
+module.exports = function (dest, src/*, …srcn*/) {
+	var error, i, l = max(arguments.length, 2), assign;
+	dest = Object(value(dest));
+	assign = function (key) {
+		try { dest[key] = src[key]; } catch (e) {
+			if (!error) error = e;
+		}
+	};
+	for (i = 1; i < l; ++i) {
+		src = arguments[i];
+		keys(src).forEach(assign);
+	}
+	if (error !== undefined) throw error;
+	return dest;
+};
+
+},{"../keys":78,"../valid-value":88}],73:[function(require,module,exports){
+'use strict';
+
+var assign = require('./assign')
+  , value  = require('./valid-value');
+
+module.exports = function (obj) {
+	var copy = Object(value(obj));
+	if (copy !== obj) return copy;
+	return assign({}, obj);
+};
+
+},{"./assign":70,"./valid-value":88}],74:[function(require,module,exports){
+// Workaround for http://code.google.com/p/v8/issues/detail?id=2804
+
+'use strict';
+
+var create = Object.create, shim;
+
+if (!require('./set-prototype-of/is-implemented')()) {
+	shim = require('./set-prototype-of/shim');
+}
+
+module.exports = (function () {
+	var nullObject, props, desc;
+	if (!shim) return create;
+	if (shim.level !== 1) return create;
+
+	nullObject = {};
+	props = {};
+	desc = { configurable: false, enumerable: false, writable: true,
+		value: undefined };
+	Object.getOwnPropertyNames(Object.prototype).forEach(function (name) {
+		if (name === '__proto__') {
+			props[name] = { configurable: true, enumerable: false, writable: true,
+				value: undefined };
+			return;
+		}
+		props[name] = desc;
+	});
+	Object.defineProperties(nullObject, props);
+
+	Object.defineProperty(shim, 'nullPolyfill', { configurable: false,
+		enumerable: false, writable: false, value: nullObject });
+
+	return function (prototype, props) {
+		return create((prototype === null) ? nullObject : prototype, props);
+	};
+}());
+
+},{"./set-prototype-of/is-implemented":85,"./set-prototype-of/shim":86}],75:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./_iterate')('forEach');
+
+},{"./_iterate":69}],76:[function(require,module,exports){
+// Deprecated
+
+'use strict';
+
+module.exports = function (obj) { return typeof obj === 'function'; };
+
+},{}],77:[function(require,module,exports){
+'use strict';
+
+var map = { function: true, object: true };
+
+module.exports = function (x) {
+	return ((x != null) && map[typeof x]) || false;
+};
+
+},{}],78:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./is-implemented')()
+	? Object.keys
+	: require('./shim');
+
+},{"./is-implemented":79,"./shim":80}],79:[function(require,module,exports){
+'use strict';
+
+module.exports = function () {
+	try {
+		Object.keys('primitive');
+		return true;
+	} catch (e) { return false; }
+};
+
+},{}],80:[function(require,module,exports){
+'use strict';
+
+var keys = Object.keys;
+
+module.exports = function (object) {
+	return keys(object == null ? object : Object(object));
+};
+
+},{}],81:[function(require,module,exports){
+'use strict';
+
+var callable = require('./valid-callable')
+  , forEach  = require('./for-each')
+
+  , call = Function.prototype.call;
+
+module.exports = function (obj, cb/*, thisArg*/) {
+	var o = {}, thisArg = arguments[2];
+	callable(cb);
+	forEach(obj, function (value, key, obj, index) {
+		o[key] = call.call(cb, thisArg, value, key, obj, index);
+	});
+	return o;
+};
+
+},{"./for-each":75,"./valid-callable":87}],82:[function(require,module,exports){
+'use strict';
+
+var forEach = Array.prototype.forEach, create = Object.create;
+
+var process = function (src, obj) {
+	var key;
+	for (key in src) obj[key] = src[key];
+};
+
+module.exports = function (options/*, …options*/) {
+	var result = create(null);
+	forEach.call(arguments, function (options) {
+		if (options == null) return;
+		process(Object(options), result);
+	});
+	return result;
+};
+
+},{}],83:[function(require,module,exports){
+'use strict';
+
+var forEach = Array.prototype.forEach, create = Object.create;
+
+module.exports = function (arg/*, …args*/) {
+	var set = create(null);
+	forEach.call(arguments, function (name) { set[name] = true; });
+	return set;
+};
+
+},{}],84:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./is-implemented')()
+	? Object.setPrototypeOf
+	: require('./shim');
+
+},{"./is-implemented":85,"./shim":86}],85:[function(require,module,exports){
+'use strict';
+
+var create = Object.create, getPrototypeOf = Object.getPrototypeOf
+  , x = {};
+
+module.exports = function (/*customCreate*/) {
+	var setPrototypeOf = Object.setPrototypeOf
+	  , customCreate = arguments[0] || create;
+	if (typeof setPrototypeOf !== 'function') return false;
+	return getPrototypeOf(setPrototypeOf(customCreate(null), x)) === x;
+};
+
+},{}],86:[function(require,module,exports){
+// Big thanks to @WebReflection for sorting this out
+// https://gist.github.com/WebReflection/5593554
+
+'use strict';
+
+var isObject      = require('../is-object')
+  , value         = require('../valid-value')
+
+  , isPrototypeOf = Object.prototype.isPrototypeOf
+  , defineProperty = Object.defineProperty
+  , nullDesc = { configurable: true, enumerable: false, writable: true,
+		value: undefined }
+  , validate;
+
+validate = function (obj, prototype) {
+	value(obj);
+	if ((prototype === null) || isObject(prototype)) return obj;
+	throw new TypeError('Prototype must be null or an object');
+};
+
+module.exports = (function (status) {
+	var fn, set;
+	if (!status) return null;
+	if (status.level === 2) {
+		if (status.set) {
+			set = status.set;
+			fn = function (obj, prototype) {
+				set.call(validate(obj, prototype), prototype);
+				return obj;
+			};
+		} else {
+			fn = function (obj, prototype) {
+				validate(obj, prototype).__proto__ = prototype;
+				return obj;
+			};
+		}
+	} else {
+		fn = function self(obj, prototype) {
+			var isNullBase;
+			validate(obj, prototype);
+			isNullBase = isPrototypeOf.call(self.nullPolyfill, obj);
+			if (isNullBase) delete self.nullPolyfill.__proto__;
+			if (prototype === null) prototype = self.nullPolyfill;
+			obj.__proto__ = prototype;
+			if (isNullBase) defineProperty(self.nullPolyfill, '__proto__', nullDesc);
+			return obj;
+		};
+	}
+	return Object.defineProperty(fn, 'level', { configurable: false,
+		enumerable: false, writable: false, value: status.level });
+}((function () {
+	var x = Object.create(null), y = {}, set
+	  , desc = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__');
+
+	if (desc) {
+		try {
+			set = desc.set; // Opera crashes at this point
+			set.call(x, y);
+		} catch (ignore) { }
+		if (Object.getPrototypeOf(x) === y) return { set: set, level: 2 };
+	}
+
+	x.__proto__ = y;
+	if (Object.getPrototypeOf(x) === y) return { level: 2 };
+
+	x = {};
+	x.__proto__ = y;
+	if (Object.getPrototypeOf(x) === y) return { level: 1 };
+
+	return false;
+}())));
+
+require('../create');
+
+},{"../create":74,"../is-object":77,"../valid-value":88}],87:[function(require,module,exports){
+'use strict';
+
+module.exports = function (fn) {
+	if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
+	return fn;
+};
+
+},{}],88:[function(require,module,exports){
+'use strict';
+
+module.exports = function (value) {
+	if (value == null) throw new TypeError("Cannot use null or undefined");
+	return value;
+};
+
+},{}],89:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./is-implemented')()
+	? String.prototype.contains
+	: require('./shim');
+
+},{"./is-implemented":90,"./shim":91}],90:[function(require,module,exports){
+'use strict';
+
+var str = 'razdwatrzy';
+
+module.exports = function () {
+	if (typeof str.contains !== 'function') return false;
+	return ((str.contains('dwa') === true) && (str.contains('foo') === false));
+};
+
+},{}],91:[function(require,module,exports){
+'use strict';
+
+var indexOf = String.prototype.indexOf;
+
+module.exports = function (searchString/*, position*/) {
+	return indexOf.call(this, searchString, arguments[1]) > -1;
+};
+
+},{}],92:[function(require,module,exports){
+'use strict';
+
+var toString = Object.prototype.toString
+
+  , id = toString.call('');
+
+module.exports = function (x) {
+	return (typeof x === 'string') || (x && (typeof x === 'object') &&
+		((x instanceof String) || (toString.call(x) === id))) || false;
+};
+
+},{}],93:[function(require,module,exports){
+'use strict';
+
+var setPrototypeOf = require('es5-ext/object/set-prototype-of')
+  , contains       = require('es5-ext/string/#/contains')
+  , d              = require('d')
+  , Iterator       = require('./')
+
+  , defineProperty = Object.defineProperty
+  , ArrayIterator;
+
+ArrayIterator = module.exports = function (arr, kind) {
+	if (!(this instanceof ArrayIterator)) return new ArrayIterator(arr, kind);
+	Iterator.call(this, arr);
+	if (!kind) kind = 'value';
+	else if (contains.call(kind, 'key+value')) kind = 'key+value';
+	else if (contains.call(kind, 'key')) kind = 'key';
+	else kind = 'value';
+	defineProperty(this, '__kind__', d('', kind));
+};
+if (setPrototypeOf) setPrototypeOf(ArrayIterator, Iterator);
+
+ArrayIterator.prototype = Object.create(Iterator.prototype, {
+	constructor: d(ArrayIterator),
+	_resolve: d(function (i) {
+		if (this.__kind__ === 'value') return this.__list__[i];
+		if (this.__kind__ === 'key+value') return [i, this.__list__[i]];
+		return i;
+	}),
+	toString: d(function () { return '[object Array Iterator]'; })
+});
+
+},{"./":96,"d":59,"es5-ext/object/set-prototype-of":84,"es5-ext/string/#/contains":89}],94:[function(require,module,exports){
+'use strict';
+
+var isArguments = require('es5-ext/function/is-arguments')
+  , callable    = require('es5-ext/object/valid-callable')
+  , isString    = require('es5-ext/string/is-string')
+  , get         = require('./get')
+
+  , isArray = Array.isArray, call = Function.prototype.call
+  , some = Array.prototype.some;
+
+module.exports = function (iterable, cb/*, thisArg*/) {
+	var mode, thisArg = arguments[2], result, doBreak, broken, i, l, char, code;
+	if (isArray(iterable) || isArguments(iterable)) mode = 'array';
+	else if (isString(iterable)) mode = 'string';
+	else iterable = get(iterable);
+
+	callable(cb);
+	doBreak = function () { broken = true; };
+	if (mode === 'array') {
+		some.call(iterable, function (value) {
+			call.call(cb, thisArg, value, doBreak);
+			if (broken) return true;
+		});
+		return;
+	}
+	if (mode === 'string') {
+		l = iterable.length;
+		for (i = 0; i < l; ++i) {
+			char = iterable[i];
+			if ((i + 1) < l) {
+				code = char.charCodeAt(0);
+				if ((code >= 0xD800) && (code <= 0xDBFF)) char += iterable[++i];
+			}
+			call.call(cb, thisArg, char, doBreak);
+			if (broken) break;
+		}
+		return;
+	}
+	result = iterable.next();
+
+	while (!result.done) {
+		call.call(cb, thisArg, result.value, doBreak);
+		if (broken) return;
+		result = iterable.next();
+	}
+};
+
+},{"./get":95,"es5-ext/function/is-arguments":63,"es5-ext/object/valid-callable":87,"es5-ext/string/is-string":92}],95:[function(require,module,exports){
+'use strict';
+
+var isArguments    = require('es5-ext/function/is-arguments')
+  , isString       = require('es5-ext/string/is-string')
+  , ArrayIterator  = require('./array')
+  , StringIterator = require('./string')
+  , iterable       = require('./valid-iterable')
+  , iteratorSymbol = require('es6-symbol').iterator;
+
+module.exports = function (obj) {
+	if (typeof iterable(obj)[iteratorSymbol] === 'function') return obj[iteratorSymbol]();
+	if (isArguments(obj)) return new ArrayIterator(obj);
+	if (isString(obj)) return new StringIterator(obj);
+	return new ArrayIterator(obj);
+};
+
+},{"./array":93,"./string":98,"./valid-iterable":99,"es5-ext/function/is-arguments":63,"es5-ext/string/is-string":92,"es6-symbol":106}],96:[function(require,module,exports){
+'use strict';
+
+var clear    = require('es5-ext/array/#/clear')
+  , assign   = require('es5-ext/object/assign')
+  , callable = require('es5-ext/object/valid-callable')
+  , value    = require('es5-ext/object/valid-value')
+  , d        = require('d')
+  , autoBind = require('d/auto-bind')
+  , Symbol   = require('es6-symbol')
+
+  , defineProperty = Object.defineProperty
+  , defineProperties = Object.defineProperties
+  , Iterator;
+
+module.exports = Iterator = function (list, context) {
+	if (!(this instanceof Iterator)) return new Iterator(list, context);
+	defineProperties(this, {
+		__list__: d('w', value(list)),
+		__context__: d('w', context),
+		__nextIndex__: d('w', 0)
+	});
+	if (!context) return;
+	callable(context.on);
+	context.on('_add', this._onAdd);
+	context.on('_delete', this._onDelete);
+	context.on('_clear', this._onClear);
+};
+
+defineProperties(Iterator.prototype, assign({
+	constructor: d(Iterator),
+	_next: d(function () {
+		var i;
+		if (!this.__list__) return;
+		if (this.__redo__) {
+			i = this.__redo__.shift();
+			if (i !== undefined) return i;
+		}
+		if (this.__nextIndex__ < this.__list__.length) return this.__nextIndex__++;
+		this._unBind();
+	}),
+	next: d(function () { return this._createResult(this._next()); }),
+	_createResult: d(function (i) {
+		if (i === undefined) return { done: true, value: undefined };
+		return { done: false, value: this._resolve(i) };
+	}),
+	_resolve: d(function (i) { return this.__list__[i]; }),
+	_unBind: d(function () {
+		this.__list__ = null;
+		delete this.__redo__;
+		if (!this.__context__) return;
+		this.__context__.off('_add', this._onAdd);
+		this.__context__.off('_delete', this._onDelete);
+		this.__context__.off('_clear', this._onClear);
+		this.__context__ = null;
+	}),
+	toString: d(function () { return '[object Iterator]'; })
+}, autoBind({
+	_onAdd: d(function (index) {
+		if (index >= this.__nextIndex__) return;
+		++this.__nextIndex__;
+		if (!this.__redo__) {
+			defineProperty(this, '__redo__', d('c', [index]));
+			return;
+		}
+		this.__redo__.forEach(function (redo, i) {
+			if (redo >= index) this.__redo__[i] = ++redo;
+		}, this);
+		this.__redo__.push(index);
+	}),
+	_onDelete: d(function (index) {
+		var i;
+		if (index >= this.__nextIndex__) return;
+		--this.__nextIndex__;
+		if (!this.__redo__) return;
+		i = this.__redo__.indexOf(index);
+		if (i !== -1) this.__redo__.splice(i, 1);
+		this.__redo__.forEach(function (redo, i) {
+			if (redo > index) this.__redo__[i] = --redo;
+		}, this);
+	}),
+	_onClear: d(function () {
+		if (this.__redo__) clear.call(this.__redo__);
+		this.__nextIndex__ = 0;
+	})
+})));
+
+defineProperty(Iterator.prototype, Symbol.iterator, d(function () {
+	return this;
+}));
+defineProperty(Iterator.prototype, Symbol.toStringTag, d('', 'Iterator'));
+
+},{"d":59,"d/auto-bind":58,"es5-ext/array/#/clear":61,"es5-ext/object/assign":70,"es5-ext/object/valid-callable":87,"es5-ext/object/valid-value":88,"es6-symbol":106}],97:[function(require,module,exports){
+'use strict';
+
+var isArguments    = require('es5-ext/function/is-arguments')
+  , isString       = require('es5-ext/string/is-string')
+  , iteratorSymbol = require('es6-symbol').iterator
+
+  , isArray = Array.isArray;
+
+module.exports = function (value) {
+	if (value == null) return false;
+	if (isArray(value)) return true;
+	if (isString(value)) return true;
+	if (isArguments(value)) return true;
+	return (typeof value[iteratorSymbol] === 'function');
+};
+
+},{"es5-ext/function/is-arguments":63,"es5-ext/string/is-string":92,"es6-symbol":106}],98:[function(require,module,exports){
+// Thanks @mathiasbynens
+// http://mathiasbynens.be/notes/javascript-unicode#iterating-over-symbols
+
+'use strict';
+
+var setPrototypeOf = require('es5-ext/object/set-prototype-of')
+  , d              = require('d')
+  , Iterator       = require('./')
+
+  , defineProperty = Object.defineProperty
+  , StringIterator;
+
+StringIterator = module.exports = function (str) {
+	if (!(this instanceof StringIterator)) return new StringIterator(str);
+	str = String(str);
+	Iterator.call(this, str);
+	defineProperty(this, '__length__', d('', str.length));
+
+};
+if (setPrototypeOf) setPrototypeOf(StringIterator, Iterator);
+
+StringIterator.prototype = Object.create(Iterator.prototype, {
+	constructor: d(StringIterator),
+	_next: d(function () {
+		if (!this.__list__) return;
+		if (this.__nextIndex__ < this.__length__) return this.__nextIndex__++;
+		this._unBind();
+	}),
+	_resolve: d(function (i) {
+		var char = this.__list__[i], code;
+		if (this.__nextIndex__ === this.__length__) return char;
+		code = char.charCodeAt(0);
+		if ((code >= 0xD800) && (code <= 0xDBFF)) return char + this.__list__[this.__nextIndex__++];
+		return char;
+	}),
+	toString: d(function () { return '[object String Iterator]'; })
+});
+
+},{"./":96,"d":59,"es5-ext/object/set-prototype-of":84}],99:[function(require,module,exports){
+'use strict';
+
+var isIterable = require('./is-iterable');
+
+module.exports = function (value) {
+	if (!isIterable(value)) throw new TypeError(value + " is not iterable");
+	return value;
+};
+
+},{"./is-iterable":97}],100:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./is-implemented')() ? Map : require('./polyfill');
+
+},{"./is-implemented":101,"./polyfill":105}],101:[function(require,module,exports){
+'use strict';
+
+module.exports = function () {
+	var map, iterator, result;
+	if (typeof Map !== 'function') return false;
+	try {
+		// WebKit doesn't support arguments and crashes
+		map = new Map([['raz', 'one'], ['dwa', 'two'], ['trzy', 'three']]);
+	} catch (e) {
+		return false;
+	}
+	if (String(map) !== '[object Map]') return false;
+	if (map.size !== 3) return false;
+	if (typeof map.clear !== 'function') return false;
+	if (typeof map.delete !== 'function') return false;
+	if (typeof map.entries !== 'function') return false;
+	if (typeof map.forEach !== 'function') return false;
+	if (typeof map.get !== 'function') return false;
+	if (typeof map.has !== 'function') return false;
+	if (typeof map.keys !== 'function') return false;
+	if (typeof map.set !== 'function') return false;
+	if (typeof map.values !== 'function') return false;
+
+	iterator = map.entries();
+	result = iterator.next();
+	if (result.done !== false) return false;
+	if (!result.value) return false;
+	if (result.value[0] !== 'raz') return false;
+	if (result.value[1] !== 'one') return false;
+
+	return true;
+};
+
+},{}],102:[function(require,module,exports){
+// Exports true if environment provides native `Map` implementation,
+// whatever that is.
+
+'use strict';
+
+module.exports = (function () {
+	if (typeof Map === 'undefined') return false;
+	return (Object.prototype.toString.call(new Map()) === '[object Map]');
+}());
+
+},{}],103:[function(require,module,exports){
+'use strict';
+
+module.exports = require('es5-ext/object/primitive-set')('key',
+	'value', 'key+value');
+
+},{"es5-ext/object/primitive-set":83}],104:[function(require,module,exports){
+'use strict';
+
+var setPrototypeOf    = require('es5-ext/object/set-prototype-of')
+  , d                 = require('d')
+  , Iterator          = require('es6-iterator')
+  , toStringTagSymbol = require('es6-symbol').toStringTag
+  , kinds             = require('./iterator-kinds')
+
+  , defineProperties = Object.defineProperties
+  , unBind = Iterator.prototype._unBind
+  , MapIterator;
+
+MapIterator = module.exports = function (map, kind) {
+	if (!(this instanceof MapIterator)) return new MapIterator(map, kind);
+	Iterator.call(this, map.__mapKeysData__, map);
+	if (!kind || !kinds[kind]) kind = 'key+value';
+	defineProperties(this, {
+		__kind__: d('', kind),
+		__values__: d('w', map.__mapValuesData__)
+	});
+};
+if (setPrototypeOf) setPrototypeOf(MapIterator, Iterator);
+
+MapIterator.prototype = Object.create(Iterator.prototype, {
+	constructor: d(MapIterator),
+	_resolve: d(function (i) {
+		if (this.__kind__ === 'value') return this.__values__[i];
+		if (this.__kind__ === 'key') return this.__list__[i];
+		return [this.__list__[i], this.__values__[i]];
+	}),
+	_unBind: d(function () {
+		this.__values__ = null;
+		unBind.call(this);
+	}),
+	toString: d(function () { return '[object Map Iterator]'; })
+});
+Object.defineProperty(MapIterator.prototype, toStringTagSymbol,
+	d('c', 'Map Iterator'));
+
+},{"./iterator-kinds":103,"d":59,"es5-ext/object/set-prototype-of":84,"es6-iterator":96,"es6-symbol":106}],105:[function(require,module,exports){
+'use strict';
+
+var clear          = require('es5-ext/array/#/clear')
+  , eIndexOf       = require('es5-ext/array/#/e-index-of')
+  , setPrototypeOf = require('es5-ext/object/set-prototype-of')
+  , callable       = require('es5-ext/object/valid-callable')
+  , validValue     = require('es5-ext/object/valid-value')
+  , d              = require('d')
+  , ee             = require('event-emitter')
+  , Symbol         = require('es6-symbol')
+  , iterator       = require('es6-iterator/valid-iterable')
+  , forOf          = require('es6-iterator/for-of')
+  , Iterator       = require('./lib/iterator')
+  , isNative       = require('./is-native-implemented')
+
+  , call = Function.prototype.call
+  , defineProperties = Object.defineProperties, getPrototypeOf = Object.getPrototypeOf
+  , MapPoly;
+
+module.exports = MapPoly = function (/*iterable*/) {
+	var iterable = arguments[0], keys, values, self;
+	if (!(this instanceof MapPoly)) throw new TypeError('Constructor requires \'new\'');
+	if (isNative && setPrototypeOf && (Map !== MapPoly)) {
+		self = setPrototypeOf(new Map(), getPrototypeOf(this));
+	} else {
+		self = this;
+	}
+	if (iterable != null) iterator(iterable);
+	defineProperties(self, {
+		__mapKeysData__: d('c', keys = []),
+		__mapValuesData__: d('c', values = [])
+	});
+	if (!iterable) return self;
+	forOf(iterable, function (value) {
+		var key = validValue(value)[0];
+		value = value[1];
+		if (eIndexOf.call(keys, key) !== -1) return;
+		keys.push(key);
+		values.push(value);
+	}, self);
+	return self;
+};
+
+if (isNative) {
+	if (setPrototypeOf) setPrototypeOf(MapPoly, Map);
+	MapPoly.prototype = Object.create(Map.prototype, {
+		constructor: d(MapPoly)
+	});
+}
+
+ee(defineProperties(MapPoly.prototype, {
+	clear: d(function () {
+		if (!this.__mapKeysData__.length) return;
+		clear.call(this.__mapKeysData__);
+		clear.call(this.__mapValuesData__);
+		this.emit('_clear');
+	}),
+	delete: d(function (key) {
+		var index = eIndexOf.call(this.__mapKeysData__, key);
+		if (index === -1) return false;
+		this.__mapKeysData__.splice(index, 1);
+		this.__mapValuesData__.splice(index, 1);
+		this.emit('_delete', index, key);
+		return true;
+	}),
+	entries: d(function () { return new Iterator(this, 'key+value'); }),
+	forEach: d(function (cb/*, thisArg*/) {
+		var thisArg = arguments[1], iterator, result;
+		callable(cb);
+		iterator = this.entries();
+		result = iterator._next();
+		while (result !== undefined) {
+			call.call(cb, thisArg, this.__mapValuesData__[result],
+				this.__mapKeysData__[result], this);
+			result = iterator._next();
+		}
+	}),
+	get: d(function (key) {
+		var index = eIndexOf.call(this.__mapKeysData__, key);
+		if (index === -1) return;
+		return this.__mapValuesData__[index];
+	}),
+	has: d(function (key) {
+		return (eIndexOf.call(this.__mapKeysData__, key) !== -1);
+	}),
+	keys: d(function () { return new Iterator(this, 'key'); }),
+	set: d(function (key, value) {
+		var index = eIndexOf.call(this.__mapKeysData__, key), emit;
+		if (index === -1) {
+			index = this.__mapKeysData__.push(key) - 1;
+			emit = true;
+		}
+		this.__mapValuesData__[index] = value;
+		if (emit) this.emit('_add', index, key);
+		return this;
+	}),
+	size: d.gs(function () { return this.__mapKeysData__.length; }),
+	values: d(function () { return new Iterator(this, 'value'); }),
+	toString: d(function () { return '[object Map]'; })
+}));
+Object.defineProperty(MapPoly.prototype, Symbol.iterator, d(function () {
+	return this.entries();
+}));
+Object.defineProperty(MapPoly.prototype, Symbol.toStringTag, d('c', 'Map'));
+
+},{"./is-native-implemented":102,"./lib/iterator":104,"d":59,"es5-ext/array/#/clear":61,"es5-ext/array/#/e-index-of":62,"es5-ext/object/set-prototype-of":84,"es5-ext/object/valid-callable":87,"es5-ext/object/valid-value":88,"es6-iterator/for-of":94,"es6-iterator/valid-iterable":99,"es6-symbol":106,"event-emitter":111}],106:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./is-implemented')() ? Symbol : require('./polyfill');
+
+},{"./is-implemented":107,"./polyfill":109}],107:[function(require,module,exports){
+'use strict';
+
+var validTypes = { object: true, symbol: true };
+
+module.exports = function () {
+	var symbol;
+	if (typeof Symbol !== 'function') return false;
+	symbol = Symbol('test symbol');
+	try { String(symbol); } catch (e) { return false; }
+
+	// Return 'true' also for polyfills
+	if (!validTypes[typeof Symbol.iterator]) return false;
+	if (!validTypes[typeof Symbol.toPrimitive]) return false;
+	if (!validTypes[typeof Symbol.toStringTag]) return false;
+
+	return true;
+};
+
+},{}],108:[function(require,module,exports){
+'use strict';
+
+module.exports = function (x) {
+	if (!x) return false;
+	if (typeof x === 'symbol') return true;
+	if (!x.constructor) return false;
+	if (x.constructor.name !== 'Symbol') return false;
+	return (x[x.constructor.toStringTag] === 'Symbol');
+};
+
+},{}],109:[function(require,module,exports){
+// ES2015 Symbol polyfill for environments that do not support it (or partially support it)
+
+'use strict';
+
+var d              = require('d')
+  , validateSymbol = require('./validate-symbol')
+
+  , create = Object.create, defineProperties = Object.defineProperties
+  , defineProperty = Object.defineProperty, objPrototype = Object.prototype
+  , NativeSymbol, SymbolPolyfill, HiddenSymbol, globalSymbols = create(null)
+  , isNativeSafe;
+
+if (typeof Symbol === 'function') {
+	NativeSymbol = Symbol;
+	try {
+		String(NativeSymbol());
+		isNativeSafe = true;
+	} catch (ignore) {}
+}
+
+var generateName = (function () {
+	var created = create(null);
+	return function (desc) {
+		var postfix = 0, name, ie11BugWorkaround;
+		while (created[desc + (postfix || '')]) ++postfix;
+		desc += (postfix || '');
+		created[desc] = true;
+		name = '@@' + desc;
+		defineProperty(objPrototype, name, d.gs(null, function (value) {
+			// For IE11 issue see:
+			// https://connect.microsoft.com/IE/feedbackdetail/view/1928508/
+			//    ie11-broken-getters-on-dom-objects
+			// https://github.com/medikoo/es6-symbol/issues/12
+			if (ie11BugWorkaround) return;
+			ie11BugWorkaround = true;
+			defineProperty(this, name, d(value));
+			ie11BugWorkaround = false;
+		}));
+		return name;
+	};
+}());
+
+// Internal constructor (not one exposed) for creating Symbol instances.
+// This one is used to ensure that `someSymbol instanceof Symbol` always return false
+HiddenSymbol = function Symbol(description) {
+	if (this instanceof HiddenSymbol) throw new TypeError('TypeError: Symbol is not a constructor');
+	return SymbolPolyfill(description);
+};
+
+// Exposed `Symbol` constructor
+// (returns instances of HiddenSymbol)
+module.exports = SymbolPolyfill = function Symbol(description) {
+	var symbol;
+	if (this instanceof Symbol) throw new TypeError('TypeError: Symbol is not a constructor');
+	if (isNativeSafe) return NativeSymbol(description);
+	symbol = create(HiddenSymbol.prototype);
+	description = (description === undefined ? '' : String(description));
+	return defineProperties(symbol, {
+		__description__: d('', description),
+		__name__: d('', generateName(description))
+	});
+};
+defineProperties(SymbolPolyfill, {
+	for: d(function (key) {
+		if (globalSymbols[key]) return globalSymbols[key];
+		return (globalSymbols[key] = SymbolPolyfill(String(key)));
+	}),
+	keyFor: d(function (s) {
+		var key;
+		validateSymbol(s);
+		for (key in globalSymbols) if (globalSymbols[key] === s) return key;
+	}),
+
+	// If there's native implementation of given symbol, let's fallback to it
+	// to ensure proper interoperability with other native functions e.g. Array.from
+	hasInstance: d('', (NativeSymbol && NativeSymbol.hasInstance) || SymbolPolyfill('hasInstance')),
+	isConcatSpreadable: d('', (NativeSymbol && NativeSymbol.isConcatSpreadable) ||
+		SymbolPolyfill('isConcatSpreadable')),
+	iterator: d('', (NativeSymbol && NativeSymbol.iterator) || SymbolPolyfill('iterator')),
+	match: d('', (NativeSymbol && NativeSymbol.match) || SymbolPolyfill('match')),
+	replace: d('', (NativeSymbol && NativeSymbol.replace) || SymbolPolyfill('replace')),
+	search: d('', (NativeSymbol && NativeSymbol.search) || SymbolPolyfill('search')),
+	species: d('', (NativeSymbol && NativeSymbol.species) || SymbolPolyfill('species')),
+	split: d('', (NativeSymbol && NativeSymbol.split) || SymbolPolyfill('split')),
+	toPrimitive: d('', (NativeSymbol && NativeSymbol.toPrimitive) || SymbolPolyfill('toPrimitive')),
+	toStringTag: d('', (NativeSymbol && NativeSymbol.toStringTag) || SymbolPolyfill('toStringTag')),
+	unscopables: d('', (NativeSymbol && NativeSymbol.unscopables) || SymbolPolyfill('unscopables'))
+});
+
+// Internal tweaks for real symbol producer
+defineProperties(HiddenSymbol.prototype, {
+	constructor: d(SymbolPolyfill),
+	toString: d('', function () { return this.__name__; })
+});
+
+// Proper implementation of methods exposed on Symbol.prototype
+// They won't be accessible on produced symbol instances as they derive from HiddenSymbol.prototype
+defineProperties(SymbolPolyfill.prototype, {
+	toString: d(function () { return 'Symbol (' + validateSymbol(this).__description__ + ')'; }),
+	valueOf: d(function () { return validateSymbol(this); })
+});
+defineProperty(SymbolPolyfill.prototype, SymbolPolyfill.toPrimitive, d('', function () {
+	var symbol = validateSymbol(this);
+	if (typeof symbol === 'symbol') return symbol;
+	return symbol.toString();
+}));
+defineProperty(SymbolPolyfill.prototype, SymbolPolyfill.toStringTag, d('c', 'Symbol'));
+
+// Proper implementaton of toPrimitive and toStringTag for returned symbol instances
+defineProperty(HiddenSymbol.prototype, SymbolPolyfill.toStringTag,
+	d('c', SymbolPolyfill.prototype[SymbolPolyfill.toStringTag]));
+
+// Note: It's important to define `toPrimitive` as last one, as some implementations
+// implement `toPrimitive` natively without implementing `toStringTag` (or other specified symbols)
+// And that may invoke error in definition flow:
+// See: https://github.com/medikoo/es6-symbol/issues/13#issuecomment-164146149
+defineProperty(HiddenSymbol.prototype, SymbolPolyfill.toPrimitive,
+	d('c', SymbolPolyfill.prototype[SymbolPolyfill.toPrimitive]));
+
+},{"./validate-symbol":110,"d":59}],110:[function(require,module,exports){
+'use strict';
+
+var isSymbol = require('./is-symbol');
+
+module.exports = function (value) {
+	if (!isSymbol(value)) throw new TypeError(value + " is not a symbol");
+	return value;
+};
+
+},{"./is-symbol":108}],111:[function(require,module,exports){
+'use strict';
+
+var d        = require('d')
+  , callable = require('es5-ext/object/valid-callable')
+
+  , apply = Function.prototype.apply, call = Function.prototype.call
+  , create = Object.create, defineProperty = Object.defineProperty
+  , defineProperties = Object.defineProperties
+  , hasOwnProperty = Object.prototype.hasOwnProperty
+  , descriptor = { configurable: true, enumerable: false, writable: true }
+
+  , on, once, off, emit, methods, descriptors, base;
+
+on = function (type, listener) {
+	var data;
+
+	callable(listener);
+
+	if (!hasOwnProperty.call(this, '__ee__')) {
+		data = descriptor.value = create(null);
+		defineProperty(this, '__ee__', descriptor);
+		descriptor.value = null;
+	} else {
+		data = this.__ee__;
+	}
+	if (!data[type]) data[type] = listener;
+	else if (typeof data[type] === 'object') data[type].push(listener);
+	else data[type] = [data[type], listener];
+
+	return this;
+};
+
+once = function (type, listener) {
+	var once, self;
+
+	callable(listener);
+	self = this;
+	on.call(this, type, once = function () {
+		off.call(self, type, once);
+		apply.call(listener, this, arguments);
+	});
+
+	once.__eeOnceListener__ = listener;
+	return this;
+};
+
+off = function (type, listener) {
+	var data, listeners, candidate, i;
+
+	callable(listener);
+
+	if (!hasOwnProperty.call(this, '__ee__')) return this;
+	data = this.__ee__;
+	if (!data[type]) return this;
+	listeners = data[type];
+
+	if (typeof listeners === 'object') {
+		for (i = 0; (candidate = listeners[i]); ++i) {
+			if ((candidate === listener) ||
+					(candidate.__eeOnceListener__ === listener)) {
+				if (listeners.length === 2) data[type] = listeners[i ? 0 : 1];
+				else listeners.splice(i, 1);
+			}
+		}
+	} else {
+		if ((listeners === listener) ||
+				(listeners.__eeOnceListener__ === listener)) {
+			delete data[type];
+		}
+	}
+
+	return this;
+};
+
+emit = function (type) {
+	var i, l, listener, listeners, args;
+
+	if (!hasOwnProperty.call(this, '__ee__')) return;
+	listeners = this.__ee__[type];
+	if (!listeners) return;
+
+	if (typeof listeners === 'object') {
+		l = arguments.length;
+		args = new Array(l - 1);
+		for (i = 1; i < l; ++i) args[i - 1] = arguments[i];
+
+		listeners = listeners.slice();
+		for (i = 0; (listener = listeners[i]); ++i) {
+			apply.call(listener, this, args);
+		}
+	} else {
+		switch (arguments.length) {
+		case 1:
+			call.call(listeners, this);
+			break;
+		case 2:
+			call.call(listeners, this, arguments[1]);
+			break;
+		case 3:
+			call.call(listeners, this, arguments[1], arguments[2]);
+			break;
+		default:
+			l = arguments.length;
+			args = new Array(l - 1);
+			for (i = 1; i < l; ++i) {
+				args[i - 1] = arguments[i];
+			}
+			apply.call(listeners, this, args);
+		}
+	}
+};
+
+methods = {
+	on: on,
+	once: once,
+	off: off,
+	emit: emit
+};
+
+descriptors = {
+	on: d(on),
+	once: d(once),
+	off: d(off),
+	emit: d(emit)
+};
+
+base = defineProperties({}, descriptors);
+
+module.exports = exports = function (o) {
+	return (o == null) ? create(base) : defineProperties(Object(o), descriptors);
+};
+exports.methods = methods;
+
+},{"d":59,"es5-ext/object/valid-callable":87}],112:[function(require,module,exports){
+/**
+ * Copyright (c) 2014, Chris Pettitt
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright notice, this
+ * list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * 3. Neither the name of the copyright holder nor the names of its contributors
+ * may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+ * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+var lib = require("./lib");
+
+module.exports = {
+  Graph: lib.Graph,
+  json: require("./lib/json"),
+  alg: require("./lib/alg"),
+  version: lib.version
+};
+
+},{"./lib":128,"./lib/alg":119,"./lib/json":129}],113:[function(require,module,exports){
+var _ = require("../lodash");
+
+module.exports = components;
+
+function components(g) {
+  var visited = {},
+      cmpts = [],
+      cmpt;
+
+  function dfs(v) {
+    if (_.has(visited, v)) return;
+    visited[v] = true;
+    cmpt.push(v);
+    _.each(g.successors(v), dfs);
+    _.each(g.predecessors(v), dfs);
+  }
+
+  _.each(g.nodes(), function(v) {
+    cmpt = [];
+    dfs(v);
+    if (cmpt.length) {
+      cmpts.push(cmpt);
+    }
   });
 
-  function weightFn(g) {
-    return function(e) {
-      return g.edge(e).weight;
-    };
+  return cmpts;
+}
+
+},{"../lodash":130}],114:[function(require,module,exports){
+var _ = require("../lodash");
+
+module.exports = dfs;
+
+/*
+ * A helper that preforms a pre- or post-order traversal on the input graph
+ * and returns the nodes in the order they were visited. This algorithm treats
+ * the input as undirected.
+ *
+ * Order must be one of "pre" or "post".
+ */
+function dfs(g, vs, order) {
+  if (!_.isArray(vs)) {
+    vs = [vs];
+  }
+
+  var acc = [],
+      visited = {};
+  _.each(vs, function(v) {
+    if (!g.hasNode(v)) {
+      throw new Error("Graph does not have node: " + v);
+    }
+
+    doDfs(g, v, order === "post", visited, acc);
+  });
+  return acc;
+}
+
+function doDfs(g, v, postorder, visited, acc) {
+  if (!_.has(visited, v)) {
+    visited[v] = true;
+
+    if (!postorder) { acc.push(v); }
+    _.each(g.neighbors(v), function(w) {
+      doDfs(g, w, postorder, visited, acc);
+    });
+    if (postorder) { acc.push(v); }
   }
 }
 
-function dfsFAS(g) {
-  var fas = [],
-      stack = {},
-      visited = {};
+},{"../lodash":130}],115:[function(require,module,exports){
+var dijkstra = require("./dijkstra"),
+    _ = require("../lodash");
 
-  function dfs(v) {
-    if (_.has(visited, v)) {
-      return;
+module.exports = dijkstraAll;
+
+function dijkstraAll(g, weightFunc, edgeFunc) {
+  return _.transform(g.nodes(), function(acc, v) {
+    acc[v] = dijkstra(g, v, weightFunc, edgeFunc);
+  }, {});
+}
+
+},{"../lodash":130,"./dijkstra":116}],116:[function(require,module,exports){
+var _ = require("../lodash"),
+    PriorityQueue = require("../data/priority-queue");
+
+module.exports = dijkstra;
+
+var DEFAULT_WEIGHT_FUNC = _.constant(1);
+
+function dijkstra(g, source, weightFn, edgeFn) {
+  return runDijkstra(g, String(source),
+                     weightFn || DEFAULT_WEIGHT_FUNC,
+                     edgeFn || function(v) { return g.outEdges(v); });
+}
+
+function runDijkstra(g, source, weightFn, edgeFn) {
+  var results = {},
+      pq = new PriorityQueue(),
+      v, vEntry;
+
+  var updateNeighbors = function(edge) {
+    var w = edge.v !== v ? edge.v : edge.w,
+        wEntry = results[w],
+        weight = weightFn(edge),
+        distance = vEntry.distance + weight;
+
+    if (weight < 0) {
+      throw new Error("dijkstra does not allow negative edge weights. " +
+                      "Bad edge: " + edge + " Weight: " + weight);
     }
-    visited[v] = true;
-    stack[v] = true;
-    _.each(g.outEdges(v), function(e) {
-      if (_.has(stack, e.w)) {
-        fas.push(e);
-      } else {
-        dfs(e.w);
+
+    if (distance < wEntry.distance) {
+      wEntry.distance = distance;
+      wEntry.predecessor = v;
+      pq.decrease(w, distance);
+    }
+  };
+
+  g.nodes().forEach(function(v) {
+    var distance = v === source ? 0 : Number.POSITIVE_INFINITY;
+    results[v] = { distance: distance };
+    pq.add(v, distance);
+  });
+
+  while (pq.size() > 0) {
+    v = pq.removeMin();
+    vEntry = results[v];
+    if (vEntry.distance === Number.POSITIVE_INFINITY) {
+      break;
+    }
+
+    edgeFn(v).forEach(updateNeighbors);
+  }
+
+  return results;
+}
+
+},{"../data/priority-queue":126,"../lodash":130}],117:[function(require,module,exports){
+var _ = require("../lodash"),
+    tarjan = require("./tarjan");
+
+module.exports = findCycles;
+
+function findCycles(g) {
+  return _.filter(tarjan(g), function(cmpt) {
+    return cmpt.length > 1 || (cmpt.length === 1 && g.hasEdge(cmpt[0], cmpt[0]));
+  });
+}
+
+},{"../lodash":130,"./tarjan":124}],118:[function(require,module,exports){
+var _ = require("../lodash");
+
+module.exports = floydWarshall;
+
+var DEFAULT_WEIGHT_FUNC = _.constant(1);
+
+function floydWarshall(g, weightFn, edgeFn) {
+  return runFloydWarshall(g,
+                          weightFn || DEFAULT_WEIGHT_FUNC,
+                          edgeFn || function(v) { return g.outEdges(v); });
+}
+
+function runFloydWarshall(g, weightFn, edgeFn) {
+  var results = {},
+      nodes = g.nodes();
+
+  nodes.forEach(function(v) {
+    results[v] = {};
+    results[v][v] = { distance: 0 };
+    nodes.forEach(function(w) {
+      if (v !== w) {
+        results[v][w] = { distance: Number.POSITIVE_INFINITY };
       }
     });
-    delete stack[v];
-  }
-
-  _.each(g.nodes(), dfs);
-  return fas;
-}
-
-function undo(g) {
-  _.each(g.edges(), function(e) {
-    var label = g.edge(e);
-    if (label.reversed) {
-      g.removeEdge(e);
-
-      var forwardName = label.forwardName;
-      delete label.reversed;
-      delete label.forwardName;
-      g.setEdge(e.w, e.v, label, forwardName);
-    }
+    edgeFn(v).forEach(function(edge) {
+      var w = edge.v === v ? edge.w : edge.v,
+          d = weightFn(edge);
+      results[v][w] = { distance: d, predecessor: v };
+    });
   });
+
+  nodes.forEach(function(k) {
+    var rowK = results[k];
+    nodes.forEach(function(i) {
+      var rowI = results[i];
+      nodes.forEach(function(j) {
+        var ik = rowI[k];
+        var kj = rowK[j];
+        var ij = rowI[j];
+        var altDistance = ik.distance + kj.distance;
+        if (altDistance < ij.distance) {
+          ij.distance = altDistance;
+          ij.predecessor = kj.predecessor;
+        }
+      });
+    });
+  });
+
+  return results;
 }
 
-},{"./greedy-fas":61,"./lodash":63}],56:[function(require,module,exports){
-var _ = require("./lodash"),
-    util = require("./util");
+},{"../lodash":130}],119:[function(require,module,exports){
+module.exports = {
+  components: require("./components"),
+  dijkstra: require("./dijkstra"),
+  dijkstraAll: require("./dijkstra-all"),
+  findCycles: require("./find-cycles"),
+  floydWarshall: require("./floyd-warshall"),
+  isAcyclic: require("./is-acyclic"),
+  postorder: require("./postorder"),
+  preorder: require("./preorder"),
+  prim: require("./prim"),
+  tarjan: require("./tarjan"),
+  topsort: require("./topsort")
+};
 
-module.exports = addBorderSegments;
+},{"./components":113,"./dijkstra":116,"./dijkstra-all":115,"./find-cycles":117,"./floyd-warshall":118,"./is-acyclic":120,"./postorder":121,"./preorder":122,"./prim":123,"./tarjan":124,"./topsort":125}],120:[function(require,module,exports){
+var topsort = require("./topsort");
 
-function addBorderSegments(g) {
-  function dfs(v) {
-    var children = g.children(v),
-        node = g.node(v);
-    if (children.length) {
-      _.each(children, dfs);
+module.exports = isAcyclic;
+
+function isAcyclic(g) {
+  try {
+    topsort(g);
+  } catch (e) {
+    if (e instanceof topsort.CycleException) {
+      return false;
     }
+    throw e;
+  }
+  return true;
+}
 
-    if (_.has(node, "minRank")) {
-      node.borderLeft = [];
-      node.borderRight = [];
-      for (var rank = node.minRank, maxRank = node.maxRank + 1;
-           rank < maxRank;
-           ++rank) {
-        addBorderNode(g, "borderLeft", "_bl", v, node, rank);
-        addBorderNode(g, "borderRight", "_br", v, node, rank);
+},{"./topsort":125}],121:[function(require,module,exports){
+var dfs = require("./dfs");
+
+module.exports = postorder;
+
+function postorder(g, vs) {
+  return dfs(g, vs, "post");
+}
+
+},{"./dfs":114}],122:[function(require,module,exports){
+var dfs = require("./dfs");
+
+module.exports = preorder;
+
+function preorder(g, vs) {
+  return dfs(g, vs, "pre");
+}
+
+},{"./dfs":114}],123:[function(require,module,exports){
+var _ = require("../lodash"),
+    Graph = require("../graph"),
+    PriorityQueue = require("../data/priority-queue");
+
+module.exports = prim;
+
+function prim(g, weightFunc) {
+  var result = new Graph(),
+      parents = {},
+      pq = new PriorityQueue(),
+      v;
+
+  function updateNeighbors(edge) {
+    var w = edge.v === v ? edge.w : edge.v,
+        pri = pq.priority(w);
+    if (pri !== undefined) {
+      var edgeWeight = weightFunc(edge);
+      if (edgeWeight < pri) {
+        parents[w] = v;
+        pq.decrease(w, edgeWeight);
       }
     }
   }
 
-  _.each(g.children(), dfs);
-}
-
-function addBorderNode(g, prop, prefix, sg, sgNode, rank) {
-  var label = { width: 0, height: 0, rank: rank, borderType: prop },
-      prev = sgNode[prop][rank - 1],
-      curr = util.addDummyNode(g, "border", label, prefix);
-  sgNode[prop][rank] = curr;
-  g.setParent(curr, sg);
-  if (prev) {
-    g.setEdge(prev, curr, { weight: 1 });
+  if (g.nodeCount() === 0) {
+    return result;
   }
+
+  _.each(g.nodes(), function(v) {
+    pq.add(v, Number.POSITIVE_INFINITY);
+    result.setNode(v);
+  });
+
+  // Start from an arbitrary node
+  pq.decrease(g.nodes()[0], 0);
+
+  var init = false;
+  while (pq.size() > 0) {
+    v = pq.removeMin();
+    if (_.has(parents, v)) {
+      result.setEdge(v, parents[v]);
+    } else if (init) {
+      throw new Error("Input graph is not connected: " + g);
+    } else {
+      init = true;
+    }
+
+    g.nodeEdges(v).forEach(updateNeighbors);
+  }
+
+  return result;
 }
 
-},{"./lodash":63,"./util":82}],57:[function(require,module,exports){
+},{"../data/priority-queue":126,"../graph":127,"../lodash":130}],124:[function(require,module,exports){
+var _ = require("../lodash");
+
+module.exports = tarjan;
+
+function tarjan(g) {
+  var index = 0,
+      stack = [],
+      visited = {}, // node id -> { onStack, lowlink, index }
+      results = [];
+
+  function dfs(v) {
+    var entry = visited[v] = {
+      onStack: true,
+      lowlink: index,
+      index: index++
+    };
+    stack.push(v);
+
+    g.successors(v).forEach(function(w) {
+      if (!_.has(visited, w)) {
+        dfs(w);
+        entry.lowlink = Math.min(entry.lowlink, visited[w].lowlink);
+      } else if (visited[w].onStack) {
+        entry.lowlink = Math.min(entry.lowlink, visited[w].index);
+      }
+    });
+
+    if (entry.lowlink === entry.index) {
+      var cmpt = [],
+          w;
+      do {
+        w = stack.pop();
+        visited[w].onStack = false;
+        cmpt.push(w);
+      } while (v !== w);
+      results.push(cmpt);
+    }
+  }
+
+  g.nodes().forEach(function(v) {
+    if (!_.has(visited, v)) {
+      dfs(v);
+    }
+  });
+
+  return results;
+}
+
+},{"../lodash":130}],125:[function(require,module,exports){
+var _ = require("../lodash");
+
+module.exports = topsort;
+topsort.CycleException = CycleException;
+
+function topsort(g) {
+  var visited = {},
+      stack = {},
+      results = [];
+
+  function visit(node) {
+    if (_.has(stack, node)) {
+      throw new CycleException();
+    }
+
+    if (!_.has(visited, node)) {
+      stack[node] = true;
+      visited[node] = true;
+      _.each(g.predecessors(node), visit);
+      delete stack[node];
+      results.push(node);
+    }
+  }
+
+  _.each(g.sinks(), visit);
+
+  if (_.size(visited) !== g.nodeCount()) {
+    throw new CycleException();
+  }
+
+  return results;
+}
+
+function CycleException() {}
+
+},{"../lodash":130}],126:[function(require,module,exports){
+var _ = require("../lodash");
+
+module.exports = PriorityQueue;
+
+/**
+ * A min-priority queue data structure. This algorithm is derived from Cormen,
+ * et al., "Introduction to Algorithms". The basic idea of a min-priority
+ * queue is that you can efficiently (in O(1) time) get the smallest key in
+ * the queue. Adding and removing elements takes O(log n) time. A key can
+ * have its priority decreased in O(log n) time.
+ */
+function PriorityQueue() {
+  this._arr = [];
+  this._keyIndices = {};
+}
+
+/**
+ * Returns the number of elements in the queue. Takes `O(1)` time.
+ */
+PriorityQueue.prototype.size = function() {
+  return this._arr.length;
+};
+
+/**
+ * Returns the keys that are in the queue. Takes `O(n)` time.
+ */
+PriorityQueue.prototype.keys = function() {
+  return this._arr.map(function(x) { return x.key; });
+};
+
+/**
+ * Returns `true` if **key** is in the queue and `false` if not.
+ */
+PriorityQueue.prototype.has = function(key) {
+  return _.has(this._keyIndices, key);
+};
+
+/**
+ * Returns the priority for **key**. If **key** is not present in the queue
+ * then this function returns `undefined`. Takes `O(1)` time.
+ *
+ * @param {Object} key
+ */
+PriorityQueue.prototype.priority = function(key) {
+  var index = this._keyIndices[key];
+  if (index !== undefined) {
+    return this._arr[index].priority;
+  }
+};
+
+/**
+ * Returns the key for the minimum element in this queue. If the queue is
+ * empty this function throws an Error. Takes `O(1)` time.
+ */
+PriorityQueue.prototype.min = function() {
+  if (this.size() === 0) {
+    throw new Error("Queue underflow");
+  }
+  return this._arr[0].key;
+};
+
+/**
+ * Inserts a new key into the priority queue. If the key already exists in
+ * the queue this function returns `false`; otherwise it will return `true`.
+ * Takes `O(n)` time.
+ *
+ * @param {Object} key the key to add
+ * @param {Number} priority the initial priority for the key
+ */
+PriorityQueue.prototype.add = function(key, priority) {
+  var keyIndices = this._keyIndices;
+  key = String(key);
+  if (!_.has(keyIndices, key)) {
+    var arr = this._arr;
+    var index = arr.length;
+    keyIndices[key] = index;
+    arr.push({key: key, priority: priority});
+    this._decrease(index);
+    return true;
+  }
+  return false;
+};
+
+/**
+ * Removes and returns the smallest key in the queue. Takes `O(log n)` time.
+ */
+PriorityQueue.prototype.removeMin = function() {
+  this._swap(0, this._arr.length - 1);
+  var min = this._arr.pop();
+  delete this._keyIndices[min.key];
+  this._heapify(0);
+  return min.key;
+};
+
+/**
+ * Decreases the priority for **key** to **priority**. If the new priority is
+ * greater than the previous priority, this function will throw an Error.
+ *
+ * @param {Object} key the key for which to raise priority
+ * @param {Number} priority the new priority for the key
+ */
+PriorityQueue.prototype.decrease = function(key, priority) {
+  var index = this._keyIndices[key];
+  if (priority > this._arr[index].priority) {
+    throw new Error("New priority is greater than current priority. " +
+        "Key: " + key + " Old: " + this._arr[index].priority + " New: " + priority);
+  }
+  this._arr[index].priority = priority;
+  this._decrease(index);
+};
+
+PriorityQueue.prototype._heapify = function(i) {
+  var arr = this._arr;
+  var l = 2 * i,
+      r = l + 1,
+      largest = i;
+  if (l < arr.length) {
+    largest = arr[l].priority < arr[largest].priority ? l : largest;
+    if (r < arr.length) {
+      largest = arr[r].priority < arr[largest].priority ? r : largest;
+    }
+    if (largest !== i) {
+      this._swap(i, largest);
+      this._heapify(largest);
+    }
+  }
+};
+
+PriorityQueue.prototype._decrease = function(index) {
+  var arr = this._arr;
+  var priority = arr[index].priority;
+  var parent;
+  while (index !== 0) {
+    parent = index >> 1;
+    if (arr[parent].priority < priority) {
+      break;
+    }
+    this._swap(index, parent);
+    index = parent;
+  }
+};
+
+PriorityQueue.prototype._swap = function(i, j) {
+  var arr = this._arr;
+  var keyIndices = this._keyIndices;
+  var origArrI = arr[i];
+  var origArrJ = arr[j];
+  arr[i] = origArrJ;
+  arr[j] = origArrI;
+  keyIndices[origArrJ.key] = i;
+  keyIndices[origArrI.key] = j;
+};
+
+},{"../lodash":130}],127:[function(require,module,exports){
 "use strict";
 
 var _ = require("./lodash");
 
-module.exports = {
-  adjust: adjust,
-  undo: undo
+module.exports = Graph;
+
+var DEFAULT_EDGE_NAME = "\x00",
+    GRAPH_NODE = "\x00",
+    EDGE_KEY_DELIM = "\x01";
+
+// Implementation notes:
+//
+//  * Node id query functions should return string ids for the nodes
+//  * Edge id query functions should return an "edgeObj", edge object, that is
+//    composed of enough information to uniquely identify an edge: {v, w, name}.
+//  * Internally we use an "edgeId", a stringified form of the edgeObj, to
+//    reference edges. This is because we need a performant way to look these
+//    edges up and, object properties, which have string keys, are the closest
+//    we're going to get to a performant hashtable in JavaScript.
+
+function Graph(opts) {
+  this._isDirected = _.has(opts, "directed") ? opts.directed : true;
+  this._isMultigraph = _.has(opts, "multigraph") ? opts.multigraph : false;
+  this._isCompound = _.has(opts, "compound") ? opts.compound : false;
+
+  // Label for the graph itself
+  this._label = undefined;
+
+  // Defaults to be set when creating a new node
+  this._defaultNodeLabelFn = _.constant(undefined);
+
+  // Defaults to be set when creating a new edge
+  this._defaultEdgeLabelFn = _.constant(undefined);
+
+  // v -> label
+  this._nodes = {};
+
+  if (this._isCompound) {
+    // v -> parent
+    this._parent = {};
+
+    // v -> children
+    this._children = {};
+    this._children[GRAPH_NODE] = {};
+  }
+
+  // v -> edgeObj
+  this._in = {};
+
+  // u -> v -> Number
+  this._preds = {};
+
+  // v -> edgeObj
+  this._out = {};
+
+  // v -> w -> Number
+  this._sucs = {};
+
+  // e -> edgeObj
+  this._edgeObjs = {};
+
+  // e -> label
+  this._edgeLabels = {};
+}
+
+/* Number of nodes in the graph. Should only be changed by the implementation. */
+Graph.prototype._nodeCount = 0;
+
+/* Number of edges in the graph. Should only be changed by the implementation. */
+Graph.prototype._edgeCount = 0;
+
+
+/* === Graph functions ========= */
+
+Graph.prototype.isDirected = function() {
+  return this._isDirected;
 };
 
-function adjust(g) {
-  var rankDir = g.graph().rankdir.toLowerCase();
-  if (rankDir === "lr" || rankDir === "rl") {
-    swapWidthHeight(g);
+Graph.prototype.isMultigraph = function() {
+  return this._isMultigraph;
+};
+
+Graph.prototype.isCompound = function() {
+  return this._isCompound;
+};
+
+Graph.prototype.setGraph = function(label) {
+  this._label = label;
+  return this;
+};
+
+Graph.prototype.graph = function() {
+  return this._label;
+};
+
+
+/* === Node functions ========== */
+
+Graph.prototype.setDefaultNodeLabel = function(newDefault) {
+  if (!_.isFunction(newDefault)) {
+    newDefault = _.constant(newDefault);
   }
-}
+  this._defaultNodeLabelFn = newDefault;
+  return this;
+};
 
-function undo(g) {
-  var rankDir = g.graph().rankdir.toLowerCase();
-  if (rankDir === "bt" || rankDir === "rl") {
-    reverseY(g);
-  }
+Graph.prototype.nodeCount = function() {
+  return this._nodeCount;
+};
 
-  if (rankDir === "lr" || rankDir === "rl") {
-    swapXY(g);
-    swapWidthHeight(g);
-  }
-}
+Graph.prototype.nodes = function() {
+  return _.keys(this._nodes);
+};
 
-function swapWidthHeight(g) {
-  _.each(g.nodes(), function(v) { swapWidthHeightOne(g.node(v)); });
-  _.each(g.edges(), function(e) { swapWidthHeightOne(g.edge(e)); });
-}
+Graph.prototype.sources = function() {
+  return _.filter(this.nodes(), function(v) {
+    return _.isEmpty(this._in[v]);
+  }, this);
+};
 
-function swapWidthHeightOne(attrs) {
-  var w = attrs.width;
-  attrs.width = attrs.height;
-  attrs.height = w;
-}
+Graph.prototype.sinks = function() {
+  return _.filter(this.nodes(), function(v) {
+    return _.isEmpty(this._out[v]);
+  }, this);
+};
 
-function reverseY(g) {
-  _.each(g.nodes(), function(v) { reverseYOne(g.node(v)); });
-
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    _.each(edge.points, reverseYOne);
-    if (_.has(edge, "y")) {
-      reverseYOne(edge);
+Graph.prototype.setNodes = function(vs, value) {
+  var args = arguments;
+  _.each(vs, function(v) {
+    if (args.length > 1) {
+      this.setNode(v, value);
+    } else {
+      this.setNode(v);
     }
-  });
-}
+  }, this);
+  return this;
+};
 
-function reverseYOne(attrs) {
-  attrs.y = -attrs.y;
-}
-
-function swapXY(g) {
-  _.each(g.nodes(), function(v) { swapXYOne(g.node(v)); });
-
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    _.each(edge.points, swapXYOne);
-    if (_.has(edge, "x")) {
-      swapXYOne(edge);
+Graph.prototype.setNode = function(v, value) {
+  if (_.has(this._nodes, v)) {
+    if (arguments.length > 1) {
+      this._nodes[v] = value;
     }
-  });
-}
+    return this;
+  }
 
-function swapXYOne(attrs) {
-  var x = attrs.x;
-  attrs.x = attrs.y;
-  attrs.y = x;
-}
+  this._nodes[v] = arguments.length > 1 ? value : this._defaultNodeLabelFn(v);
+  if (this._isCompound) {
+    this._parent[v] = GRAPH_NODE;
+    this._children[v] = {};
+    this._children[GRAPH_NODE][v] = true;
+  }
+  this._in[v] = {};
+  this._preds[v] = {};
+  this._out[v] = {};
+  this._sucs[v] = {};
+  ++this._nodeCount;
+  return this;
+};
 
-},{"./lodash":63}],58:[function(require,module,exports){
-/*
- * Simple doubly linked list implementation derived from Cormen, et al.,
- * "Introduction to Algorithms".
- */
+Graph.prototype.node = function(v) {
+  return this._nodes[v];
+};
 
-module.exports = List;
+Graph.prototype.hasNode = function(v) {
+  return _.has(this._nodes, v);
+};
 
-function List() {
-  var sentinel = {};
-  sentinel._next = sentinel._prev = sentinel;
-  this._sentinel = sentinel;
-}
+Graph.prototype.removeNode =  function(v) {
+  var self = this;
+  if (_.has(this._nodes, v)) {
+    var removeEdge = function(e) { self.removeEdge(self._edgeObjs[e]); };
+    delete this._nodes[v];
+    if (this._isCompound) {
+      this._removeFromParentsChildList(v);
+      delete this._parent[v];
+      _.each(this.children(v), function(child) {
+        this.setParent(child);
+      }, this);
+      delete this._children[v];
+    }
+    _.each(_.keys(this._in[v]), removeEdge);
+    delete this._in[v];
+    delete this._preds[v];
+    _.each(_.keys(this._out[v]), removeEdge);
+    delete this._out[v];
+    delete this._sucs[v];
+    --this._nodeCount;
+  }
+  return this;
+};
 
-List.prototype.dequeue = function() {
-  var sentinel = this._sentinel,
-      entry = sentinel._prev;
-  if (entry !== sentinel) {
-    unlink(entry);
-    return entry;
+Graph.prototype.setParent = function(v, parent) {
+  if (!this._isCompound) {
+    throw new Error("Cannot set parent in a non-compound graph");
+  }
+
+  if (_.isUndefined(parent)) {
+    parent = GRAPH_NODE;
+  } else {
+    // Coerce parent to string
+    parent += "";
+    for (var ancestor = parent;
+         !_.isUndefined(ancestor);
+         ancestor = this.parent(ancestor)) {
+      if (ancestor === v) {
+        throw new Error("Setting " + parent+ " as parent of " + v +
+                        " would create create a cycle");
+      }
+    }
+
+    this.setNode(parent);
+  }
+
+  this.setNode(v);
+  this._removeFromParentsChildList(v);
+  this._parent[v] = parent;
+  this._children[parent][v] = true;
+  return this;
+};
+
+Graph.prototype._removeFromParentsChildList = function(v) {
+  delete this._children[this._parent[v]][v];
+};
+
+Graph.prototype.parent = function(v) {
+  if (this._isCompound) {
+    var parent = this._parent[v];
+    if (parent !== GRAPH_NODE) {
+      return parent;
+    }
   }
 };
 
-List.prototype.enqueue = function(entry) {
-  var sentinel = this._sentinel;
-  if (entry._prev && entry._next) {
-    unlink(entry);
+Graph.prototype.children = function(v) {
+  if (_.isUndefined(v)) {
+    v = GRAPH_NODE;
   }
-  entry._next = sentinel._next;
-  sentinel._next._prev = entry;
-  sentinel._next = entry;
-  entry._prev = sentinel;
-};
 
-List.prototype.toString = function() {
-  var strs = [],
-      sentinel = this._sentinel,
-      curr = sentinel._prev;
-  while (curr !== sentinel) {
-    strs.push(JSON.stringify(curr, filterOutLinks));
-    curr = curr._prev;
-  }
-  return "[" + strs.join(", ") + "]";
-};
-
-function unlink(entry) {
-  entry._prev._next = entry._next;
-  entry._next._prev = entry._prev;
-  delete entry._next;
-  delete entry._prev;
-}
-
-function filterOutLinks(k, v) {
-  if (k !== "_next" && k !== "_prev") {
-    return v;
-  }
-}
-
-},{}],59:[function(require,module,exports){
-var _ = require("./lodash"),
-    util = require("./util"),
-    Graph = require("./graphlib").Graph;
-
-module.exports = {
-  debugOrdering: debugOrdering
-};
-
-/* istanbul ignore next */
-function debugOrdering(g) {
-  var layerMatrix = util.buildLayerMatrix(g);
-
-  var h = new Graph({ compound: true, multigraph: true }).setGraph({});
-
-  _.each(g.nodes(), function(v) {
-    h.setNode(v, { label: v });
-    h.setParent(v, "layer" + g.node(v).rank);
-  });
-
-  _.each(g.edges(), function(e) {
-    h.setEdge(e.v, e.w, {}, e.name);
-  });
-
-  _.each(layerMatrix, function(layer, i) {
-    var layerV = "layer" + i;
-    h.setNode(layerV, { rank: "same" });
-    _.reduce(layer, function(u, v) {
-      h.setEdge(u, v, { style: "invis" });
-      return v;
-    });
-  });
-
-  return h;
-}
-
-},{"./graphlib":60,"./lodash":63,"./util":82}],60:[function(require,module,exports){
-/* global window */
-
-var graphlib;
-
-if (typeof require === "function") {
-  try {
-    graphlib = require("graphlib");
-  } catch (e) {}
-}
-
-if (!graphlib) {
-  graphlib = window.graphlib;
-}
-
-module.exports = graphlib;
-
-},{"graphlib":137}],61:[function(require,module,exports){
-var _ = require("./lodash"),
-    Graph = require("./graphlib").Graph,
-    List = require("./data/list");
-
-/*
- * A greedy heuristic for finding a feedback arc set for a graph. A feedback
- * arc set is a set of edges that can be removed to make a graph acyclic.
- * The algorithm comes from: P. Eades, X. Lin, and W. F. Smyth, "A fast and
- * effective heuristic for the feedback arc set problem." This implementation
- * adjusts that from the paper to allow for weighted edges.
- */
-module.exports = greedyFAS;
-
-var DEFAULT_WEIGHT_FN = _.constant(1);
-
-function greedyFAS(g, weightFn) {
-  if (g.nodeCount() <= 1) {
+  if (this._isCompound) {
+    var children = this._children[v];
+    if (children) {
+      return _.keys(children);
+    }
+  } else if (v === GRAPH_NODE) {
+    return this.nodes();
+  } else if (this.hasNode(v)) {
     return [];
   }
-  var state = buildState(g, weightFn || DEFAULT_WEIGHT_FN);
-  var results = doGreedyFAS(state.graph, state.buckets, state.zeroIdx);
+};
 
-  // Expand multi-edges
-  return _.flatten(_.map(results, function(e) {
-    return g.outEdges(e.v, e.w);
-  }), true);
-}
+Graph.prototype.predecessors = function(v) {
+  var predsV = this._preds[v];
+  if (predsV) {
+    return _.keys(predsV);
+  }
+};
 
-function doGreedyFAS(g, buckets, zeroIdx) {
-  var results = [],
-      sources = buckets[buckets.length - 1],
-      sinks = buckets[0];
+Graph.prototype.successors = function(v) {
+  var sucsV = this._sucs[v];
+  if (sucsV) {
+    return _.keys(sucsV);
+  }
+};
 
-  var entry;
-  while (g.nodeCount()) {
-    while ((entry = sinks.dequeue()))   { removeNode(g, buckets, zeroIdx, entry); }
-    while ((entry = sources.dequeue())) { removeNode(g, buckets, zeroIdx, entry); }
-    if (g.nodeCount()) {
-      for (var i = buckets.length - 2; i > 0; --i) {
-        entry = buckets[i].dequeue();
-        if (entry) {
-          results = results.concat(removeNode(g, buckets, zeroIdx, entry, true));
-          break;
-        }
-      }
+Graph.prototype.neighbors = function(v) {
+  var preds = this.predecessors(v);
+  if (preds) {
+    return _.union(preds, this.successors(v));
+  }
+};
+
+Graph.prototype.filterNodes = function(filter) {
+  var copy = new this.constructor({
+    directed: this._isDirected,
+    multigraph: this._isMultigraph,
+    compound: this._isCompound
+  });
+
+  copy.setGraph(this.graph());
+
+  _.each(this._nodes, function(value, v) {
+    if (filter(v)) {
+      copy.setNode(v, value);
+    }
+  }, this);
+
+  _.each(this._edgeObjs, function(e) {
+    if (copy.hasNode(e.v) && copy.hasNode(e.w)) {
+      copy.setEdge(e, this.edge(e));
+    }
+  }, this);
+
+  var self = this;
+  var parents = {};
+  function findParent(v) {
+    var parent = self.parent(v);
+    if (parent === undefined || copy.hasNode(parent)) {
+      parents[v] = parent;
+      return parent;
+    } else if (parent in parents) {
+      return parents[parent];
+    } else {
+      return findParent(parent);
     }
   }
 
-  return results;
-}
+  if (this._isCompound) {
+    _.each(copy.nodes(), function(v) {
+      copy.setParent(v, findParent(v));
+    });
+  }
 
-function removeNode(g, buckets, zeroIdx, entry, collectPredecessors) {
-  var results = collectPredecessors ? [] : undefined;
+  return copy;
+};
 
-  _.each(g.inEdges(entry.v), function(edge) {
-    var weight = g.edge(edge),
-        uEntry = g.node(edge.v);
+/* === Edge functions ========== */
 
-    if (collectPredecessors) {
-      results.push({ v: edge.v, w: edge.w });
+Graph.prototype.setDefaultEdgeLabel = function(newDefault) {
+  if (!_.isFunction(newDefault)) {
+    newDefault = _.constant(newDefault);
+  }
+  this._defaultEdgeLabelFn = newDefault;
+  return this;
+};
+
+Graph.prototype.edgeCount = function() {
+  return this._edgeCount;
+};
+
+Graph.prototype.edges = function() {
+  return _.values(this._edgeObjs);
+};
+
+Graph.prototype.setPath = function(vs, value) {
+  var self = this,
+      args = arguments;
+  _.reduce(vs, function(v, w) {
+    if (args.length > 1) {
+      self.setEdge(v, w, value);
+    } else {
+      self.setEdge(v, w);
     }
-
-    uEntry.out -= weight;
-    assignBucket(buckets, zeroIdx, uEntry);
+    return w;
   });
+  return this;
+};
 
-  _.each(g.outEdges(entry.v), function(edge) {
-    var weight = g.edge(edge),
-        w = edge.w,
-        wEntry = g.node(w);
-    wEntry["in"] -= weight;
-    assignBucket(buckets, zeroIdx, wEntry);
-  });
+/*
+ * setEdge(v, w, [value, [name]])
+ * setEdge({ v, w, [name] }, [value])
+ */
+Graph.prototype.setEdge = function() {
+  var v, w, name, value,
+      valueSpecified = false,
+      arg0 = arguments[0];
 
-  g.removeNode(entry.v);
-
-  return results;
-}
-
-function buildState(g, weightFn) {
-  var fasGraph = new Graph(),
-      maxIn = 0,
-      maxOut = 0;
-
-  _.each(g.nodes(), function(v) {
-    fasGraph.setNode(v, { v: v, "in": 0, out: 0 });
-  });
-
-  // Aggregate weights on nodes, but also sum the weights across multi-edges
-  // into a single edge for the fasGraph.
-  _.each(g.edges(), function(e) {
-    var prevWeight = fasGraph.edge(e.v, e.w) || 0,
-        weight = weightFn(e),
-        edgeWeight = prevWeight + weight;
-    fasGraph.setEdge(e.v, e.w, edgeWeight);
-    maxOut = Math.max(maxOut, fasGraph.node(e.v).out += weight);
-    maxIn  = Math.max(maxIn,  fasGraph.node(e.w)["in"]  += weight);
-  });
-
-  var buckets = _.range(maxOut + maxIn + 3).map(function() { return new List(); });
-  var zeroIdx = maxIn + 1;
-
-  _.each(fasGraph.nodes(), function(v) {
-    assignBucket(buckets, zeroIdx, fasGraph.node(v));
-  });
-
-  return { graph: fasGraph, buckets: buckets, zeroIdx: zeroIdx };
-}
-
-function assignBucket(buckets, zeroIdx, entry) {
-  if (!entry.out) {
-    buckets[0].enqueue(entry);
-  } else if (!entry["in"]) {
-    buckets[buckets.length - 1].enqueue(entry);
+  if (typeof arg0 === "object" && arg0 !== null && "v" in arg0) {
+    v = arg0.v;
+    w = arg0.w;
+    name = arg0.name;
+    if (arguments.length === 2) {
+      value = arguments[1];
+      valueSpecified = true;
+    }
   } else {
-    buckets[entry.out - entry["in"] + zeroIdx].enqueue(entry);
+    v = arg0;
+    w = arguments[1];
+    name = arguments[3];
+    if (arguments.length > 2) {
+      value = arguments[2];
+      valueSpecified = true;
+    }
+  }
+
+  v = "" + v;
+  w = "" + w;
+  if (!_.isUndefined(name)) {
+    name = "" + name;
+  }
+
+  var e = edgeArgsToId(this._isDirected, v, w, name);
+  if (_.has(this._edgeLabels, e)) {
+    if (valueSpecified) {
+      this._edgeLabels[e] = value;
+    }
+    return this;
+  }
+
+  if (!_.isUndefined(name) && !this._isMultigraph) {
+    throw new Error("Cannot set a named edge when isMultigraph = false");
+  }
+
+  // It didn't exist, so we need to create it.
+  // First ensure the nodes exist.
+  this.setNode(v);
+  this.setNode(w);
+
+  this._edgeLabels[e] = valueSpecified ? value : this._defaultEdgeLabelFn(v, w, name);
+
+  var edgeObj = edgeArgsToObj(this._isDirected, v, w, name);
+  // Ensure we add undirected edges in a consistent way.
+  v = edgeObj.v;
+  w = edgeObj.w;
+
+  Object.freeze(edgeObj);
+  this._edgeObjs[e] = edgeObj;
+  incrementOrInitEntry(this._preds[w], v);
+  incrementOrInitEntry(this._sucs[v], w);
+  this._in[w][e] = edgeObj;
+  this._out[v][e] = edgeObj;
+  this._edgeCount++;
+  return this;
+};
+
+Graph.prototype.edge = function(v, w, name) {
+  var e = (arguments.length === 1
+            ? edgeObjToId(this._isDirected, arguments[0])
+            : edgeArgsToId(this._isDirected, v, w, name));
+  return this._edgeLabels[e];
+};
+
+Graph.prototype.hasEdge = function(v, w, name) {
+  var e = (arguments.length === 1
+            ? edgeObjToId(this._isDirected, arguments[0])
+            : edgeArgsToId(this._isDirected, v, w, name));
+  return _.has(this._edgeLabels, e);
+};
+
+Graph.prototype.removeEdge = function(v, w, name) {
+  var e = (arguments.length === 1
+            ? edgeObjToId(this._isDirected, arguments[0])
+            : edgeArgsToId(this._isDirected, v, w, name)),
+      edge = this._edgeObjs[e];
+  if (edge) {
+    v = edge.v;
+    w = edge.w;
+    delete this._edgeLabels[e];
+    delete this._edgeObjs[e];
+    decrementOrRemoveEntry(this._preds[w], v);
+    decrementOrRemoveEntry(this._sucs[v], w);
+    delete this._in[w][e];
+    delete this._out[v][e];
+    this._edgeCount--;
+  }
+  return this;
+};
+
+Graph.prototype.inEdges = function(v, u) {
+  var inV = this._in[v];
+  if (inV) {
+    var edges = _.values(inV);
+    if (!u) {
+      return edges;
+    }
+    return _.filter(edges, function(edge) { return edge.v === u; });
+  }
+};
+
+Graph.prototype.outEdges = function(v, w) {
+  var outV = this._out[v];
+  if (outV) {
+    var edges = _.values(outV);
+    if (!w) {
+      return edges;
+    }
+    return _.filter(edges, function(edge) { return edge.w === w; });
+  }
+};
+
+Graph.prototype.nodeEdges = function(v, w) {
+  var inEdges = this.inEdges(v, w);
+  if (inEdges) {
+    return inEdges.concat(this.outEdges(v, w));
+  }
+};
+
+function incrementOrInitEntry(map, k) {
+  if (map[k]) {
+    map[k]++;
+  } else {
+    map[k] = 1;
   }
 }
 
-},{"./data/list":58,"./graphlib":60,"./lodash":63}],62:[function(require,module,exports){
-"use strict";
+function decrementOrRemoveEntry(map, k) {
+  if (!--map[k]) { delete map[k]; }
+}
 
+function edgeArgsToId(isDirected, v_, w_, name) {
+  var v = "" + v_;
+  var w = "" + w_;
+  if (!isDirected && v > w) {
+    var tmp = v;
+    v = w;
+    w = tmp;
+  }
+  return v + EDGE_KEY_DELIM + w + EDGE_KEY_DELIM +
+             (_.isUndefined(name) ? DEFAULT_EDGE_NAME : name);
+}
+
+function edgeArgsToObj(isDirected, v_, w_, name) {
+  var v = "" + v_;
+  var w = "" + w_;
+  if (!isDirected && v > w) {
+    var tmp = v;
+    v = w;
+    w = tmp;
+  }
+  var edgeObj =  { v: v, w: w };
+  if (name) {
+    edgeObj.name = name;
+  }
+  return edgeObj;
+}
+
+function edgeObjToId(isDirected, edgeObj) {
+  return edgeArgsToId(isDirected, edgeObj.v, edgeObj.w, edgeObj.name);
+}
+
+},{"./lodash":130}],128:[function(require,module,exports){
+// Includes only the "core" of graphlib
+module.exports = {
+  Graph: require("./graph"),
+  version: require("./version")
+};
+
+},{"./graph":127,"./version":131}],129:[function(require,module,exports){
 var _ = require("./lodash"),
-    acyclic = require("./acyclic"),
-    normalize = require("./normalize"),
-    rank = require("./rank"),
-    normalizeRanks = require("./util").normalizeRanks,
-    parentDummyChains = require("./parent-dummy-chains"),
-    removeEmptyRanks = require("./util").removeEmptyRanks,
-    nestingGraph = require("./nesting-graph"),
-    addBorderSegments = require("./add-border-segments"),
-    coordinateSystem = require("./coordinate-system"),
-    order = require("./order"),
-    position = require("./position"),
-    util = require("./util"),
-    Graph = require("./graphlib").Graph;
+    Graph = require("./graph");
 
-module.exports = layout;
+module.exports = {
+  write: write,
+  read: read
+};
 
-function layout(g, opts) {
-  var time = opts && opts.debugTiming ? util.time : util.notime;
-  time("layout", function() {
-    var layoutGraph = time("  buildLayoutGraph",
-                               function() { return buildLayoutGraph(g); });
-    time("  runLayout",        function() { runLayout(layoutGraph, time); });
-    time("  updateInputGraph", function() { updateInputGraph(g, layoutGraph); });
-  });
-}
-
-function runLayout(g, time) {
-  time("    makeSpaceForEdgeLabels", function() { makeSpaceForEdgeLabels(g); });
-  time("    removeSelfEdges",        function() { removeSelfEdges(g); });
-  time("    acyclic",                function() { acyclic.run(g); });
-  time("    nestingGraph.run",       function() { nestingGraph.run(g); });
-  time("    rank",                   function() { rank(util.asNonCompoundGraph(g)); });
-  time("    injectEdgeLabelProxies", function() { injectEdgeLabelProxies(g); });
-  time("    removeEmptyRanks",       function() { removeEmptyRanks(g); });
-  time("    nestingGraph.cleanup",   function() { nestingGraph.cleanup(g); });
-  time("    normalizeRanks",         function() { normalizeRanks(g); });
-  time("    assignRankMinMax",       function() { assignRankMinMax(g); });
-  time("    removeEdgeLabelProxies", function() { removeEdgeLabelProxies(g); });
-  time("    normalize.run",          function() { normalize.run(g); });
-  time("    parentDummyChains",      function() { parentDummyChains(g); });
-  time("    addBorderSegments",      function() { addBorderSegments(g); });
-  time("    order",                  function() { order(g); });
-  time("    insertSelfEdges",        function() { insertSelfEdges(g); });
-  time("    adjustCoordinateSystem", function() { coordinateSystem.adjust(g); });
-  time("    position",               function() { position(g); });
-  time("    positionSelfEdges",      function() { positionSelfEdges(g); });
-  time("    removeBorderNodes",      function() { removeBorderNodes(g); });
-  time("    normalize.undo",         function() { normalize.undo(g); });
-  time("    fixupEdgeLabelCoords",   function() { fixupEdgeLabelCoords(g); });
-  time("    undoCoordinateSystem",   function() { coordinateSystem.undo(g); });
-  time("    translateGraph",         function() { translateGraph(g); });
-  time("    assignNodeIntersects",   function() { assignNodeIntersects(g); });
-  time("    reversePoints",          function() { reversePointsForReversedEdges(g); });
-  time("    acyclic.undo",           function() { acyclic.undo(g); });
-}
-
-/*
- * Copies final layout information from the layout graph back to the input
- * graph. This process only copies whitelisted attributes from the layout graph
- * to the input graph, so it serves as a good place to determine what
- * attributes can influence layout.
- */
-function updateInputGraph(inputGraph, layoutGraph) {
-  _.each(inputGraph.nodes(), function(v) {
-    var inputLabel = inputGraph.node(v),
-        layoutLabel = layoutGraph.node(v);
-
-    if (inputLabel) {
-      inputLabel.x = layoutLabel.x;
-      inputLabel.y = layoutLabel.y;
-
-      if (layoutGraph.children(v).length) {
-        inputLabel.width = layoutLabel.width;
-        inputLabel.height = layoutLabel.height;
-      }
-    }
-  });
-
-  _.each(inputGraph.edges(), function(e) {
-    var inputLabel = inputGraph.edge(e),
-        layoutLabel = layoutGraph.edge(e);
-
-    inputLabel.points = layoutLabel.points;
-    if (_.has(layoutLabel, "x")) {
-      inputLabel.x = layoutLabel.x;
-      inputLabel.y = layoutLabel.y;
-    }
-  });
-
-  inputGraph.graph().width = layoutGraph.graph().width;
-  inputGraph.graph().height = layoutGraph.graph().height;
-}
-
-var graphNumAttrs = ["nodesep", "edgesep", "ranksep", "marginx", "marginy"],
-    graphDefaults = { ranksep: 50, edgesep: 20, nodesep: 50, rankdir: "tb" },
-    graphAttrs = ["acyclicer", "ranker", "rankdir", "align"],
-    nodeNumAttrs = ["width", "height"],
-    nodeDefaults = { width: 0, height: 0 },
-    edgeNumAttrs = ["minlen", "weight", "width", "height", "labeloffset"],
-    edgeDefaults = {
-      minlen: 1, weight: 1, width: 0, height: 0,
-      labeloffset: 10, labelpos: "r"
+function write(g) {
+  var json = {
+    options: {
+      directed: g.isDirected(),
+      multigraph: g.isMultigraph(),
+      compound: g.isCompound()
     },
-    edgeAttrs = ["labelpos"];
+    nodes: writeNodes(g),
+    edges: writeEdges(g)
+  };
+  if (!_.isUndefined(g.graph())) {
+    json.value = _.clone(g.graph());
+  }
+  return json;
+}
 
-/*
- * Constructs a new graph from the input graph, which can be used for layout.
- * This process copies only whitelisted attributes from the input graph to the
- * layout graph. Thus this function serves as a good place to determine what
- * attributes can influence layout.
- */
-function buildLayoutGraph(inputGraph) {
-  var g = new Graph({ multigraph: true, compound: true }),
-      graph = canonicalize(inputGraph.graph());
-
-  g.setGraph(_.merge({},
-    graphDefaults,
-    selectNumberAttrs(graph, graphNumAttrs),
-    _.pick(graph, graphAttrs)));
-
-  _.each(inputGraph.nodes(), function(v) {
-    var node = canonicalize(inputGraph.node(v));
-    g.setNode(v, _.defaults(selectNumberAttrs(node, nodeNumAttrs), nodeDefaults));
-    g.setParent(v, inputGraph.parent(v));
+function writeNodes(g) {
+  return _.map(g.nodes(), function(v) {
+    var nodeValue = g.node(v),
+        parent = g.parent(v),
+        node = { v: v };
+    if (!_.isUndefined(nodeValue)) {
+      node.value = nodeValue;
+    }
+    if (!_.isUndefined(parent)) {
+      node.parent = parent;
+    }
+    return node;
   });
+}
 
-  _.each(inputGraph.edges(), function(e) {
-    var edge = canonicalize(inputGraph.edge(e));
-    g.setEdge(e, _.merge({},
-      edgeDefaults,
-      selectNumberAttrs(edge, edgeNumAttrs),
-      _.pick(edge, edgeAttrs)));
+function writeEdges(g) {
+  return _.map(g.edges(), function(e) {
+    var edgeValue = g.edge(e),
+        edge = { v: e.v, w: e.w };
+    if (!_.isUndefined(e.name)) {
+      edge.name = e.name;
+    }
+    if (!_.isUndefined(edgeValue)) {
+      edge.value = edgeValue;
+    }
+    return edge;
   });
+}
 
+function read(json) {
+  var g = new Graph(json.options).setGraph(json.value);
+  _.each(json.nodes, function(entry) {
+    g.setNode(entry.v, entry.value);
+    if (entry.parent) {
+      g.setParent(entry.v, entry.parent);
+    }
+  });
+  _.each(json.edges, function(entry) {
+    g.setEdge({ v: entry.v, w: entry.w, name: entry.name }, entry.value);
+  });
   return g;
 }
 
-/*
- * This idea comes from the Gansner paper: to account for edge labels in our
- * layout we split each rank in half by doubling minlen and halving ranksep.
- * Then we can place labels at these mid-points between nodes.
- *
- * We also add some minimal padding to the width to push the label for the edge
- * away from the edge itself a bit.
- */
-function makeSpaceForEdgeLabels(g) {
-  var graph = g.graph();
-  graph.ranksep /= 2;
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    edge.minlen *= 2;
-    if (edge.labelpos.toLowerCase() !== "c") {
-      if (graph.rankdir === "TB" || graph.rankdir === "BT") {
-        edge.width += edge.labeloffset;
-      } else {
-        edge.height += edge.labeloffset;
-      }
-    }
-  });
-}
-
-/*
- * Creates temporary dummy nodes that capture the rank in which each edge's
- * label is going to, if it has one of non-zero width and height. We do this
- * so that we can safely remove empty ranks while preserving balance for the
- * label's position.
- */
-function injectEdgeLabelProxies(g) {
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    if (edge.width && edge.height) {
-      var v = g.node(e.v),
-          w = g.node(e.w),
-          label = { rank: (w.rank - v.rank) / 2 + v.rank, e: e };
-      util.addDummyNode(g, "edge-proxy", label, "_ep");
-    }
-  });
-}
-
-function assignRankMinMax(g) {
-  var maxRank = 0;
-  _.each(g.nodes(), function(v) {
-    var node = g.node(v);
-    if (node.borderTop) {
-      node.minRank = g.node(node.borderTop).rank;
-      node.maxRank = g.node(node.borderBottom).rank;
-      maxRank = _.max(maxRank, node.maxRank);
-    }
-  });
-  g.graph().maxRank = maxRank;
-}
-
-function removeEdgeLabelProxies(g) {
-  _.each(g.nodes(), function(v) {
-    var node = g.node(v);
-    if (node.dummy === "edge-proxy") {
-      g.edge(node.e).labelRank = node.rank;
-      g.removeNode(v);
-    }
-  });
-}
-
-function translateGraph(g) {
-  var minX = Number.POSITIVE_INFINITY,
-      maxX = 0,
-      minY = Number.POSITIVE_INFINITY,
-      maxY = 0,
-      graphLabel = g.graph(),
-      marginX = graphLabel.marginx || 0,
-      marginY = graphLabel.marginy || 0;
-
-  function getExtremes(attrs) {
-    var x = attrs.x,
-        y = attrs.y,
-        w = attrs.width,
-        h = attrs.height;
-    minX = Math.min(minX, x - w / 2);
-    maxX = Math.max(maxX, x + w / 2);
-    minY = Math.min(minY, y - h / 2);
-    maxY = Math.max(maxY, y + h / 2);
-  }
-
-  _.each(g.nodes(), function(v) { getExtremes(g.node(v)); });
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    if (_.has(edge, "x")) {
-      getExtremes(edge);
-    }
-  });
-
-  minX -= marginX;
-  minY -= marginY;
-
-  _.each(g.nodes(), function(v) {
-    var node = g.node(v);
-    node.x -= minX;
-    node.y -= minY;
-  });
-
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    _.each(edge.points, function(p) {
-      p.x -= minX;
-      p.y -= minY;
-    });
-    if (_.has(edge, "x")) { edge.x -= minX; }
-    if (_.has(edge, "y")) { edge.y -= minY; }
-  });
-
-  graphLabel.width = maxX - minX + marginX;
-  graphLabel.height = maxY - minY + marginY;
-}
-
-function assignNodeIntersects(g) {
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e),
-        nodeV = g.node(e.v),
-        nodeW = g.node(e.w),
-        p1, p2;
-    if (!edge.points) {
-      edge.points = [];
-      p1 = nodeW;
-      p2 = nodeV;
-    } else {
-      p1 = edge.points[0];
-      p2 = edge.points[edge.points.length - 1];
-    }
-    edge.points.unshift(util.intersectRect(nodeV, p1));
-    edge.points.push(util.intersectRect(nodeW, p2));
-  });
-}
-
-function fixupEdgeLabelCoords(g) {
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    if (_.has(edge, "x")) {
-      if (edge.labelpos === "l" || edge.labelpos === "r") {
-        edge.width -= edge.labeloffset;
-      }
-      switch (edge.labelpos) {
-        case "l": edge.x -= edge.width / 2 + edge.labeloffset; break;
-        case "r": edge.x += edge.width / 2 + edge.labeloffset; break;
-      }
-    }
-  });
-}
-
-function reversePointsForReversedEdges(g) {
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    if (edge.reversed) {
-      edge.points.reverse();
-    }
-  });
-}
-
-function removeBorderNodes(g) {
-  _.each(g.nodes(), function(v) {
-    if (g.children(v).length) {
-      var node = g.node(v),
-          t = g.node(node.borderTop),
-          b = g.node(node.borderBottom),
-          l = g.node(_.last(node.borderLeft)),
-          r = g.node(_.last(node.borderRight));
-
-      node.width = Math.abs(r.x - l.x);
-      node.height = Math.abs(b.y - t.y);
-      node.x = l.x + node.width / 2;
-      node.y = t.y + node.height / 2;
-    }
-  });
-
-  _.each(g.nodes(), function(v) {
-    if (g.node(v).dummy === "border") {
-      g.removeNode(v);
-    }
-  });
-}
-
-function removeSelfEdges(g) {
-  _.each(g.edges(), function(e) {
-    if (e.v === e.w) {
-      var node = g.node(e.v);
-      if (!node.selfEdges) {
-        node.selfEdges = [];
-      }
-      node.selfEdges.push({ e: e, label: g.edge(e) });
-      g.removeEdge(e);
-    }
-  });
-}
-
-function insertSelfEdges(g) {
-  var layers = util.buildLayerMatrix(g);
-  _.each(layers, function(layer) {
-    var orderShift = 0;
-    _.each(layer, function(v, i) {
-      var node = g.node(v);
-      node.order = i + orderShift;
-      _.each(node.selfEdges, function(selfEdge) {
-        util.addDummyNode(g, "selfedge", {
-          width: selfEdge.label.width,
-          height: selfEdge.label.height,
-          rank: node.rank,
-          order: i + (++orderShift),
-          e: selfEdge.e,
-          label: selfEdge.label
-        }, "_se");
-      });
-      delete node.selfEdges;
-    });
-  });
-}
-
-function positionSelfEdges(g) {
-  _.each(g.nodes(), function(v) {
-    var node = g.node(v);
-    if (node.dummy === "selfedge") {
-      var selfNode = g.node(node.e.v),
-          x = selfNode.x + selfNode.width / 2,
-          y = selfNode.y,
-          dx = node.x - x,
-          dy = selfNode.height / 2;
-      g.setEdge(node.e, node.label);
-      g.removeNode(v);
-      node.label.points = [
-        { x: x + 2 * dx / 3, y: y - dy },
-        { x: x + 5 * dx / 6, y: y - dy },
-        { x: x +     dx    , y: y },
-        { x: x + 5 * dx / 6, y: y + dy },
-        { x: x + 2 * dx / 3, y: y + dy },
-      ];
-      node.label.x = node.x;
-      node.label.y = node.y;
-    }
-  });
-}
-
-function selectNumberAttrs(obj, attrs) {
-  return _.mapValues(_.pick(obj, attrs), Number);
-}
-
-function canonicalize(attrs) {
-  var newAttrs = {};
-  _.each(attrs, function(v, k) {
-    newAttrs[k.toLowerCase()] = v;
-  });
-  return newAttrs;
-}
-
-},{"./acyclic":55,"./add-border-segments":56,"./coordinate-system":57,"./graphlib":60,"./lodash":63,"./nesting-graph":64,"./normalize":65,"./order":70,"./parent-dummy-chains":75,"./position":77,"./rank":79,"./util":82}],63:[function(require,module,exports){
+},{"./graph":127,"./lodash":130}],130:[function(require,module,exports){
 /* global window */
 
 var lodash;
@@ -5355,2049 +7903,10 @@ if (!lodash) {
 
 module.exports = lodash;
 
-},{"lodash":84}],64:[function(require,module,exports){
-var _ = require("./lodash"),
-    util = require("./util");
+},{"lodash":132}],131:[function(require,module,exports){
+module.exports = '1.0.7';
 
-module.exports = {
-  run: run,
-  cleanup: cleanup
-};
-
-/*
- * A nesting graph creates dummy nodes for the tops and bottoms of subgraphs,
- * adds appropriate edges to ensure that all cluster nodes are placed between
- * these boundries, and ensures that the graph is connected.
- *
- * In addition we ensure, through the use of the minlen property, that nodes
- * and subgraph border nodes to not end up on the same rank.
- *
- * Preconditions:
- *
- *    1. Input graph is a DAG
- *    2. Nodes in the input graph has a minlen attribute
- *
- * Postconditions:
- *
- *    1. Input graph is connected.
- *    2. Dummy nodes are added for the tops and bottoms of subgraphs.
- *    3. The minlen attribute for nodes is adjusted to ensure nodes do not
- *       get placed on the same rank as subgraph border nodes.
- *
- * The nesting graph idea comes from Sander, "Layout of Compound Directed
- * Graphs."
- */
-function run(g) {
-  var root = util.addDummyNode(g, "root", {}, "_root"),
-      depths = treeDepths(g),
-      height = _.max(depths) - 1,
-      nodeSep = 2 * height + 1;
-
-  g.graph().nestingRoot = root;
-
-  // Multiply minlen by nodeSep to align nodes on non-border ranks.
-  _.each(g.edges(), function(e) { g.edge(e).minlen *= nodeSep; });
-
-  // Calculate a weight that is sufficient to keep subgraphs vertically compact
-  var weight = sumWeights(g) + 1;
-
-  // Create border nodes and link them up
-  _.each(g.children(), function(child) {
-    dfs(g, root, nodeSep, weight, height, depths, child);
-  });
-
-  // Save the multiplier for node layers for later removal of empty border
-  // layers.
-  g.graph().nodeRankFactor = nodeSep;
-}
-
-function dfs(g, root, nodeSep, weight, height, depths, v) {
-  var children = g.children(v);
-  if (!children.length) {
-    if (v !== root) {
-      g.setEdge(root, v, { weight: 0, minlen: nodeSep });
-    }
-    return;
-  }
-
-  var top = util.addBorderNode(g, "_bt"),
-      bottom = util.addBorderNode(g, "_bb"),
-      label = g.node(v);
-
-  g.setParent(top, v);
-  label.borderTop = top;
-  g.setParent(bottom, v);
-  label.borderBottom = bottom;
-
-  _.each(children, function(child) {
-    dfs(g, root, nodeSep, weight, height, depths, child);
-
-    var childNode = g.node(child),
-        childTop = childNode.borderTop ? childNode.borderTop : child,
-        childBottom = childNode.borderBottom ? childNode.borderBottom : child,
-        thisWeight = childNode.borderTop ? weight : 2 * weight,
-        minlen = childTop !== childBottom ? 1 : height - depths[v] + 1;
-
-    g.setEdge(top, childTop, {
-      weight: thisWeight,
-      minlen: minlen,
-      nestingEdge: true
-    });
-
-    g.setEdge(childBottom, bottom, {
-      weight: thisWeight,
-      minlen: minlen,
-      nestingEdge: true
-    });
-  });
-
-  if (!g.parent(v)) {
-    g.setEdge(root, top, { weight: 0, minlen: height + depths[v] });
-  }
-}
-
-function treeDepths(g) {
-  var depths = {};
-  function dfs(v, depth) {
-    var children = g.children(v);
-    if (children && children.length) {
-      _.each(children, function(child) {
-        dfs(child, depth + 1);
-      });
-    }
-    depths[v] = depth;
-  }
-  _.each(g.children(), function(v) { dfs(v, 1); });
-  return depths;
-}
-
-function sumWeights(g) {
-  return _.reduce(g.edges(), function(acc, e) {
-    return acc + g.edge(e).weight;
-  }, 0);
-}
-
-function cleanup(g) {
-  var graphLabel = g.graph();
-  g.removeNode(graphLabel.nestingRoot);
-  delete graphLabel.nestingRoot;
-  _.each(g.edges(), function(e) {
-    var edge = g.edge(e);
-    if (edge.nestingEdge) {
-      g.removeEdge(e);
-    }
-  });
-}
-
-},{"./lodash":63,"./util":82}],65:[function(require,module,exports){
-"use strict";
-
-var _ = require("./lodash"),
-    util = require("./util");
-
-module.exports = {
-  run: run,
-  undo: undo
-};
-
-/*
- * Breaks any long edges in the graph into short segments that span 1 layer
- * each. This operation is undoable with the denormalize function.
- *
- * Pre-conditions:
- *
- *    1. The input graph is a DAG.
- *    2. Each node in the graph has a "rank" property.
- *
- * Post-condition:
- *
- *    1. All edges in the graph have a length of 1.
- *    2. Dummy nodes are added where edges have been split into segments.
- *    3. The graph is augmented with a "dummyChains" attribute which contains
- *       the first dummy in each chain of dummy nodes produced.
- */
-function run(g) {
-  g.graph().dummyChains = [];
-  _.each(g.edges(), function(edge) { normalizeEdge(g, edge); });
-}
-
-function normalizeEdge(g, e) {
-  var v = e.v,
-      vRank = g.node(v).rank,
-      w = e.w,
-      wRank = g.node(w).rank,
-      name = e.name,
-      edgeLabel = g.edge(e),
-      labelRank = edgeLabel.labelRank;
-
-  if (wRank === vRank + 1) return;
-
-  g.removeEdge(e);
-
-  var dummy, attrs, i;
-  for (i = 0, ++vRank; vRank < wRank; ++i, ++vRank) {
-    edgeLabel.points = [];
-    attrs = {
-      width: 0, height: 0,
-      edgeLabel: edgeLabel, edgeObj: e,
-      rank: vRank
-    };
-    dummy = util.addDummyNode(g, "edge", attrs, "_d");
-    if (vRank === labelRank) {
-      attrs.width = edgeLabel.width;
-      attrs.height = edgeLabel.height;
-      attrs.dummy = "edge-label";
-      attrs.labelpos = edgeLabel.labelpos;
-    }
-    g.setEdge(v, dummy, { weight: edgeLabel.weight }, name);
-    if (i === 0) {
-      g.graph().dummyChains.push(dummy);
-    }
-    v = dummy;
-  }
-
-  g.setEdge(v, w, { weight: edgeLabel.weight }, name);
-}
-
-function undo(g) {
-  _.each(g.graph().dummyChains, function(v) {
-    var node = g.node(v),
-        origLabel = node.edgeLabel,
-        w;
-    g.setEdge(node.edgeObj, origLabel);
-    while (node.dummy) {
-      w = g.successors(v)[0];
-      g.removeNode(v);
-      origLabel.points.push({ x: node.x, y: node.y });
-      if (node.dummy === "edge-label") {
-        origLabel.x = node.x;
-        origLabel.y = node.y;
-        origLabel.width = node.width;
-        origLabel.height = node.height;
-      }
-      v = w;
-      node = g.node(v);
-    }
-  });
-}
-
-},{"./lodash":63,"./util":82}],66:[function(require,module,exports){
-var _ = require("../lodash");
-
-module.exports = addSubgraphConstraints;
-
-function addSubgraphConstraints(g, cg, vs) {
-  var prev = {},
-      rootPrev;
-
-  _.each(vs, function(v) {
-    var child = g.parent(v),
-        parent,
-        prevChild;
-    while (child) {
-      parent = g.parent(child);
-      if (parent) {
-        prevChild = prev[parent];
-        prev[parent] = child;
-      } else {
-        prevChild = rootPrev;
-        rootPrev = child;
-      }
-      if (prevChild && prevChild !== child) {
-        cg.setEdge(prevChild, child);
-        return;
-      }
-      child = parent;
-    }
-  });
-
-  /*
-  function dfs(v) {
-    var children = v ? g.children(v) : g.children();
-    if (children.length) {
-      var min = Number.POSITIVE_INFINITY,
-          subgraphs = [];
-      _.each(children, function(child) {
-        var childMin = dfs(child);
-        if (g.children(child).length) {
-          subgraphs.push({ v: child, order: childMin });
-        }
-        min = Math.min(min, childMin);
-      });
-      _.reduce(_.sortBy(subgraphs, "order"), function(prev, curr) {
-        cg.setEdge(prev.v, curr.v);
-        return curr;
-      });
-      return min;
-    }
-    return g.node(v).order;
-  }
-  dfs(undefined);
-  */
-}
-
-},{"../lodash":63}],67:[function(require,module,exports){
-var _ = require("../lodash");
-
-module.exports = barycenter;
-
-function barycenter(g, movable) {
-  return _.map(movable, function(v) {
-    var inV = g.inEdges(v);
-    if (!inV.length) {
-      return { v: v };
-    } else {
-      var result = _.reduce(inV, function(acc, e) {
-        var edge = g.edge(e),
-            nodeU = g.node(e.v);
-        return {
-          sum: acc.sum + (edge.weight * nodeU.order),
-          weight: acc.weight + edge.weight
-        };
-      }, { sum: 0, weight: 0 });
-
-      return {
-        v: v,
-        barycenter: result.sum / result.weight,
-        weight: result.weight
-      };
-    }
-  });
-}
-
-
-},{"../lodash":63}],68:[function(require,module,exports){
-var _ = require("../lodash"),
-    Graph = require("../graphlib").Graph;
-
-module.exports = buildLayerGraph;
-
-/*
- * Constructs a graph that can be used to sort a layer of nodes. The graph will
- * contain all base and subgraph nodes from the request layer in their original
- * hierarchy and any edges that are incident on these nodes and are of the type
- * requested by the "relationship" parameter.
- *
- * Nodes from the requested rank that do not have parents are assigned a root
- * node in the output graph, which is set in the root graph attribute. This
- * makes it easy to walk the hierarchy of movable nodes during ordering.
- *
- * Pre-conditions:
- *
- *    1. Input graph is a DAG
- *    2. Base nodes in the input graph have a rank attribute
- *    3. Subgraph nodes in the input graph has minRank and maxRank attributes
- *    4. Edges have an assigned weight
- *
- * Post-conditions:
- *
- *    1. Output graph has all nodes in the movable rank with preserved
- *       hierarchy.
- *    2. Root nodes in the movable layer are made children of the node
- *       indicated by the root attribute of the graph.
- *    3. Non-movable nodes incident on movable nodes, selected by the
- *       relationship parameter, are included in the graph (without hierarchy).
- *    4. Edges incident on movable nodes, selected by the relationship
- *       parameter, are added to the output graph.
- *    5. The weights for copied edges are aggregated as need, since the output
- *       graph is not a multi-graph.
- */
-function buildLayerGraph(g, rank, relationship) {
-  var root = createRootNode(g),
-      result = new Graph({ compound: true }).setGraph({ root: root })
-                  .setDefaultNodeLabel(function(v) { return g.node(v); });
-
-  _.each(g.nodes(), function(v) {
-    var node = g.node(v),
-        parent = g.parent(v);
-
-    if (node.rank === rank || node.minRank <= rank && rank <= node.maxRank) {
-      result.setNode(v);
-      result.setParent(v, parent || root);
-
-      // This assumes we have only short edges!
-      _.each(g[relationship](v), function(e) {
-        var u = e.v === v ? e.w : e.v,
-            edge = result.edge(u, v),
-            weight = !_.isUndefined(edge) ? edge.weight : 0;
-        result.setEdge(u, v, { weight: g.edge(e).weight + weight });
-      });
-
-      if (_.has(node, "minRank")) {
-        result.setNode(v, {
-          borderLeft: node.borderLeft[rank],
-          borderRight: node.borderRight[rank]
-        });
-      }
-    }
-  });
-
-  return result;
-}
-
-function createRootNode(g) {
-  var v;
-  while (g.hasNode((v = _.uniqueId("_root"))));
-  return v;
-}
-
-},{"../graphlib":60,"../lodash":63}],69:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash");
-
-module.exports = crossCount;
-
-/*
- * A function that takes a layering (an array of layers, each with an array of
- * ordererd nodes) and a graph and returns a weighted crossing count.
- *
- * Pre-conditions:
- *
- *    1. Input graph must be simple (not a multigraph), directed, and include
- *       only simple edges.
- *    2. Edges in the input graph must have assigned weights.
- *
- * Post-conditions:
- *
- *    1. The graph and layering matrix are left unchanged.
- *
- * This algorithm is derived from Barth, et al., "Bilayer Cross Counting."
- */
-function crossCount(g, layering) {
-  var cc = 0;
-  for (var i = 1; i < layering.length; ++i) {
-    cc += twoLayerCrossCount(g, layering[i-1], layering[i]);
-  }
-  return cc;
-}
-
-function twoLayerCrossCount(g, northLayer, southLayer) {
-  // Sort all of the edges between the north and south layers by their position
-  // in the north layer and then the south. Map these edges to the position of
-  // their head in the south layer.
-  var southPos = _.zipObject(southLayer,
-                             _.map(southLayer, function (v, i) { return i; }));
-  var southEntries = _.flatten(_.map(northLayer, function(v) {
-    return _.chain(g.outEdges(v))
-            .map(function(e) {
-              return { pos: southPos[e.w], weight: g.edge(e).weight };
-            })
-            .sortBy("pos")
-            .value();
-  }), true);
-
-  // Build the accumulator tree
-  var firstIndex = 1;
-  while (firstIndex < southLayer.length) firstIndex <<= 1;
-  var treeSize = 2 * firstIndex - 1;
-  firstIndex -= 1;
-  var tree = _.map(new Array(treeSize), function() { return 0; });
-
-  // Calculate the weighted crossings
-  var cc = 0;
-  _.each(southEntries.forEach(function(entry) {
-    var index = entry.pos + firstIndex;
-    tree[index] += entry.weight;
-    var weightSum = 0;
-    while (index > 0) {
-      if (index % 2) {
-        weightSum += tree[index + 1];
-      }
-      index = (index - 1) >> 1;
-      tree[index] += entry.weight;
-    }
-    cc += entry.weight * weightSum;
-  }));
-
-  return cc;
-}
-
-},{"../lodash":63}],70:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash"),
-    initOrder = require("./init-order"),
-    crossCount = require("./cross-count"),
-    sortSubgraph = require("./sort-subgraph"),
-    buildLayerGraph = require("./build-layer-graph"),
-    addSubgraphConstraints = require("./add-subgraph-constraints"),
-    Graph = require("../graphlib").Graph,
-    util = require("../util");
-
-module.exports = order;
-
-/*
- * Applies heuristics to minimize edge crossings in the graph and sets the best
- * order solution as an order attribute on each node.
- *
- * Pre-conditions:
- *
- *    1. Graph must be DAG
- *    2. Graph nodes must be objects with a "rank" attribute
- *    3. Graph edges must have the "weight" attribute
- *
- * Post-conditions:
- *
- *    1. Graph nodes will have an "order" attribute based on the results of the
- *       algorithm.
- */
-function order(g) {
-  var maxRank = util.maxRank(g),
-      downLayerGraphs = buildLayerGraphs(g, _.range(1, maxRank + 1), "inEdges"),
-      upLayerGraphs = buildLayerGraphs(g, _.range(maxRank - 1, -1, -1), "outEdges");
-
-  var layering = initOrder(g);
-  assignOrder(g, layering);
-
-  var bestCC = Number.POSITIVE_INFINITY,
-      best;
-
-  for (var i = 0, lastBest = 0; lastBest < 4; ++i, ++lastBest) {
-    sweepLayerGraphs(i % 2 ? downLayerGraphs : upLayerGraphs, i % 4 >= 2);
-
-    layering = util.buildLayerMatrix(g);
-    var cc = crossCount(g, layering);
-    if (cc < bestCC) {
-      lastBest = 0;
-      best = _.cloneDeep(layering);
-      bestCC = cc;
-    }
-  }
-
-  assignOrder(g, best);
-}
-
-function buildLayerGraphs(g, ranks, relationship) {
-  return _.map(ranks, function(rank) {
-    return buildLayerGraph(g, rank, relationship);
-  });
-}
-
-function sweepLayerGraphs(layerGraphs, biasRight) {
-  var cg = new Graph();
-  _.each(layerGraphs, function(lg) {
-    var root = lg.graph().root;
-    var sorted = sortSubgraph(lg, root, cg, biasRight);
-    _.each(sorted.vs, function(v, i) {
-      lg.node(v).order = i;
-    });
-    addSubgraphConstraints(lg, cg, sorted.vs);
-  });
-}
-
-function assignOrder(g, layering) {
-  _.each(layering, function(layer) {
-    _.each(layer, function(v, i) {
-      g.node(v).order = i;
-    });
-  });
-}
-
-},{"../graphlib":60,"../lodash":63,"../util":82,"./add-subgraph-constraints":66,"./build-layer-graph":68,"./cross-count":69,"./init-order":71,"./sort-subgraph":73}],71:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash");
-
-module.exports = initOrder;
-
-/*
- * Assigns an initial order value for each node by performing a DFS search
- * starting from nodes in the first rank. Nodes are assigned an order in their
- * rank as they are first visited.
- *
- * This approach comes from Gansner, et al., "A Technique for Drawing Directed
- * Graphs."
- *
- * Returns a layering matrix with an array per layer and each layer sorted by
- * the order of its nodes.
- */
-function initOrder(g) {
-  var visited = {},
-      simpleNodes = _.filter(g.nodes(), function(v) {
-        return !g.children(v).length;
-      }),
-      maxRank = _.max(_.map(simpleNodes, function(v) { return g.node(v).rank; })),
-      layers = _.map(_.range(maxRank + 1), function() { return []; });
-
-  function dfs(v) {
-    if (_.has(visited, v)) return;
-    visited[v] = true;
-    var node = g.node(v);
-    layers[node.rank].push(v);
-    _.each(g.successors(v), dfs);
-  }
-
-  var orderedVs = _.sortBy(simpleNodes, function(v) { return g.node(v).rank; });
-  _.each(orderedVs, dfs);
-
-  return layers;
-}
-
-},{"../lodash":63}],72:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash");
-
-module.exports = resolveConflicts;
-
-/*
- * Given a list of entries of the form {v, barycenter, weight} and a
- * constraint graph this function will resolve any conflicts between the
- * constraint graph and the barycenters for the entries. If the barycenters for
- * an entry would violate a constraint in the constraint graph then we coalesce
- * the nodes in the conflict into a new node that respects the contraint and
- * aggregates barycenter and weight information.
- *
- * This implementation is based on the description in Forster, "A Fast and
- * Simple Hueristic for Constrained Two-Level Crossing Reduction," thought it
- * differs in some specific details.
- *
- * Pre-conditions:
- *
- *    1. Each entry has the form {v, barycenter, weight}, or if the node has
- *       no barycenter, then {v}.
- *
- * Returns:
- *
- *    A new list of entries of the form {vs, i, barycenter, weight}. The list
- *    `vs` may either be a singleton or it may be an aggregation of nodes
- *    ordered such that they do not violate constraints from the constraint
- *    graph. The property `i` is the lowest original index of any of the
- *    elements in `vs`.
- */
-function resolveConflicts(entries, cg) {
-  var mappedEntries = {};
-  _.each(entries, function(entry, i) {
-    var tmp = mappedEntries[entry.v] = {
-      indegree: 0,
-      "in": [],
-      out: [],
-      vs: [entry.v],
-      i: i
-    };
-    if (!_.isUndefined(entry.barycenter)) {
-      tmp.barycenter = entry.barycenter;
-      tmp.weight = entry.weight;
-    }
-  });
-
-  _.each(cg.edges(), function(e) {
-    var entryV = mappedEntries[e.v],
-        entryW = mappedEntries[e.w];
-    if (!_.isUndefined(entryV) && !_.isUndefined(entryW)) {
-      entryW.indegree++;
-      entryV.out.push(mappedEntries[e.w]);
-    }
-  });
-
-  var sourceSet = _.filter(mappedEntries, function(entry) {
-    return !entry.indegree;
-  });
-
-  return doResolveConflicts(sourceSet);
-}
-
-function doResolveConflicts(sourceSet) {
-  var entries = [];
-
-  function handleIn(vEntry) {
-    return function(uEntry) {
-      if (uEntry.merged) {
-        return;
-      }
-      if (_.isUndefined(uEntry.barycenter) ||
-          _.isUndefined(vEntry.barycenter) ||
-          uEntry.barycenter >= vEntry.barycenter) {
-        mergeEntries(vEntry, uEntry);
-      }
-    };
-  }
-
-  function handleOut(vEntry) {
-    return function(wEntry) {
-      wEntry["in"].push(vEntry);
-      if (--wEntry.indegree === 0) {
-        sourceSet.push(wEntry);
-      }
-    };
-  }
-
-  while (sourceSet.length) {
-    var entry = sourceSet.pop();
-    entries.push(entry);
-    _.each(entry["in"].reverse(), handleIn(entry));
-    _.each(entry.out, handleOut(entry));
-  }
-
-  return _.chain(entries)
-          .filter(function(entry) { return !entry.merged; })
-          .map(function(entry) {
-            return _.pick(entry, ["vs", "i", "barycenter", "weight"]);
-          })
-          .value();
-}
-
-function mergeEntries(target, source) {
-  var sum = 0,
-      weight = 0;
-
-  if (target.weight) {
-    sum += target.barycenter * target.weight;
-    weight += target.weight;
-  }
-
-  if (source.weight) {
-    sum += source.barycenter * source.weight;
-    weight += source.weight;
-  }
-
-  target.vs = source.vs.concat(target.vs);
-  target.barycenter = sum / weight;
-  target.weight = weight;
-  target.i = Math.min(source.i, target.i);
-  source.merged = true;
-}
-
-},{"../lodash":63}],73:[function(require,module,exports){
-var _ = require("../lodash"),
-    barycenter = require("./barycenter"),
-    resolveConflicts = require("./resolve-conflicts"),
-    sort = require("./sort");
-
-module.exports = sortSubgraph;
-
-function sortSubgraph(g, v, cg, biasRight) {
-  var movable = g.children(v),
-      node = g.node(v),
-      bl = node ? node.borderLeft : undefined,
-      br = node ? node.borderRight: undefined,
-      subgraphs = {};
-
-  if (bl) {
-    movable = _.filter(movable, function(w) {
-      return w !== bl && w !== br;
-    });
-  }
-
-  var barycenters = barycenter(g, movable);
-  _.each(barycenters, function(entry) {
-    if (g.children(entry.v).length) {
-      var subgraphResult = sortSubgraph(g, entry.v, cg, biasRight);
-      subgraphs[entry.v] = subgraphResult;
-      if (_.has(subgraphResult, "barycenter")) {
-        mergeBarycenters(entry, subgraphResult);
-      }
-    }
-  });
-
-  var entries = resolveConflicts(barycenters, cg);
-  expandSubgraphs(entries, subgraphs);
-
-  var result = sort(entries, biasRight);
-
-  if (bl) {
-    result.vs = _.flatten([bl, result.vs, br], true);
-    if (g.predecessors(bl).length) {
-      var blPred = g.node(g.predecessors(bl)[0]),
-          brPred = g.node(g.predecessors(br)[0]);
-      if (!_.has(result, "barycenter")) {
-        result.barycenter = 0;
-        result.weight = 0;
-      }
-      result.barycenter = (result.barycenter * result.weight +
-                           blPred.order + brPred.order) / (result.weight + 2);
-      result.weight += 2;
-    }
-  }
-
-  return result;
-}
-
-function expandSubgraphs(entries, subgraphs) {
-  _.each(entries, function(entry) {
-    entry.vs = _.flatten(entry.vs.map(function(v) {
-      if (subgraphs[v]) {
-        return subgraphs[v].vs;
-      }
-      return v;
-    }), true);
-  });
-}
-
-function mergeBarycenters(target, other) {
-  if (!_.isUndefined(target.barycenter)) {
-    target.barycenter = (target.barycenter * target.weight +
-                         other.barycenter * other.weight) /
-                        (target.weight + other.weight);
-    target.weight += other.weight;
-  } else {
-    target.barycenter = other.barycenter;
-    target.weight = other.weight;
-  }
-}
-
-},{"../lodash":63,"./barycenter":67,"./resolve-conflicts":72,"./sort":74}],74:[function(require,module,exports){
-var _ = require("../lodash"),
-    util = require("../util");
-
-module.exports = sort;
-
-function sort(entries, biasRight) {
-  var parts = util.partition(entries, function(entry) {
-    return _.has(entry, "barycenter");
-  });
-  var sortable = parts.lhs,
-      unsortable = _.sortBy(parts.rhs, function(entry) { return -entry.i; }),
-      vs = [],
-      sum = 0,
-      weight = 0,
-      vsIndex = 0;
-
-  sortable.sort(compareWithBias(!!biasRight));
-
-  vsIndex = consumeUnsortable(vs, unsortable, vsIndex);
-
-  _.each(sortable, function (entry) {
-    vsIndex += entry.vs.length;
-    vs.push(entry.vs);
-    sum += entry.barycenter * entry.weight;
-    weight += entry.weight;
-    vsIndex = consumeUnsortable(vs, unsortable, vsIndex);
-  });
-
-  var result = { vs: _.flatten(vs, true) };
-  if (weight) {
-    result.barycenter = sum / weight;
-    result.weight = weight;
-  }
-  return result;
-}
-
-function consumeUnsortable(vs, unsortable, index) {
-  var last;
-  while (unsortable.length && (last = _.last(unsortable)).i <= index) {
-    unsortable.pop();
-    vs.push(last.vs);
-    index++;
-  }
-  return index;
-}
-
-function compareWithBias(bias) {
-  return function(entryV, entryW) {
-    if (entryV.barycenter < entryW.barycenter) {
-      return -1;
-    } else if (entryV.barycenter > entryW.barycenter) {
-      return 1;
-    }
-
-    return !bias ? entryV.i - entryW.i : entryW.i - entryV.i;
-  };
-}
-
-},{"../lodash":63,"../util":82}],75:[function(require,module,exports){
-var _ = require("./lodash");
-
-module.exports = parentDummyChains;
-
-function parentDummyChains(g) {
-  var postorderNums = postorder(g);
-
-  _.each(g.graph().dummyChains, function(v) {
-    var node = g.node(v),
-        edgeObj = node.edgeObj,
-        pathData = findPath(g, postorderNums, edgeObj.v, edgeObj.w),
-        path = pathData.path,
-        lca = pathData.lca,
-        pathIdx = 0,
-        pathV = path[pathIdx],
-        ascending = true;
-
-    while (v !== edgeObj.w) {
-      node = g.node(v);
-
-      if (ascending) {
-        while ((pathV = path[pathIdx]) !== lca &&
-               g.node(pathV).maxRank < node.rank) {
-          pathIdx++;
-        }
-
-        if (pathV === lca) {
-          ascending = false;
-        }
-      }
-
-      if (!ascending) {
-        while (pathIdx < path.length - 1 &&
-               g.node(pathV = path[pathIdx + 1]).minRank <= node.rank) {
-          pathIdx++;
-        }
-        pathV = path[pathIdx];
-      }
-
-      g.setParent(v, pathV);
-      v = g.successors(v)[0];
-    }
-  });
-}
-
-// Find a path from v to w through the lowest common ancestor (LCA). Return the
-// full path and the LCA.
-function findPath(g, postorderNums, v, w) {
-  var vPath = [],
-      wPath = [],
-      low = Math.min(postorderNums[v].low, postorderNums[w].low),
-      lim = Math.max(postorderNums[v].lim, postorderNums[w].lim),
-      parent,
-      lca;
-
-  // Traverse up from v to find the LCA
-  parent = v;
-  do {
-    parent = g.parent(parent);
-    vPath.push(parent);
-  } while (parent &&
-           (postorderNums[parent].low > low || lim > postorderNums[parent].lim));
-  lca = parent;
-
-  // Traverse from w to LCA
-  parent = w;
-  while ((parent = g.parent(parent)) !== lca) {
-    wPath.push(parent);
-  }
-
-  return { path: vPath.concat(wPath.reverse()), lca: lca };
-}
-
-function postorder(g) {
-  var result = {},
-      lim = 0;
-
-  function dfs(v) {
-    var low = lim;
-    _.each(g.children(v), dfs);
-    result[v] = { low: low, lim: lim++ };
-  }
-  _.each(g.children(), dfs);
-
-  return result;
-}
-
-},{"./lodash":63}],76:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash"),
-    Graph = require("../graphlib").Graph,
-    util = require("../util");
-
-/*
- * This module provides coordinate assignment based on Brandes and Köpf, "Fast
- * and Simple Horizontal Coordinate Assignment."
- */
-
-module.exports = {
-  positionX: positionX,
-  findType1Conflicts: findType1Conflicts,
-  findType2Conflicts: findType2Conflicts,
-  addConflict: addConflict,
-  hasConflict: hasConflict,
-  verticalAlignment: verticalAlignment,
-  horizontalCompaction: horizontalCompaction,
-  alignCoordinates: alignCoordinates,
-  findSmallestWidthAlignment: findSmallestWidthAlignment,
-  balance: balance
-};
-
-/*
- * Marks all edges in the graph with a type-1 conflict with the "type1Conflict"
- * property. A type-1 conflict is one where a non-inner segment crosses an
- * inner segment. An inner segment is an edge with both incident nodes marked
- * with the "dummy" property.
- *
- * This algorithm scans layer by layer, starting with the second, for type-1
- * conflicts between the current layer and the previous layer. For each layer
- * it scans the nodes from left to right until it reaches one that is incident
- * on an inner segment. It then scans predecessors to determine if they have
- * edges that cross that inner segment. At the end a final scan is done for all
- * nodes on the current rank to see if they cross the last visited inner
- * segment.
- *
- * This algorithm (safely) assumes that a dummy node will only be incident on a
- * single node in the layers being scanned.
- */
-function findType1Conflicts(g, layering) {
-  var conflicts = {};
-
-  function visitLayer(prevLayer, layer) {
-    var
-      // last visited node in the previous layer that is incident on an inner
-      // segment.
-      k0 = 0,
-      // Tracks the last node in this layer scanned for crossings with a type-1
-      // segment.
-      scanPos = 0,
-      prevLayerLength = prevLayer.length,
-      lastNode = _.last(layer);
-
-    _.each(layer, function(v, i) {
-      var w = findOtherInnerSegmentNode(g, v),
-          k1 = w ? g.node(w).order : prevLayerLength;
-
-      if (w || v === lastNode) {
-        _.each(layer.slice(scanPos, i +1), function(scanNode) {
-          _.each(g.predecessors(scanNode), function(u) {
-            var uLabel = g.node(u),
-                uPos = uLabel.order;
-            if ((uPos < k0 || k1 < uPos) &&
-                !(uLabel.dummy && g.node(scanNode).dummy)) {
-              addConflict(conflicts, u, scanNode);
-            }
-          });
-        });
-        scanPos = i + 1;
-        k0 = k1;
-      }
-    });
-
-    return layer;
-  }
-
-  _.reduce(layering, visitLayer);
-  return conflicts;
-}
-
-function findType2Conflicts(g, layering) {
-  var conflicts = {};
-
-  function scan(south, southPos, southEnd, prevNorthBorder, nextNorthBorder) {
-    var v;
-    _.each(_.range(southPos, southEnd), function(i) {
-      v = south[i];
-      if (g.node(v).dummy) {
-        _.each(g.predecessors(v), function(u) {
-          var uNode = g.node(u);
-          if (uNode.dummy &&
-              (uNode.order < prevNorthBorder || uNode.order > nextNorthBorder)) {
-            addConflict(conflicts, u, v);
-          }
-        });
-      }
-    });
-  }
-
-
-  function visitLayer(north, south) {
-    var prevNorthPos = -1,
-        nextNorthPos,
-        southPos = 0;
-
-    _.each(south, function(v, southLookahead) {
-      if (g.node(v).dummy === "border") {
-        var predecessors = g.predecessors(v);
-        if (predecessors.length) {
-          nextNorthPos = g.node(predecessors[0]).order;
-          scan(south, southPos, southLookahead, prevNorthPos, nextNorthPos);
-          southPos = southLookahead;
-          prevNorthPos = nextNorthPos;
-        }
-      }
-      scan(south, southPos, south.length, nextNorthPos, north.length);
-    });
-
-    return south;
-  }
-
-  _.reduce(layering, visitLayer);
-  return conflicts;
-}
-
-function findOtherInnerSegmentNode(g, v) {
-  if (g.node(v).dummy) {
-    return _.find(g.predecessors(v), function(u) {
-      return g.node(u).dummy;
-    });
-  }
-}
-
-function addConflict(conflicts, v, w) {
-  if (v > w) {
-    var tmp = v;
-    v = w;
-    w = tmp;
-  }
-
-  var conflictsV = conflicts[v];
-  if (!conflictsV) {
-    conflicts[v] = conflictsV = {};
-  }
-  conflictsV[w] = true;
-}
-
-function hasConflict(conflicts, v, w) {
-  if (v > w) {
-    var tmp = v;
-    v = w;
-    w = tmp;
-  }
-  return _.has(conflicts[v], w);
-}
-
-/*
- * Try to align nodes into vertical "blocks" where possible. This algorithm
- * attempts to align a node with one of its median neighbors. If the edge
- * connecting a neighbor is a type-1 conflict then we ignore that possibility.
- * If a previous node has already formed a block with a node after the node
- * we're trying to form a block with, we also ignore that possibility - our
- * blocks would be split in that scenario.
- */
-function verticalAlignment(g, layering, conflicts, neighborFn) {
-  var root = {},
-      align = {},
-      pos = {};
-
-  // We cache the position here based on the layering because the graph and
-  // layering may be out of sync. The layering matrix is manipulated to
-  // generate different extreme alignments.
-  _.each(layering, function(layer) {
-    _.each(layer, function(v, order) {
-      root[v] = v;
-      align[v] = v;
-      pos[v] = order;
-    });
-  });
-
-  _.each(layering, function(layer) {
-    var prevIdx = -1;
-    _.each(layer, function(v) {
-      var ws = neighborFn(v);
-      if (ws.length) {
-        ws = _.sortBy(ws, function(w) { return pos[w]; });
-        var mp = (ws.length - 1) / 2;
-        for (var i = Math.floor(mp), il = Math.ceil(mp); i <= il; ++i) {
-          var w = ws[i];
-          if (align[v] === v &&
-              prevIdx < pos[w] &&
-              !hasConflict(conflicts, v, w)) {
-            align[w] = v;
-            align[v] = root[v] = root[w];
-            prevIdx = pos[w];
-          }
-        }
-      }
-    });
-  });
-
-  return { root: root, align: align };
-}
-
-function horizontalCompaction(g, layering, root, align, reverseSep) {
-  // This portion of the algorithm differs from BK due to a number of problems.
-  // Instead of their algorithm we construct a new block graph and do two
-  // sweeps. The first sweep places blocks with the smallest possible
-  // coordinates. The second sweep removes unused space by moving blocks to the
-  // greatest coordinates without violating separation.
-  var xs = {},
-      blockG = buildBlockGraph(g, layering, root, reverseSep);
-
-  // First pass, assign smallest coordinates via DFS
-  var visited = {};
-  function pass1(v) {
-    if (!_.has(visited, v)) {
-      visited[v] = true;
-      xs[v] = _.reduce(blockG.inEdges(v), function(max, e) {
-        pass1(e.v);
-        return Math.max(max, xs[e.v] + blockG.edge(e));
-      }, 0);
-    }
-  }
-  _.each(blockG.nodes(), pass1);
-
-  var borderType = reverseSep ? "borderLeft" : "borderRight";
-  function pass2(v) {
-    if (visited[v] !== 2) {
-      visited[v]++;
-      var node = g.node(v);
-      var min = _.reduce(blockG.outEdges(v), function(min, e) {
-        pass2(e.w);
-        return Math.min(min, xs[e.w] - blockG.edge(e));
-      }, Number.POSITIVE_INFINITY);
-      if (min !== Number.POSITIVE_INFINITY && node.borderType !== borderType) {
-        xs[v] = Math.max(xs[v], min);
-      }
-    }
-  }
-  _.each(blockG.nodes(), pass2);
-
-  // Assign x coordinates to all nodes
-  _.each(align, function(v) {
-    xs[v] = xs[root[v]];
-  });
-
-  return xs;
-}
-
-
-function buildBlockGraph(g, layering, root, reverseSep) {
-  var blockGraph = new Graph(),
-      graphLabel = g.graph(),
-      sepFn = sep(graphLabel.nodesep, graphLabel.edgesep, reverseSep);
-
-  _.each(layering, function(layer) {
-    var u;
-    _.each(layer, function(v) {
-      var vRoot = root[v];
-      blockGraph.setNode(vRoot);
-      if (u) {
-        var uRoot = root[u],
-            prevMax = blockGraph.edge(uRoot, vRoot);
-        blockGraph.setEdge(uRoot, vRoot, Math.max(sepFn(g, v, u), prevMax || 0));
-      }
-      u = v;
-    });
-  });
-
-  return blockGraph;
-}
-
-/*
- * Returns the alignment that has the smallest width of the given alignments.
- */
-function findSmallestWidthAlignment(g, xss) {
-  return _.min(xss, function(xs) {
-    var min = _.min(xs, function(x, v) { return x - width(g, v) / 2; }),
-        max = _.max(xs, function(x, v) { return x + width(g, v) / 2; });
-    return max - min;
-  });
-}
-
-/*
- * Align the coordinates of each of the layout alignments such that
- * left-biased alignments have their minimum coordinate at the same point as
- * the minimum coordinate of the smallest width alignment and right-biased
- * alignments have their maximum coordinate at the same point as the maximum
- * coordinate of the smallest width alignment.
- */
-function alignCoordinates(xss, alignTo) {
-  var alignToMin = _.min(alignTo),
-      alignToMax = _.max(alignTo);
-
-  _.each(["u", "d"], function(vert) {
-    _.each(["l", "r"], function(horiz) {
-      var alignment = vert + horiz,
-          xs = xss[alignment],
-          delta;
-      if (xs === alignTo) return;
-
-      delta = horiz === "l" ? alignToMin - _.min(xs) : alignToMax - _.max(xs);
-
-      if (delta) {
-        xss[alignment] = _.mapValues(xs, function(x) { return x + delta; });
-      }
-    });
-  });
-}
-
-function balance(xss, align) {
-  return _.mapValues(xss.ul, function(ignore, v) {
-    if (align) {
-      return xss[align.toLowerCase()][v];
-    } else {
-      var xs = _.sortBy(_.pluck(xss, v));
-      return (xs[1] + xs[2]) / 2;
-    }
-  });
-}
-
-function positionX(g) {
-  var layering = util.buildLayerMatrix(g),
-      conflicts = _.merge(findType1Conflicts(g, layering),
-                          findType2Conflicts(g, layering));
-
-  var xss = {},
-      adjustedLayering;
-  _.each(["u", "d"], function(vert) {
-    adjustedLayering = vert === "u" ? layering : _.values(layering).reverse();
-    _.each(["l", "r"], function(horiz) {
-      if (horiz === "r") {
-        adjustedLayering = _.map(adjustedLayering, function(inner) {
-          return _.values(inner).reverse();
-        });
-      }
-
-      var neighborFn = _.bind(vert === "u" ? g.predecessors : g.successors, g);
-      var align = verticalAlignment(g, adjustedLayering, conflicts, neighborFn);
-      var xs = horizontalCompaction(g, adjustedLayering,
-                                    align.root, align.align,
-                                    horiz === "r");
-      if (horiz === "r") {
-        xs = _.mapValues(xs, function(x) { return -x; });
-      }
-      xss[vert + horiz] = xs;
-    });
-  });
-
-  var smallestWidth = findSmallestWidthAlignment(g, xss);
-  alignCoordinates(xss, smallestWidth);
-  return balance(xss, g.graph().align);
-}
-
-function sep(nodeSep, edgeSep, reverseSep) {
-  return function(g, v, w) {
-    var vLabel = g.node(v),
-        wLabel = g.node(w),
-        sum = 0,
-        delta;
-
-    sum += vLabel.width / 2;
-    if (_.has(vLabel, "labelpos")) {
-      switch (vLabel.labelpos.toLowerCase()) {
-        case "l": delta = -vLabel.width / 2; break;
-        case "r": delta = vLabel.width / 2; break;
-      }
-    }
-    if (delta) {
-      sum += reverseSep ? delta : -delta;
-    }
-    delta = 0;
-
-    sum += (vLabel.dummy ? edgeSep : nodeSep) / 2;
-    sum += (wLabel.dummy ? edgeSep : nodeSep) / 2;
-
-    sum += wLabel.width / 2;
-    if (_.has(wLabel, "labelpos")) {
-      switch (wLabel.labelpos.toLowerCase()) {
-        case "l": delta = wLabel.width / 2; break;
-        case "r": delta = -wLabel.width / 2; break;
-      }
-    }
-    if (delta) {
-      sum += reverseSep ? delta : -delta;
-    }
-    delta = 0;
-
-    return sum;
-  };
-}
-
-function width(g, v) {
-  return g.node(v).width;
-}
-
-},{"../graphlib":60,"../lodash":63,"../util":82}],77:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash"),
-    util = require("../util"),
-    positionX = require("./bk").positionX;
-
-module.exports = position;
-
-function position(g) {
-  g = util.asNonCompoundGraph(g);
-
-  positionY(g);
-  _.each(positionX(g), function(x, v) {
-    g.node(v).x = x;
-  });
-}
-
-function positionY(g) {
-  var layering = util.buildLayerMatrix(g),
-      rankSep = g.graph().ranksep,
-      prevY = 0;
-  _.each(layering, function(layer) {
-    var maxHeight = _.max(_.map(layer, function(v) { return g.node(v).height; }));
-    _.each(layer, function(v) {
-      g.node(v).y = prevY + maxHeight / 2;
-    });
-    prevY += maxHeight + rankSep;
-  });
-}
-
-
-},{"../lodash":63,"../util":82,"./bk":76}],78:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash"),
-    Graph = require("../graphlib").Graph,
-    slack = require("./util").slack;
-
-module.exports = feasibleTree;
-
-/*
- * Constructs a spanning tree with tight edges and adjusted the input node's
- * ranks to achieve this. A tight edge is one that is has a length that matches
- * its "minlen" attribute.
- *
- * The basic structure for this function is derived from Gansner, et al., "A
- * Technique for Drawing Directed Graphs."
- *
- * Pre-conditions:
- *
- *    1. Graph must be a DAG.
- *    2. Graph must be connected.
- *    3. Graph must have at least one node.
- *    5. Graph nodes must have been previously assigned a "rank" property that
- *       respects the "minlen" property of incident edges.
- *    6. Graph edges must have a "minlen" property.
- *
- * Post-conditions:
- *
- *    - Graph nodes will have their rank adjusted to ensure that all edges are
- *      tight.
- *
- * Returns a tree (undirected graph) that is constructed using only "tight"
- * edges.
- */
-function feasibleTree(g) {
-  var t = new Graph({ directed: false });
-
-  // Choose arbitrary node from which to start our tree
-  var start = g.nodes()[0],
-      size = g.nodeCount();
-  t.setNode(start, {});
-
-  var edge, delta;
-  while (tightTree(t, g) < size) {
-    edge = findMinSlackEdge(t, g);
-    delta = t.hasNode(edge.v) ? slack(g, edge) : -slack(g, edge);
-    shiftRanks(t, g, delta);
-  }
-
-  return t;
-}
-
-/*
- * Finds a maximal tree of tight edges and returns the number of nodes in the
- * tree.
- */
-function tightTree(t, g) {
-  function dfs(v) {
-    _.each(g.nodeEdges(v), function(e) {
-      var edgeV = e.v,
-          w = (v === edgeV) ? e.w : edgeV;
-      if (!t.hasNode(w) && !slack(g, e)) {
-        t.setNode(w, {});
-        t.setEdge(v, w, {});
-        dfs(w);
-      }
-    });
-  }
-
-  _.each(t.nodes(), dfs);
-  return t.nodeCount();
-}
-
-/*
- * Finds the edge with the smallest slack that is incident on tree and returns
- * it.
- */
-function findMinSlackEdge(t, g) {
-  return _.min(g.edges(), function(e) {
-    if (t.hasNode(e.v) !== t.hasNode(e.w)) {
-      return slack(g, e);
-    }
-  });
-}
-
-function shiftRanks(t, g, delta) {
-  _.each(t.nodes(), function(v) {
-    g.node(v).rank += delta;
-  });
-}
-
-},{"../graphlib":60,"../lodash":63,"./util":81}],79:[function(require,module,exports){
-"use strict";
-
-var rankUtil = require("./util"),
-    longestPath = rankUtil.longestPath,
-    feasibleTree = require("./feasible-tree"),
-    networkSimplex = require("./network-simplex");
-
-module.exports = rank;
-
-/*
- * Assigns a rank to each node in the input graph that respects the "minlen"
- * constraint specified on edges between nodes.
- *
- * This basic structure is derived from Gansner, et al., "A Technique for
- * Drawing Directed Graphs."
- *
- * Pre-conditions:
- *
- *    1. Graph must be a connected DAG
- *    2. Graph nodes must be objects
- *    3. Graph edges must have "weight" and "minlen" attributes
- *
- * Post-conditions:
- *
- *    1. Graph nodes will have a "rank" attribute based on the results of the
- *       algorithm. Ranks can start at any index (including negative), we'll
- *       fix them up later.
- */
-function rank(g) {
-  switch(g.graph().ranker) {
-    case "network-simplex": networkSimplexRanker(g); break;
-    case "tight-tree": tightTreeRanker(g); break;
-    case "longest-path": longestPathRanker(g); break;
-    default: networkSimplexRanker(g);
-  }
-}
-
-// A fast and simple ranker, but results are far from optimal.
-var longestPathRanker = longestPath;
-
-function tightTreeRanker(g) {
-  longestPath(g);
-  feasibleTree(g);
-}
-
-function networkSimplexRanker(g) {
-  networkSimplex(g);
-}
-
-},{"./feasible-tree":78,"./network-simplex":80,"./util":81}],80:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash"),
-    feasibleTree = require("./feasible-tree"),
-    slack = require("./util").slack,
-    initRank = require("./util").longestPath,
-    preorder = require("../graphlib").alg.preorder,
-    postorder = require("../graphlib").alg.postorder,
-    simplify = require("../util").simplify;
-
-module.exports = networkSimplex;
-
-// Expose some internals for testing purposes
-networkSimplex.initLowLimValues = initLowLimValues;
-networkSimplex.initCutValues = initCutValues;
-networkSimplex.calcCutValue = calcCutValue;
-networkSimplex.leaveEdge = leaveEdge;
-networkSimplex.enterEdge = enterEdge;
-networkSimplex.exchangeEdges = exchangeEdges;
-
-/*
- * The network simplex algorithm assigns ranks to each node in the input graph
- * and iteratively improves the ranking to reduce the length of edges.
- *
- * Preconditions:
- *
- *    1. The input graph must be a DAG.
- *    2. All nodes in the graph must have an object value.
- *    3. All edges in the graph must have "minlen" and "weight" attributes.
- *
- * Postconditions:
- *
- *    1. All nodes in the graph will have an assigned "rank" attribute that has
- *       been optimized by the network simplex algorithm. Ranks start at 0.
- *
- *
- * A rough sketch of the algorithm is as follows:
- *
- *    1. Assign initial ranks to each node. We use the longest path algorithm,
- *       which assigns ranks to the lowest position possible. In general this
- *       leads to very wide bottom ranks and unnecessarily long edges.
- *    2. Construct a feasible tight tree. A tight tree is one such that all
- *       edges in the tree have no slack (difference between length of edge
- *       and minlen for the edge). This by itself greatly improves the assigned
- *       rankings by shorting edges.
- *    3. Iteratively find edges that have negative cut values. Generally a
- *       negative cut value indicates that the edge could be removed and a new
- *       tree edge could be added to produce a more compact graph.
- *
- * Much of the algorithms here are derived from Gansner, et al., "A Technique
- * for Drawing Directed Graphs." The structure of the file roughly follows the
- * structure of the overall algorithm.
- */
-function networkSimplex(g) {
-  g = simplify(g);
-  initRank(g);
-  var t = feasibleTree(g);
-  initLowLimValues(t);
-  initCutValues(t, g);
-
-  var e, f;
-  while ((e = leaveEdge(t))) {
-    f = enterEdge(t, g, e);
-    exchangeEdges(t, g, e, f);
-  }
-}
-
-/*
- * Initializes cut values for all edges in the tree.
- */
-function initCutValues(t, g) {
-  var vs = postorder(t, t.nodes());
-  vs = vs.slice(0, vs.length - 1);
-  _.each(vs, function(v) {
-    assignCutValue(t, g, v);
-  });
-}
-
-function assignCutValue(t, g, child) {
-  var childLab = t.node(child),
-      parent = childLab.parent;
-  t.edge(child, parent).cutvalue = calcCutValue(t, g, child);
-}
-
-/*
- * Given the tight tree, its graph, and a child in the graph calculate and
- * return the cut value for the edge between the child and its parent.
- */
-function calcCutValue(t, g, child) {
-  var childLab = t.node(child),
-      parent = childLab.parent,
-      // True if the child is on the tail end of the edge in the directed graph
-      childIsTail = true,
-      // The graph's view of the tree edge we're inspecting
-      graphEdge = g.edge(child, parent),
-      // The accumulated cut value for the edge between this node and its parent
-      cutValue = 0;
-
-  if (!graphEdge) {
-    childIsTail = false;
-    graphEdge = g.edge(parent, child);
-  }
-
-  cutValue = graphEdge.weight;
-
-  _.each(g.nodeEdges(child), function(e) {
-    var isOutEdge = e.v === child,
-        other = isOutEdge ? e.w : e.v;
-
-    if (other !== parent) {
-      var pointsToHead = isOutEdge === childIsTail,
-          otherWeight = g.edge(e).weight;
-
-      cutValue += pointsToHead ? otherWeight : -otherWeight;
-      if (isTreeEdge(t, child, other)) {
-        var otherCutValue = t.edge(child, other).cutvalue;
-        cutValue += pointsToHead ? -otherCutValue : otherCutValue;
-      }
-    }
-  });
-
-  return cutValue;
-}
-
-function initLowLimValues(tree, root) {
-  if (arguments.length < 2) {
-    root = tree.nodes()[0];
-  }
-  dfsAssignLowLim(tree, {}, 1, root);
-}
-
-function dfsAssignLowLim(tree, visited, nextLim, v, parent) {
-  var low = nextLim,
-      label = tree.node(v);
-
-  visited[v] = true;
-  _.each(tree.neighbors(v), function(w) {
-    if (!_.has(visited, w)) {
-      nextLim = dfsAssignLowLim(tree, visited, nextLim, w, v);
-    }
-  });
-
-  label.low = low;
-  label.lim = nextLim++;
-  if (parent) {
-    label.parent = parent;
-  } else {
-    // TODO should be able to remove this when we incrementally update low lim
-    delete label.parent;
-  }
-
-  return nextLim;
-}
-
-function leaveEdge(tree) {
-  return _.find(tree.edges(), function(e) {
-    return tree.edge(e).cutvalue < 0;
-  });
-}
-
-function enterEdge(t, g, edge) {
-  var v = edge.v,
-      w = edge.w;
-
-  // For the rest of this function we assume that v is the tail and w is the
-  // head, so if we don't have this edge in the graph we should flip it to
-  // match the correct orientation.
-  if (!g.hasEdge(v, w)) {
-    v = edge.w;
-    w = edge.v;
-  }
-
-  var vLabel = t.node(v),
-      wLabel = t.node(w),
-      tailLabel = vLabel,
-      flip = false;
-
-  // If the root is in the tail of the edge then we need to flip the logic that
-  // checks for the head and tail nodes in the candidates function below.
-  if (vLabel.lim > wLabel.lim) {
-    tailLabel = wLabel;
-    flip = true;
-  }
-
-  var candidates = _.filter(g.edges(), function(edge) {
-    return flip === isDescendant(t, t.node(edge.v), tailLabel) &&
-           flip !== isDescendant(t, t.node(edge.w), tailLabel);
-  });
-
-  return _.min(candidates, function(edge) { return slack(g, edge); });
-}
-
-function exchangeEdges(t, g, e, f) {
-  var v = e.v,
-      w = e.w;
-  t.removeEdge(v, w);
-  t.setEdge(f.v, f.w, {});
-  initLowLimValues(t);
-  initCutValues(t, g);
-  updateRanks(t, g);
-}
-
-function updateRanks(t, g) {
-  var root = _.find(t.nodes(), function(v) { return !g.node(v).parent; }),
-      vs = preorder(t, root);
-  vs = vs.slice(1);
-  _.each(vs, function(v) {
-    var parent = t.node(v).parent,
-        edge = g.edge(v, parent),
-        flipped = false;
-
-    if (!edge) {
-      edge = g.edge(parent, v);
-      flipped = true;
-    }
-
-    g.node(v).rank = g.node(parent).rank + (flipped ? edge.minlen : -edge.minlen);
-  });
-}
-
-/*
- * Returns true if the edge is in the tree.
- */
-function isTreeEdge(tree, u, v) {
-  return tree.hasEdge(u, v);
-}
-
-/*
- * Returns true if the specified node is descendant of the root node per the
- * assigned low and lim attributes in the tree.
- */
-function isDescendant(tree, vLabel, rootLabel) {
-  return rootLabel.low <= vLabel.lim && vLabel.lim <= rootLabel.lim;
-}
-
-},{"../graphlib":60,"../lodash":63,"../util":82,"./feasible-tree":78,"./util":81}],81:[function(require,module,exports){
-"use strict";
-
-var _ = require("../lodash");
-
-module.exports = {
-  longestPath: longestPath,
-  slack: slack
-};
-
-/*
- * Initializes ranks for the input graph using the longest path algorithm. This
- * algorithm scales well and is fast in practice, it yields rather poor
- * solutions. Nodes are pushed to the lowest layer possible, leaving the bottom
- * ranks wide and leaving edges longer than necessary. However, due to its
- * speed, this algorithm is good for getting an initial ranking that can be fed
- * into other algorithms.
- *
- * This algorithm does not normalize layers because it will be used by other
- * algorithms in most cases. If using this algorithm directly, be sure to
- * run normalize at the end.
- *
- * Pre-conditions:
- *
- *    1. Input graph is a DAG.
- *    2. Input graph node labels can be assigned properties.
- *
- * Post-conditions:
- *
- *    1. Each node will be assign an (unnormalized) "rank" property.
- */
-function longestPath(g) {
-  var visited = {};
-
-  function dfs(v) {
-    var label = g.node(v);
-    if (_.has(visited, v)) {
-      return label.rank;
-    }
-    visited[v] = true;
-
-    var rank = _.min(_.map(g.outEdges(v), function(e) {
-      return dfs(e.w) - g.edge(e).minlen;
-    }));
-
-    if (rank === Number.POSITIVE_INFINITY) {
-      rank = 0;
-    }
-
-    return (label.rank = rank);
-  }
-
-  _.each(g.sources(), dfs);
-}
-
-/*
- * Returns the amount of slack for the given edge. The slack is defined as the
- * difference between the length of the edge and its minimum length.
- */
-function slack(g, e) {
-  return g.node(e.w).rank - g.node(e.v).rank - g.edge(e).minlen;
-}
-
-},{"../lodash":63}],82:[function(require,module,exports){
-"use strict";
-
-var _ = require("./lodash"),
-    Graph = require("./graphlib").Graph;
-
-module.exports = {
-  addDummyNode: addDummyNode,
-  simplify: simplify,
-  asNonCompoundGraph: asNonCompoundGraph,
-  successorWeights: successorWeights,
-  predecessorWeights: predecessorWeights,
-  intersectRect: intersectRect,
-  buildLayerMatrix: buildLayerMatrix,
-  normalizeRanks: normalizeRanks,
-  removeEmptyRanks: removeEmptyRanks,
-  addBorderNode: addBorderNode,
-  maxRank: maxRank,
-  partition: partition,
-  time: time,
-  notime: notime
-};
-
-/*
- * Adds a dummy node to the graph and return v.
- */
-function addDummyNode(g, type, attrs, name) {
-  var v;
-  do {
-    v = _.uniqueId(name);
-  } while (g.hasNode(v));
-
-  attrs.dummy = type;
-  g.setNode(v, attrs);
-  return v;
-}
-
-/*
- * Returns a new graph with only simple edges. Handles aggregation of data
- * associated with multi-edges.
- */
-function simplify(g) {
-  var simplified = new Graph().setGraph(g.graph());
-  _.each(g.nodes(), function(v) { simplified.setNode(v, g.node(v)); });
-  _.each(g.edges(), function(e) {
-    var simpleLabel = simplified.edge(e.v, e.w) || { weight: 0, minlen: 1 },
-        label = g.edge(e);
-    simplified.setEdge(e.v, e.w, {
-      weight: simpleLabel.weight + label.weight,
-      minlen: Math.max(simpleLabel.minlen, label.minlen)
-    });
-  });
-  return simplified;
-}
-
-function asNonCompoundGraph(g) {
-  var simplified = new Graph({ multigraph: g.isMultigraph() }).setGraph(g.graph());
-  _.each(g.nodes(), function(v) {
-    if (!g.children(v).length) {
-      simplified.setNode(v, g.node(v));
-    }
-  });
-  _.each(g.edges(), function(e) {
-    simplified.setEdge(e, g.edge(e));
-  });
-  return simplified;
-}
-
-function successorWeights(g) {
-  var weightMap = _.map(g.nodes(), function(v) {
-    var sucs = {};
-    _.each(g.outEdges(v), function(e) {
-      sucs[e.w] = (sucs[e.w] || 0) + g.edge(e).weight;
-    });
-    return sucs;
-  });
-  return _.zipObject(g.nodes(), weightMap);
-}
-
-function predecessorWeights(g) {
-  var weightMap = _.map(g.nodes(), function(v) {
-    var preds = {};
-    _.each(g.inEdges(v), function(e) {
-      preds[e.v] = (preds[e.v] || 0) + g.edge(e).weight;
-    });
-    return preds;
-  });
-  return _.zipObject(g.nodes(), weightMap);
-}
-
-/*
- * Finds where a line starting at point ({x, y}) would intersect a rectangle
- * ({x, y, width, height}) if it were pointing at the rectangle's center.
- */
-function intersectRect(rect, point) {
-  var x = rect.x;
-  var y = rect.y;
-
-  // Rectangle intersection algorithm from:
-  // http://math.stackexchange.com/questions/108113/find-edge-between-two-boxes
-  var dx = point.x - x;
-  var dy = point.y - y;
-  var w = rect.width / 2;
-  var h = rect.height / 2;
-
-  if (!dx && !dy) {
-    throw new Error("Not possible to find intersection inside of the rectangle");
-  }
-
-  var sx, sy;
-  if (Math.abs(dy) * w > Math.abs(dx) * h) {
-    // Intersection is top or bottom of rect.
-    if (dy < 0) {
-      h = -h;
-    }
-    sx = h * dx / dy;
-    sy = h;
-  } else {
-    // Intersection is left or right of rect.
-    if (dx < 0) {
-      w = -w;
-    }
-    sx = w;
-    sy = w * dy / dx;
-  }
-
-  return { x: x + sx, y: y + sy };
-}
-
-/*
- * Given a DAG with each node assigned "rank" and "order" properties, this
- * function will produce a matrix with the ids of each node.
- */
-function buildLayerMatrix(g) {
-  var layering = _.map(_.range(maxRank(g) + 1), function() { return []; });
-  _.each(g.nodes(), function(v) {
-    var node = g.node(v),
-        rank = node.rank;
-    if (!_.isUndefined(rank)) {
-      layering[rank][node.order] = v;
-    }
-  });
-  return layering;
-}
-
-/*
- * Adjusts the ranks for all nodes in the graph such that all nodes v have
- * rank(v) >= 0 and at least one node w has rank(w) = 0.
- */
-function normalizeRanks(g) {
-  var min = _.min(_.map(g.nodes(), function(v) { return g.node(v).rank; }));
-  _.each(g.nodes(), function(v) {
-    var node = g.node(v);
-    if (_.has(node, "rank")) {
-      node.rank -= min;
-    }
-  });
-}
-
-function removeEmptyRanks(g) {
-  // Ranks may not start at 0, so we need to offset them
-  var offset = _.min(_.map(g.nodes(), function(v) { return g.node(v).rank; }));
-
-  var layers = [];
-  _.each(g.nodes(), function(v) {
-    var rank = g.node(v).rank - offset;
-    if (!layers[rank]) {
-      layers[rank] = [];
-    }
-    layers[rank].push(v);
-  });
-
-  var delta = 0,
-      nodeRankFactor = g.graph().nodeRankFactor;
-  _.each(layers, function(vs, i) {
-    if (_.isUndefined(vs) && i % nodeRankFactor !== 0) {
-      --delta;
-    } else if (delta) {
-      _.each(vs, function(v) { g.node(v).rank += delta; });
-    }
-  });
-}
-
-function addBorderNode(g, prefix, rank, order) {
-  var node = {
-    width: 0,
-    height: 0
-  };
-  if (arguments.length >= 4) {
-    node.rank = rank;
-    node.order = order;
-  }
-  return addDummyNode(g, "border", node, prefix);
-}
-
-function maxRank(g) {
-  return _.max(_.map(g.nodes(), function(v) {
-    var rank = g.node(v).rank;
-    if (!_.isUndefined(rank)) {
-      return rank;
-    }
-  }));
-}
-
-/*
- * Partition a collection into two groups: `lhs` and `rhs`. If the supplied
- * function returns true for an entry it goes into `lhs`. Otherwise it goes
- * into `rhs.
- */
-function partition(collection, fn) {
-  var result = { lhs: [], rhs: [] };
-  _.each(collection, function(value) {
-    if (fn(value)) {
-      result.lhs.push(value);
-    } else {
-      result.rhs.push(value);
-    }
-  });
-  return result;
-}
-
-/*
- * Returns a new function that wraps `fn` with a timer. The wrapper logs the
- * time it takes to execute the function.
- */
-function time(name, fn) {
-  var start = _.now();
-  try {
-    return fn();
-  } finally {
-    console.log(name + " time: " + (_.now() - start) + "ms");
-  }
-}
-
-function notime(name, fn) {
-  return fn();
-}
-
-},{"./graphlib":60,"./lodash":63}],83:[function(require,module,exports){
-module.exports = "0.7.4";
-
-},{}],84:[function(require,module,exports){
+},{}],132:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -19752,2638 +20261,7 @@ module.exports = "0.7.4";
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],85:[function(require,module,exports){
-(function(root, factory) {
-    'use strict';
-    // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js, Rhino, and browsers.
-
-    /* istanbul ignore next */
-    if (typeof define === 'function' && define.amd) {
-        define('error-stack-parser', ['stackframe'], factory);
-    } else if (typeof exports === 'object') {
-        module.exports = factory(require('stackframe'));
-    } else {
-        root.ErrorStackParser = factory(root.StackFrame);
-    }
-}(this, function ErrorStackParser(StackFrame) {
-    'use strict';
-
-    var FIREFOX_SAFARI_STACK_REGEXP = /(^|@)\S+\:\d+/;
-    var CHROME_IE_STACK_REGEXP = /^\s*at .*(\S+\:\d+|\(native\))/m;
-    var SAFARI_NATIVE_CODE_REGEXP = /^(eval@)?(\[native code\])?$/;
-
-    function _map(array, fn, thisArg) {
-        if (typeof Array.prototype.map === 'function') {
-            return array.map(fn, thisArg);
-        } else {
-            var output = new Array(array.length);
-            for (var i = 0; i < array.length; i++) {
-                output[i] = fn.call(thisArg, array[i]);
-            }
-            return output;
-        }
-    }
-
-    function _filter(array, fn, thisArg) {
-        if (typeof Array.prototype.filter === 'function') {
-            return array.filter(fn, thisArg);
-        } else {
-            var output = [];
-            for (var i = 0; i < array.length; i++) {
-                if (fn.call(thisArg, array[i])) {
-                    output.push(array[i]);
-                }
-            }
-            return output;
-        }
-    }
-
-    function _indexOf(array, target) {
-        if (typeof Array.prototype.indexOf === 'function') {
-            return array.indexOf(target);
-        } else {
-            for (var i = 0; i < array.length; i++) {
-                if (array[i] === target) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-    }
-
-    return {
-        /**
-         * Given an Error object, extract the most information from it.
-         *
-         * @param {Error} error object
-         * @return {Array} of StackFrames
-         */
-        parse: function ErrorStackParser$$parse(error) {
-            if (typeof error.stacktrace !== 'undefined' || typeof error['opera#sourceloc'] !== 'undefined') {
-                return this.parseOpera(error);
-            } else if (error.stack && error.stack.match(CHROME_IE_STACK_REGEXP)) {
-                return this.parseV8OrIE(error);
-            } else if (error.stack) {
-                return this.parseFFOrSafari(error);
-            } else {
-                throw new Error('Cannot parse given Error object');
-            }
-        },
-
-        // Separate line and column numbers from a string of the form: (URI:Line:Column)
-        extractLocation: function ErrorStackParser$$extractLocation(urlLike) {
-            // Fail-fast but return locations like "(native)"
-            if (urlLike.indexOf(':') === -1) {
-                return [urlLike];
-            }
-
-            var regExp = /(.+?)(?:\:(\d+))?(?:\:(\d+))?$/;
-            var parts = regExp.exec(urlLike.replace(/[\(\)]/g, ''));
-            return [parts[1], parts[2] || undefined, parts[3] || undefined];
-        },
-
-        parseV8OrIE: function ErrorStackParser$$parseV8OrIE(error) {
-            var filtered = _filter(error.stack.split('\n'), function(line) {
-                return !!line.match(CHROME_IE_STACK_REGEXP);
-            }, this);
-
-            return _map(filtered, function(line) {
-                if (line.indexOf('(eval ') > -1) {
-                    // Throw away eval information until we implement stacktrace.js/stackframe#8
-                    line = line.replace(/eval code/g, 'eval').replace(/(\(eval at [^\()]*)|(\)\,.*$)/g, '');
-                }
-                var tokens = line.replace(/^\s+/, '').replace(/\(eval code/g, '(').split(/\s+/).slice(1);
-                var locationParts = this.extractLocation(tokens.pop());
-                var functionName = tokens.join(' ') || undefined;
-                var fileName = _indexOf(['eval', '<anonymous>'], locationParts[0]) > -1 ? undefined : locationParts[0];
-
-                return new StackFrame(functionName, undefined, fileName, locationParts[1], locationParts[2], line);
-            }, this);
-        },
-
-        parseFFOrSafari: function ErrorStackParser$$parseFFOrSafari(error) {
-            var filtered = _filter(error.stack.split('\n'), function(line) {
-                return !line.match(SAFARI_NATIVE_CODE_REGEXP);
-            }, this);
-
-            return _map(filtered, function(line) {
-                // Throw away eval information until we implement stacktrace.js/stackframe#8
-                if (line.indexOf(' > eval') > -1) {
-                    line = line.replace(/ line (\d+)(?: > eval line \d+)* > eval\:\d+\:\d+/g, ':$1');
-                }
-
-                if (line.indexOf('@') === -1 && line.indexOf(':') === -1) {
-                    // Safari eval frames only have function names and nothing else
-                    return new StackFrame(line);
-                } else {
-                    var tokens = line.split('@');
-                    var locationParts = this.extractLocation(tokens.pop());
-                    var functionName = tokens.join('@') || undefined;
-                    return new StackFrame(functionName,
-                        undefined,
-                        locationParts[0],
-                        locationParts[1],
-                        locationParts[2],
-                        line);
-                }
-            }, this);
-        },
-
-        parseOpera: function ErrorStackParser$$parseOpera(e) {
-            if (!e.stacktrace || (e.message.indexOf('\n') > -1 &&
-                e.message.split('\n').length > e.stacktrace.split('\n').length)) {
-                return this.parseOpera9(e);
-            } else if (!e.stack) {
-                return this.parseOpera10(e);
-            } else {
-                return this.parseOpera11(e);
-            }
-        },
-
-        parseOpera9: function ErrorStackParser$$parseOpera9(e) {
-            var lineRE = /Line (\d+).*script (?:in )?(\S+)/i;
-            var lines = e.message.split('\n');
-            var result = [];
-
-            for (var i = 2, len = lines.length; i < len; i += 2) {
-                var match = lineRE.exec(lines[i]);
-                if (match) {
-                    result.push(new StackFrame(undefined, undefined, match[2], match[1], undefined, lines[i]));
-                }
-            }
-
-            return result;
-        },
-
-        parseOpera10: function ErrorStackParser$$parseOpera10(e) {
-            var lineRE = /Line (\d+).*script (?:in )?(\S+)(?:: In function (\S+))?$/i;
-            var lines = e.stacktrace.split('\n');
-            var result = [];
-
-            for (var i = 0, len = lines.length; i < len; i += 2) {
-                var match = lineRE.exec(lines[i]);
-                if (match) {
-                    result.push(
-                        new StackFrame(
-                            match[3] || undefined,
-                            undefined,
-                            match[2],
-                            match[1],
-                            undefined,
-                            lines[i]
-                        )
-                    );
-                }
-            }
-
-            return result;
-        },
-
-        // Opera 10.65+ Error.stack very similar to FF/Safari
-        parseOpera11: function ErrorStackParser$$parseOpera11(error) {
-            var filtered = _filter(error.stack.split('\n'), function(line) {
-                return !!line.match(FIREFOX_SAFARI_STACK_REGEXP) && !line.match(/^Error created at/);
-            }, this);
-
-            return _map(filtered, function(line) {
-                var tokens = line.split('@');
-                var locationParts = this.extractLocation(tokens.pop());
-                var functionCall = (tokens.shift() || '');
-                var functionName = functionCall
-                        .replace(/<anonymous function(: (\w+))?>/, '$2')
-                        .replace(/\([^\)]*\)/g, '') || undefined;
-                var argsRaw;
-                if (functionCall.match(/\(([^\)]*)\)/)) {
-                    argsRaw = functionCall.replace(/^[^\(]+\(([^\)]*)\)$/, '$1');
-                }
-                var args = (argsRaw === undefined || argsRaw === '[arguments not available]') ?
-                    undefined : argsRaw.split(',');
-                return new StackFrame(
-                    functionName,
-                    args,
-                    locationParts[0],
-                    locationParts[1],
-                    locationParts[2],
-                    line);
-            }, this);
-        }
-    };
-}));
-
-
-},{"stackframe":199}],86:[function(require,module,exports){
-// Inspired by Google Closure:
-// http://closure-library.googlecode.com/svn/docs/
-// closure_goog_array_array.js.html#goog.array.clear
-
-'use strict';
-
-var value = require('../../object/valid-value');
-
-module.exports = function () {
-	value(this).length = 0;
-	return this;
-};
-
-},{"../../object/valid-value":113}],87:[function(require,module,exports){
-'use strict';
-
-var toPosInt = require('../../number/to-pos-integer')
-  , value    = require('../../object/valid-value')
-
-  , indexOf = Array.prototype.indexOf
-  , hasOwnProperty = Object.prototype.hasOwnProperty
-  , abs = Math.abs, floor = Math.floor;
-
-module.exports = function (searchElement/*, fromIndex*/) {
-	var i, l, fromIndex, val;
-	if (searchElement === searchElement) { //jslint: ignore
-		return indexOf.apply(this, arguments);
-	}
-
-	l = toPosInt(value(this).length);
-	fromIndex = arguments[1];
-	if (isNaN(fromIndex)) fromIndex = 0;
-	else if (fromIndex >= 0) fromIndex = floor(fromIndex);
-	else fromIndex = toPosInt(this.length) - floor(abs(fromIndex));
-
-	for (i = fromIndex; i < l; ++i) {
-		if (hasOwnProperty.call(this, i)) {
-			val = this[i];
-			if (val !== val) return i; //jslint: ignore
-		}
-	}
-	return -1;
-};
-
-},{"../../number/to-pos-integer":93,"../../object/valid-value":113}],88:[function(require,module,exports){
-'use strict';
-
-var toString = Object.prototype.toString
-
-  , id = toString.call((function () { return arguments; }()));
-
-module.exports = function (x) { return (toString.call(x) === id); };
-
-},{}],89:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')()
-	? Math.sign
-	: require('./shim');
-
-},{"./is-implemented":90,"./shim":91}],90:[function(require,module,exports){
-'use strict';
-
-module.exports = function () {
-	var sign = Math.sign;
-	if (typeof sign !== 'function') return false;
-	return ((sign(10) === 1) && (sign(-20) === -1));
-};
-
-},{}],91:[function(require,module,exports){
-'use strict';
-
-module.exports = function (value) {
-	value = Number(value);
-	if (isNaN(value) || (value === 0)) return value;
-	return (value > 0) ? 1 : -1;
-};
-
-},{}],92:[function(require,module,exports){
-'use strict';
-
-var sign = require('../math/sign')
-
-  , abs = Math.abs, floor = Math.floor;
-
-module.exports = function (value) {
-	if (isNaN(value)) return 0;
-	value = Number(value);
-	if ((value === 0) || !isFinite(value)) return value;
-	return sign(value) * floor(abs(value));
-};
-
-},{"../math/sign":89}],93:[function(require,module,exports){
-'use strict';
-
-var toInteger = require('./to-integer')
-
-  , max = Math.max;
-
-module.exports = function (value) { return max(0, toInteger(value)); };
-
-},{"./to-integer":92}],94:[function(require,module,exports){
-// Internal method, used by iteration functions.
-// Calls a function for each key-value pair found in object
-// Optionally takes compareFn to iterate object in specific order
-
-'use strict';
-
-var callable = require('./valid-callable')
-  , value    = require('./valid-value')
-
-  , bind = Function.prototype.bind, call = Function.prototype.call, keys = Object.keys
-  , propertyIsEnumerable = Object.prototype.propertyIsEnumerable;
-
-module.exports = function (method, defVal) {
-	return function (obj, cb/*, thisArg, compareFn*/) {
-		var list, thisArg = arguments[2], compareFn = arguments[3];
-		obj = Object(value(obj));
-		callable(cb);
-
-		list = keys(obj);
-		if (compareFn) {
-			list.sort((typeof compareFn === 'function') ? bind.call(compareFn, obj) : undefined);
-		}
-		if (typeof method !== 'function') method = list[method];
-		return call.call(method, list, function (key, index) {
-			if (!propertyIsEnumerable.call(obj, key)) return defVal;
-			return call.call(cb, thisArg, obj[key], key, obj, index);
-		});
-	};
-};
-
-},{"./valid-callable":112,"./valid-value":113}],95:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')()
-	? Object.assign
-	: require('./shim');
-
-},{"./is-implemented":96,"./shim":97}],96:[function(require,module,exports){
-'use strict';
-
-module.exports = function () {
-	var assign = Object.assign, obj;
-	if (typeof assign !== 'function') return false;
-	obj = { foo: 'raz' };
-	assign(obj, { bar: 'dwa' }, { trzy: 'trzy' });
-	return (obj.foo + obj.bar + obj.trzy) === 'razdwatrzy';
-};
-
-},{}],97:[function(require,module,exports){
-'use strict';
-
-var keys  = require('../keys')
-  , value = require('../valid-value')
-
-  , max = Math.max;
-
-module.exports = function (dest, src/*, …srcn*/) {
-	var error, i, l = max(arguments.length, 2), assign;
-	dest = Object(value(dest));
-	assign = function (key) {
-		try { dest[key] = src[key]; } catch (e) {
-			if (!error) error = e;
-		}
-	};
-	for (i = 1; i < l; ++i) {
-		src = arguments[i];
-		keys(src).forEach(assign);
-	}
-	if (error !== undefined) throw error;
-	return dest;
-};
-
-},{"../keys":103,"../valid-value":113}],98:[function(require,module,exports){
-'use strict';
-
-var assign = require('./assign')
-  , value  = require('./valid-value');
-
-module.exports = function (obj) {
-	var copy = Object(value(obj));
-	if (copy !== obj) return copy;
-	return assign({}, obj);
-};
-
-},{"./assign":95,"./valid-value":113}],99:[function(require,module,exports){
-// Workaround for http://code.google.com/p/v8/issues/detail?id=2804
-
-'use strict';
-
-var create = Object.create, shim;
-
-if (!require('./set-prototype-of/is-implemented')()) {
-	shim = require('./set-prototype-of/shim');
-}
-
-module.exports = (function () {
-	var nullObject, props, desc;
-	if (!shim) return create;
-	if (shim.level !== 1) return create;
-
-	nullObject = {};
-	props = {};
-	desc = { configurable: false, enumerable: false, writable: true,
-		value: undefined };
-	Object.getOwnPropertyNames(Object.prototype).forEach(function (name) {
-		if (name === '__proto__') {
-			props[name] = { configurable: true, enumerable: false, writable: true,
-				value: undefined };
-			return;
-		}
-		props[name] = desc;
-	});
-	Object.defineProperties(nullObject, props);
-
-	Object.defineProperty(shim, 'nullPolyfill', { configurable: false,
-		enumerable: false, writable: false, value: nullObject });
-
-	return function (prototype, props) {
-		return create((prototype === null) ? nullObject : prototype, props);
-	};
-}());
-
-},{"./set-prototype-of/is-implemented":110,"./set-prototype-of/shim":111}],100:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./_iterate')('forEach');
-
-},{"./_iterate":94}],101:[function(require,module,exports){
-// Deprecated
-
-'use strict';
-
-module.exports = function (obj) { return typeof obj === 'function'; };
-
-},{}],102:[function(require,module,exports){
-'use strict';
-
-var map = { function: true, object: true };
-
-module.exports = function (x) {
-	return ((x != null) && map[typeof x]) || false;
-};
-
-},{}],103:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')()
-	? Object.keys
-	: require('./shim');
-
-},{"./is-implemented":104,"./shim":105}],104:[function(require,module,exports){
-'use strict';
-
-module.exports = function () {
-	try {
-		Object.keys('primitive');
-		return true;
-	} catch (e) { return false; }
-};
-
-},{}],105:[function(require,module,exports){
-'use strict';
-
-var keys = Object.keys;
-
-module.exports = function (object) {
-	return keys(object == null ? object : Object(object));
-};
-
-},{}],106:[function(require,module,exports){
-'use strict';
-
-var callable = require('./valid-callable')
-  , forEach  = require('./for-each')
-
-  , call = Function.prototype.call;
-
-module.exports = function (obj, cb/*, thisArg*/) {
-	var o = {}, thisArg = arguments[2];
-	callable(cb);
-	forEach(obj, function (value, key, obj, index) {
-		o[key] = call.call(cb, thisArg, value, key, obj, index);
-	});
-	return o;
-};
-
-},{"./for-each":100,"./valid-callable":112}],107:[function(require,module,exports){
-'use strict';
-
-var forEach = Array.prototype.forEach, create = Object.create;
-
-var process = function (src, obj) {
-	var key;
-	for (key in src) obj[key] = src[key];
-};
-
-module.exports = function (options/*, …options*/) {
-	var result = create(null);
-	forEach.call(arguments, function (options) {
-		if (options == null) return;
-		process(Object(options), result);
-	});
-	return result;
-};
-
-},{}],108:[function(require,module,exports){
-'use strict';
-
-var forEach = Array.prototype.forEach, create = Object.create;
-
-module.exports = function (arg/*, …args*/) {
-	var set = create(null);
-	forEach.call(arguments, function (name) { set[name] = true; });
-	return set;
-};
-
-},{}],109:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')()
-	? Object.setPrototypeOf
-	: require('./shim');
-
-},{"./is-implemented":110,"./shim":111}],110:[function(require,module,exports){
-'use strict';
-
-var create = Object.create, getPrototypeOf = Object.getPrototypeOf
-  , x = {};
-
-module.exports = function (/*customCreate*/) {
-	var setPrototypeOf = Object.setPrototypeOf
-	  , customCreate = arguments[0] || create;
-	if (typeof setPrototypeOf !== 'function') return false;
-	return getPrototypeOf(setPrototypeOf(customCreate(null), x)) === x;
-};
-
-},{}],111:[function(require,module,exports){
-// Big thanks to @WebReflection for sorting this out
-// https://gist.github.com/WebReflection/5593554
-
-'use strict';
-
-var isObject      = require('../is-object')
-  , value         = require('../valid-value')
-
-  , isPrototypeOf = Object.prototype.isPrototypeOf
-  , defineProperty = Object.defineProperty
-  , nullDesc = { configurable: true, enumerable: false, writable: true,
-		value: undefined }
-  , validate;
-
-validate = function (obj, prototype) {
-	value(obj);
-	if ((prototype === null) || isObject(prototype)) return obj;
-	throw new TypeError('Prototype must be null or an object');
-};
-
-module.exports = (function (status) {
-	var fn, set;
-	if (!status) return null;
-	if (status.level === 2) {
-		if (status.set) {
-			set = status.set;
-			fn = function (obj, prototype) {
-				set.call(validate(obj, prototype), prototype);
-				return obj;
-			};
-		} else {
-			fn = function (obj, prototype) {
-				validate(obj, prototype).__proto__ = prototype;
-				return obj;
-			};
-		}
-	} else {
-		fn = function self(obj, prototype) {
-			var isNullBase;
-			validate(obj, prototype);
-			isNullBase = isPrototypeOf.call(self.nullPolyfill, obj);
-			if (isNullBase) delete self.nullPolyfill.__proto__;
-			if (prototype === null) prototype = self.nullPolyfill;
-			obj.__proto__ = prototype;
-			if (isNullBase) defineProperty(self.nullPolyfill, '__proto__', nullDesc);
-			return obj;
-		};
-	}
-	return Object.defineProperty(fn, 'level', { configurable: false,
-		enumerable: false, writable: false, value: status.level });
-}((function () {
-	var x = Object.create(null), y = {}, set
-	  , desc = Object.getOwnPropertyDescriptor(Object.prototype, '__proto__');
-
-	if (desc) {
-		try {
-			set = desc.set; // Opera crashes at this point
-			set.call(x, y);
-		} catch (ignore) { }
-		if (Object.getPrototypeOf(x) === y) return { set: set, level: 2 };
-	}
-
-	x.__proto__ = y;
-	if (Object.getPrototypeOf(x) === y) return { level: 2 };
-
-	x = {};
-	x.__proto__ = y;
-	if (Object.getPrototypeOf(x) === y) return { level: 1 };
-
-	return false;
-}())));
-
-require('../create');
-
-},{"../create":99,"../is-object":102,"../valid-value":113}],112:[function(require,module,exports){
-'use strict';
-
-module.exports = function (fn) {
-	if (typeof fn !== 'function') throw new TypeError(fn + " is not a function");
-	return fn;
-};
-
-},{}],113:[function(require,module,exports){
-'use strict';
-
-module.exports = function (value) {
-	if (value == null) throw new TypeError("Cannot use null or undefined");
-	return value;
-};
-
-},{}],114:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')()
-	? String.prototype.contains
-	: require('./shim');
-
-},{"./is-implemented":115,"./shim":116}],115:[function(require,module,exports){
-'use strict';
-
-var str = 'razdwatrzy';
-
-module.exports = function () {
-	if (typeof str.contains !== 'function') return false;
-	return ((str.contains('dwa') === true) && (str.contains('foo') === false));
-};
-
-},{}],116:[function(require,module,exports){
-'use strict';
-
-var indexOf = String.prototype.indexOf;
-
-module.exports = function (searchString/*, position*/) {
-	return indexOf.call(this, searchString, arguments[1]) > -1;
-};
-
-},{}],117:[function(require,module,exports){
-'use strict';
-
-var toString = Object.prototype.toString
-
-  , id = toString.call('');
-
-module.exports = function (x) {
-	return (typeof x === 'string') || (x && (typeof x === 'object') &&
-		((x instanceof String) || (toString.call(x) === id))) || false;
-};
-
-},{}],118:[function(require,module,exports){
-'use strict';
-
-var setPrototypeOf = require('es5-ext/object/set-prototype-of')
-  , contains       = require('es5-ext/string/#/contains')
-  , d              = require('d')
-  , Iterator       = require('./')
-
-  , defineProperty = Object.defineProperty
-  , ArrayIterator;
-
-ArrayIterator = module.exports = function (arr, kind) {
-	if (!(this instanceof ArrayIterator)) return new ArrayIterator(arr, kind);
-	Iterator.call(this, arr);
-	if (!kind) kind = 'value';
-	else if (contains.call(kind, 'key+value')) kind = 'key+value';
-	else if (contains.call(kind, 'key')) kind = 'key';
-	else kind = 'value';
-	defineProperty(this, '__kind__', d('', kind));
-};
-if (setPrototypeOf) setPrototypeOf(ArrayIterator, Iterator);
-
-ArrayIterator.prototype = Object.create(Iterator.prototype, {
-	constructor: d(ArrayIterator),
-	_resolve: d(function (i) {
-		if (this.__kind__ === 'value') return this.__list__[i];
-		if (this.__kind__ === 'key+value') return [i, this.__list__[i]];
-		return i;
-	}),
-	toString: d(function () { return '[object Array Iterator]'; })
-});
-
-},{"./":121,"d":53,"es5-ext/object/set-prototype-of":109,"es5-ext/string/#/contains":114}],119:[function(require,module,exports){
-'use strict';
-
-var isArguments = require('es5-ext/function/is-arguments')
-  , callable    = require('es5-ext/object/valid-callable')
-  , isString    = require('es5-ext/string/is-string')
-  , get         = require('./get')
-
-  , isArray = Array.isArray, call = Function.prototype.call
-  , some = Array.prototype.some;
-
-module.exports = function (iterable, cb/*, thisArg*/) {
-	var mode, thisArg = arguments[2], result, doBreak, broken, i, l, char, code;
-	if (isArray(iterable) || isArguments(iterable)) mode = 'array';
-	else if (isString(iterable)) mode = 'string';
-	else iterable = get(iterable);
-
-	callable(cb);
-	doBreak = function () { broken = true; };
-	if (mode === 'array') {
-		some.call(iterable, function (value) {
-			call.call(cb, thisArg, value, doBreak);
-			if (broken) return true;
-		});
-		return;
-	}
-	if (mode === 'string') {
-		l = iterable.length;
-		for (i = 0; i < l; ++i) {
-			char = iterable[i];
-			if ((i + 1) < l) {
-				code = char.charCodeAt(0);
-				if ((code >= 0xD800) && (code <= 0xDBFF)) char += iterable[++i];
-			}
-			call.call(cb, thisArg, char, doBreak);
-			if (broken) break;
-		}
-		return;
-	}
-	result = iterable.next();
-
-	while (!result.done) {
-		call.call(cb, thisArg, result.value, doBreak);
-		if (broken) return;
-		result = iterable.next();
-	}
-};
-
-},{"./get":120,"es5-ext/function/is-arguments":88,"es5-ext/object/valid-callable":112,"es5-ext/string/is-string":117}],120:[function(require,module,exports){
-'use strict';
-
-var isArguments    = require('es5-ext/function/is-arguments')
-  , isString       = require('es5-ext/string/is-string')
-  , ArrayIterator  = require('./array')
-  , StringIterator = require('./string')
-  , iterable       = require('./valid-iterable')
-  , iteratorSymbol = require('es6-symbol').iterator;
-
-module.exports = function (obj) {
-	if (typeof iterable(obj)[iteratorSymbol] === 'function') return obj[iteratorSymbol]();
-	if (isArguments(obj)) return new ArrayIterator(obj);
-	if (isString(obj)) return new StringIterator(obj);
-	return new ArrayIterator(obj);
-};
-
-},{"./array":118,"./string":123,"./valid-iterable":124,"es5-ext/function/is-arguments":88,"es5-ext/string/is-string":117,"es6-symbol":131}],121:[function(require,module,exports){
-'use strict';
-
-var clear    = require('es5-ext/array/#/clear')
-  , assign   = require('es5-ext/object/assign')
-  , callable = require('es5-ext/object/valid-callable')
-  , value    = require('es5-ext/object/valid-value')
-  , d        = require('d')
-  , autoBind = require('d/auto-bind')
-  , Symbol   = require('es6-symbol')
-
-  , defineProperty = Object.defineProperty
-  , defineProperties = Object.defineProperties
-  , Iterator;
-
-module.exports = Iterator = function (list, context) {
-	if (!(this instanceof Iterator)) return new Iterator(list, context);
-	defineProperties(this, {
-		__list__: d('w', value(list)),
-		__context__: d('w', context),
-		__nextIndex__: d('w', 0)
-	});
-	if (!context) return;
-	callable(context.on);
-	context.on('_add', this._onAdd);
-	context.on('_delete', this._onDelete);
-	context.on('_clear', this._onClear);
-};
-
-defineProperties(Iterator.prototype, assign({
-	constructor: d(Iterator),
-	_next: d(function () {
-		var i;
-		if (!this.__list__) return;
-		if (this.__redo__) {
-			i = this.__redo__.shift();
-			if (i !== undefined) return i;
-		}
-		if (this.__nextIndex__ < this.__list__.length) return this.__nextIndex__++;
-		this._unBind();
-	}),
-	next: d(function () { return this._createResult(this._next()); }),
-	_createResult: d(function (i) {
-		if (i === undefined) return { done: true, value: undefined };
-		return { done: false, value: this._resolve(i) };
-	}),
-	_resolve: d(function (i) { return this.__list__[i]; }),
-	_unBind: d(function () {
-		this.__list__ = null;
-		delete this.__redo__;
-		if (!this.__context__) return;
-		this.__context__.off('_add', this._onAdd);
-		this.__context__.off('_delete', this._onDelete);
-		this.__context__.off('_clear', this._onClear);
-		this.__context__ = null;
-	}),
-	toString: d(function () { return '[object Iterator]'; })
-}, autoBind({
-	_onAdd: d(function (index) {
-		if (index >= this.__nextIndex__) return;
-		++this.__nextIndex__;
-		if (!this.__redo__) {
-			defineProperty(this, '__redo__', d('c', [index]));
-			return;
-		}
-		this.__redo__.forEach(function (redo, i) {
-			if (redo >= index) this.__redo__[i] = ++redo;
-		}, this);
-		this.__redo__.push(index);
-	}),
-	_onDelete: d(function (index) {
-		var i;
-		if (index >= this.__nextIndex__) return;
-		--this.__nextIndex__;
-		if (!this.__redo__) return;
-		i = this.__redo__.indexOf(index);
-		if (i !== -1) this.__redo__.splice(i, 1);
-		this.__redo__.forEach(function (redo, i) {
-			if (redo > index) this.__redo__[i] = --redo;
-		}, this);
-	}),
-	_onClear: d(function () {
-		if (this.__redo__) clear.call(this.__redo__);
-		this.__nextIndex__ = 0;
-	})
-})));
-
-defineProperty(Iterator.prototype, Symbol.iterator, d(function () {
-	return this;
-}));
-defineProperty(Iterator.prototype, Symbol.toStringTag, d('', 'Iterator'));
-
-},{"d":53,"d/auto-bind":52,"es5-ext/array/#/clear":86,"es5-ext/object/assign":95,"es5-ext/object/valid-callable":112,"es5-ext/object/valid-value":113,"es6-symbol":131}],122:[function(require,module,exports){
-'use strict';
-
-var isArguments    = require('es5-ext/function/is-arguments')
-  , isString       = require('es5-ext/string/is-string')
-  , iteratorSymbol = require('es6-symbol').iterator
-
-  , isArray = Array.isArray;
-
-module.exports = function (value) {
-	if (value == null) return false;
-	if (isArray(value)) return true;
-	if (isString(value)) return true;
-	if (isArguments(value)) return true;
-	return (typeof value[iteratorSymbol] === 'function');
-};
-
-},{"es5-ext/function/is-arguments":88,"es5-ext/string/is-string":117,"es6-symbol":131}],123:[function(require,module,exports){
-// Thanks @mathiasbynens
-// http://mathiasbynens.be/notes/javascript-unicode#iterating-over-symbols
-
-'use strict';
-
-var setPrototypeOf = require('es5-ext/object/set-prototype-of')
-  , d              = require('d')
-  , Iterator       = require('./')
-
-  , defineProperty = Object.defineProperty
-  , StringIterator;
-
-StringIterator = module.exports = function (str) {
-	if (!(this instanceof StringIterator)) return new StringIterator(str);
-	str = String(str);
-	Iterator.call(this, str);
-	defineProperty(this, '__length__', d('', str.length));
-
-};
-if (setPrototypeOf) setPrototypeOf(StringIterator, Iterator);
-
-StringIterator.prototype = Object.create(Iterator.prototype, {
-	constructor: d(StringIterator),
-	_next: d(function () {
-		if (!this.__list__) return;
-		if (this.__nextIndex__ < this.__length__) return this.__nextIndex__++;
-		this._unBind();
-	}),
-	_resolve: d(function (i) {
-		var char = this.__list__[i], code;
-		if (this.__nextIndex__ === this.__length__) return char;
-		code = char.charCodeAt(0);
-		if ((code >= 0xD800) && (code <= 0xDBFF)) return char + this.__list__[this.__nextIndex__++];
-		return char;
-	}),
-	toString: d(function () { return '[object String Iterator]'; })
-});
-
-},{"./":121,"d":53,"es5-ext/object/set-prototype-of":109}],124:[function(require,module,exports){
-'use strict';
-
-var isIterable = require('./is-iterable');
-
-module.exports = function (value) {
-	if (!isIterable(value)) throw new TypeError(value + " is not iterable");
-	return value;
-};
-
-},{"./is-iterable":122}],125:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')() ? Map : require('./polyfill');
-
-},{"./is-implemented":126,"./polyfill":130}],126:[function(require,module,exports){
-'use strict';
-
-module.exports = function () {
-	var map, iterator, result;
-	if (typeof Map !== 'function') return false;
-	try {
-		// WebKit doesn't support arguments and crashes
-		map = new Map([['raz', 'one'], ['dwa', 'two'], ['trzy', 'three']]);
-	} catch (e) {
-		return false;
-	}
-	if (String(map) !== '[object Map]') return false;
-	if (map.size !== 3) return false;
-	if (typeof map.clear !== 'function') return false;
-	if (typeof map.delete !== 'function') return false;
-	if (typeof map.entries !== 'function') return false;
-	if (typeof map.forEach !== 'function') return false;
-	if (typeof map.get !== 'function') return false;
-	if (typeof map.has !== 'function') return false;
-	if (typeof map.keys !== 'function') return false;
-	if (typeof map.set !== 'function') return false;
-	if (typeof map.values !== 'function') return false;
-
-	iterator = map.entries();
-	result = iterator.next();
-	if (result.done !== false) return false;
-	if (!result.value) return false;
-	if (result.value[0] !== 'raz') return false;
-	if (result.value[1] !== 'one') return false;
-
-	return true;
-};
-
-},{}],127:[function(require,module,exports){
-// Exports true if environment provides native `Map` implementation,
-// whatever that is.
-
-'use strict';
-
-module.exports = (function () {
-	if (typeof Map === 'undefined') return false;
-	return (Object.prototype.toString.call(new Map()) === '[object Map]');
-}());
-
-},{}],128:[function(require,module,exports){
-'use strict';
-
-module.exports = require('es5-ext/object/primitive-set')('key',
-	'value', 'key+value');
-
-},{"es5-ext/object/primitive-set":108}],129:[function(require,module,exports){
-'use strict';
-
-var setPrototypeOf    = require('es5-ext/object/set-prototype-of')
-  , d                 = require('d')
-  , Iterator          = require('es6-iterator')
-  , toStringTagSymbol = require('es6-symbol').toStringTag
-  , kinds             = require('./iterator-kinds')
-
-  , defineProperties = Object.defineProperties
-  , unBind = Iterator.prototype._unBind
-  , MapIterator;
-
-MapIterator = module.exports = function (map, kind) {
-	if (!(this instanceof MapIterator)) return new MapIterator(map, kind);
-	Iterator.call(this, map.__mapKeysData__, map);
-	if (!kind || !kinds[kind]) kind = 'key+value';
-	defineProperties(this, {
-		__kind__: d('', kind),
-		__values__: d('w', map.__mapValuesData__)
-	});
-};
-if (setPrototypeOf) setPrototypeOf(MapIterator, Iterator);
-
-MapIterator.prototype = Object.create(Iterator.prototype, {
-	constructor: d(MapIterator),
-	_resolve: d(function (i) {
-		if (this.__kind__ === 'value') return this.__values__[i];
-		if (this.__kind__ === 'key') return this.__list__[i];
-		return [this.__list__[i], this.__values__[i]];
-	}),
-	_unBind: d(function () {
-		this.__values__ = null;
-		unBind.call(this);
-	}),
-	toString: d(function () { return '[object Map Iterator]'; })
-});
-Object.defineProperty(MapIterator.prototype, toStringTagSymbol,
-	d('c', 'Map Iterator'));
-
-},{"./iterator-kinds":128,"d":53,"es5-ext/object/set-prototype-of":109,"es6-iterator":121,"es6-symbol":131}],130:[function(require,module,exports){
-'use strict';
-
-var clear          = require('es5-ext/array/#/clear')
-  , eIndexOf       = require('es5-ext/array/#/e-index-of')
-  , setPrototypeOf = require('es5-ext/object/set-prototype-of')
-  , callable       = require('es5-ext/object/valid-callable')
-  , validValue     = require('es5-ext/object/valid-value')
-  , d              = require('d')
-  , ee             = require('event-emitter')
-  , Symbol         = require('es6-symbol')
-  , iterator       = require('es6-iterator/valid-iterable')
-  , forOf          = require('es6-iterator/for-of')
-  , Iterator       = require('./lib/iterator')
-  , isNative       = require('./is-native-implemented')
-
-  , call = Function.prototype.call
-  , defineProperties = Object.defineProperties, getPrototypeOf = Object.getPrototypeOf
-  , MapPoly;
-
-module.exports = MapPoly = function (/*iterable*/) {
-	var iterable = arguments[0], keys, values, self;
-	if (!(this instanceof MapPoly)) throw new TypeError('Constructor requires \'new\'');
-	if (isNative && setPrototypeOf && (Map !== MapPoly)) {
-		self = setPrototypeOf(new Map(), getPrototypeOf(this));
-	} else {
-		self = this;
-	}
-	if (iterable != null) iterator(iterable);
-	defineProperties(self, {
-		__mapKeysData__: d('c', keys = []),
-		__mapValuesData__: d('c', values = [])
-	});
-	if (!iterable) return self;
-	forOf(iterable, function (value) {
-		var key = validValue(value)[0];
-		value = value[1];
-		if (eIndexOf.call(keys, key) !== -1) return;
-		keys.push(key);
-		values.push(value);
-	}, self);
-	return self;
-};
-
-if (isNative) {
-	if (setPrototypeOf) setPrototypeOf(MapPoly, Map);
-	MapPoly.prototype = Object.create(Map.prototype, {
-		constructor: d(MapPoly)
-	});
-}
-
-ee(defineProperties(MapPoly.prototype, {
-	clear: d(function () {
-		if (!this.__mapKeysData__.length) return;
-		clear.call(this.__mapKeysData__);
-		clear.call(this.__mapValuesData__);
-		this.emit('_clear');
-	}),
-	delete: d(function (key) {
-		var index = eIndexOf.call(this.__mapKeysData__, key);
-		if (index === -1) return false;
-		this.__mapKeysData__.splice(index, 1);
-		this.__mapValuesData__.splice(index, 1);
-		this.emit('_delete', index, key);
-		return true;
-	}),
-	entries: d(function () { return new Iterator(this, 'key+value'); }),
-	forEach: d(function (cb/*, thisArg*/) {
-		var thisArg = arguments[1], iterator, result;
-		callable(cb);
-		iterator = this.entries();
-		result = iterator._next();
-		while (result !== undefined) {
-			call.call(cb, thisArg, this.__mapValuesData__[result],
-				this.__mapKeysData__[result], this);
-			result = iterator._next();
-		}
-	}),
-	get: d(function (key) {
-		var index = eIndexOf.call(this.__mapKeysData__, key);
-		if (index === -1) return;
-		return this.__mapValuesData__[index];
-	}),
-	has: d(function (key) {
-		return (eIndexOf.call(this.__mapKeysData__, key) !== -1);
-	}),
-	keys: d(function () { return new Iterator(this, 'key'); }),
-	set: d(function (key, value) {
-		var index = eIndexOf.call(this.__mapKeysData__, key), emit;
-		if (index === -1) {
-			index = this.__mapKeysData__.push(key) - 1;
-			emit = true;
-		}
-		this.__mapValuesData__[index] = value;
-		if (emit) this.emit('_add', index, key);
-		return this;
-	}),
-	size: d.gs(function () { return this.__mapKeysData__.length; }),
-	values: d(function () { return new Iterator(this, 'value'); }),
-	toString: d(function () { return '[object Map]'; })
-}));
-Object.defineProperty(MapPoly.prototype, Symbol.iterator, d(function () {
-	return this.entries();
-}));
-Object.defineProperty(MapPoly.prototype, Symbol.toStringTag, d('c', 'Map'));
-
-},{"./is-native-implemented":127,"./lib/iterator":129,"d":53,"es5-ext/array/#/clear":86,"es5-ext/array/#/e-index-of":87,"es5-ext/object/set-prototype-of":109,"es5-ext/object/valid-callable":112,"es5-ext/object/valid-value":113,"es6-iterator/for-of":119,"es6-iterator/valid-iterable":124,"es6-symbol":131,"event-emitter":136}],131:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./is-implemented')() ? Symbol : require('./polyfill');
-
-},{"./is-implemented":132,"./polyfill":134}],132:[function(require,module,exports){
-'use strict';
-
-var validTypes = { object: true, symbol: true };
-
-module.exports = function () {
-	var symbol;
-	if (typeof Symbol !== 'function') return false;
-	symbol = Symbol('test symbol');
-	try { String(symbol); } catch (e) { return false; }
-
-	// Return 'true' also for polyfills
-	if (!validTypes[typeof Symbol.iterator]) return false;
-	if (!validTypes[typeof Symbol.toPrimitive]) return false;
-	if (!validTypes[typeof Symbol.toStringTag]) return false;
-
-	return true;
-};
-
 },{}],133:[function(require,module,exports){
-'use strict';
-
-module.exports = function (x) {
-	if (!x) return false;
-	if (typeof x === 'symbol') return true;
-	if (!x.constructor) return false;
-	if (x.constructor.name !== 'Symbol') return false;
-	return (x[x.constructor.toStringTag] === 'Symbol');
-};
-
-},{}],134:[function(require,module,exports){
-// ES2015 Symbol polyfill for environments that do not support it (or partially support it)
-
-'use strict';
-
-var d              = require('d')
-  , validateSymbol = require('./validate-symbol')
-
-  , create = Object.create, defineProperties = Object.defineProperties
-  , defineProperty = Object.defineProperty, objPrototype = Object.prototype
-  , NativeSymbol, SymbolPolyfill, HiddenSymbol, globalSymbols = create(null)
-  , isNativeSafe;
-
-if (typeof Symbol === 'function') {
-	NativeSymbol = Symbol;
-	try {
-		String(NativeSymbol());
-		isNativeSafe = true;
-	} catch (ignore) {}
-}
-
-var generateName = (function () {
-	var created = create(null);
-	return function (desc) {
-		var postfix = 0, name, ie11BugWorkaround;
-		while (created[desc + (postfix || '')]) ++postfix;
-		desc += (postfix || '');
-		created[desc] = true;
-		name = '@@' + desc;
-		defineProperty(objPrototype, name, d.gs(null, function (value) {
-			// For IE11 issue see:
-			// https://connect.microsoft.com/IE/feedbackdetail/view/1928508/
-			//    ie11-broken-getters-on-dom-objects
-			// https://github.com/medikoo/es6-symbol/issues/12
-			if (ie11BugWorkaround) return;
-			ie11BugWorkaround = true;
-			defineProperty(this, name, d(value));
-			ie11BugWorkaround = false;
-		}));
-		return name;
-	};
-}());
-
-// Internal constructor (not one exposed) for creating Symbol instances.
-// This one is used to ensure that `someSymbol instanceof Symbol` always return false
-HiddenSymbol = function Symbol(description) {
-	if (this instanceof HiddenSymbol) throw new TypeError('TypeError: Symbol is not a constructor');
-	return SymbolPolyfill(description);
-};
-
-// Exposed `Symbol` constructor
-// (returns instances of HiddenSymbol)
-module.exports = SymbolPolyfill = function Symbol(description) {
-	var symbol;
-	if (this instanceof Symbol) throw new TypeError('TypeError: Symbol is not a constructor');
-	if (isNativeSafe) return NativeSymbol(description);
-	symbol = create(HiddenSymbol.prototype);
-	description = (description === undefined ? '' : String(description));
-	return defineProperties(symbol, {
-		__description__: d('', description),
-		__name__: d('', generateName(description))
-	});
-};
-defineProperties(SymbolPolyfill, {
-	for: d(function (key) {
-		if (globalSymbols[key]) return globalSymbols[key];
-		return (globalSymbols[key] = SymbolPolyfill(String(key)));
-	}),
-	keyFor: d(function (s) {
-		var key;
-		validateSymbol(s);
-		for (key in globalSymbols) if (globalSymbols[key] === s) return key;
-	}),
-
-	// If there's native implementation of given symbol, let's fallback to it
-	// to ensure proper interoperability with other native functions e.g. Array.from
-	hasInstance: d('', (NativeSymbol && NativeSymbol.hasInstance) || SymbolPolyfill('hasInstance')),
-	isConcatSpreadable: d('', (NativeSymbol && NativeSymbol.isConcatSpreadable) ||
-		SymbolPolyfill('isConcatSpreadable')),
-	iterator: d('', (NativeSymbol && NativeSymbol.iterator) || SymbolPolyfill('iterator')),
-	match: d('', (NativeSymbol && NativeSymbol.match) || SymbolPolyfill('match')),
-	replace: d('', (NativeSymbol && NativeSymbol.replace) || SymbolPolyfill('replace')),
-	search: d('', (NativeSymbol && NativeSymbol.search) || SymbolPolyfill('search')),
-	species: d('', (NativeSymbol && NativeSymbol.species) || SymbolPolyfill('species')),
-	split: d('', (NativeSymbol && NativeSymbol.split) || SymbolPolyfill('split')),
-	toPrimitive: d('', (NativeSymbol && NativeSymbol.toPrimitive) || SymbolPolyfill('toPrimitive')),
-	toStringTag: d('', (NativeSymbol && NativeSymbol.toStringTag) || SymbolPolyfill('toStringTag')),
-	unscopables: d('', (NativeSymbol && NativeSymbol.unscopables) || SymbolPolyfill('unscopables'))
-});
-
-// Internal tweaks for real symbol producer
-defineProperties(HiddenSymbol.prototype, {
-	constructor: d(SymbolPolyfill),
-	toString: d('', function () { return this.__name__; })
-});
-
-// Proper implementation of methods exposed on Symbol.prototype
-// They won't be accessible on produced symbol instances as they derive from HiddenSymbol.prototype
-defineProperties(SymbolPolyfill.prototype, {
-	toString: d(function () { return 'Symbol (' + validateSymbol(this).__description__ + ')'; }),
-	valueOf: d(function () { return validateSymbol(this); })
-});
-defineProperty(SymbolPolyfill.prototype, SymbolPolyfill.toPrimitive, d('', function () {
-	var symbol = validateSymbol(this);
-	if (typeof symbol === 'symbol') return symbol;
-	return symbol.toString();
-}));
-defineProperty(SymbolPolyfill.prototype, SymbolPolyfill.toStringTag, d('c', 'Symbol'));
-
-// Proper implementaton of toPrimitive and toStringTag for returned symbol instances
-defineProperty(HiddenSymbol.prototype, SymbolPolyfill.toStringTag,
-	d('c', SymbolPolyfill.prototype[SymbolPolyfill.toStringTag]));
-
-// Note: It's important to define `toPrimitive` as last one, as some implementations
-// implement `toPrimitive` natively without implementing `toStringTag` (or other specified symbols)
-// And that may invoke error in definition flow:
-// See: https://github.com/medikoo/es6-symbol/issues/13#issuecomment-164146149
-defineProperty(HiddenSymbol.prototype, SymbolPolyfill.toPrimitive,
-	d('c', SymbolPolyfill.prototype[SymbolPolyfill.toPrimitive]));
-
-},{"./validate-symbol":135,"d":53}],135:[function(require,module,exports){
-'use strict';
-
-var isSymbol = require('./is-symbol');
-
-module.exports = function (value) {
-	if (!isSymbol(value)) throw new TypeError(value + " is not a symbol");
-	return value;
-};
-
-},{"./is-symbol":133}],136:[function(require,module,exports){
-'use strict';
-
-var d        = require('d')
-  , callable = require('es5-ext/object/valid-callable')
-
-  , apply = Function.prototype.apply, call = Function.prototype.call
-  , create = Object.create, defineProperty = Object.defineProperty
-  , defineProperties = Object.defineProperties
-  , hasOwnProperty = Object.prototype.hasOwnProperty
-  , descriptor = { configurable: true, enumerable: false, writable: true }
-
-  , on, once, off, emit, methods, descriptors, base;
-
-on = function (type, listener) {
-	var data;
-
-	callable(listener);
-
-	if (!hasOwnProperty.call(this, '__ee__')) {
-		data = descriptor.value = create(null);
-		defineProperty(this, '__ee__', descriptor);
-		descriptor.value = null;
-	} else {
-		data = this.__ee__;
-	}
-	if (!data[type]) data[type] = listener;
-	else if (typeof data[type] === 'object') data[type].push(listener);
-	else data[type] = [data[type], listener];
-
-	return this;
-};
-
-once = function (type, listener) {
-	var once, self;
-
-	callable(listener);
-	self = this;
-	on.call(this, type, once = function () {
-		off.call(self, type, once);
-		apply.call(listener, this, arguments);
-	});
-
-	once.__eeOnceListener__ = listener;
-	return this;
-};
-
-off = function (type, listener) {
-	var data, listeners, candidate, i;
-
-	callable(listener);
-
-	if (!hasOwnProperty.call(this, '__ee__')) return this;
-	data = this.__ee__;
-	if (!data[type]) return this;
-	listeners = data[type];
-
-	if (typeof listeners === 'object') {
-		for (i = 0; (candidate = listeners[i]); ++i) {
-			if ((candidate === listener) ||
-					(candidate.__eeOnceListener__ === listener)) {
-				if (listeners.length === 2) data[type] = listeners[i ? 0 : 1];
-				else listeners.splice(i, 1);
-			}
-		}
-	} else {
-		if ((listeners === listener) ||
-				(listeners.__eeOnceListener__ === listener)) {
-			delete data[type];
-		}
-	}
-
-	return this;
-};
-
-emit = function (type) {
-	var i, l, listener, listeners, args;
-
-	if (!hasOwnProperty.call(this, '__ee__')) return;
-	listeners = this.__ee__[type];
-	if (!listeners) return;
-
-	if (typeof listeners === 'object') {
-		l = arguments.length;
-		args = new Array(l - 1);
-		for (i = 1; i < l; ++i) args[i - 1] = arguments[i];
-
-		listeners = listeners.slice();
-		for (i = 0; (listener = listeners[i]); ++i) {
-			apply.call(listener, this, args);
-		}
-	} else {
-		switch (arguments.length) {
-		case 1:
-			call.call(listeners, this);
-			break;
-		case 2:
-			call.call(listeners, this, arguments[1]);
-			break;
-		case 3:
-			call.call(listeners, this, arguments[1], arguments[2]);
-			break;
-		default:
-			l = arguments.length;
-			args = new Array(l - 1);
-			for (i = 1; i < l; ++i) {
-				args[i - 1] = arguments[i];
-			}
-			apply.call(listeners, this, args);
-		}
-	}
-};
-
-methods = {
-	on: on,
-	once: once,
-	off: off,
-	emit: emit
-};
-
-descriptors = {
-	on: d(on),
-	once: d(once),
-	off: d(off),
-	emit: d(emit)
-};
-
-base = defineProperties({}, descriptors);
-
-module.exports = exports = function (o) {
-	return (o == null) ? create(base) : defineProperties(Object(o), descriptors);
-};
-exports.methods = methods;
-
-},{"d":53,"es5-ext/object/valid-callable":112}],137:[function(require,module,exports){
-/**
- * Copyright (c) 2014, Chris Pettitt
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this
- * list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its contributors
- * may be used to endorse or promote products derived from this software without
- * specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
- * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
- * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
-var lib = require("./lib");
-
-module.exports = {
-  Graph: lib.Graph,
-  json: require("./lib/json"),
-  alg: require("./lib/alg"),
-  version: lib.version
-};
-
-},{"./lib":153,"./lib/alg":144,"./lib/json":154}],138:[function(require,module,exports){
-var _ = require("../lodash");
-
-module.exports = components;
-
-function components(g) {
-  var visited = {},
-      cmpts = [],
-      cmpt;
-
-  function dfs(v) {
-    if (_.has(visited, v)) return;
-    visited[v] = true;
-    cmpt.push(v);
-    _.each(g.successors(v), dfs);
-    _.each(g.predecessors(v), dfs);
-  }
-
-  _.each(g.nodes(), function(v) {
-    cmpt = [];
-    dfs(v);
-    if (cmpt.length) {
-      cmpts.push(cmpt);
-    }
-  });
-
-  return cmpts;
-}
-
-},{"../lodash":155}],139:[function(require,module,exports){
-var _ = require("../lodash");
-
-module.exports = dfs;
-
-/*
- * A helper that preforms a pre- or post-order traversal on the input graph
- * and returns the nodes in the order they were visited. This algorithm treats
- * the input as undirected.
- *
- * Order must be one of "pre" or "post".
- */
-function dfs(g, vs, order) {
-  if (!_.isArray(vs)) {
-    vs = [vs];
-  }
-
-  var acc = [],
-      visited = {};
-  _.each(vs, function(v) {
-    if (!g.hasNode(v)) {
-      throw new Error("Graph does not have node: " + v);
-    }
-
-    doDfs(g, v, order === "post", visited, acc);
-  });
-  return acc;
-}
-
-function doDfs(g, v, postorder, visited, acc) {
-  if (!_.has(visited, v)) {
-    visited[v] = true;
-
-    if (!postorder) { acc.push(v); }
-    _.each(g.neighbors(v), function(w) {
-      doDfs(g, w, postorder, visited, acc);
-    });
-    if (postorder) { acc.push(v); }
-  }
-}
-
-},{"../lodash":155}],140:[function(require,module,exports){
-var dijkstra = require("./dijkstra"),
-    _ = require("../lodash");
-
-module.exports = dijkstraAll;
-
-function dijkstraAll(g, weightFunc, edgeFunc) {
-  return _.transform(g.nodes(), function(acc, v) {
-    acc[v] = dijkstra(g, v, weightFunc, edgeFunc);
-  }, {});
-}
-
-},{"../lodash":155,"./dijkstra":141}],141:[function(require,module,exports){
-var _ = require("../lodash"),
-    PriorityQueue = require("../data/priority-queue");
-
-module.exports = dijkstra;
-
-var DEFAULT_WEIGHT_FUNC = _.constant(1);
-
-function dijkstra(g, source, weightFn, edgeFn) {
-  return runDijkstra(g, String(source),
-                     weightFn || DEFAULT_WEIGHT_FUNC,
-                     edgeFn || function(v) { return g.outEdges(v); });
-}
-
-function runDijkstra(g, source, weightFn, edgeFn) {
-  var results = {},
-      pq = new PriorityQueue(),
-      v, vEntry;
-
-  var updateNeighbors = function(edge) {
-    var w = edge.v !== v ? edge.v : edge.w,
-        wEntry = results[w],
-        weight = weightFn(edge),
-        distance = vEntry.distance + weight;
-
-    if (weight < 0) {
-      throw new Error("dijkstra does not allow negative edge weights. " +
-                      "Bad edge: " + edge + " Weight: " + weight);
-    }
-
-    if (distance < wEntry.distance) {
-      wEntry.distance = distance;
-      wEntry.predecessor = v;
-      pq.decrease(w, distance);
-    }
-  };
-
-  g.nodes().forEach(function(v) {
-    var distance = v === source ? 0 : Number.POSITIVE_INFINITY;
-    results[v] = { distance: distance };
-    pq.add(v, distance);
-  });
-
-  while (pq.size() > 0) {
-    v = pq.removeMin();
-    vEntry = results[v];
-    if (vEntry.distance === Number.POSITIVE_INFINITY) {
-      break;
-    }
-
-    edgeFn(v).forEach(updateNeighbors);
-  }
-
-  return results;
-}
-
-},{"../data/priority-queue":151,"../lodash":155}],142:[function(require,module,exports){
-var _ = require("../lodash"),
-    tarjan = require("./tarjan");
-
-module.exports = findCycles;
-
-function findCycles(g) {
-  return _.filter(tarjan(g), function(cmpt) {
-    return cmpt.length > 1 || (cmpt.length === 1 && g.hasEdge(cmpt[0], cmpt[0]));
-  });
-}
-
-},{"../lodash":155,"./tarjan":149}],143:[function(require,module,exports){
-var _ = require("../lodash");
-
-module.exports = floydWarshall;
-
-var DEFAULT_WEIGHT_FUNC = _.constant(1);
-
-function floydWarshall(g, weightFn, edgeFn) {
-  return runFloydWarshall(g,
-                          weightFn || DEFAULT_WEIGHT_FUNC,
-                          edgeFn || function(v) { return g.outEdges(v); });
-}
-
-function runFloydWarshall(g, weightFn, edgeFn) {
-  var results = {},
-      nodes = g.nodes();
-
-  nodes.forEach(function(v) {
-    results[v] = {};
-    results[v][v] = { distance: 0 };
-    nodes.forEach(function(w) {
-      if (v !== w) {
-        results[v][w] = { distance: Number.POSITIVE_INFINITY };
-      }
-    });
-    edgeFn(v).forEach(function(edge) {
-      var w = edge.v === v ? edge.w : edge.v,
-          d = weightFn(edge);
-      results[v][w] = { distance: d, predecessor: v };
-    });
-  });
-
-  nodes.forEach(function(k) {
-    var rowK = results[k];
-    nodes.forEach(function(i) {
-      var rowI = results[i];
-      nodes.forEach(function(j) {
-        var ik = rowI[k];
-        var kj = rowK[j];
-        var ij = rowI[j];
-        var altDistance = ik.distance + kj.distance;
-        if (altDistance < ij.distance) {
-          ij.distance = altDistance;
-          ij.predecessor = kj.predecessor;
-        }
-      });
-    });
-  });
-
-  return results;
-}
-
-},{"../lodash":155}],144:[function(require,module,exports){
-module.exports = {
-  components: require("./components"),
-  dijkstra: require("./dijkstra"),
-  dijkstraAll: require("./dijkstra-all"),
-  findCycles: require("./find-cycles"),
-  floydWarshall: require("./floyd-warshall"),
-  isAcyclic: require("./is-acyclic"),
-  postorder: require("./postorder"),
-  preorder: require("./preorder"),
-  prim: require("./prim"),
-  tarjan: require("./tarjan"),
-  topsort: require("./topsort")
-};
-
-},{"./components":138,"./dijkstra":141,"./dijkstra-all":140,"./find-cycles":142,"./floyd-warshall":143,"./is-acyclic":145,"./postorder":146,"./preorder":147,"./prim":148,"./tarjan":149,"./topsort":150}],145:[function(require,module,exports){
-var topsort = require("./topsort");
-
-module.exports = isAcyclic;
-
-function isAcyclic(g) {
-  try {
-    topsort(g);
-  } catch (e) {
-    if (e instanceof topsort.CycleException) {
-      return false;
-    }
-    throw e;
-  }
-  return true;
-}
-
-},{"./topsort":150}],146:[function(require,module,exports){
-var dfs = require("./dfs");
-
-module.exports = postorder;
-
-function postorder(g, vs) {
-  return dfs(g, vs, "post");
-}
-
-},{"./dfs":139}],147:[function(require,module,exports){
-var dfs = require("./dfs");
-
-module.exports = preorder;
-
-function preorder(g, vs) {
-  return dfs(g, vs, "pre");
-}
-
-},{"./dfs":139}],148:[function(require,module,exports){
-var _ = require("../lodash"),
-    Graph = require("../graph"),
-    PriorityQueue = require("../data/priority-queue");
-
-module.exports = prim;
-
-function prim(g, weightFunc) {
-  var result = new Graph(),
-      parents = {},
-      pq = new PriorityQueue(),
-      v;
-
-  function updateNeighbors(edge) {
-    var w = edge.v === v ? edge.w : edge.v,
-        pri = pq.priority(w);
-    if (pri !== undefined) {
-      var edgeWeight = weightFunc(edge);
-      if (edgeWeight < pri) {
-        parents[w] = v;
-        pq.decrease(w, edgeWeight);
-      }
-    }
-  }
-
-  if (g.nodeCount() === 0) {
-    return result;
-  }
-
-  _.each(g.nodes(), function(v) {
-    pq.add(v, Number.POSITIVE_INFINITY);
-    result.setNode(v);
-  });
-
-  // Start from an arbitrary node
-  pq.decrease(g.nodes()[0], 0);
-
-  var init = false;
-  while (pq.size() > 0) {
-    v = pq.removeMin();
-    if (_.has(parents, v)) {
-      result.setEdge(v, parents[v]);
-    } else if (init) {
-      throw new Error("Input graph is not connected: " + g);
-    } else {
-      init = true;
-    }
-
-    g.nodeEdges(v).forEach(updateNeighbors);
-  }
-
-  return result;
-}
-
-},{"../data/priority-queue":151,"../graph":152,"../lodash":155}],149:[function(require,module,exports){
-var _ = require("../lodash");
-
-module.exports = tarjan;
-
-function tarjan(g) {
-  var index = 0,
-      stack = [],
-      visited = {}, // node id -> { onStack, lowlink, index }
-      results = [];
-
-  function dfs(v) {
-    var entry = visited[v] = {
-      onStack: true,
-      lowlink: index,
-      index: index++
-    };
-    stack.push(v);
-
-    g.successors(v).forEach(function(w) {
-      if (!_.has(visited, w)) {
-        dfs(w);
-        entry.lowlink = Math.min(entry.lowlink, visited[w].lowlink);
-      } else if (visited[w].onStack) {
-        entry.lowlink = Math.min(entry.lowlink, visited[w].index);
-      }
-    });
-
-    if (entry.lowlink === entry.index) {
-      var cmpt = [],
-          w;
-      do {
-        w = stack.pop();
-        visited[w].onStack = false;
-        cmpt.push(w);
-      } while (v !== w);
-      results.push(cmpt);
-    }
-  }
-
-  g.nodes().forEach(function(v) {
-    if (!_.has(visited, v)) {
-      dfs(v);
-    }
-  });
-
-  return results;
-}
-
-},{"../lodash":155}],150:[function(require,module,exports){
-var _ = require("../lodash");
-
-module.exports = topsort;
-topsort.CycleException = CycleException;
-
-function topsort(g) {
-  var visited = {},
-      stack = {},
-      results = [];
-
-  function visit(node) {
-    if (_.has(stack, node)) {
-      throw new CycleException();
-    }
-
-    if (!_.has(visited, node)) {
-      stack[node] = true;
-      visited[node] = true;
-      _.each(g.predecessors(node), visit);
-      delete stack[node];
-      results.push(node);
-    }
-  }
-
-  _.each(g.sinks(), visit);
-
-  if (_.size(visited) !== g.nodeCount()) {
-    throw new CycleException();
-  }
-
-  return results;
-}
-
-function CycleException() {}
-
-},{"../lodash":155}],151:[function(require,module,exports){
-var _ = require("../lodash");
-
-module.exports = PriorityQueue;
-
-/**
- * A min-priority queue data structure. This algorithm is derived from Cormen,
- * et al., "Introduction to Algorithms". The basic idea of a min-priority
- * queue is that you can efficiently (in O(1) time) get the smallest key in
- * the queue. Adding and removing elements takes O(log n) time. A key can
- * have its priority decreased in O(log n) time.
- */
-function PriorityQueue() {
-  this._arr = [];
-  this._keyIndices = {};
-}
-
-/**
- * Returns the number of elements in the queue. Takes `O(1)` time.
- */
-PriorityQueue.prototype.size = function() {
-  return this._arr.length;
-};
-
-/**
- * Returns the keys that are in the queue. Takes `O(n)` time.
- */
-PriorityQueue.prototype.keys = function() {
-  return this._arr.map(function(x) { return x.key; });
-};
-
-/**
- * Returns `true` if **key** is in the queue and `false` if not.
- */
-PriorityQueue.prototype.has = function(key) {
-  return _.has(this._keyIndices, key);
-};
-
-/**
- * Returns the priority for **key**. If **key** is not present in the queue
- * then this function returns `undefined`. Takes `O(1)` time.
- *
- * @param {Object} key
- */
-PriorityQueue.prototype.priority = function(key) {
-  var index = this._keyIndices[key];
-  if (index !== undefined) {
-    return this._arr[index].priority;
-  }
-};
-
-/**
- * Returns the key for the minimum element in this queue. If the queue is
- * empty this function throws an Error. Takes `O(1)` time.
- */
-PriorityQueue.prototype.min = function() {
-  if (this.size() === 0) {
-    throw new Error("Queue underflow");
-  }
-  return this._arr[0].key;
-};
-
-/**
- * Inserts a new key into the priority queue. If the key already exists in
- * the queue this function returns `false`; otherwise it will return `true`.
- * Takes `O(n)` time.
- *
- * @param {Object} key the key to add
- * @param {Number} priority the initial priority for the key
- */
-PriorityQueue.prototype.add = function(key, priority) {
-  var keyIndices = this._keyIndices;
-  key = String(key);
-  if (!_.has(keyIndices, key)) {
-    var arr = this._arr;
-    var index = arr.length;
-    keyIndices[key] = index;
-    arr.push({key: key, priority: priority});
-    this._decrease(index);
-    return true;
-  }
-  return false;
-};
-
-/**
- * Removes and returns the smallest key in the queue. Takes `O(log n)` time.
- */
-PriorityQueue.prototype.removeMin = function() {
-  this._swap(0, this._arr.length - 1);
-  var min = this._arr.pop();
-  delete this._keyIndices[min.key];
-  this._heapify(0);
-  return min.key;
-};
-
-/**
- * Decreases the priority for **key** to **priority**. If the new priority is
- * greater than the previous priority, this function will throw an Error.
- *
- * @param {Object} key the key for which to raise priority
- * @param {Number} priority the new priority for the key
- */
-PriorityQueue.prototype.decrease = function(key, priority) {
-  var index = this._keyIndices[key];
-  if (priority > this._arr[index].priority) {
-    throw new Error("New priority is greater than current priority. " +
-        "Key: " + key + " Old: " + this._arr[index].priority + " New: " + priority);
-  }
-  this._arr[index].priority = priority;
-  this._decrease(index);
-};
-
-PriorityQueue.prototype._heapify = function(i) {
-  var arr = this._arr;
-  var l = 2 * i,
-      r = l + 1,
-      largest = i;
-  if (l < arr.length) {
-    largest = arr[l].priority < arr[largest].priority ? l : largest;
-    if (r < arr.length) {
-      largest = arr[r].priority < arr[largest].priority ? r : largest;
-    }
-    if (largest !== i) {
-      this._swap(i, largest);
-      this._heapify(largest);
-    }
-  }
-};
-
-PriorityQueue.prototype._decrease = function(index) {
-  var arr = this._arr;
-  var priority = arr[index].priority;
-  var parent;
-  while (index !== 0) {
-    parent = index >> 1;
-    if (arr[parent].priority < priority) {
-      break;
-    }
-    this._swap(index, parent);
-    index = parent;
-  }
-};
-
-PriorityQueue.prototype._swap = function(i, j) {
-  var arr = this._arr;
-  var keyIndices = this._keyIndices;
-  var origArrI = arr[i];
-  var origArrJ = arr[j];
-  arr[i] = origArrJ;
-  arr[j] = origArrI;
-  keyIndices[origArrJ.key] = i;
-  keyIndices[origArrI.key] = j;
-};
-
-},{"../lodash":155}],152:[function(require,module,exports){
-"use strict";
-
-var _ = require("./lodash");
-
-module.exports = Graph;
-
-var DEFAULT_EDGE_NAME = "\x00",
-    GRAPH_NODE = "\x00",
-    EDGE_KEY_DELIM = "\x01";
-
-// Implementation notes:
-//
-//  * Node id query functions should return string ids for the nodes
-//  * Edge id query functions should return an "edgeObj", edge object, that is
-//    composed of enough information to uniquely identify an edge: {v, w, name}.
-//  * Internally we use an "edgeId", a stringified form of the edgeObj, to
-//    reference edges. This is because we need a performant way to look these
-//    edges up and, object properties, which have string keys, are the closest
-//    we're going to get to a performant hashtable in JavaScript.
-
-function Graph(opts) {
-  this._isDirected = _.has(opts, "directed") ? opts.directed : true;
-  this._isMultigraph = _.has(opts, "multigraph") ? opts.multigraph : false;
-  this._isCompound = _.has(opts, "compound") ? opts.compound : false;
-
-  // Label for the graph itself
-  this._label = undefined;
-
-  // Defaults to be set when creating a new node
-  this._defaultNodeLabelFn = _.constant(undefined);
-
-  // Defaults to be set when creating a new edge
-  this._defaultEdgeLabelFn = _.constant(undefined);
-
-  // v -> label
-  this._nodes = {};
-
-  if (this._isCompound) {
-    // v -> parent
-    this._parent = {};
-
-    // v -> children
-    this._children = {};
-    this._children[GRAPH_NODE] = {};
-  }
-
-  // v -> edgeObj
-  this._in = {};
-
-  // u -> v -> Number
-  this._preds = {};
-
-  // v -> edgeObj
-  this._out = {};
-
-  // v -> w -> Number
-  this._sucs = {};
-
-  // e -> edgeObj
-  this._edgeObjs = {};
-
-  // e -> label
-  this._edgeLabels = {};
-}
-
-/* Number of nodes in the graph. Should only be changed by the implementation. */
-Graph.prototype._nodeCount = 0;
-
-/* Number of edges in the graph. Should only be changed by the implementation. */
-Graph.prototype._edgeCount = 0;
-
-
-/* === Graph functions ========= */
-
-Graph.prototype.isDirected = function() {
-  return this._isDirected;
-};
-
-Graph.prototype.isMultigraph = function() {
-  return this._isMultigraph;
-};
-
-Graph.prototype.isCompound = function() {
-  return this._isCompound;
-};
-
-Graph.prototype.setGraph = function(label) {
-  this._label = label;
-  return this;
-};
-
-Graph.prototype.graph = function() {
-  return this._label;
-};
-
-
-/* === Node functions ========== */
-
-Graph.prototype.setDefaultNodeLabel = function(newDefault) {
-  if (!_.isFunction(newDefault)) {
-    newDefault = _.constant(newDefault);
-  }
-  this._defaultNodeLabelFn = newDefault;
-  return this;
-};
-
-Graph.prototype.nodeCount = function() {
-  return this._nodeCount;
-};
-
-Graph.prototype.nodes = function() {
-  return _.keys(this._nodes);
-};
-
-Graph.prototype.sources = function() {
-  return _.filter(this.nodes(), function(v) {
-    return _.isEmpty(this._in[v]);
-  }, this);
-};
-
-Graph.prototype.sinks = function() {
-  return _.filter(this.nodes(), function(v) {
-    return _.isEmpty(this._out[v]);
-  }, this);
-};
-
-Graph.prototype.setNodes = function(vs, value) {
-  var args = arguments;
-  _.each(vs, function(v) {
-    if (args.length > 1) {
-      this.setNode(v, value);
-    } else {
-      this.setNode(v);
-    }
-  }, this);
-  return this;
-};
-
-Graph.prototype.setNode = function(v, value) {
-  if (_.has(this._nodes, v)) {
-    if (arguments.length > 1) {
-      this._nodes[v] = value;
-    }
-    return this;
-  }
-
-  this._nodes[v] = arguments.length > 1 ? value : this._defaultNodeLabelFn(v);
-  if (this._isCompound) {
-    this._parent[v] = GRAPH_NODE;
-    this._children[v] = {};
-    this._children[GRAPH_NODE][v] = true;
-  }
-  this._in[v] = {};
-  this._preds[v] = {};
-  this._out[v] = {};
-  this._sucs[v] = {};
-  ++this._nodeCount;
-  return this;
-};
-
-Graph.prototype.node = function(v) {
-  return this._nodes[v];
-};
-
-Graph.prototype.hasNode = function(v) {
-  return _.has(this._nodes, v);
-};
-
-Graph.prototype.removeNode =  function(v) {
-  var self = this;
-  if (_.has(this._nodes, v)) {
-    var removeEdge = function(e) { self.removeEdge(self._edgeObjs[e]); };
-    delete this._nodes[v];
-    if (this._isCompound) {
-      this._removeFromParentsChildList(v);
-      delete this._parent[v];
-      _.each(this.children(v), function(child) {
-        this.setParent(child);
-      }, this);
-      delete this._children[v];
-    }
-    _.each(_.keys(this._in[v]), removeEdge);
-    delete this._in[v];
-    delete this._preds[v];
-    _.each(_.keys(this._out[v]), removeEdge);
-    delete this._out[v];
-    delete this._sucs[v];
-    --this._nodeCount;
-  }
-  return this;
-};
-
-Graph.prototype.setParent = function(v, parent) {
-  if (!this._isCompound) {
-    throw new Error("Cannot set parent in a non-compound graph");
-  }
-
-  if (_.isUndefined(parent)) {
-    parent = GRAPH_NODE;
-  } else {
-    // Coerce parent to string
-    parent += "";
-    for (var ancestor = parent;
-         !_.isUndefined(ancestor);
-         ancestor = this.parent(ancestor)) {
-      if (ancestor === v) {
-        throw new Error("Setting " + parent+ " as parent of " + v +
-                        " would create create a cycle");
-      }
-    }
-
-    this.setNode(parent);
-  }
-
-  this.setNode(v);
-  this._removeFromParentsChildList(v);
-  this._parent[v] = parent;
-  this._children[parent][v] = true;
-  return this;
-};
-
-Graph.prototype._removeFromParentsChildList = function(v) {
-  delete this._children[this._parent[v]][v];
-};
-
-Graph.prototype.parent = function(v) {
-  if (this._isCompound) {
-    var parent = this._parent[v];
-    if (parent !== GRAPH_NODE) {
-      return parent;
-    }
-  }
-};
-
-Graph.prototype.children = function(v) {
-  if (_.isUndefined(v)) {
-    v = GRAPH_NODE;
-  }
-
-  if (this._isCompound) {
-    var children = this._children[v];
-    if (children) {
-      return _.keys(children);
-    }
-  } else if (v === GRAPH_NODE) {
-    return this.nodes();
-  } else if (this.hasNode(v)) {
-    return [];
-  }
-};
-
-Graph.prototype.predecessors = function(v) {
-  var predsV = this._preds[v];
-  if (predsV) {
-    return _.keys(predsV);
-  }
-};
-
-Graph.prototype.successors = function(v) {
-  var sucsV = this._sucs[v];
-  if (sucsV) {
-    return _.keys(sucsV);
-  }
-};
-
-Graph.prototype.neighbors = function(v) {
-  var preds = this.predecessors(v);
-  if (preds) {
-    return _.union(preds, this.successors(v));
-  }
-};
-
-Graph.prototype.filterNodes = function(filter) {
-  var copy = new this.constructor({
-    directed: this._isDirected,
-    multigraph: this._isMultigraph,
-    compound: this._isCompound
-  });
-
-  copy.setGraph(this.graph());
-
-  _.each(this._nodes, function(value, v) {
-    if (filter(v)) {
-      copy.setNode(v, value);
-    }
-  }, this);
-
-  _.each(this._edgeObjs, function(e) {
-    if (copy.hasNode(e.v) && copy.hasNode(e.w)) {
-      copy.setEdge(e, this.edge(e));
-    }
-  }, this);
-
-  var self = this;
-  var parents = {};
-  function findParent(v) {
-    var parent = self.parent(v);
-    if (parent === undefined || copy.hasNode(parent)) {
-      parents[v] = parent;
-      return parent;
-    } else if (parent in parents) {
-      return parents[parent];
-    } else {
-      return findParent(parent);
-    }
-  }
-
-  if (this._isCompound) {
-    _.each(copy.nodes(), function(v) {
-      copy.setParent(v, findParent(v));
-    });
-  }
-
-  return copy;
-};
-
-/* === Edge functions ========== */
-
-Graph.prototype.setDefaultEdgeLabel = function(newDefault) {
-  if (!_.isFunction(newDefault)) {
-    newDefault = _.constant(newDefault);
-  }
-  this._defaultEdgeLabelFn = newDefault;
-  return this;
-};
-
-Graph.prototype.edgeCount = function() {
-  return this._edgeCount;
-};
-
-Graph.prototype.edges = function() {
-  return _.values(this._edgeObjs);
-};
-
-Graph.prototype.setPath = function(vs, value) {
-  var self = this,
-      args = arguments;
-  _.reduce(vs, function(v, w) {
-    if (args.length > 1) {
-      self.setEdge(v, w, value);
-    } else {
-      self.setEdge(v, w);
-    }
-    return w;
-  });
-  return this;
-};
-
-/*
- * setEdge(v, w, [value, [name]])
- * setEdge({ v, w, [name] }, [value])
- */
-Graph.prototype.setEdge = function() {
-  var v, w, name, value,
-      valueSpecified = false,
-      arg0 = arguments[0];
-
-  if (typeof arg0 === "object" && arg0 !== null && "v" in arg0) {
-    v = arg0.v;
-    w = arg0.w;
-    name = arg0.name;
-    if (arguments.length === 2) {
-      value = arguments[1];
-      valueSpecified = true;
-    }
-  } else {
-    v = arg0;
-    w = arguments[1];
-    name = arguments[3];
-    if (arguments.length > 2) {
-      value = arguments[2];
-      valueSpecified = true;
-    }
-  }
-
-  v = "" + v;
-  w = "" + w;
-  if (!_.isUndefined(name)) {
-    name = "" + name;
-  }
-
-  var e = edgeArgsToId(this._isDirected, v, w, name);
-  if (_.has(this._edgeLabels, e)) {
-    if (valueSpecified) {
-      this._edgeLabels[e] = value;
-    }
-    return this;
-  }
-
-  if (!_.isUndefined(name) && !this._isMultigraph) {
-    throw new Error("Cannot set a named edge when isMultigraph = false");
-  }
-
-  // It didn't exist, so we need to create it.
-  // First ensure the nodes exist.
-  this.setNode(v);
-  this.setNode(w);
-
-  this._edgeLabels[e] = valueSpecified ? value : this._defaultEdgeLabelFn(v, w, name);
-
-  var edgeObj = edgeArgsToObj(this._isDirected, v, w, name);
-  // Ensure we add undirected edges in a consistent way.
-  v = edgeObj.v;
-  w = edgeObj.w;
-
-  Object.freeze(edgeObj);
-  this._edgeObjs[e] = edgeObj;
-  incrementOrInitEntry(this._preds[w], v);
-  incrementOrInitEntry(this._sucs[v], w);
-  this._in[w][e] = edgeObj;
-  this._out[v][e] = edgeObj;
-  this._edgeCount++;
-  return this;
-};
-
-Graph.prototype.edge = function(v, w, name) {
-  var e = (arguments.length === 1
-            ? edgeObjToId(this._isDirected, arguments[0])
-            : edgeArgsToId(this._isDirected, v, w, name));
-  return this._edgeLabels[e];
-};
-
-Graph.prototype.hasEdge = function(v, w, name) {
-  var e = (arguments.length === 1
-            ? edgeObjToId(this._isDirected, arguments[0])
-            : edgeArgsToId(this._isDirected, v, w, name));
-  return _.has(this._edgeLabels, e);
-};
-
-Graph.prototype.removeEdge = function(v, w, name) {
-  var e = (arguments.length === 1
-            ? edgeObjToId(this._isDirected, arguments[0])
-            : edgeArgsToId(this._isDirected, v, w, name)),
-      edge = this._edgeObjs[e];
-  if (edge) {
-    v = edge.v;
-    w = edge.w;
-    delete this._edgeLabels[e];
-    delete this._edgeObjs[e];
-    decrementOrRemoveEntry(this._preds[w], v);
-    decrementOrRemoveEntry(this._sucs[v], w);
-    delete this._in[w][e];
-    delete this._out[v][e];
-    this._edgeCount--;
-  }
-  return this;
-};
-
-Graph.prototype.inEdges = function(v, u) {
-  var inV = this._in[v];
-  if (inV) {
-    var edges = _.values(inV);
-    if (!u) {
-      return edges;
-    }
-    return _.filter(edges, function(edge) { return edge.v === u; });
-  }
-};
-
-Graph.prototype.outEdges = function(v, w) {
-  var outV = this._out[v];
-  if (outV) {
-    var edges = _.values(outV);
-    if (!w) {
-      return edges;
-    }
-    return _.filter(edges, function(edge) { return edge.w === w; });
-  }
-};
-
-Graph.prototype.nodeEdges = function(v, w) {
-  var inEdges = this.inEdges(v, w);
-  if (inEdges) {
-    return inEdges.concat(this.outEdges(v, w));
-  }
-};
-
-function incrementOrInitEntry(map, k) {
-  if (map[k]) {
-    map[k]++;
-  } else {
-    map[k] = 1;
-  }
-}
-
-function decrementOrRemoveEntry(map, k) {
-  if (!--map[k]) { delete map[k]; }
-}
-
-function edgeArgsToId(isDirected, v_, w_, name) {
-  var v = "" + v_;
-  var w = "" + w_;
-  if (!isDirected && v > w) {
-    var tmp = v;
-    v = w;
-    w = tmp;
-  }
-  return v + EDGE_KEY_DELIM + w + EDGE_KEY_DELIM +
-             (_.isUndefined(name) ? DEFAULT_EDGE_NAME : name);
-}
-
-function edgeArgsToObj(isDirected, v_, w_, name) {
-  var v = "" + v_;
-  var w = "" + w_;
-  if (!isDirected && v > w) {
-    var tmp = v;
-    v = w;
-    w = tmp;
-  }
-  var edgeObj =  { v: v, w: w };
-  if (name) {
-    edgeObj.name = name;
-  }
-  return edgeObj;
-}
-
-function edgeObjToId(isDirected, edgeObj) {
-  return edgeArgsToId(isDirected, edgeObj.v, edgeObj.w, edgeObj.name);
-}
-
-},{"./lodash":155}],153:[function(require,module,exports){
-// Includes only the "core" of graphlib
-module.exports = {
-  Graph: require("./graph"),
-  version: require("./version")
-};
-
-},{"./graph":152,"./version":156}],154:[function(require,module,exports){
-var _ = require("./lodash"),
-    Graph = require("./graph");
-
-module.exports = {
-  write: write,
-  read: read
-};
-
-function write(g) {
-  var json = {
-    options: {
-      directed: g.isDirected(),
-      multigraph: g.isMultigraph(),
-      compound: g.isCompound()
-    },
-    nodes: writeNodes(g),
-    edges: writeEdges(g)
-  };
-  if (!_.isUndefined(g.graph())) {
-    json.value = _.clone(g.graph());
-  }
-  return json;
-}
-
-function writeNodes(g) {
-  return _.map(g.nodes(), function(v) {
-    var nodeValue = g.node(v),
-        parent = g.parent(v),
-        node = { v: v };
-    if (!_.isUndefined(nodeValue)) {
-      node.value = nodeValue;
-    }
-    if (!_.isUndefined(parent)) {
-      node.parent = parent;
-    }
-    return node;
-  });
-}
-
-function writeEdges(g) {
-  return _.map(g.edges(), function(e) {
-    var edgeValue = g.edge(e),
-        edge = { v: e.v, w: e.w };
-    if (!_.isUndefined(e.name)) {
-      edge.name = e.name;
-    }
-    if (!_.isUndefined(edgeValue)) {
-      edge.value = edgeValue;
-    }
-    return edge;
-  });
-}
-
-function read(json) {
-  var g = new Graph(json.options).setGraph(json.value);
-  _.each(json.nodes, function(entry) {
-    g.setNode(entry.v, entry.value);
-    if (entry.parent) {
-      g.setParent(entry.v, entry.parent);
-    }
-  });
-  _.each(json.edges, function(entry) {
-    g.setEdge({ v: entry.v, w: entry.w, name: entry.name }, entry.value);
-  });
-  return g;
-}
-
-},{"./graph":152,"./lodash":155}],155:[function(require,module,exports){
-arguments[4][63][0].apply(exports,arguments)
-},{"dup":63,"lodash":157}],156:[function(require,module,exports){
-module.exports = '1.0.7';
-
-},{}],157:[function(require,module,exports){
-arguments[4][84][0].apply(exports,arguments)
-},{"dup":84}],158:[function(require,module,exports){
 /**
  *  Copyright (c) 2014-2015, Facebook, Inc.
  *  All rights reserved.
@@ -27363,7 +25241,7 @@ arguments[4][84][0].apply(exports,arguments)
   return Immutable;
 
 }));
-},{}],159:[function(require,module,exports){
+},{}],134:[function(require,module,exports){
 /**
  * lodash 3.1.4 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -27496,7 +25374,7 @@ function isLength(value) {
 
 module.exports = baseFlatten;
 
-},{"lodash.isarguments":171,"lodash.isarray":172}],160:[function(require,module,exports){
+},{"lodash.isarguments":146,"lodash.isarray":147}],135:[function(require,module,exports){
 /**
  * lodash 3.0.3 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -27546,7 +25424,7 @@ function createBaseFor(fromRight) {
 
 module.exports = baseFor;
 
-},{}],161:[function(require,module,exports){
+},{}],136:[function(require,module,exports){
 /**
  * lodash 3.1.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -27605,7 +25483,7 @@ function indexOfNaN(array, fromIndex, fromRight) {
 
 module.exports = baseIndexOf;
 
-},{}],162:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 /**
  * lodash 3.0.3 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -27675,7 +25553,7 @@ function baseUniq(array, iteratee) {
 
 module.exports = baseUniq;
 
-},{"lodash._baseindexof":161,"lodash._cacheindexof":164,"lodash._createcache":165}],163:[function(require,module,exports){
+},{"lodash._baseindexof":136,"lodash._cacheindexof":139,"lodash._createcache":140}],138:[function(require,module,exports){
 /**
  * lodash 3.0.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -27742,7 +25620,7 @@ function identity(value) {
 
 module.exports = bindCallback;
 
-},{}],164:[function(require,module,exports){
+},{}],139:[function(require,module,exports){
 /**
  * lodash 3.0.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -27797,7 +25675,7 @@ function isObject(value) {
 
 module.exports = cacheIndexOf;
 
-},{}],165:[function(require,module,exports){
+},{}],140:[function(require,module,exports){
 (function (global){
 /**
  * lodash 3.1.2 (Custom Build) <https://lodash.com/>
@@ -27892,7 +25770,7 @@ SetCache.prototype.push = cachePush;
 module.exports = createCache;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"lodash._getnative":166}],166:[function(require,module,exports){
+},{"lodash._getnative":141}],141:[function(require,module,exports){
 /**
  * lodash 3.9.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -28031,7 +25909,7 @@ function isNative(value) {
 
 module.exports = getNative;
 
-},{}],167:[function(require,module,exports){
+},{}],142:[function(require,module,exports){
 (function (global){
 /**
  * lodash 3.0.1 (Custom Build) <https://lodash.com/>
@@ -28094,7 +25972,7 @@ function checkGlobal(value) {
 module.exports = root;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],168:[function(require,module,exports){
+},{}],143:[function(require,module,exports){
 /**
  * lodash 3.2.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -28279,7 +26157,7 @@ function deburr(string) {
 
 module.exports = deburr;
 
-},{"lodash._root":167}],169:[function(require,module,exports){
+},{"lodash._root":142}],144:[function(require,module,exports){
 /**
  * lodash 3.2.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -28461,7 +26339,7 @@ function escape(string) {
 
 module.exports = escape;
 
-},{"lodash._root":167}],170:[function(require,module,exports){
+},{"lodash._root":142}],145:[function(require,module,exports){
 /**
  * lodash 3.0.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -28534,7 +26412,7 @@ var forOwn = createForOwn(baseForOwn);
 
 module.exports = forOwn;
 
-},{"lodash._basefor":160,"lodash._bindcallback":163,"lodash.keys":174}],171:[function(require,module,exports){
+},{"lodash._basefor":135,"lodash._bindcallback":138,"lodash.keys":149}],146:[function(require,module,exports){
 /**
  * lodash (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -28765,7 +26643,7 @@ function isObjectLike(value) {
 
 module.exports = isArguments;
 
-},{}],172:[function(require,module,exports){
+},{}],147:[function(require,module,exports){
 /**
  * lodash 3.0.4 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -28947,7 +26825,7 @@ function isNative(value) {
 
 module.exports = isArray;
 
-},{}],173:[function(require,module,exports){
+},{}],148:[function(require,module,exports){
 /**
  * lodash 3.1.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -29021,7 +26899,7 @@ var kebabCase = createCompounder(function(result, word, index) {
 
 module.exports = kebabCase;
 
-},{"lodash.deburr":168,"lodash.words":177}],174:[function(require,module,exports){
+},{"lodash.deburr":143,"lodash.words":152}],149:[function(require,module,exports){
 /**
  * lodash 3.1.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -29259,7 +27137,7 @@ function keysIn(object) {
 
 module.exports = keys;
 
-},{"lodash._getnative":166,"lodash.isarguments":171,"lodash.isarray":172}],175:[function(require,module,exports){
+},{"lodash._getnative":141,"lodash.isarguments":146,"lodash.isarray":147}],150:[function(require,module,exports){
 /**
  * lodash 3.6.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -29328,7 +27206,7 @@ function restParam(func, start) {
 
 module.exports = restParam;
 
-},{}],176:[function(require,module,exports){
+},{}],151:[function(require,module,exports){
 /**
  * lodash 3.1.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -29365,7 +27243,7 @@ var union = restParam(function(arrays) {
 
 module.exports = union;
 
-},{"lodash._baseflatten":159,"lodash._baseuniq":162,"lodash.restparam":175}],177:[function(require,module,exports){
+},{"lodash._baseflatten":134,"lodash._baseuniq":137,"lodash.restparam":150}],152:[function(require,module,exports){
 /**
  * lodash 3.2.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -29565,7 +27443,7 @@ function words(string, pattern, guard) {
 
 module.exports = words;
 
-},{"lodash._root":167}],178:[function(require,module,exports){
+},{"lodash._root":142}],153:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -46634,7 +44512,7 @@ module.exports = words;
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],179:[function(require,module,exports){
+},{}],154:[function(require,module,exports){
 'use strict';
 
 var proto = Element.prototype;
@@ -46664,7 +44542,7 @@ function match(el, selector) {
   }
   return false;
 }
-},{}],180:[function(require,module,exports){
+},{}],155:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -46846,7 +44724,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],181:[function(require,module,exports){
+},{}],156:[function(require,module,exports){
 (function (process,global){
 // Copyright (c) Microsoft, All rights reserved. See License.txt in the project root for license information.
 
@@ -59238,7 +57116,7 @@ var ReactiveTest = Rx.ReactiveTest = {
 }.call(this));
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":180}],182:[function(require,module,exports){
+},{"_process":155}],157:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -59280,7 +57158,7 @@ function classNameFromVNode(vNode) {
 
   return cn.trim();
 }
-},{"./selectorParser":183}],183:[function(require,module,exports){
+},{"./selectorParser":158}],158:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -59338,7 +57216,7 @@ function selectorParser() {
     className: classes.join(' ')
   };
 }
-},{"browser-split":51}],184:[function(require,module,exports){
+},{"browser-split":57}],159:[function(require,module,exports){
 
 // All SVG children elements, not in this list, should self-close
 
@@ -59361,12 +57239,12 @@ module.exports = {
   'metadata': true,
   'title': true
 };
-},{}],185:[function(require,module,exports){
+},{}],160:[function(require,module,exports){
 
 var init = require('./init');
 
 module.exports = init([require('./modules/attributes'), require('./modules/style')]);
-},{"./init":186,"./modules/attributes":187,"./modules/style":188}],186:[function(require,module,exports){
+},{"./init":161,"./modules/attributes":162,"./modules/style":163}],161:[function(require,module,exports){
 
 var parseSelector = require('./parse-selector');
 var VOID_ELEMENTS = require('./void-elements');
@@ -59426,7 +57304,7 @@ module.exports = function init(modules) {
     return tag.join('');
   };
 };
-},{"./container-elements":184,"./parse-selector":189,"./void-elements":190}],187:[function(require,module,exports){
+},{"./container-elements":159,"./parse-selector":164,"./void-elements":165}],162:[function(require,module,exports){
 
 var forOwn = require('lodash.forown');
 var escape = require('lodash.escape');
@@ -59491,7 +57369,7 @@ function setAttributes(values, target) {
     target[key] = value;
   });
 }
-},{"../parse-selector":189,"lodash.escape":169,"lodash.forown":170,"lodash.union":176}],188:[function(require,module,exports){
+},{"../parse-selector":164,"lodash.escape":144,"lodash.forown":145,"lodash.union":151}],163:[function(require,module,exports){
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var forOwn = require('lodash.forown');
@@ -59518,7 +57396,7 @@ module.exports = function style(vnode) {
 
   return styles.length ? 'style="' + styles.join('; ') + '"' : '';
 };
-},{"lodash.escape":169,"lodash.forown":170,"lodash.kebabcase":173}],189:[function(require,module,exports){
+},{"lodash.escape":144,"lodash.forown":145,"lodash.kebabcase":148}],164:[function(require,module,exports){
 
 // https://github.com/Matt-Esch/virtual-dom/blob/master/virtual-hyperscript/parse-tag.js
 
@@ -59565,7 +57443,7 @@ module.exports = function parseSelector(selector, upper) {
     className: classes.join(' ')
   };
 };
-},{"browser-split":51}],190:[function(require,module,exports){
+},{"browser-split":57}],165:[function(require,module,exports){
 
 // http://www.w3.org/html/wg/drafts/html/master/syntax.html#void-elements
 
@@ -59586,7 +57464,7 @@ module.exports = {
   track: true,
   wbr: true
 };
-},{}],191:[function(require,module,exports){
+},{}],166:[function(require,module,exports){
 "use strict";
 var vnode_1 = require("./vnode");
 var is = require("./is");
@@ -59646,7 +57524,7 @@ exports.h = h;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = h;
 
-},{"./is":193,"./vnode":198}],192:[function(require,module,exports){
+},{"./is":168,"./vnode":175}],167:[function(require,module,exports){
 "use strict";
 function createElement(tagName) {
     return document.createElement(tagName);
@@ -59693,7 +57571,7 @@ exports.htmlDomApi = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.htmlDomApi;
 
-},{}],193:[function(require,module,exports){
+},{}],168:[function(require,module,exports){
 "use strict";
 exports.array = Array.isArray;
 function primitive(s) {
@@ -59701,7 +57579,7 @@ function primitive(s) {
 }
 exports.primitive = primitive;
 
-},{}],194:[function(require,module,exports){
+},{}],169:[function(require,module,exports){
 "use strict";
 var NamespaceURIs = {
     "xlink": "http://www.w3.org/1999/xlink"
@@ -59753,7 +57631,33 @@ exports.attributesModule = { create: updateAttrs, update: updateAttrs };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.attributesModule;
 
-},{}],195:[function(require,module,exports){
+},{}],170:[function(require,module,exports){
+"use strict";
+function updateClass(oldVnode, vnode) {
+    var cur, name, elm = vnode.elm, oldClass = oldVnode.data.class, klass = vnode.data.class;
+    if (!oldClass && !klass)
+        return;
+    if (oldClass === klass)
+        return;
+    oldClass = oldClass || {};
+    klass = klass || {};
+    for (name in oldClass) {
+        if (!klass[name]) {
+            elm.classList.remove(name);
+        }
+    }
+    for (name in klass) {
+        cur = klass[name];
+        if (cur !== oldClass[name]) {
+            elm.classList[cur ? 'add' : 'remove'](name);
+        }
+    }
+}
+exports.classModule = { create: updateClass, update: updateClass };
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = exports.classModule;
+
+},{}],171:[function(require,module,exports){
 "use strict";
 function invokeHandler(handler, vnode, event) {
     if (typeof handler === "function") {
@@ -59849,7 +57753,94 @@ exports.eventListenersModule = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.eventListenersModule;
 
-},{}],196:[function(require,module,exports){
+},{}],172:[function(require,module,exports){
+"use strict";
+var raf = (typeof window !== 'undefined' && window.requestAnimationFrame) || setTimeout;
+var nextFrame = function (fn) { raf(function () { raf(fn); }); };
+function setNextFrame(obj, prop, val) {
+    nextFrame(function () { obj[prop] = val; });
+}
+function updateStyle(oldVnode, vnode) {
+    var cur, name, elm = vnode.elm, oldStyle = oldVnode.data.style, style = vnode.data.style;
+    if (!oldStyle && !style)
+        return;
+    if (oldStyle === style)
+        return;
+    oldStyle = oldStyle || {};
+    style = style || {};
+    var oldHasDel = 'delayed' in oldStyle;
+    for (name in oldStyle) {
+        if (!style[name]) {
+            if (name.startsWith('--')) {
+                elm.style.removeProperty(name);
+            }
+            else {
+                elm.style[name] = '';
+            }
+        }
+    }
+    for (name in style) {
+        cur = style[name];
+        if (name === 'delayed') {
+            for (name in style.delayed) {
+                cur = style.delayed[name];
+                if (!oldHasDel || cur !== oldStyle.delayed[name]) {
+                    setNextFrame(elm.style, name, cur);
+                }
+            }
+        }
+        else if (name !== 'remove' && cur !== oldStyle[name]) {
+            if (name.startsWith('--')) {
+                elm.style.setProperty(name, cur);
+            }
+            else {
+                elm.style[name] = cur;
+            }
+        }
+    }
+}
+function applyDestroyStyle(vnode) {
+    var style, name, elm = vnode.elm, s = vnode.data.style;
+    if (!s || !(style = s.destroy))
+        return;
+    for (name in style) {
+        elm.style[name] = style[name];
+    }
+}
+function applyRemoveStyle(vnode, rm) {
+    var s = vnode.data.style;
+    if (!s || !s.remove) {
+        rm();
+        return;
+    }
+    var name, elm = vnode.elm, i = 0, compStyle, style = s.remove, amount = 0, applied = [];
+    for (name in style) {
+        applied.push(name);
+        elm.style[name] = style[name];
+    }
+    compStyle = getComputedStyle(elm);
+    var props = compStyle['transition-property'].split(', ');
+    for (; i < props.length; ++i) {
+        if (applied.indexOf(props[i]) !== -1)
+            amount++;
+    }
+    elm.addEventListener('transitionend', function (ev) {
+        if (ev.target === elm)
+            --amount;
+        if (amount === 0)
+            rm();
+    });
+}
+exports.styleModule = {
+    create: updateStyle,
+    update: updateStyle,
+    destroy: applyDestroyStyle,
+    remove: applyRemoveStyle
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = exports.styleModule;
+
+},{}],173:[function(require,module,exports){
 "use strict";
 var vnode_1 = require("./vnode");
 var is = require("./is");
@@ -60135,7 +58126,7 @@ function init(modules, domApi) {
 }
 exports.init = init;
 
-},{"./h":191,"./htmldomapi":192,"./is":193,"./thunk":197,"./vnode":198}],197:[function(require,module,exports){
+},{"./h":166,"./htmldomapi":167,"./is":168,"./thunk":174,"./vnode":175}],174:[function(require,module,exports){
 "use strict";
 var h_1 = require("./h");
 function copyToThunk(vnode, thunk) {
@@ -60182,7 +58173,7 @@ exports.thunk = function thunk(sel, key, fn, args) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.thunk;
 
-},{"./h":191}],198:[function(require,module,exports){
+},{"./h":166}],175:[function(require,module,exports){
 "use strict";
 function vnode(sel, data, children, text, elm) {
     var key = data === undefined ? undefined : data.key;
@@ -60193,7 +58184,7 @@ exports.vnode = vnode;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = vnode;
 
-},{}],199:[function(require,module,exports){
+},{}],176:[function(require,module,exports){
 (function (root, factory) {
     'use strict';
     // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js, Rhino, and browsers.
@@ -60302,1863 +58293,10 @@ exports.default = vnode;
     return StackFrame;
 }));
 
-},{}],200:[function(require,module,exports){
-var SvgPanZoom = require('./svg-pan-zoom.js');
-
-module.exports = SvgPanZoom;
-
-},{"./svg-pan-zoom.js":203}],201:[function(require,module,exports){
-var SvgUtils = require('./svg-utilities');
-
-module.exports = {
-  enable: function(instance) {
-    // Select (and create if necessary) defs
-    var defs = instance.svg.querySelector('defs')
-    if (!defs) {
-      defs = document.createElementNS(SvgUtils.svgNS, 'defs')
-      instance.svg.appendChild(defs)
-    }
-
-    // Check for style element, and create it if it doesn't exist
-    var styleEl = defs.querySelector('style#svg-pan-zoom-controls-styles');
-    if (!styleEl) {
-      var style = document.createElementNS(SvgUtils.svgNS, 'style')
-      style.setAttribute('id', 'svg-pan-zoom-controls-styles')
-      style.setAttribute('type', 'text/css')
-      style.textContent = '.svg-pan-zoom-control { cursor: pointer; fill: black; fill-opacity: 0.333; } .svg-pan-zoom-control:hover { fill-opacity: 0.8; } .svg-pan-zoom-control-background { fill: white; fill-opacity: 0.5; } .svg-pan-zoom-control-background { fill-opacity: 0.8; }'
-      defs.appendChild(style)
-    }
-
-    // Zoom Group
-    var zoomGroup = document.createElementNS(SvgUtils.svgNS, 'g');
-    zoomGroup.setAttribute('id', 'svg-pan-zoom-controls');
-    zoomGroup.setAttribute('transform', 'translate(' + ( instance.width - 70 ) + ' ' + ( instance.height - 76 ) + ') scale(0.75)');
-    zoomGroup.setAttribute('class', 'svg-pan-zoom-control');
-
-    // Control elements
-    zoomGroup.appendChild(this._createZoomIn(instance))
-    zoomGroup.appendChild(this._createZoomReset(instance))
-    zoomGroup.appendChild(this._createZoomOut(instance))
-
-    // Finally append created element
-    instance.svg.appendChild(zoomGroup)
-
-    // Cache control instance
-    instance.controlIcons = zoomGroup
-  }
-
-, _createZoomIn: function(instance) {
-    var zoomIn = document.createElementNS(SvgUtils.svgNS, 'g');
-    zoomIn.setAttribute('id', 'svg-pan-zoom-zoom-in');
-    zoomIn.setAttribute('transform', 'translate(30.5 5) scale(0.015)');
-    zoomIn.setAttribute('class', 'svg-pan-zoom-control');
-    zoomIn.addEventListener('click', function() {instance.getPublicInstance().zoomIn()}, false)
-    zoomIn.addEventListener('touchstart', function() {instance.getPublicInstance().zoomIn()}, false)
-
-    var zoomInBackground = document.createElementNS(SvgUtils.svgNS, 'rect'); // TODO change these background space fillers to rounded rectangles so they look prettier
-    zoomInBackground.setAttribute('x', '0');
-    zoomInBackground.setAttribute('y', '0');
-    zoomInBackground.setAttribute('width', '1500'); // larger than expected because the whole group is transformed to scale down
-    zoomInBackground.setAttribute('height', '1400');
-    zoomInBackground.setAttribute('class', 'svg-pan-zoom-control-background');
-    zoomIn.appendChild(zoomInBackground);
-
-    var zoomInShape = document.createElementNS(SvgUtils.svgNS, 'path');
-    zoomInShape.setAttribute('d', 'M1280 576v128q0 26 -19 45t-45 19h-320v320q0 26 -19 45t-45 19h-128q-26 0 -45 -19t-19 -45v-320h-320q-26 0 -45 -19t-19 -45v-128q0 -26 19 -45t45 -19h320v-320q0 -26 19 -45t45 -19h128q26 0 45 19t19 45v320h320q26 0 45 19t19 45zM1536 1120v-960 q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5t84.5 -203.5z');
-    zoomInShape.setAttribute('class', 'svg-pan-zoom-control-element');
-    zoomIn.appendChild(zoomInShape);
-
-    return zoomIn
-  }
-
-, _createZoomReset: function(instance){
-    // reset
-    var resetPanZoomControl = document.createElementNS(SvgUtils.svgNS, 'g');
-    resetPanZoomControl.setAttribute('id', 'svg-pan-zoom-reset-pan-zoom');
-    resetPanZoomControl.setAttribute('transform', 'translate(5 35) scale(0.4)');
-    resetPanZoomControl.setAttribute('class', 'svg-pan-zoom-control');
-    resetPanZoomControl.addEventListener('click', function() {instance.getPublicInstance().reset()}, false);
-    resetPanZoomControl.addEventListener('touchstart', function() {instance.getPublicInstance().reset()}, false);
-
-    var resetPanZoomControlBackground = document.createElementNS(SvgUtils.svgNS, 'rect'); // TODO change these background space fillers to rounded rectangles so they look prettier
-    resetPanZoomControlBackground.setAttribute('x', '2');
-    resetPanZoomControlBackground.setAttribute('y', '2');
-    resetPanZoomControlBackground.setAttribute('width', '182'); // larger than expected because the whole group is transformed to scale down
-    resetPanZoomControlBackground.setAttribute('height', '58');
-    resetPanZoomControlBackground.setAttribute('class', 'svg-pan-zoom-control-background');
-    resetPanZoomControl.appendChild(resetPanZoomControlBackground);
-
-    var resetPanZoomControlShape1 = document.createElementNS(SvgUtils.svgNS, 'path');
-    resetPanZoomControlShape1.setAttribute('d', 'M33.051,20.632c-0.742-0.406-1.854-0.609-3.338-0.609h-7.969v9.281h7.769c1.543,0,2.701-0.188,3.473-0.562c1.365-0.656,2.048-1.953,2.048-3.891C35.032,22.757,34.372,21.351,33.051,20.632z');
-    resetPanZoomControlShape1.setAttribute('class', 'svg-pan-zoom-control-element');
-    resetPanZoomControl.appendChild(resetPanZoomControlShape1);
-
-    var resetPanZoomControlShape2 = document.createElementNS(SvgUtils.svgNS, 'path');
-    resetPanZoomControlShape2.setAttribute('d', 'M170.231,0.5H15.847C7.102,0.5,0.5,5.708,0.5,11.84v38.861C0.5,56.833,7.102,61.5,15.847,61.5h154.384c8.745,0,15.269-4.667,15.269-10.798V11.84C185.5,5.708,178.976,0.5,170.231,0.5z M42.837,48.569h-7.969c-0.219-0.766-0.375-1.383-0.469-1.852c-0.188-0.969-0.289-1.961-0.305-2.977l-0.047-3.211c-0.03-2.203-0.41-3.672-1.142-4.406c-0.732-0.734-2.103-1.102-4.113-1.102h-7.05v13.547h-7.055V14.022h16.524c2.361,0.047,4.178,0.344,5.45,0.891c1.272,0.547,2.351,1.352,3.234,2.414c0.731,0.875,1.31,1.844,1.737,2.906s0.64,2.273,0.64,3.633c0,1.641-0.414,3.254-1.242,4.84s-2.195,2.707-4.102,3.363c1.594,0.641,2.723,1.551,3.387,2.73s0.996,2.98,0.996,5.402v2.32c0,1.578,0.063,2.648,0.19,3.211c0.19,0.891,0.635,1.547,1.333,1.969V48.569z M75.579,48.569h-26.18V14.022h25.336v6.117H56.454v7.336h16.781v6H56.454v8.883h19.125V48.569z M104.497,46.331c-2.44,2.086-5.887,3.129-10.34,3.129c-4.548,0-8.125-1.027-10.731-3.082s-3.909-4.879-3.909-8.473h6.891c0.224,1.578,0.662,2.758,1.316,3.539c1.196,1.422,3.246,2.133,6.15,2.133c1.739,0,3.151-0.188,4.236-0.562c2.058-0.719,3.087-2.055,3.087-4.008c0-1.141-0.504-2.023-1.512-2.648c-1.008-0.609-2.607-1.148-4.796-1.617l-3.74-0.82c-3.676-0.812-6.201-1.695-7.576-2.648c-2.328-1.594-3.492-4.086-3.492-7.477c0-3.094,1.139-5.664,3.417-7.711s5.623-3.07,10.036-3.07c3.685,0,6.829,0.965,9.431,2.895c2.602,1.93,3.966,4.73,4.093,8.402h-6.938c-0.128-2.078-1.057-3.555-2.787-4.43c-1.154-0.578-2.587-0.867-4.301-0.867c-1.907,0-3.428,0.375-4.565,1.125c-1.138,0.75-1.706,1.797-1.706,3.141c0,1.234,0.561,2.156,1.682,2.766c0.721,0.406,2.25,0.883,4.589,1.43l6.063,1.43c2.657,0.625,4.648,1.461,5.975,2.508c2.059,1.625,3.089,3.977,3.089,7.055C108.157,41.624,106.937,44.245,104.497,46.331z M139.61,48.569h-26.18V14.022h25.336v6.117h-18.281v7.336h16.781v6h-16.781v8.883h19.125V48.569z M170.337,20.14h-10.336v28.43h-7.266V20.14h-10.383v-6.117h27.984V20.14z');
-    resetPanZoomControlShape2.setAttribute('class', 'svg-pan-zoom-control-element');
-    resetPanZoomControl.appendChild(resetPanZoomControlShape2);
-
-    return resetPanZoomControl
-  }
-
-, _createZoomOut: function(instance){
-    // zoom out
-    var zoomOut = document.createElementNS(SvgUtils.svgNS, 'g');
-    zoomOut.setAttribute('id', 'svg-pan-zoom-zoom-out');
-    zoomOut.setAttribute('transform', 'translate(30.5 70) scale(0.015)');
-    zoomOut.setAttribute('class', 'svg-pan-zoom-control');
-    zoomOut.addEventListener('click', function() {instance.getPublicInstance().zoomOut()}, false);
-    zoomOut.addEventListener('touchstart', function() {instance.getPublicInstance().zoomOut()}, false);
-
-    var zoomOutBackground = document.createElementNS(SvgUtils.svgNS, 'rect'); // TODO change these background space fillers to rounded rectangles so they look prettier
-    zoomOutBackground.setAttribute('x', '0');
-    zoomOutBackground.setAttribute('y', '0');
-    zoomOutBackground.setAttribute('width', '1500'); // larger than expected because the whole group is transformed to scale down
-    zoomOutBackground.setAttribute('height', '1400');
-    zoomOutBackground.setAttribute('class', 'svg-pan-zoom-control-background');
-    zoomOut.appendChild(zoomOutBackground);
-
-    var zoomOutShape = document.createElementNS(SvgUtils.svgNS, 'path');
-    zoomOutShape.setAttribute('d', 'M1280 576v128q0 26 -19 45t-45 19h-896q-26 0 -45 -19t-19 -45v-128q0 -26 19 -45t45 -19h896q26 0 45 19t19 45zM1536 1120v-960q0 -119 -84.5 -203.5t-203.5 -84.5h-960q-119 0 -203.5 84.5t-84.5 203.5v960q0 119 84.5 203.5t203.5 84.5h960q119 0 203.5 -84.5 t84.5 -203.5z');
-    zoomOutShape.setAttribute('class', 'svg-pan-zoom-control-element');
-    zoomOut.appendChild(zoomOutShape);
-
-    return zoomOut
-  }
-
-, disable: function(instance) {
-    if (instance.controlIcons) {
-      instance.controlIcons.parentNode.removeChild(instance.controlIcons)
-      instance.controlIcons = null
-    }
-  }
-}
-
-},{"./svg-utilities":204}],202:[function(require,module,exports){
-var SvgUtils = require('./svg-utilities')
-  , Utils = require('./utilities')
-  ;
-
-var ShadowViewport = function(viewport, options){
-  this.init(viewport, options)
-}
-
-/**
- * Initialization
- *
- * @param  {SVGElement} viewport
- * @param  {Object} options
- */
-ShadowViewport.prototype.init = function(viewport, options) {
-  // DOM Elements
-  this.viewport = viewport
-  this.options = options
-
-  // State cache
-  this.originalState = {zoom: 1, x: 0, y: 0}
-  this.activeState = {zoom: 1, x: 0, y: 0}
-
-  this.updateCTMCached = Utils.proxy(this.updateCTM, this)
-
-  // Create a custom requestAnimationFrame taking in account refreshRate
-  this.requestAnimationFrame = Utils.createRequestAnimationFrame(this.options.refreshRate)
-
-  // ViewBox
-  this.viewBox = {x: 0, y: 0, width: 0, height: 0}
-  this.cacheViewBox()
-
-  // Process CTM
-  this.processCTM()
-
-  // Update CTM in this frame
-  this.updateCTM()
-}
-
-/**
- * Cache initial viewBox value
- * If no viewBox is defined, then use viewport size/position instead for viewBox values
- */
-ShadowViewport.prototype.cacheViewBox = function() {
-  var svgViewBox = this.options.svg.getAttribute('viewBox')
-
-  if (svgViewBox) {
-    var viewBoxValues = svgViewBox.split(/[\s\,]/).filter(function(v){return v}).map(parseFloat)
-
-    // Cache viewbox x and y offset
-    this.viewBox.x = viewBoxValues[0]
-    this.viewBox.y = viewBoxValues[1]
-    this.viewBox.width = viewBoxValues[2]
-    this.viewBox.height = viewBoxValues[3]
-
-    var zoom = Math.min(this.options.width / this.viewBox.width, this.options.height / this.viewBox.height)
-
-    // Update active state
-    this.activeState.zoom = zoom
-    this.activeState.x = (this.options.width - this.viewBox.width * zoom) / 2
-    this.activeState.y = (this.options.height - this.viewBox.height * zoom) / 2
-
-    // Force updating CTM
-    this.updateCTMOnNextFrame()
-
-    this.options.svg.removeAttribute('viewBox')
-  } else {
-    this.simpleViewBoxCache()
-  }
-}
-
-/**
- * Recalculate viewport sizes and update viewBox cache
- */
-ShadowViewport.prototype.simpleViewBoxCache = function() {
-  var bBox = this.viewport.getBBox()
-
-  this.viewBox.x = bBox.x
-  this.viewBox.y = bBox.y
-  this.viewBox.width = bBox.width
-  this.viewBox.height = bBox.height
-}
-
-/**
- * Returns a viewbox object. Safe to alter
- *
- * @return {Object} viewbox object
- */
-ShadowViewport.prototype.getViewBox = function() {
-  return Utils.extend({}, this.viewBox)
-}
-
-/**
- * Get initial zoom and pan values. Save them into originalState
- * Parses viewBox attribute to alter initial sizes
- */
-ShadowViewport.prototype.processCTM = function() {
-  var newCTM = this.getCTM()
-
-  if (this.options.fit || this.options.contain) {
-    var newScale;
-    if (this.options.fit) {
-      newScale = Math.min(this.options.width/this.viewBox.width, this.options.height/this.viewBox.height);
-    } else {
-      newScale = Math.max(this.options.width/this.viewBox.width, this.options.height/this.viewBox.height);
-    }
-
-    newCTM.a = newScale; //x-scale
-    newCTM.d = newScale; //y-scale
-    newCTM.e = -this.viewBox.x * newScale; //x-transform
-    newCTM.f = -this.viewBox.y * newScale; //y-transform
-  }
-
-  if (this.options.center) {
-    var offsetX = (this.options.width - (this.viewBox.width + this.viewBox.x * 2) * newCTM.a) * 0.5
-      , offsetY = (this.options.height - (this.viewBox.height + this.viewBox.y * 2) * newCTM.a) * 0.5
-
-    newCTM.e = offsetX
-    newCTM.f = offsetY
-  }
-
-  // Cache initial values. Based on activeState and fix+center opitons
-  this.originalState.zoom = newCTM.a
-  this.originalState.x = newCTM.e
-  this.originalState.y = newCTM.f
-
-  // Update viewport CTM and cache zoom and pan
-  this.setCTM(newCTM);
-}
-
-/**
- * Return originalState object. Safe to alter
- *
- * @return {Object}
- */
-ShadowViewport.prototype.getOriginalState = function() {
-  return Utils.extend({}, this.originalState)
-}
-
-/**
- * Return actualState object. Safe to alter
- *
- * @return {Object}
- */
-ShadowViewport.prototype.getState = function() {
-  return Utils.extend({}, this.activeState)
-}
-
-/**
- * Get zoom scale
- *
- * @return {Float} zoom scale
- */
-ShadowViewport.prototype.getZoom = function() {
-  return this.activeState.zoom
-}
-
-/**
- * Get zoom scale for pubilc usage
- *
- * @return {Float} zoom scale
- */
-ShadowViewport.prototype.getRelativeZoom = function() {
-  return this.activeState.zoom / this.originalState.zoom
-}
-
-/**
- * Compute zoom scale for pubilc usage
- *
- * @return {Float} zoom scale
- */
-ShadowViewport.prototype.computeRelativeZoom = function(scale) {
-  return scale / this.originalState.zoom
-}
-
-/**
- * Get pan
- *
- * @return {Object}
- */
-ShadowViewport.prototype.getPan = function() {
-  return {x: this.activeState.x, y: this.activeState.y}
-}
-
-/**
- * Return cached viewport CTM value that can be safely modified
- *
- * @return {SVGMatrix}
- */
-ShadowViewport.prototype.getCTM = function() {
-  var safeCTM = this.options.svg.createSVGMatrix()
-
-  // Copy values manually as in FF they are not itterable
-  safeCTM.a = this.activeState.zoom
-  safeCTM.b = 0
-  safeCTM.c = 0
-  safeCTM.d = this.activeState.zoom
-  safeCTM.e = this.activeState.x
-  safeCTM.f = this.activeState.y
-
-  return safeCTM
-}
-
-/**
- * Set a new CTM
- *
- * @param {SVGMatrix} newCTM
- */
-ShadowViewport.prototype.setCTM = function(newCTM) {
-  var willZoom = this.isZoomDifferent(newCTM)
-    , willPan = this.isPanDifferent(newCTM)
-
-  if (willZoom || willPan) {
-    // Before zoom
-    if (willZoom) {
-      // If returns false then cancel zooming
-      if (this.options.beforeZoom(this.getRelativeZoom(), this.computeRelativeZoom(newCTM.a)) === false) {
-        newCTM.a = newCTM.d = this.activeState.zoom
-        willZoom = false
-      }
-    }
-
-    // Before pan
-    if (willPan) {
-      var preventPan = this.options.beforePan(this.getPan(), {x: newCTM.e, y: newCTM.f})
-          // If prevent pan is an object
-        , preventPanX = false
-        , preventPanY = false
-
-      // If prevent pan is Boolean false
-      if (preventPan === false) {
-        // Set x and y same as before
-        newCTM.e = this.getPan().x
-        newCTM.f = this.getPan().y
-
-        preventPanX = preventPanY = true
-      } else if (Utils.isObject(preventPan)) {
-        // Check for X axes attribute
-        if (preventPan.x === false) {
-          // Prevent panning on x axes
-          newCTM.e = this.getPan().x
-          preventPanX = true
-        } else if (Utils.isNumber(preventPan.x)) {
-          // Set a custom pan value
-          newCTM.e = preventPan.x
-        }
-
-        // Check for Y axes attribute
-        if (preventPan.y === false) {
-          // Prevent panning on x axes
-          newCTM.f = this.getPan().y
-          preventPanY = true
-        } else if (Utils.isNumber(preventPan.y)) {
-          // Set a custom pan value
-          newCTM.f = preventPan.y
-        }
-      }
-
-      // Update willPan flag
-      if (preventPanX && preventPanY) {
-        willPan = false
-      }
-    }
-
-    // Check again if should zoom or pan
-    if (willZoom || willPan) {
-      this.updateCache(newCTM)
-
-      this.updateCTMOnNextFrame()
-
-      // After callbacks
-      if (willZoom) {this.options.onZoom(this.getRelativeZoom())}
-      if (willPan) {this.options.onPan(this.getPan())}
-    }
-  }
-}
-
-ShadowViewport.prototype.isZoomDifferent = function(newCTM) {
-  return this.activeState.zoom !== newCTM.a
-}
-
-ShadowViewport.prototype.isPanDifferent = function(newCTM) {
-  return this.activeState.x !== newCTM.e || this.activeState.y !== newCTM.f
-}
-
-
-/**
- * Update cached CTM and active state
- *
- * @param {SVGMatrix} newCTM
- */
-ShadowViewport.prototype.updateCache = function(newCTM) {
-  this.activeState.zoom = newCTM.a
-  this.activeState.x = newCTM.e
-  this.activeState.y = newCTM.f
-}
-
-ShadowViewport.prototype.pendingUpdate = false
-
-/**
- * Place a request to update CTM on next Frame
- */
-ShadowViewport.prototype.updateCTMOnNextFrame = function() {
-  if (!this.pendingUpdate) {
-    // Lock
-    this.pendingUpdate = true
-
-    // Throttle next update
-    this.requestAnimationFrame.call(window, this.updateCTMCached)
-  }
-}
-
-/**
- * Update viewport CTM with cached CTM
- */
-ShadowViewport.prototype.updateCTM = function() {
-  // Updates SVG element
-  SvgUtils.setCTM(this.viewport, this.getCTM(), this.defs)
-
-  // Free the lock
-  this.pendingUpdate = false
-}
-
-module.exports = function(viewport, options){
-  return new ShadowViewport(viewport, options)
-}
-
-},{"./svg-utilities":204,"./utilities":206}],203:[function(require,module,exports){
-var Wheel = require('./uniwheel')
-, ControlIcons = require('./control-icons')
-, Utils = require('./utilities')
-, SvgUtils = require('./svg-utilities')
-, ShadowViewport = require('./shadow-viewport')
-
-var SvgPanZoom = function(svg, options) {
-  this.init(svg, options)
-}
-
-var optionsDefaults = {
-  viewportSelector: '.svg-pan-zoom_viewport' // Viewport selector. Can be querySelector string or SVGElement
-, panEnabled: true // enable or disable panning (default enabled)
-, controlIconsEnabled: false // insert icons to give user an option in addition to mouse events to control pan/zoom (default disabled)
-, zoomEnabled: true // enable or disable zooming (default enabled)
-, dblClickZoomEnabled: true // enable or disable zooming by double clicking (default enabled)
-, mouseWheelZoomEnabled: true // enable or disable zooming by mouse wheel (default enabled)
-, preventMouseEventsDefault: true // enable or disable preventDefault for mouse events
-, zoomScaleSensitivity: 0.1 // Zoom sensitivity
-, minZoom: 0.5 // Minimum Zoom level
-, maxZoom: 10 // Maximum Zoom level
-, fit: true // enable or disable viewport fit in SVG (default true)
-, contain: false // enable or disable viewport contain the svg (default false)
-, center: true // enable or disable viewport centering in SVG (default true)
-, refreshRate: 'auto' // Maximum number of frames per second (altering SVG's viewport)
-, beforeZoom: null
-, onZoom: null
-, beforePan: null
-, onPan: null
-, customEventsHandler: null
-, eventsListenerElement: null
-}
-
-SvgPanZoom.prototype.init = function(svg, options) {
-  var that = this
-
-  this.svg = svg
-  this.defs = svg.querySelector('defs')
-
-  // Add default attributes to SVG
-  SvgUtils.setupSvgAttributes(this.svg)
-
-  // Set options
-  this.options = Utils.extend(Utils.extend({}, optionsDefaults), options)
-
-  // Set default state
-  this.state = 'none'
-
-  // Get dimensions
-  var boundingClientRectNormalized = SvgUtils.getBoundingClientRectNormalized(svg)
-  this.width = boundingClientRectNormalized.width
-  this.height = boundingClientRectNormalized.height
-
-  // Init shadow viewport
-  this.viewport = ShadowViewport(SvgUtils.getOrCreateViewport(this.svg, this.options.viewportSelector), {
-    svg: this.svg
-  , width: this.width
-  , height: this.height
-  , fit: this.options.fit
-  , contain: this.options.contain
-  , center: this.options.center
-  , refreshRate: this.options.refreshRate
-  // Put callbacks into functions as they can change through time
-  , beforeZoom: function(oldScale, newScale) {
-      if (that.viewport && that.options.beforeZoom) {return that.options.beforeZoom(oldScale, newScale)}
-    }
-  , onZoom: function(scale) {
-      if (that.viewport && that.options.onZoom) {return that.options.onZoom(scale)}
-    }
-  , beforePan: function(oldPoint, newPoint) {
-      if (that.viewport && that.options.beforePan) {return that.options.beforePan(oldPoint, newPoint)}
-    }
-  , onPan: function(point) {
-      if (that.viewport && that.options.onPan) {return that.options.onPan(point)}
-    }
-  })
-
-  // Wrap callbacks into public API context
-  var publicInstance = this.getPublicInstance()
-  publicInstance.setBeforeZoom(this.options.beforeZoom)
-  publicInstance.setOnZoom(this.options.onZoom)
-  publicInstance.setBeforePan(this.options.beforePan)
-  publicInstance.setOnPan(this.options.onPan)
-
-  if (this.options.controlIconsEnabled) {
-    ControlIcons.enable(this)
-  }
-
-  // Init events handlers
-  this.lastMouseWheelEventTime = Date.now()
-  this.setupHandlers()
-}
-
-/**
- * Register event handlers
- */
-SvgPanZoom.prototype.setupHandlers = function() {
-  var that = this
-    , prevEvt = null // use for touchstart event to detect double tap
-    ;
-
-  this.eventListeners = {
-    // Mouse down group
-    mousedown: function(evt) {
-      var result = that.handleMouseDown(evt, prevEvt);
-      prevEvt = evt
-      return result;
-    }
-  , touchstart: function(evt) {
-      var result = that.handleMouseDown(evt, prevEvt);
-      prevEvt = evt
-      return result;
-    }
-
-    // Mouse up group
-  , mouseup: function(evt) {
-      return that.handleMouseUp(evt);
-    }
-  , touchend: function(evt) {
-      return that.handleMouseUp(evt);
-    }
-
-    // Mouse move group
-  , mousemove: function(evt) {
-      return that.handleMouseMove(evt);
-    }
-  , touchmove: function(evt) {
-      return that.handleMouseMove(evt);
-    }
-
-    // Mouse leave group
-  , mouseleave: function(evt) {
-      return that.handleMouseUp(evt);
-    }
-  , touchleave: function(evt) {
-      return that.handleMouseUp(evt);
-    }
-  , touchcancel: function(evt) {
-      return that.handleMouseUp(evt);
-    }
-  }
-
-  // Init custom events handler if available
-  if (this.options.customEventsHandler != null) { // jshint ignore:line
-    this.options.customEventsHandler.init({
-      svgElement: this.svg
-    , eventsListenerElement: this.options.eventsListenerElement
-    , instance: this.getPublicInstance()
-    })
-
-    // Custom event handler may halt builtin listeners
-    var haltEventListeners = this.options.customEventsHandler.haltEventListeners
-    if (haltEventListeners && haltEventListeners.length) {
-      for (var i = haltEventListeners.length - 1; i >= 0; i--) {
-        if (this.eventListeners.hasOwnProperty(haltEventListeners[i])) {
-          delete this.eventListeners[haltEventListeners[i]]
-        }
-      }
-    }
-  }
-
-  // Bind eventListeners
-  for (var event in this.eventListeners) {
-    // Attach event to eventsListenerElement or SVG if not available
-    (this.options.eventsListenerElement || this.svg)
-      .addEventListener(event, this.eventListeners[event], false)
-  }
-
-  // Zoom using mouse wheel
-  if (this.options.mouseWheelZoomEnabled) {
-    this.options.mouseWheelZoomEnabled = false // set to false as enable will set it back to true
-    this.enableMouseWheelZoom()
-  }
-}
-
-/**
- * Enable ability to zoom using mouse wheel
- */
-SvgPanZoom.prototype.enableMouseWheelZoom = function() {
-  if (!this.options.mouseWheelZoomEnabled) {
-    var that = this
-
-    // Mouse wheel listener
-    this.wheelListener = function(evt) {
-      return that.handleMouseWheel(evt);
-    }
-
-    // Bind wheelListener
-    Wheel.on(this.options.eventsListenerElement || this.svg, this.wheelListener, false)
-
-    this.options.mouseWheelZoomEnabled = true
-  }
-}
-
-/**
- * Disable ability to zoom using mouse wheel
- */
-SvgPanZoom.prototype.disableMouseWheelZoom = function() {
-  if (this.options.mouseWheelZoomEnabled) {
-    Wheel.off(this.options.eventsListenerElement || this.svg, this.wheelListener, false)
-    this.options.mouseWheelZoomEnabled = false
-  }
-}
-
-/**
- * Handle mouse wheel event
- *
- * @param  {Event} evt
- */
-SvgPanZoom.prototype.handleMouseWheel = function(evt) {
-  if (!this.options.zoomEnabled || this.state !== 'none') {
-    return;
-  }
-
-  if (this.options.preventMouseEventsDefault){
-    if (evt.preventDefault) {
-      evt.preventDefault();
-    } else {
-      evt.returnValue = false;
-    }
-  }
-
-  // Default delta in case that deltaY is not available
-  var delta = evt.deltaY || 1
-    , timeDelta = Date.now() - this.lastMouseWheelEventTime
-    , divider = 3 + Math.max(0, 30 - timeDelta)
-
-  // Update cache
-  this.lastMouseWheelEventTime = Date.now()
-
-  // Make empirical adjustments for browsers that give deltaY in pixels (deltaMode=0)
-  if ('deltaMode' in evt && evt.deltaMode === 0 && evt.wheelDelta) {
-    delta = evt.deltaY === 0 ? 0 :  Math.abs(evt.wheelDelta) / evt.deltaY
-  }
-
-  delta = -0.3 < delta && delta < 0.3 ? delta : (delta > 0 ? 1 : -1) * Math.log(Math.abs(delta) + 10) / divider
-
-  var inversedScreenCTM = this.svg.getScreenCTM().inverse()
-    , relativeMousePoint = SvgUtils.getEventPoint(evt, this.svg).matrixTransform(inversedScreenCTM)
-    , zoom = Math.pow(1 + this.options.zoomScaleSensitivity, (-1) * delta); // multiplying by neg. 1 so as to make zoom in/out behavior match Google maps behavior
-
-  this.zoomAtPoint(zoom, relativeMousePoint)
-}
-
-/**
- * Zoom in at a SVG point
- *
- * @param  {SVGPoint} point
- * @param  {Float} zoomScale    Number representing how much to zoom
- * @param  {Boolean} zoomAbsolute Default false. If true, zoomScale is treated as an absolute value.
- *                                Otherwise, zoomScale is treated as a multiplied (e.g. 1.10 would zoom in 10%)
- */
-SvgPanZoom.prototype.zoomAtPoint = function(zoomScale, point, zoomAbsolute) {
-  var originalState = this.viewport.getOriginalState()
-
-  if (!zoomAbsolute) {
-    // Fit zoomScale in set bounds
-    if (this.getZoom() * zoomScale < this.options.minZoom * originalState.zoom) {
-      zoomScale = (this.options.minZoom * originalState.zoom) / this.getZoom()
-    } else if (this.getZoom() * zoomScale > this.options.maxZoom * originalState.zoom) {
-      zoomScale = (this.options.maxZoom * originalState.zoom) / this.getZoom()
-    }
-  } else {
-    // Fit zoomScale in set bounds
-    zoomScale = Math.max(this.options.minZoom * originalState.zoom, Math.min(this.options.maxZoom * originalState.zoom, zoomScale))
-    // Find relative scale to achieve desired scale
-    zoomScale = zoomScale/this.getZoom()
-  }
-
-  var oldCTM = this.viewport.getCTM()
-    , relativePoint = point.matrixTransform(oldCTM.inverse())
-    , modifier = this.svg.createSVGMatrix().translate(relativePoint.x, relativePoint.y).scale(zoomScale).translate(-relativePoint.x, -relativePoint.y)
-    , newCTM = oldCTM.multiply(modifier)
-
-  if (newCTM.a !== oldCTM.a) {
-    this.viewport.setCTM(newCTM)
-  }
-}
-
-/**
- * Zoom at center point
- *
- * @param  {Float} scale
- * @param  {Boolean} absolute Marks zoom scale as relative or absolute
- */
-SvgPanZoom.prototype.zoom = function(scale, absolute) {
-  this.zoomAtPoint(scale, SvgUtils.getSvgCenterPoint(this.svg, this.width, this.height), absolute)
-}
-
-/**
- * Zoom used by public instance
- *
- * @param  {Float} scale
- * @param  {Boolean} absolute Marks zoom scale as relative or absolute
- */
-SvgPanZoom.prototype.publicZoom = function(scale, absolute) {
-  if (absolute) {
-    scale = this.computeFromRelativeZoom(scale)
-  }
-
-  this.zoom(scale, absolute)
-}
-
-/**
- * Zoom at point used by public instance
- *
- * @param  {Float} scale
- * @param  {SVGPoint|Object} point    An object that has x and y attributes
- * @param  {Boolean} absolute Marks zoom scale as relative or absolute
- */
-SvgPanZoom.prototype.publicZoomAtPoint = function(scale, point, absolute) {
-  if (absolute) {
-    // Transform zoom into a relative value
-    scale = this.computeFromRelativeZoom(scale)
-  }
-
-  // If not a SVGPoint but has x and y then create a SVGPoint
-  if (Utils.getType(point) !== 'SVGPoint') {
-    if('x' in point && 'y' in point) {
-      point = SvgUtils.createSVGPoint(this.svg, point.x, point.y)
-    } else {
-      throw new Error('Given point is invalid')
-    }
-  }
-
-  this.zoomAtPoint(scale, point, absolute)
-}
-
-/**
- * Get zoom scale
- *
- * @return {Float} zoom scale
- */
-SvgPanZoom.prototype.getZoom = function() {
-  return this.viewport.getZoom()
-}
-
-/**
- * Get zoom scale for public usage
- *
- * @return {Float} zoom scale
- */
-SvgPanZoom.prototype.getRelativeZoom = function() {
-  return this.viewport.getRelativeZoom()
-}
-
-/**
- * Compute actual zoom from public zoom
- *
- * @param  {Float} zoom
- * @return {Float} zoom scale
- */
-SvgPanZoom.prototype.computeFromRelativeZoom = function(zoom) {
-  return zoom * this.viewport.getOriginalState().zoom
-}
-
-/**
- * Set zoom to initial state
- */
-SvgPanZoom.prototype.resetZoom = function() {
-  var originalState = this.viewport.getOriginalState()
-
-  this.zoom(originalState.zoom, true);
-}
-
-/**
- * Set pan to initial state
- */
-SvgPanZoom.prototype.resetPan = function() {
-  this.pan(this.viewport.getOriginalState());
-}
-
-/**
- * Set pan and zoom to initial state
- */
-SvgPanZoom.prototype.reset = function() {
-  this.resetZoom()
-  this.resetPan()
-}
-
-/**
- * Handle double click event
- * See handleMouseDown() for alternate detection method
- *
- * @param {Event} evt
- */
-SvgPanZoom.prototype.handleDblClick = function(evt) {
-  if (this.options.preventMouseEventsDefault) {
-    if (evt.preventDefault) {
-      evt.preventDefault()
-    } else {
-      evt.returnValue = false
-    }
-  }
-
-  // Check if target was a control button
-  if (this.options.controlIconsEnabled) {
-    var targetClass = evt.target.getAttribute('class') || ''
-    if (targetClass.indexOf('svg-pan-zoom-control') > -1) {
-      return false
-    }
-  }
-
-  var zoomFactor
-
-  if (evt.shiftKey) {
-    zoomFactor = 1/((1 + this.options.zoomScaleSensitivity) * 2) // zoom out when shift key pressed
-  } else {
-    zoomFactor = (1 + this.options.zoomScaleSensitivity) * 2
-  }
-
-  var point = SvgUtils.getEventPoint(evt, this.svg).matrixTransform(this.svg.getScreenCTM().inverse())
-  this.zoomAtPoint(zoomFactor, point)
-}
-
-/**
- * Handle click event
- *
- * @param {Event} evt
- */
-SvgPanZoom.prototype.handleMouseDown = function(evt, prevEvt) {
-  if (this.options.preventMouseEventsDefault) {
-    if (evt.preventDefault) {
-      evt.preventDefault()
-    } else {
-      evt.returnValue = false
-    }
-  }
-
-  Utils.mouseAndTouchNormalize(evt, this.svg)
-
-  // Double click detection; more consistent than ondblclick
-  if (this.options.dblClickZoomEnabled && Utils.isDblClick(evt, prevEvt)){
-    this.handleDblClick(evt)
-  } else {
-    // Pan mode
-    this.state = 'pan'
-    this.firstEventCTM = this.viewport.getCTM()
-    this.stateOrigin = SvgUtils.getEventPoint(evt, this.svg).matrixTransform(this.firstEventCTM.inverse())
-  }
-}
-
-/**
- * Handle mouse move event
- *
- * @param  {Event} evt
- */
-SvgPanZoom.prototype.handleMouseMove = function(evt) {
-  if (this.options.preventMouseEventsDefault) {
-    if (evt.preventDefault) {
-      evt.preventDefault()
-    } else {
-      evt.returnValue = false
-    }
-  }
-
-  if (this.state === 'pan' && this.options.panEnabled) {
-    // Pan mode
-    var point = SvgUtils.getEventPoint(evt, this.svg).matrixTransform(this.firstEventCTM.inverse())
-      , viewportCTM = this.firstEventCTM.translate(point.x - this.stateOrigin.x, point.y - this.stateOrigin.y)
-
-    this.viewport.setCTM(viewportCTM)
-  }
-}
-
-/**
- * Handle mouse button release event
- *
- * @param {Event} evt
- */
-SvgPanZoom.prototype.handleMouseUp = function(evt) {
-  if (this.options.preventMouseEventsDefault) {
-    if (evt.preventDefault) {
-      evt.preventDefault()
-    } else {
-      evt.returnValue = false
-    }
-  }
-
-  if (this.state === 'pan') {
-    // Quit pan mode
-    this.state = 'none'
-  }
-}
-
-/**
- * Adjust viewport size (only) so it will fit in SVG
- * Does not center image
- */
-SvgPanZoom.prototype.fit = function() {
-  var viewBox = this.viewport.getViewBox()
-    , newScale = Math.min(this.width/viewBox.width, this.height/viewBox.height)
-
-  this.zoom(newScale, true)
-}
-
-/**
- * Adjust viewport size (only) so it will contain the SVG
- * Does not center image
- */
-SvgPanZoom.prototype.contain = function() {
-  var viewBox = this.viewport.getViewBox()
-    , newScale = Math.max(this.width/viewBox.width, this.height/viewBox.height)
-
-  this.zoom(newScale, true)
-}
-
-/**
- * Adjust viewport pan (only) so it will be centered in SVG
- * Does not zoom/fit/contain image
- */
-SvgPanZoom.prototype.center = function() {
-  var viewBox = this.viewport.getViewBox()
-    , offsetX = (this.width - (viewBox.width + viewBox.x * 2) * this.getZoom()) * 0.5
-    , offsetY = (this.height - (viewBox.height + viewBox.y * 2) * this.getZoom()) * 0.5
-
-  this.getPublicInstance().pan({x: offsetX, y: offsetY})
-}
-
-/**
- * Update content cached BorderBox
- * Use when viewport contents change
- */
-SvgPanZoom.prototype.updateBBox = function() {
-  this.viewport.simpleViewBoxCache()
-}
-
-/**
- * Pan to a rendered position
- *
- * @param  {Object} point {x: 0, y: 0}
- */
-SvgPanZoom.prototype.pan = function(point) {
-  var viewportCTM = this.viewport.getCTM()
-  viewportCTM.e = point.x
-  viewportCTM.f = point.y
-  this.viewport.setCTM(viewportCTM)
-}
-
-/**
- * Relatively pan the graph by a specified rendered position vector
- *
- * @param  {Object} point {x: 0, y: 0}
- */
-SvgPanZoom.prototype.panBy = function(point) {
-  var viewportCTM = this.viewport.getCTM()
-  viewportCTM.e += point.x
-  viewportCTM.f += point.y
-  this.viewport.setCTM(viewportCTM)
-}
-
-/**
- * Get pan vector
- *
- * @return {Object} {x: 0, y: 0}
- */
-SvgPanZoom.prototype.getPan = function() {
-  var state = this.viewport.getState()
-
-  return {x: state.x, y: state.y}
-}
-
-/**
- * Recalculates cached svg dimensions and controls position
- */
-SvgPanZoom.prototype.resize = function() {
-  // Get dimensions
-  var boundingClientRectNormalized = SvgUtils.getBoundingClientRectNormalized(this.svg)
-  this.width = boundingClientRectNormalized.width
-  this.height = boundingClientRectNormalized.height
-
-  // Reposition control icons by re-enabling them
-  if (this.options.controlIconsEnabled) {
-    this.getPublicInstance().disableControlIcons()
-    this.getPublicInstance().enableControlIcons()
-  }
-}
-
-/**
- * Unbind mouse events, free callbacks and destroy public instance
- */
-SvgPanZoom.prototype.destroy = function() {
-  var that = this
-
-  // Free callbacks
-  this.beforeZoom = null
-  this.onZoom = null
-  this.beforePan = null
-  this.onPan = null
-
-  // Destroy custom event handlers
-  if (this.options.customEventsHandler != null) { // jshint ignore:line
-    this.options.customEventsHandler.destroy({
-      svgElement: this.svg
-    , eventsListenerElement: this.options.eventsListenerElement
-    , instance: this.getPublicInstance()
-    })
-  }
-
-  // Unbind eventListeners
-  for (var event in this.eventListeners) {
-    (this.options.eventsListenerElement || this.svg)
-      .removeEventListener(event, this.eventListeners[event], false)
-  }
-
-  // Unbind wheelListener
-  this.disableMouseWheelZoom()
-
-  // Remove control icons
-  this.getPublicInstance().disableControlIcons()
-
-  // Reset zoom and pan
-  this.reset()
-
-  // Remove instance from instancesStore
-  instancesStore = instancesStore.filter(function(instance){
-    return instance.svg !== that.svg
-  })
-
-  // Delete options and its contents
-  delete this.options
-
-  // Destroy public instance and rewrite getPublicInstance
-  delete this.publicInstance
-  delete this.pi
-  this.getPublicInstance = function(){
-    return null
-  }
-}
-
-/**
- * Returns a public instance object
- *
- * @return {Object} Public instance object
- */
-SvgPanZoom.prototype.getPublicInstance = function() {
-  var that = this
-
-  // Create cache
-  if (!this.publicInstance) {
-    this.publicInstance = this.pi = {
-      // Pan
-      enablePan: function() {that.options.panEnabled = true; return that.pi}
-    , disablePan: function() {that.options.panEnabled = false; return that.pi}
-    , isPanEnabled: function() {return !!that.options.panEnabled}
-    , pan: function(point) {that.pan(point); return that.pi}
-    , panBy: function(point) {that.panBy(point); return that.pi}
-    , getPan: function() {return that.getPan()}
-      // Pan event
-    , setBeforePan: function(fn) {that.options.beforePan = fn === null ? null : Utils.proxy(fn, that.publicInstance); return that.pi}
-    , setOnPan: function(fn) {that.options.onPan = fn === null ? null : Utils.proxy(fn, that.publicInstance); return that.pi}
-      // Zoom and Control Icons
-    , enableZoom: function() {that.options.zoomEnabled = true; return that.pi}
-    , disableZoom: function() {that.options.zoomEnabled = false; return that.pi}
-    , isZoomEnabled: function() {return !!that.options.zoomEnabled}
-    , enableControlIcons: function() {
-        if (!that.options.controlIconsEnabled) {
-          that.options.controlIconsEnabled = true
-          ControlIcons.enable(that)
-        }
-        return that.pi
-      }
-    , disableControlIcons: function() {
-        if (that.options.controlIconsEnabled) {
-          that.options.controlIconsEnabled = false;
-          ControlIcons.disable(that)
-        }
-        return that.pi
-      }
-    , isControlIconsEnabled: function() {return !!that.options.controlIconsEnabled}
-      // Double click zoom
-    , enableDblClickZoom: function() {that.options.dblClickZoomEnabled = true; return that.pi}
-    , disableDblClickZoom: function() {that.options.dblClickZoomEnabled = false; return that.pi}
-    , isDblClickZoomEnabled: function() {return !!that.options.dblClickZoomEnabled}
-      // Mouse wheel zoom
-    , enableMouseWheelZoom: function() {that.enableMouseWheelZoom(); return that.pi}
-    , disableMouseWheelZoom: function() {that.disableMouseWheelZoom(); return that.pi}
-    , isMouseWheelZoomEnabled: function() {return !!that.options.mouseWheelZoomEnabled}
-      // Zoom scale and bounds
-    , setZoomScaleSensitivity: function(scale) {that.options.zoomScaleSensitivity = scale; return that.pi}
-    , setMinZoom: function(zoom) {that.options.minZoom = zoom; return that.pi}
-    , setMaxZoom: function(zoom) {that.options.maxZoom = zoom; return that.pi}
-      // Zoom event
-    , setBeforeZoom: function(fn) {that.options.beforeZoom = fn === null ? null : Utils.proxy(fn, that.publicInstance); return that.pi}
-    , setOnZoom: function(fn) {that.options.onZoom = fn === null ? null : Utils.proxy(fn, that.publicInstance); return that.pi}
-      // Zooming
-    , zoom: function(scale) {that.publicZoom(scale, true); return that.pi}
-    , zoomBy: function(scale) {that.publicZoom(scale, false); return that.pi}
-    , zoomAtPoint: function(scale, point) {that.publicZoomAtPoint(scale, point, true); return that.pi}
-    , zoomAtPointBy: function(scale, point) {that.publicZoomAtPoint(scale, point, false); return that.pi}
-    , zoomIn: function() {this.zoomBy(1 + that.options.zoomScaleSensitivity); return that.pi}
-    , zoomOut: function() {this.zoomBy(1 / (1 + that.options.zoomScaleSensitivity)); return that.pi}
-    , getZoom: function() {return that.getRelativeZoom()}
-      // Reset
-    , resetZoom: function() {that.resetZoom(); return that.pi}
-    , resetPan: function() {that.resetPan(); return that.pi}
-    , reset: function() {that.reset(); return that.pi}
-      // Fit, Contain and Center
-    , fit: function() {that.fit(); return that.pi}
-    , contain: function() {that.contain(); return that.pi}
-    , center: function() {that.center(); return that.pi}
-      // Size and Resize
-    , updateBBox: function() {that.updateBBox(); return that.pi}
-    , resize: function() {that.resize(); return that.pi}
-    , getSizes: function() {
-        return {
-          width: that.width
-        , height: that.height
-        , realZoom: that.getZoom()
-        , viewBox: that.viewport.getViewBox()
-        }
-      }
-      // Destroy
-    , destroy: function() {that.destroy(); return that.pi}
-    }
-  }
-
-  return this.publicInstance
-}
-
-/**
- * Stores pairs of instances of SvgPanZoom and SVG
- * Each pair is represented by an object {svg: SVGSVGElement, instance: SvgPanZoom}
- *
- * @type {Array}
- */
-var instancesStore = []
-
-var svgPanZoom = function(elementOrSelector, options){
-  var svg = Utils.getSvg(elementOrSelector)
-
-  if (svg === null) {
-    return null
-  } else {
-    // Look for existent instance
-    for(var i = instancesStore.length - 1; i >= 0; i--) {
-      if (instancesStore[i].svg === svg) {
-        return instancesStore[i].instance.getPublicInstance()
-      }
-    }
-
-    // If instance not found - create one
-    instancesStore.push({
-      svg: svg
-    , instance: new SvgPanZoom(svg, options)
-    })
-
-    // Return just pushed instance
-    return instancesStore[instancesStore.length - 1].instance.getPublicInstance()
-  }
-}
-
-module.exports = svgPanZoom;
-
-},{"./control-icons":201,"./shadow-viewport":202,"./svg-utilities":204,"./uniwheel":205,"./utilities":206}],204:[function(require,module,exports){
-var Utils = require('./utilities')
-  , _browser = 'unknown'
-  ;
-
-// http://stackoverflow.com/questions/9847580/how-to-detect-safari-chrome-ie-firefox-and-opera-browser
-if (/*@cc_on!@*/false || !!document.documentMode) { // internet explorer
-  _browser = 'ie';
-}
-
-module.exports = {
-  svgNS:  'http://www.w3.org/2000/svg'
-, xmlNS:  'http://www.w3.org/XML/1998/namespace'
-, xmlnsNS:  'http://www.w3.org/2000/xmlns/'
-, xlinkNS:  'http://www.w3.org/1999/xlink'
-, evNS:  'http://www.w3.org/2001/xml-events'
-
-  /**
-   * Get svg dimensions: width and height
-   *
-   * @param  {SVGSVGElement} svg
-   * @return {Object}     {width: 0, height: 0}
-   */
-, getBoundingClientRectNormalized: function(svg) {
-    if (svg.clientWidth && svg.clientHeight) {
-      return {width: svg.clientWidth, height: svg.clientHeight}
-    } else if (!!svg.getBoundingClientRect()) {
-      return svg.getBoundingClientRect();
-    } else {
-      throw new Error('Cannot get BoundingClientRect for SVG.');
-    }
-  }
-
-  /**
-   * Gets g element with class of "viewport" or creates it if it doesn't exist
-   *
-   * @param  {SVGSVGElement} svg
-   * @return {SVGElement}     g (group) element
-   */
-, getOrCreateViewport: function(svg, selector) {
-    var viewport = null
-
-    if (Utils.isElement(selector)) {
-      viewport = selector
-    } else {
-      viewport = svg.querySelector(selector)
-    }
-
-    // Check if there is just one main group in SVG
-    if (!viewport) {
-      var childNodes = Array.prototype.slice.call(svg.childNodes || svg.children).filter(function(el){
-        return el.nodeName !== 'defs' && el.nodeName !== '#text'
-      })
-
-      // Node name should be SVGGElement and should have no transform attribute
-      // Groups with transform are not used as viewport because it involves parsing of all transform possibilities
-      if (childNodes.length === 1 && childNodes[0].nodeName === 'g' && childNodes[0].getAttribute('transform') === null) {
-        viewport = childNodes[0]
-      }
-    }
-
-    // If no favorable group element exists then create one
-    if (!viewport) {
-      var viewportId = 'viewport-' + new Date().toISOString().replace(/\D/g, '');
-      viewport = document.createElementNS(this.svgNS, 'g');
-      viewport.setAttribute('id', viewportId);
-
-      // Internet Explorer (all versions?) can't use childNodes, but other browsers prefer (require?) using childNodes
-      var svgChildren = svg.childNodes || svg.children;
-      if (!!svgChildren && svgChildren.length > 0) {
-        for (var i = svgChildren.length; i > 0; i--) {
-          // Move everything into viewport except defs
-          if (svgChildren[svgChildren.length - i].nodeName !== 'defs') {
-            viewport.appendChild(svgChildren[svgChildren.length - i]);
-          }
-        }
-      }
-      svg.appendChild(viewport);
-    }
-
-    // Parse class names
-    var classNames = [];
-    if (viewport.getAttribute('class')) {
-      classNames = viewport.getAttribute('class').split(' ')
-    }
-
-    // Set class (if not set already)
-    if (!~classNames.indexOf('svg-pan-zoom_viewport')) {
-      classNames.push('svg-pan-zoom_viewport')
-      viewport.setAttribute('class', classNames.join(' '))
-    }
-
-    return viewport
-  }
-
-  /**
-   * Set SVG attributes
-   *
-   * @param  {SVGSVGElement} svg
-   */
-  , setupSvgAttributes: function(svg) {
-    // Setting default attributes
-    svg.setAttribute('xmlns', this.svgNS);
-    svg.setAttributeNS(this.xmlnsNS, 'xmlns:xlink', this.xlinkNS);
-    svg.setAttributeNS(this.xmlnsNS, 'xmlns:ev', this.evNS);
-
-    // Needed for Internet Explorer, otherwise the viewport overflows
-    if (svg.parentNode !== null) {
-      var style = svg.getAttribute('style') || '';
-      if (style.toLowerCase().indexOf('overflow') === -1) {
-        svg.setAttribute('style', 'overflow: hidden; ' + style);
-      }
-    }
-  }
-
-/**
- * How long Internet Explorer takes to finish updating its display (ms).
- */
-, internetExplorerRedisplayInterval: 300
-
-/**
- * Forces the browser to redisplay all SVG elements that rely on an
- * element defined in a 'defs' section. It works globally, for every
- * available defs element on the page.
- * The throttling is intentionally global.
- *
- * This is only needed for IE. It is as a hack to make markers (and 'use' elements?)
- * visible after pan/zoom when there are multiple SVGs on the page.
- * See bug report: https://connect.microsoft.com/IE/feedback/details/781964/
- * also see svg-pan-zoom issue: https://github.com/ariutta/svg-pan-zoom/issues/62
- */
-, refreshDefsGlobal: Utils.throttle(function() {
-    var allDefs = document.querySelectorAll('defs');
-    var allDefsCount = allDefs.length;
-    for (var i = 0; i < allDefsCount; i++) {
-      var thisDefs = allDefs[i];
-      thisDefs.parentNode.insertBefore(thisDefs, thisDefs);
-    }
-  }, this.internetExplorerRedisplayInterval)
-
-  /**
-   * Sets the current transform matrix of an element
-   *
-   * @param {SVGElement} element
-   * @param {SVGMatrix} matrix  CTM
-   * @param {SVGElement} defs
-   */
-, setCTM: function(element, matrix, defs) {
-    var that = this
-      , s = 'matrix(' + matrix.a + ',' + matrix.b + ',' + matrix.c + ',' + matrix.d + ',' + matrix.e + ',' + matrix.f + ')';
-
-    element.setAttributeNS(null, 'transform', s);
-    if ('transform' in element.style) {
-      element.style.transform = s;
-    } else if ('-ms-transform' in element.style) {
-      element.style['-ms-transform'] = s;
-    } else if ('-webkit-transform' in element.style) {
-      element.style['-webkit-transform'] = s;
-    }
-
-    // IE has a bug that makes markers disappear on zoom (when the matrix "a" and/or "d" elements change)
-    // see http://stackoverflow.com/questions/17654578/svg-marker-does-not-work-in-ie9-10
-    // and http://srndolha.wordpress.com/2013/11/25/svg-line-markers-may-disappear-in-internet-explorer-11/
-    if (_browser === 'ie' && !!defs) {
-      // this refresh is intended for redisplaying the SVG during zooming
-      defs.parentNode.insertBefore(defs, defs);
-      // this refresh is intended for redisplaying the other SVGs on a page when panning a given SVG
-      // it is also needed for the given SVG itself, on zoomEnd, if the SVG contains any markers that
-      // are located under any other element(s).
-      window.setTimeout(function() {
-        that.refreshDefsGlobal();
-      }, that.internetExplorerRedisplayInterval);
-    }
-  }
-
-  /**
-   * Instantiate an SVGPoint object with given event coordinates
-   *
-   * @param {Event} evt
-   * @param  {SVGSVGElement} svg
-   * @return {SVGPoint}     point
-   */
-, getEventPoint: function(evt, svg) {
-    var point = svg.createSVGPoint()
-
-    Utils.mouseAndTouchNormalize(evt, svg)
-
-    point.x = evt.clientX
-    point.y = evt.clientY
-
-    return point
-  }
-
-  /**
-   * Get SVG center point
-   *
-   * @param  {SVGSVGElement} svg
-   * @return {SVGPoint}
-   */
-, getSvgCenterPoint: function(svg, width, height) {
-    return this.createSVGPoint(svg, width / 2, height / 2)
-  }
-
-  /**
-   * Create a SVGPoint with given x and y
-   *
-   * @param  {SVGSVGElement} svg
-   * @param  {Number} x
-   * @param  {Number} y
-   * @return {SVGPoint}
-   */
-, createSVGPoint: function(svg, x, y) {
-    var point = svg.createSVGPoint()
-    point.x = x
-    point.y = y
-
-    return point
-  }
-}
-
-},{"./utilities":206}],205:[function(require,module,exports){
-// uniwheel 0.1.2 (customized)
-// A unified cross browser mouse wheel event handler
-// https://github.com/teemualap/uniwheel
-
-module.exports = (function(){
-
-  //Full details: https://developer.mozilla.org/en-US/docs/Web/Reference/Events/wheel
-
-  var prefix = "", _addEventListener, _removeEventListener, onwheel, support, fns = [];
-
-  // detect event model
-  if ( window.addEventListener ) {
-    _addEventListener = "addEventListener";
-    _removeEventListener = "removeEventListener";
-  } else {
-    _addEventListener = "attachEvent";
-    _removeEventListener = "detachEvent";
-    prefix = "on";
-  }
-
-  // detect available wheel event
-  support = "onwheel" in document.createElement("div") ? "wheel" : // Modern browsers support "wheel"
-            document.onmousewheel !== undefined ? "mousewheel" : // Webkit and IE support at least "mousewheel"
-            "DOMMouseScroll"; // let's assume that remaining browsers are older Firefox
-
-
-  function createCallback(element,callback,capture) {
-
-    var fn = function(originalEvent) {
-
-      !originalEvent && ( originalEvent = window.event );
-
-      // create a normalized event object
-      var event = {
-        // keep a ref to the original event object
-        originalEvent: originalEvent,
-        target: originalEvent.target || originalEvent.srcElement,
-        type: "wheel",
-        deltaMode: originalEvent.type == "MozMousePixelScroll" ? 0 : 1,
-        deltaX: 0,
-        delatZ: 0,
-        preventDefault: function() {
-          originalEvent.preventDefault ?
-            originalEvent.preventDefault() :
-            originalEvent.returnValue = false;
-        }
-      };
-
-      // calculate deltaY (and deltaX) according to the event
-      if ( support == "mousewheel" ) {
-        event.deltaY = - 1/40 * originalEvent.wheelDelta;
-        // Webkit also support wheelDeltaX
-        originalEvent.wheelDeltaX && ( event.deltaX = - 1/40 * originalEvent.wheelDeltaX );
-      } else {
-        event.deltaY = originalEvent.detail;
-      }
-
-      // it's time to fire the callback
-      return callback( event );
-
-    };
-
-    fns.push({
-      element: element,
-      fn: fn,
-      capture: capture
-    });
-
-    return fn;
-  }
-
-  function getCallback(element,capture) {
-    for (var i = 0; i < fns.length; i++) {
-      if (fns[i].element === element && fns[i].capture === capture) {
-        return fns[i].fn;
-      }
-    }
-    return function(){};
-  }
-
-  function removeCallback(element,capture) {
-    for (var i = 0; i < fns.length; i++) {
-      if (fns[i].element === element && fns[i].capture === capture) {
-        return fns.splice(i,1);
-      }
-    }
-  }
-
-  function _addWheelListener( elem, eventName, callback, useCapture ) {
-
-    var cb;
-
-    if (support === "wheel") {
-      cb = callback;
-    } else {
-      cb = createCallback(elem,callback,useCapture);
-    }
-
-    elem[ _addEventListener ]( prefix + eventName, cb, useCapture || false );
-
-  }
-
-  function _removeWheelListener( elem, eventName, callback, useCapture ) {
-
-    if (support === "wheel") {
-      cb = callback;
-    } else {
-      cb = getCallback(elem,useCapture);
-    }
-
-    elem[ _removeEventListener ]( prefix + eventName, cb, useCapture || false );
-
-    removeCallback(elem,useCapture);
-
-  }
-
-  function addWheelListener( elem, callback, useCapture ) {
-    _addWheelListener( elem, support, callback, useCapture );
-
-    // handle MozMousePixelScroll in older Firefox
-    if( support == "DOMMouseScroll" ) {
-        _addWheelListener( elem, "MozMousePixelScroll", callback, useCapture);
-    }
-  }
-
-  function removeWheelListener(elem,callback,useCapture){
-    _removeWheelListener(elem,support,callback,useCapture);
-
-    // handle MozMousePixelScroll in older Firefox
-    if( support == "DOMMouseScroll" ) {
-        _removeWheelListener(elem, "MozMousePixelScroll", callback, useCapture);
-    }
-  }
-
-  return {
-    on: addWheelListener,
-    off: removeWheelListener
-  };
-
-})();
-
-},{}],206:[function(require,module,exports){
-module.exports = {
-  /**
-   * Extends an object
-   *
-   * @param  {Object} target object to extend
-   * @param  {Object} source object to take properties from
-   * @return {Object}        extended object
-   */
-  extend: function(target, source) {
-    target = target || {};
-    for (var prop in source) {
-      // Go recursively
-      if (this.isObject(source[prop])) {
-        target[prop] = this.extend(target[prop], source[prop])
-      } else {
-        target[prop] = source[prop]
-      }
-    }
-    return target;
-  }
-
-  /**
-   * Checks if an object is a DOM element
-   *
-   * @param  {Object}  o HTML element or String
-   * @return {Boolean}   returns true if object is a DOM element
-   */
-, isElement: function(o){
-    return (
-      o instanceof HTMLElement || o instanceof SVGElement || o instanceof SVGSVGElement || //DOM2
-      (o && typeof o === 'object' && o !== null && o.nodeType === 1 && typeof o.nodeName === 'string')
-    );
-  }
-
-  /**
-   * Checks if an object is an Object
-   *
-   * @param  {Object}  o Object
-   * @return {Boolean}   returns true if object is an Object
-   */
-, isObject: function(o){
-    return Object.prototype.toString.call(o) === '[object Object]';
-  }
-
-  /**
-   * Checks if variable is Number
-   *
-   * @param  {Integer|Float}  n
-   * @return {Boolean}   returns true if variable is Number
-   */
-, isNumber: function(n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
-  }
-
-  /**
-   * Search for an SVG element
-   *
-   * @param  {Object|String} elementOrSelector DOM Element or selector String
-   * @return {Object|Null}                   SVG or null
-   */
-, getSvg: function(elementOrSelector) {
-    var element
-      , svg;
-
-    if (!this.isElement(elementOrSelector)) {
-      // If selector provided
-      if (typeof elementOrSelector === 'string' || elementOrSelector instanceof String) {
-        // Try to find the element
-        element = document.querySelector(elementOrSelector)
-
-        if (!element) {
-          throw new Error('Provided selector did not find any elements. Selector: ' + elementOrSelector)
-          return null
-        }
-      } else {
-        throw new Error('Provided selector is not an HTML object nor String')
-        return null
-      }
-    } else {
-      element = elementOrSelector
-    }
-
-    if (element.tagName.toLowerCase() === 'svg') {
-      svg = element;
-    } else {
-      if (element.tagName.toLowerCase() === 'object') {
-        svg = element.contentDocument.documentElement;
-      } else {
-        if (element.tagName.toLowerCase() === 'embed') {
-          svg = element.getSVGDocument().documentElement;
-        } else {
-          if (element.tagName.toLowerCase() === 'img') {
-            throw new Error('Cannot script an SVG in an "img" element. Please use an "object" element or an in-line SVG.');
-          } else {
-            throw new Error('Cannot get SVG.');
-          }
-          return null
-        }
-      }
-    }
-
-    return svg
-  }
-
-  /**
-   * Attach a given context to a function
-   * @param  {Function} fn      Function
-   * @param  {Object}   context Context
-   * @return {Function}           Function with certain context
-   */
-, proxy: function(fn, context) {
-    return function() {
-      return fn.apply(context, arguments)
-    }
-  }
-
-  /**
-   * Returns object type
-   * Uses toString that returns [object SVGPoint]
-   * And than parses object type from string
-   *
-   * @param  {Object} o Any object
-   * @return {String}   Object type
-   */
-, getType: function(o) {
-    return Object.prototype.toString.apply(o).replace(/^\[object\s/, '').replace(/\]$/, '')
-  }
-
-  /**
-   * If it is a touch event than add clientX and clientY to event object
-   *
-   * @param  {Event} evt
-   * @param  {SVGSVGElement} svg
-   */
-, mouseAndTouchNormalize: function(evt, svg) {
-    // If no cilentX and but touch objects are available
-    if (evt.clientX === void 0 || evt.clientX === null) {
-      // Fallback
-      evt.clientX = 0
-      evt.clientY = 0
-
-      // If it is a touch event
-      if (evt.changedTouches !== void 0 && evt.changedTouches.length) {
-        // If touch event has changedTouches
-        if (evt.changedTouches[0].clientX !== void 0) {
-          evt.clientX = evt.changedTouches[0].clientX
-          evt.clientY = evt.changedTouches[0].clientY
-        }
-        // If changedTouches has pageX attribute
-        else if (evt.changedTouches[0].pageX !== void 0) {
-          var rect = svg.getBoundingClientRect();
-
-          evt.clientX = evt.changedTouches[0].pageX - rect.left
-          evt.clientY = evt.changedTouches[0].pageY - rect.top
-        }
-      // If it is a custom event
-      } else if (evt.originalEvent !== void 0) {
-        if (evt.originalEvent.clientX !== void 0) {
-          evt.clientX = evt.originalEvent.clientX
-          evt.clientY = evt.originalEvent.clientY
-        }
-      }
-    }
-  }
-
-  /**
-   * Check if an event is a double click/tap
-   * TODO: For touch gestures use a library (hammer.js) that takes in account other events
-   * (touchmove and touchend). It should take in account tap duration and traveled distance
-   *
-   * @param  {Event}  evt
-   * @param  {Event}  prevEvt Previous Event
-   * @return {Boolean}
-   */
-, isDblClick: function(evt, prevEvt) {
-    // Double click detected by browser
-    if (evt.detail === 2) {
-      return true;
-    }
-    // Try to compare events
-    else if (prevEvt !== void 0 && prevEvt !== null) {
-      var timeStampDiff = evt.timeStamp - prevEvt.timeStamp // should be lower than 250 ms
-        , touchesDistance = Math.sqrt(Math.pow(evt.clientX - prevEvt.clientX, 2) + Math.pow(evt.clientY - prevEvt.clientY, 2))
-
-      return timeStampDiff < 250 && touchesDistance < 10
-    }
-
-    // Nothing found
-    return false;
-  }
-
-  /**
-   * Returns current timestamp as an integer
-   *
-   * @return {Number}
-   */
-, now: Date.now || function() {
-    return new Date().getTime();
-  }
-
-  // From underscore.
-  // Returns a function, that, when invoked, will only be triggered at most once
-  // during a given window of time. Normally, the throttled function will run
-  // as much as it can, without ever going more than once per `wait` duration;
-  // but if you'd like to disable the execution on the leading edge, pass
-  // `{leading: false}`. To disable execution on the trailing edge, ditto.
-// jscs:disable
-// jshint ignore:start
-, throttle: function(func, wait, options) {
-    var that = this;
-    var context, args, result;
-    var timeout = null;
-    var previous = 0;
-    if (!options) options = {};
-    var later = function() {
-      previous = options.leading === false ? 0 : that.now();
-      timeout = null;
-      result = func.apply(context, args);
-      if (!timeout) context = args = null;
-    };
-    return function() {
-      var now = that.now();
-      if (!previous && options.leading === false) previous = now;
-      var remaining = wait - (now - previous);
-      context = this;
-      args = arguments;
-      if (remaining <= 0 || remaining > wait) {
-        clearTimeout(timeout);
-        timeout = null;
-        previous = now;
-        result = func.apply(context, args);
-        if (!timeout) context = args = null;
-      } else if (!timeout && options.trailing !== false) {
-        timeout = setTimeout(later, remaining);
-      }
-      return result;
-    };
-  }
-// jshint ignore:end
-// jscs:enable
-
-  /**
-   * Create a requestAnimationFrame simulation
-   *
-   * @param  {Number|String} refreshRate
-   * @return {Function}
-   */
-, createRequestAnimationFrame: function(refreshRate) {
-    var timeout = null
-
-    // Convert refreshRate to timeout
-    if (refreshRate !== 'auto' && refreshRate < 60 && refreshRate > 1) {
-      timeout = Math.floor(1000 / refreshRate)
-    }
-
-    if (timeout === null) {
-      return window.requestAnimationFrame || requestTimeout(33)
-    } else {
-      return requestTimeout(timeout)
-    }
-  }
-}
-
-/**
- * Create a callback that will execute after a given timeout
- *
- * @param  {Function} timeout
- * @return {Function}
- */
-function requestTimeout(timeout) {
-  return function(callback) {
-    window.setTimeout(callback, timeout)
-  }
-}
-
-},{}],207:[function(require,module,exports){
+},{}],177:[function(require,module,exports){
 module.exports = require('./lib/index');
 
-},{"./lib/index":208}],208:[function(require,module,exports){
+},{"./lib/index":178}],178:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -62190,7 +58328,7 @@ if (typeof self !== 'undefined') {
 var result = (0, _ponyfill2['default'])(root);
 exports['default'] = result;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./ponyfill":209}],209:[function(require,module,exports){
+},{"./ponyfill":179}],179:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -62214,7 +58352,7 @@ function symbolObservablePonyfill(root) {
 
 	return result;
 };
-},{}],210:[function(require,module,exports){
+},{}],180:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -64070,7 +60208,7 @@ exports.MemoryStream = MemoryStream;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Stream;
 
-},{"symbol-observable":207}],211:[function(require,module,exports){
+},{"symbol-observable":177}],181:[function(require,module,exports){
 "use strict";
 var core_1 = require('./core');
 exports.Stream = core_1.Stream;
@@ -64078,7 +60216,7 @@ exports.MemoryStream = core_1.MemoryStream;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = core_1.Stream;
 
-},{"./core":210}],212:[function(require,module,exports){
+},{"./core":180}],182:[function(require,module,exports){
 (function (global){
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.rxmarbles = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 "use strict";
@@ -92147,4 +88285,4 @@ exports.textUnselectable = textUnselectable;
 },{"@cycle/dom":12,"immutable":77}]},{},[152])(152)
 });
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}]},{},[12]);
+},{}]},{},[16]);

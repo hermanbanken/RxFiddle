@@ -6,6 +6,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 const median_1 = require("./median");
+const ordering_1 = require("./ordering");
 const chai_1 = require("chai");
 const graphlib_1 = require("graphlib");
 const mocha_typescript_1 = require("mocha-typescript");
@@ -118,6 +119,32 @@ let MedianSpec = class MedianSpec {
         median_1.wmedian(i, g, "up");
         chai_1.expect(i).to.deep.eq(e);
     }
+    "test 7 external sort"() {
+        ///   -----d-e-f-g-h--
+        ///           / / /
+        ///          ////
+        ///         //   e d
+        ///        /     | |
+        ///   -----a-----b-c--
+        let g = asGraph([
+            { v: "f", w: "a" },
+            { v: "g", w: "a" },
+            { v: "h", w: "a" },
+            { v: "e", w: "b" },
+            { v: "d", w: "c" },
+        ]);
+        let i = [["d", "e", "f", "g", "h"], ["a", "b", "c"]];
+        ///   ---f-g-h---d-e--
+        ///      | | |   | |
+        ///      | | |   | |
+        ///      | |/    | |
+        ///      | /     | |
+        ///   ---a-------c-b--
+        let e = [["f", "g", "h", "d", "e"], ["a", "c", "b"]];
+        median_1.wmedian(i, g, "down", ordering_1.fixingSort(["f", "a"]));
+        median_1.wmedian(i, g, "up", ordering_1.fixingSort(["f", "a"]));
+        chai_1.expect(i).to.deep.eq(e);
+    }
 };
 __decorate([
     mocha_typescript_1.test
@@ -146,6 +173,9 @@ __decorate([
 __decorate([
     mocha_typescript_1.test
 ], MedianSpec.prototype, "test 7", null);
+__decorate([
+    mocha_typescript_1.test
+], MedianSpec.prototype, "test 7 external sort", null);
 MedianSpec = __decorate([
     mocha_typescript_1.suite
 ], MedianSpec);

@@ -1,6 +1,6 @@
 "use strict";
 const index_1 = require("./index");
-function priorityLayout(ranks, g) {
+function priorityLayout(ranks, g, focusNodes = []) {
     let nodes = ranks.map((row, y) => row.map((n, x) => ({
         y,
         x,
@@ -13,8 +13,14 @@ function priorityLayout(ranks, g) {
         let direction = i % 2 === 0 ? "down" : "up";
         index_1.foreachTuple(direction, nodes, (row, ref) => {
             row.forEach(item => {
-                item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(g, direction, item.id);
-                item.barycenter = barycenter(g, direction, item.id, linked => head(ref.filter(r => r.id === linked).map(r => r.x)));
+                if (focusNodes.indexOf(item.id) >= 0) {
+                    item.priority = Number.MAX_SAFE_INTEGER;
+                    item.barycenter = 0;
+                }
+                else {
+                    item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER / 2 : priority(g, direction, item.id);
+                    item.barycenter = barycenter(g, direction, item.id, linked => head(ref.filter(r => r.id === linked).map(r => r.x)));
+                }
             });
             priorityLayoutAlign(row);
             return row;

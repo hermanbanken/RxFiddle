@@ -1,7 +1,7 @@
 import TypedGraph from "../collector/typedgraph";
 import "../object/extensions";
 import "../utils";
-export default function layout<V, E>(graph: TypedGraph<V, E>): {
+export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes?: string[]): {
     edges: {
         points: [{
             x: number;

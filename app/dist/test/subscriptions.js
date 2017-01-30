@@ -9,14 +9,14 @@ const instrumentationTest_1 = require("./instrumentationTest");
 const chai_1 = require("chai");
 const mocha_typescript_1 = require("mocha-typescript");
 const Rx = require("rx");
-let SubscriptionTest = class SubscriptionTest extends instrumentationTest_1.InstrumentationTest {
-    // @test
+// @suite
+class SubscriptionTest extends instrumentationTest_1.InstrumentationTest {
     "subscription sources"() {
         Rx.Observable.of(1, 2, 3)
             .map(s => s)
             .filter(o => true)
             .subscribe();
-        let lens = this.collector.lens();
+        let lens = this.rxcollector.lens();
         let a = lens.find("of").subscriptions().all()[0];
         let b = lens.find("map").subscriptions().all()[0];
         let c = lens.find("filter").subscriptions().all()[0];
@@ -29,21 +29,21 @@ let SubscriptionTest = class SubscriptionTest extends instrumentationTest_1.Inst
             .groupBy(v => v)
             .mergeAll()
             .subscribe();
-        let lens = this.collector.lens();
+        let lens = this.rxcollector.lens();
         let a = lens.find("of").subscriptions().all()[0];
         let b = lens.find("map").subscriptions().all()[0];
         let c = lens.find("groupBy").subscriptions().all()[0];
         let d = lens.find("mergeAll").subscriptions().all()[0];
-        chai_1.expect(a.sinks).to.deep.equal([b.id], "no sink for of -> map");
-        chai_1.expect(b.sinks).to.deep.equal([c.id], "no sink for map -> groupBy");
-        chai_1.expect(c.sinks).to.deep.equal([d.id], "no sink for groupBy -> mergeAll");
+        chai_1.expect(a && a.sinks).to.deep.equal([b.id], "no sink for of -> map");
+        chai_1.expect(b && b.sinks).to.deep.equal([c.id], "no sink for map -> groupBy");
+        chai_1.expect(c && c.sinks).to.deep.equal([d.id], "no sink for groupBy -> mergeAll");
     }
-};
+}
+__decorate([
+    mocha_typescript_1.test
+], SubscriptionTest.prototype, "subscription sources", null);
 __decorate([
     mocha_typescript_1.test
 ], SubscriptionTest.prototype, "subscription sources groupBy", null);
-SubscriptionTest = __decorate([
-    mocha_typescript_1.suite
-], SubscriptionTest);
 exports.SubscriptionTest = SubscriptionTest;
 //# sourceMappingURL=subscriptions.js.map

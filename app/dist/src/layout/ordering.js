@@ -14,7 +14,7 @@ const transpose_1 = require("./transpose");
  * 7. return best
  *
  */
-function ordering(order, g) {
+function ordering(order, g, externalSort) {
     let best;
     let bestCrossings = Number.MAX_SAFE_INTEGER;
     let bestIt = -1;
@@ -44,11 +44,13 @@ function ordering(order, g) {
         }
         return true;
     };
-    update(order, 0);
+    if (!externalSort) {
+        update(order, 0);
+    }
     for (let i = 0; i < 40; i++) {
-        median_1.wmedian(order, g, i % 2 === 0 ? "up" : "down");
-        transpose_1.transpose(order, g, "down");
-        transpose_1.transpose(order, g, "up");
+        median_1.wmedian(order, g, i % 2 === 0 ? "up" : "down", externalSort);
+        transpose_1.transpose(order, g, "down", externalSort);
+        transpose_1.transpose(order, g, "up", externalSort);
         if (!update(order, i + 1)) {
             break;
         }
@@ -56,4 +58,17 @@ function ordering(order, g) {
     return best;
 }
 exports.ordering = ordering;
+function fixingSort(fixed) {
+    // if a should come first: -1
+    // if b should come first: 1
+    return fixed.length ? (a, b) => {
+        let f = fixed.indexOf(a) >= 0;
+        let s = fixed.indexOf(b) >= 0;
+        if (!f && !s || f && s) {
+            return 0;
+        }
+        return f && !s ? -1 : 1;
+    } : undefined;
+}
+exports.fixingSort = fixingSort;
 //# sourceMappingURL=ordering.js.map

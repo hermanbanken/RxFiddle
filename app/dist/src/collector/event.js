@@ -1,4 +1,5 @@
 "use strict";
+const logger_1 = require("./logger");
 class Event {
     constructor(type, time) {
         this.type = type;
@@ -26,12 +27,22 @@ class Event {
             default: break;
         }
     }
+    static fromJson(input) {
+        switch (input.type) {
+            case "next": return new Next(input.time, input.value);
+            case "error": return new Error(input.time, input.error);
+            case "complete": return new Complete(input.time);
+            case "subscribe": return new Subscribe(input.time);
+            case "dispose": return new Dispose(input.time);
+            default: return null;
+        }
+    }
 }
 exports.Event = Event;
 class Next extends Event {
     constructor(time, value) {
         super("next", time);
-        this.value = value;
+        this.value = logger_1.formatArguments([value]);
     }
 }
 exports.Next = Next;

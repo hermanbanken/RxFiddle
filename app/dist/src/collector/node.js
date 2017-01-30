@@ -1,8 +1,8 @@
 "use strict";
 const ascii_1 = require("./ascii");
 const shapes_1 = require("./shapes");
+const h_1 = require("snabbdom/h");
 /* tslint:disable:no-var-requires */
-const h = require("snabbdom/h");
 function partition(array, fn) {
     let a = [];
     let b = [];
@@ -18,11 +18,11 @@ function partition(array, fn) {
 }
 exports.partition = partition;
 class RxFiddleNode {
-    constructor(id, name, location, visualizer) {
+    /* tslint:disable:no-constructor-vars */
+    constructor(id, name, location) {
         this.id = id;
         this.name = name;
         this.location = location;
-        this.visualizer = visualizer;
         this.instances = [];
         this.observers = [];
         this.width = 120;
@@ -34,9 +34,6 @@ class RxFiddleNode {
     static wrap(inner, outer) {
         outer.nested.push(inner);
         return outer;
-    }
-    get edges() {
-        return this.visualizer.g.neighbors(this.id);
     }
     addObservable(instance) {
         this.instances.push(instance);
@@ -70,7 +67,7 @@ class RxFiddleNode {
     setHighlight(index) {
         this.highlightIndex = index;
         this.highlightId = typeof index !== "undefined" ? this.observers[index][1].id : undefined;
-        this.visualizer.highlightSubscriptionSource(this.highlightId);
+        // this.visualizer.highlightSubscriptionSource(this.highlightId)
         return this;
     }
     setHighlightId(patch, id) {
@@ -100,7 +97,7 @@ class RxFiddleNode {
         if (typeof this.x === "undefined") {
             console.log("Undefined coords", this);
         }
-        let result = h("g", {
+        let result = h_1.h("g", {
             attrs: {
                 height: this.height,
                 id: `node-${this.id}`,
@@ -113,7 +110,6 @@ class RxFiddleNode {
                 mouseover: () => patch(result, this.setHoover(true).render(patch)),
             },
         }, [
-            this.hoover ? this.dialog() : undefined,
             shapes_1.centeredRect(this.width, this.height, {
                 rx: 10, ry: 10,
                 "stroke-width": 2,
@@ -121,7 +117,7 @@ class RxFiddleNode {
             }),
             shapes_1.centeredText(showIds ? `${this.id} ${this.name}` : this.name, { y: this.line(0) }),
             // subgraph
-            h("g", {
+            h_1.h("g", {
                 attrs: { transform: `translate(${this.width / -2}, ${this.line(this.observers.length) + 10})` },
             }),
         ].concat(streams).filter(id => id));
@@ -131,17 +127,6 @@ class RxFiddleNode {
     }
     line(i) {
         return -this.height / 2 + i * 20 + 10;
-    }
-    dialog() {
-        let width = 200;
-        let height = 200;
-        let triangle = `M ${width / -2 - 5} 0 l 5 -5 l 0 10 Z`;
-        return h("g", {
-            attrs: { transform: `translate(${this.width / 2 + width / 2 + 5},${0})`, width, height },
-        }, [
-            h("path", { attrs: { d: triangle, fill: "black" } }),
-            shapes_1.centeredRect(width, height, { rx: 10, ry: 10, fill: "white", "z-index": 10 }),
-        ]);
     }
 }
 exports.RxFiddleNode = RxFiddleNode;

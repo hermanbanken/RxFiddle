@@ -1,4 +1,4 @@
-import { ICallRecord } from "./callrecord";
+import { ICallStart } from "./callrecord";
 export declare type IEventType = "next" | "error" | "complete" | "subscribe" | "dispose";
 export interface IEvent {
     type: IEventType;
@@ -7,11 +7,12 @@ export interface IEvent {
 export declare class Event implements IEvent {
     type: IEventType;
     time: number;
-    static fromRecord(record: ICallRecord): IEvent | null;
+    static fromRecord(record: ICallStart): IEvent | null;
+    static fromJson(input: any): IEvent | null;
     constructor(type: IEventType, time: number);
 }
 export declare class Next<T> extends Event {
-    value: T;
+    value: string;
     constructor(time: number, value: T);
 }
 export declare class Error extends Event {

@@ -1,21 +1,21 @@
 "use strict";
-const instrumentation_1 = require("./collector/instrumentation");
-const logger_1 = require("./collector/logger");
-const visualizer_1 = require("./collector/visualizer");
+const visualization_1 = require("./visualization");
 const dom_1 = require("@cycle/dom");
 const rx_run_1 = require("@cycle/rx-run");
 const Immutable = require("immutable");
 const Rx = require("rx");
 const rxmarbles_1 = require("rxmarbles");
+const jsonCollector_1 = require("./collector/jsonCollector");
 const Observable = Rx.Observable;
-let collector = new logger_1.default();
-let instrumentation = new instrumentation_1.default(instrumentation_1.defaultSubjects, collector);
-instrumentation.setup();
-let vis = new visualizer_1.Visualizer(instrumentation.logger, document.querySelector("app"), document.getElementById("controls"));
+window.Rx = Rx;
+let collector = new jsonCollector_1.default("F_newstyle.json");
+// let collector = new Collector()
+// let instrumentation = new Instrumentation(defaultSubjects, collector)
+// instrumentation.setup()
+let vis = new visualization_1.default(new visualization_1.Grapher(collector), document.querySelector("app"), document.getElementById("controls"));
 vis.step();
 window.collector = collector;
 window.visualizer = vis;
-window.Rx = Rx;
 //      /\    
 //     /  \   
 //    / /\ \  
@@ -103,9 +103,10 @@ document.getElementById("c").onclick = run.bind(null, c);
 let trace = document.getElementById("trace");
 let ids = document.getElementById("showIds");
 trace.addEventListener("click", () => {
-    instrumentation.stackTraces = trace.checked;
+    // instrumentation.stackTraces = trace.checked
 });
 ids.addEventListener("click", () => {
-    vis.showIds = ids.checked;
+    // vis.showIds = ids.checked
 });
+c();
 //# sourceMappingURL=main.js.map

@@ -1,4 +1,7 @@
 import "../utils";
-import { Direction } from "./index";
+import { Direction, ExternalSort } from "./index";
 import { Graph } from "graphlib";
-export declare function transpose(ranks: string[][], g: Graph, direction: Direction): string[][];
+export declare let debug: {
+    on: boolean;
+};
+export declare function transpose(ranks: string[][], g: Graph, direction: Direction, externalSort?: ExternalSort): string[][];

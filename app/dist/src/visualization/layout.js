@@ -5,7 +5,7 @@ const ordering_1 = require("../layout/ordering");
 const priority_1 = require("../layout/priority");
 require("../object/extensions");
 require("../utils");
-function layout(graph) {
+function layout(graph, focusNodes = []) {
     let ranked = normalize_1.normalize(graphutils_1.rankFromTopGraph(graph), v => ({ rank: v.rank }));
     let byRank = [];
     ranked.nodes().forEach((n) => {
@@ -13,9 +13,10 @@ function layout(graph) {
         byRank[rank] = (byRank[rank] || []).concat([n]);
     });
     let initialOrd = Object.values(byRank);
+    // TODO verify neccessity of this step
     let rankedAndEdgeFixed = ranked.flatMap((id, label) => [{ id, label }], (id, label) => [{ id: ranked.node(id.v).rank < ranked.node(id.w).rank ? id : { v: id.w, w: id.v }, label }]);
-    let ord = ordering_1.ordering(initialOrd, rankedAndEdgeFixed);
-    let layout = priority_1.priorityLayout(ord, ranked);
+    let ord = ordering_1.ordering(initialOrd, rankedAndEdgeFixed, ordering_1.fixingSort(focusNodes));
+    let layout = priority_1.priorityLayout(ord, ranked, focusNodes);
     let byId = graphutils_1.indexedBy(n => n.id, layout);
     function fullEdge(v, w, edgeLookup, lookup) {
         let e = edgeLookup(v, w);
@@ -38,7 +39,7 @@ function layout(graph) {
     return [
         {
             edges: edges,
-            nodes: layout,
+            nodes: layout.filter(node => node.id.indexOf("dummy") === -1),
         },
     ];
 }

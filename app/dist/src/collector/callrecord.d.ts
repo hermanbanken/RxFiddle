@@ -1,6 +1,7 @@
 import { StackFrame } from "../utils";
 import { Visualizer } from "./visualizer";
-export interface ICallRecord {
+export declare type ICallRecord = ICallStart & ICallEnd;
+export interface ICallStart {
     id: number | string | null;
     subject: any;
     subjectName: string;
@@ -8,9 +9,11 @@ export interface ICallRecord {
     arguments: IArguments;
     stack?: StackFrame | string;
     time: number;
-    returned: any | null;
-    parent?: ICallRecord;
-    childs: ICallRecord[];
+    parent?: ICallStart;
+    childs: (ICallRecord | ICallStart)[];
     visualizer?: Visualizer;
 }
-export declare function callRecordType(record: ICallRecord): "setup" | "subscribe" | "event";
+export interface ICallEnd {
+    returned: any | null;
+}
+export declare function callRecordType(record: ICallStart): "setup" | "subscribe" | "event";
