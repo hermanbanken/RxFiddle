@@ -363,11 +363,12 @@ class StructureGraph {
         cx: mu + mu * item.x,
         cy: mu + mu * item.y,
         fill: colorIndex(parseInt(item.id, 10)),
+        id: `circle-${item.id}`,
         r: 5,
       },
       on: {
         click: (e: any) => console.log(item.id, this.visualizer.collector.data[parseInt(item.id, 10)]),
-      }
+      },
     })))
 
     // commented 2017-01-13 friday 9:50 

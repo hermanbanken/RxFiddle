@@ -83,7 +83,6 @@ export default class VisualizationLayoutTest {
       { id: "50", x: 2, y: 1 },
       { id: "2", x: 3, y: 1 },
       { id: "7", x: 1.25, y: 2 },
-      { id: "dummy-2-8(2)", x: 2.25, y: 2 },
       { id: "8", x: 2.25, y: 3 },
     ]
 

@@ -59,7 +59,7 @@ export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes: string
   return [
     {
       edges: edges as { points: [{ x: number, y: number }], v: string, w: string }[],
-      nodes: layout,
+      nodes: layout.filter(node => node.id.indexOf("dummy") === -1),
     },
   ]
 }

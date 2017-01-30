@@ -15,8 +15,8 @@ export default class OrderingSpec {
 
   @test
   public "fixing sort"() {
-    expect(fixingSort(["1"])("0", "1")).to.eq(-1)
-    expect(fixingSort(["0"])("0", "1")).to.eq(1)
+    expect(fixingSort(["1"])("0", "1")).to.eq(1)
+    expect(fixingSort(["0"])("0", "1")).to.eq(-1)
     expect(fixingSort(["1"])("2", "3")).to.eq(0)
   }
 

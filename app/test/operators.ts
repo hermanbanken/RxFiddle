@@ -165,7 +165,7 @@ export class OperatorTest extends InstrumentationTest {
     console.timeEnd("complex")
   }
 
-  @test
+  // @test
   public "nested-call operators"() {
     // Rx.Observable.of(1, 2, 3)
     //   .share()

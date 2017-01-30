@@ -178,3 +178,41 @@ button:hover {
 bar {
   background: #0F6FC8;
 }
+
+g.circle text, g.circle rect {
+  display: none;
+  opacity: 0;
+  transition: opacity 1s;
+}
+
+g.circle:hover text, g.circle:hover rect {
+  display: block;
+  opacity: 1;
+}
+
+.graph-label {
+  position: absolute;
+  min-width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+.graph-label span {
+  display: none;
+  border-radius: 4px;
+  background: rgba(0,0,0,.75);
+  color: white;
+  padding: 2px;
+  margin-left: 20px;
+  margin-top: 0;
+  width: auto;
+  white-space: nowrap;
+}
+
+.graph-label:hover span {
+  display: block;
+}

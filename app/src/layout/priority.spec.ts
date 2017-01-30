@@ -1,3 +1,4 @@
+import deepCover from "../../test/deepCover"
 import { priorityLayout } from "./priority"
 import { assert, expect, use as chaiUse } from "chai"
 import { Graph } from "graphlib"
@@ -28,7 +29,8 @@ export default class PriorityLayoutSpec {
     ])
 
     let res = priorityLayout(ranks, g)
-    expect(res).to.deep.eq([
+
+    deepCover(res, [
       { id: "c", x: 0, y: 0 },
       { id: "d", x: 1, y: 0 },
       { id: "a", x: 0, y: 1 },

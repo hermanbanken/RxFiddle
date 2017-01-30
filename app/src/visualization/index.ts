@@ -19,13 +19,13 @@ export interface DataSource {
 }
 
 export type ViewState = {
-  focusNodes: number[]
-  openGroups: number[]
+  focusNodes: string[]
+  openGroups: string[]
   openGroupsAll: boolean
 }
 
 const emptyViewState: ViewState = {
-  focusNodes: [5, 39, 2],
+  focusNodes: ["5", "39", "2"],
   openGroups: [],
   openGroupsAll: true,
 }
@@ -40,14 +40,13 @@ export type GraphEdge = {
 
 export class Grapher {
 
-  public viewState: Rx.Observable<ViewState>
   public graph: Rx.Observable<TypedGraph<GraphNode, GraphEdge>>
 
-  constructor(collector: DataSource, viewState: Rx.Observable<ViewState> = Rx.Observable.empty<ViewState>()) {
-    this.viewState = viewState.startWith(emptyViewState)
+  constructor(collector: DataSource) {
+    // this.viewState = viewState.startWith(emptyViewState)
     this.graph = collector.dataObs
       .scan<TypedGraph<any, any>>(this.next, new TypedGraph<GraphNode, GraphEdge>())
-      .combineLatest(this.viewState, this.filter)
+    // .combineLatest(this.viewState, this.filter)
   }
 
   private next(graph: TypedGraph<GraphNode, GraphEdge>, event: Message) {
@@ -76,22 +75,22 @@ export class Grapher {
 
     return graph
   }
-
-  private filter(graph: TypedGraph<GraphNode, GraphEdge>, viewState: ViewState) {
-    return graph.filterNodes((id, node: GraphNode) => {
-      let groups = node.labels.flatMap(l => l.groups || [])
-      return viewState.openGroupsAll ||
-        !groups ||
-        groups.length === 0 ||
-        (groups.slice(-1).find(g => viewState.openGroups.indexOf(g) >= 0) && true)
-    })
-  }
 }
 
 export default class Visualizer {
 
+  // TODO workaround for Rx.Subject's
   public focusNodes = new Rx.Subject<string[]>()
+  public openGroups = new Rx.Subject<string[]>()
+
   public DOM: Rx.Observable<VNode>
+  public get viewState(): Rx.Observable<ViewState> {
+    return this.focusNodes.startWith([]).combineLatest(this.openGroups.startWith([]), (fn, og) => ({
+      focusNodes: fn,
+      openGroups: og,
+      openGroupsAll: true,
+    }))
+  }
 
   private clicks: Rx.Observable<string>
   private grapher: Grapher
@@ -101,15 +100,15 @@ export default class Visualizer {
     this.grapher = grapher
     this.app = dom
 
-    // TODO workaround for Rx.Subject
-    this.focusNodes = new Rx.Subject<string[]>()
-    // let fn = this.grapher.viewState.map(vs => vs.focusNodes.map(n => `${n}`))
-
     let inp = grapher.graph
       .debounce(10)
-      .combineLatest(this.focusNodes, (g, f) => {
-        console.log("Rendering with", g, f)
-        return ({ focusNodes: f, layout: layoutf(g, f) })
+      .combineLatest(this.viewState, (graph, state) => {
+        let filtered = this.filter(graph, state)
+        return ({
+          focusNodes: state.focusNodes,
+          graph: filtered,
+          layout: layoutf(filtered, state.focusNodes),
+        })
       })
     let { svg, clicks } = graph$(inp)
 
@@ -138,7 +137,6 @@ export default class Visualizer {
 
   public run() {
     this.DOM
-      .do(v => console.log("render output", (window as any).v = v))
       .subscribe(d => this.app = patch(this.app, d))
     this.clicks
       .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
@@ -155,13 +153,23 @@ export default class Visualizer {
     this.run()
   }
 
+  private filter(graph: TypedGraph<GraphNode, GraphEdge>, viewState: ViewState): TypedGraph<GraphNode, GraphEdge> {
+    return graph.filterNodes((id, node: GraphNode) => {
+      let groups = node.labels.flatMap(l => l.groups || [])
+      return viewState.openGroupsAll ||
+        !groups ||
+        groups.length === 0 ||
+        (groups.slice(-1).find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
+    })
+  }
+
 }
 
-type In = Rx.Observable<({ layout: Layout, focusNodes: string[] })>
+type In = Rx.Observable<({ layout: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, GraphEdge> })>
 type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string> }
 function graph$(inp: In): Out {
   let result = inp.map(data => {
-    return graph(data.layout, data.focusNodes)
+    return graph(data.layout, data.focusNodes, data.graph)
   }).publish().refCount()
 
   return {
@@ -175,54 +183,141 @@ type Layout = {
   nodes: { id: string, x: number, y: number }[],
 }[]
 
-function graph(l: Layout, focusNodes: string[]): { svg: VNode, clicks: Rx.Observable<string> } {
-  console.log("Rendering graph", focusNodes)
-  let u = 100
-  let mu = u / 2
+const u = 100
+const mu = u / 2
 
-  let elements = l.flatMap((level, levelIndex) => {
-    let edges = level.edges.map(({ v, w, points }) => {
-      let path = points.map(({x, y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
-      return h("path", {
-        attrs: {
-          d: `M${path}`,
-          fill: "transparent",
-          stroke: levelIndex === 0 ? "rgba(0,0,0,0.1)" : "gray",
-          // "stroke-dasharray": 5,
-          "stroke-width": levelIndex === 0 ? 10 : 2,
-        },
-        on: { mouseover: () => console.log(/*graph.edge(v, w)*/) },
-      })
+function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, GraphEdge>): {
+  svg: VNode, clicks: Rx.Observable<string>
+} {
+  console.log("Layout", l)
+
+  function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
+    let { v, w, points } = edge
+    let labels = graph.edge(v, w).labels
+    console.log(v, w, labels)
+
+    let path = points.map(({x, y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
+    return h("path", {
+      attrs: {
+        d: `M${path}`,
+        fill: "transparent",
+        id: `${v}/${w}`,
+        stroke: "rgba(0,0,0,0.1)",
+        "stroke-width": 10,
+      },
+      key: `${v}/${w}`,
+      on: { mouseover: () => console.log(/*graph.edge(v, w)*/) },
+      style: {
+        transition: "d 1s",
+      },
     })
-    return edges
-  }).concat(l[0].nodes.map(item => h("circle", {
-    attrs: {
-      cx: mu + mu * item.x,
-      cy: mu + mu * item.y,
-      fill: focusNodes.indexOf(item.id) >= 0 ? "black" : colorIndex(parseInt(item.id, 10)),
-      r: 5,
-    },
-    on: {
-      click: (e: any) => clicks.onNext(item.id),
-    },
-  })))
+  }
+
+  function circle(item: { id: string, x: number, y: number }): { svg: VNode[], html: VNode[] } {
+    let node = graph.node(item.id)
+    let labels = node.labels
+    console.log(item.id, labels)
+    let methods = labels.map(nl => nl.label)
+      .filter((label: any) => typeof label.kind !== "undefined" && label.kind === "observable")
+
+    let text = methods.slice(-1).map((l: any) => `${l.method}(${l.args})`)[0] || node.name || item.id
+
+    let svg = h("circle", {
+      attrs: {
+        cx: mu + mu * item.x,
+        cy: mu + mu * item.y,
+        fill: focusNodes.indexOf(item.id) >= 0 ? "black" : colorIndex(parseInt(item.id, 10)),
+        id: `circle-${item.id}`,
+        r: 5,
+      },
+      key: `circle-${item.id}`,
+      on: { click: (e: any) => clicks.onNext(item.id) },
+      style: { transition: "all 1s" },
+    })
+
+    let html = h("div", {
+      attrs: { class: "graph-label" },
+      key: `overlay-${item.id}`,
+      on: { click: (e: any) => clicks.onNext(item.id) },
+      style: {
+        left: `${mu + mu * item.x}px`,
+        top: `${mu + mu * item.y}px`,
+        transition: "all 1s",
+      },
+    }, [h("span", text)])
+    // [
+    //   h("rect", {
+    //     attrs: {
+    //       fill: "rgba(0,0,0,.75)",
+    //       height: 20,
+    //       id: `rect-${item.id}`,
+    //       rx: 4,
+    //       ry: 4,
+    //       width: 30,
+    //       x: mu + mu * item.x + 8,
+    //       y: mu + mu * item.y - 10,
+    //     },
+    //     key: `rect-${item.id}`,
+    //     style: { transition: "all 1s" },
+    //   }),
+    //   h("text", {
+    //     attrs: {
+    //       fill: "white",
+    //       id: `text-${item.id}`,
+    //       x: mu + mu * item.x + 10,
+    //       y: mu + mu * item.y + 5,
+    //     },
+    //     key: `text-${item.id}`,
+    //     style: { transition: "all 1s" },
+    //   }, text),
+    // ])
+
+    return { html: [html], svg: [svg] }
+  }
+
+  let ns = l[0].nodes.map(circle)
+
+  let elements = l
+    .flatMap((level, levelIndex) => level.edges.map(edge))
+    .concat(ns.flatMap(n => n.svg))
 
   let xmax = l
     .flatMap(level => level.nodes)
     .reduce((p: number, n: { x: number }) => Math.max(p, n.x), 0) as number
+  let ymax = l
+    .flatMap(level => level.nodes)
+    .reduce((p: number, n: { y: number }) => Math.max(p, n.y), 0) as number
 
   let clicks = new Rx.Subject<string>()
+
   let svg = h("svg", {
     attrs: {
       id: "structure",
-      style: `width: ${xmax * u}px; height: ${u * (0.5 + elements.length)}px`,
       version: "1.1",
       xmlns: "http://www.w3.org/2000/svg",
     },
+    style: {
+      height: (ymax + 2) * mu,
+      left: 0,
+      position: "absolute",
+      top: 0,
+      width: (xmax + 2) * mu,
+    },
   }, elements)
 
+  let mask = h("div", {
+    attrs: {
+      id: "structure-mask",
+    },
+    style: {
+      height: (ymax + 2) * mu,
+      position: "relative",
+      width: (xmax + 2) * mu,
+    },
+  }, [svg].concat(ns.flatMap(n => n.html)))
+
   return {
-    svg,
+    svg: mask,
     clicks,
   }
 }

@@ -1,7 +1,8 @@
 import { Direction, edges, foreachTuple } from "./index"
 import { Graph } from "graphlib"
 
-export function priorityLayout(ranks: string[][], g: Graph, focusNodes: string[] = []): { y: number, x: number, id: string }[] {
+export type Layout = { y: number, x: number, id: string }[]
+export function priorityLayout(ranks: string[][], g: Graph, focusNodes: string[] = []): Layout {
 
   let nodes = ranks.map((row, y) => row.map((n, x) => ({
     y,
