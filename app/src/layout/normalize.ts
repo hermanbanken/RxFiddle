@@ -19,7 +19,14 @@ export function normalize<V extends Ranked, E>(
   // Without long edges
   let normalized = g.flatMap<V, DummyEdge<E>>((id, label) => [{ id, label }], (e, label: E) => {
     if (e.v === e.w || rank(e.v) === rank(e.w)) {
+      // TODO prepare backlinks to be put back again in denormalize
       return []
+    }
+
+    // Reverse
+    if (rank(e.v) > rank(e.w)) {
+      // TODO make sure original is reversed again
+      e = { v: e.w, w: e.v }
     }
 
     if (rank(e.v) + 1 < rank(e.w)) {

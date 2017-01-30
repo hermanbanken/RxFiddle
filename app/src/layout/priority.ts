@@ -1,7 +1,7 @@
 import { Direction, edges, foreachTuple } from "./index"
 import { Graph } from "graphlib"
 
-export function priorityLayout(ranks: string[][], g: Graph): { y: number, x: number, id: string }[] {
+export function priorityLayout(ranks: string[][], g: Graph, focusNodes: string[] = []): { y: number, x: number, id: string }[] {
 
   let nodes = ranks.map((row, y) => row.map((n, x) => ({
     y,
@@ -16,17 +16,22 @@ export function priorityLayout(ranks: string[][], g: Graph): { y: number, x: num
     let direction: Direction = i % 2 === 0 ? "down" : "up"
     foreachTuple(direction, nodes, (row, ref) => {
       row.forEach(item => {
-        item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER : priority(
-          g,
-          direction,
-          item.id
-        )
-        item.barycenter = barycenter(
-          g,
-          direction,
-          item.id,
-          linked => head(ref.filter(r => r.id === linked).map(r => r.x))
-        )
+        if (focusNodes.indexOf(item.id) >= 0) {
+          item.priority = Number.MAX_SAFE_INTEGER
+          item.barycenter = 0
+        } else {
+          item.priority = item.isDummy ? Number.MAX_SAFE_INTEGER / 2 : priority(
+            g,
+            direction,
+            item.id
+          )
+          item.barycenter = barycenter(
+            g,
+            direction,
+            item.id,
+            linked => head(ref.filter(r => r.id === linked).map(r => r.x))
+          )
+        }
       })
       priorityLayoutAlign(row)
       return row

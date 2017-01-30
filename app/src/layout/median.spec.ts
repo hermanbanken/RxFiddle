@@ -1,4 +1,5 @@
 import { median, wmedian } from "./median"
+import { fixingSort } from "./ordering"
 import { expect } from "chai"
 import { Graph } from "graphlib"
 import { suite, test } from "mocha-typescript"
@@ -141,6 +142,37 @@ export default class MedianSpec {
 
     wmedian(i, g, "down")
     wmedian(i, g, "up")
+    expect(i).to.deep.eq(e)
+  }
+
+  @test
+  public "test 7 external sort"() {
+    ///   -----d-e-f-g-h--
+    ///           / / /
+    ///          ////
+    ///         //   e d
+    ///        /     | |
+    ///   -----a-----b-c--
+
+    let g = asGraph([
+      { v: "f", w: "a" },
+      { v: "g", w: "a" },
+      { v: "h", w: "a" },
+      { v: "e", w: "b" },
+      { v: "d", w: "c" },
+    ])
+    let i = [["d", "e", "f", "g", "h"], ["a", "b", "c"]]
+
+    ///   ---f-g-h---d-e--
+    ///      | | |   | |
+    ///      | | |   | |
+    ///      | |/    | |
+    ///      | /     | |
+    ///   ---a-------c-b--
+    let e = [["f", "g", "h", "d", "e"], ["a", "c", "b"]]
+
+    wmedian(i, g, "down", fixingSort(["f", "a"]))
+    wmedian(i, g, "up", fixingSort(["f", "a"]))
     expect(i).to.deep.eq(e)
   }
 

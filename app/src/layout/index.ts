@@ -33,3 +33,5 @@ export function edges(g: Graph, direction: Direction, nodes: string[]): Edge[] {
       g.outEdges(node)
   })
 }
+
+export type ExternalSort = (a: string, b: string) => number

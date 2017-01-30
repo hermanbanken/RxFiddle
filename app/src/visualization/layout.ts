@@ -1,12 +1,12 @@
 import { indexedBy, rankFromTopGraph } from "../collector/graphutils"
 import TypedGraph from "../collector/typedgraph"
 import { normalize } from "../layout/normalize"
-import { ordering } from "../layout/ordering"
+import { ordering, fixingSort } from "../layout/ordering"
 import { priorityLayout } from "../layout/priority"
 import "../object/extensions"
 import "../utils"
 
-export default function layout<V, E>(graph: TypedGraph<V, E>): {
+export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes: string[] = []): {
   edges: { points: [{ x: number, y: number }], v: string, w: string }[],
   nodes: { id: string, x: number, y: number }[],
 }[] {
@@ -16,16 +16,18 @@ export default function layout<V, E>(graph: TypedGraph<V, E>): {
   ranked.nodes().forEach((n: string) => {
     let rank = ranked.node(n).rank
     byRank[rank] = (byRank[rank] || []).concat([n])
-  });
+  })
 
   let initialOrd = Object.values(byRank)
+
+  // TODO verify neccessity of this step
   let rankedAndEdgeFixed = ranked.flatMap(
     (id, label) => [{ id, label }],
     (id, label) => [{ id: ranked.node(id.v).rank < ranked.node(id.w).rank ? id : { v: id.w, w: id.v }, label }]
   )
 
-  let ord = ordering(initialOrd, rankedAndEdgeFixed)
-  let layout = priorityLayout(ord, ranked)
+  let ord = ordering(initialOrd, rankedAndEdgeFixed, fixingSort(focusNodes))
+  let layout = priorityLayout(ord, ranked, focusNodes)
   let byId = indexedBy(n => n.id, layout)
 
   type Expanded = { original: any, index: number, nodes: string[] }

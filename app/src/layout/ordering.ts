@@ -1,4 +1,5 @@
 import { order_crossings } from "./crossings"
+import { ExternalSort } from "./index"
 import { wmedian } from "./median"
 import { transpose } from "./transpose"
 import { Graph } from "graphlib"
@@ -15,7 +16,7 @@ import { Graph } from "graphlib"
  * 7. return best
  *
  */
-export function ordering(order: string[][], g: Graph): string[][] {
+export function ordering(order: string[][], g: Graph, externalSort?: ExternalSort): string[][] {
 
   let best: string[][]
   let bestCrossings: number = Number.MAX_SAFE_INTEGER
@@ -48,16 +49,27 @@ export function ordering(order: string[][], g: Graph): string[][] {
     return true
   }
 
-  update(order, 0)
+  if (!externalSort) { update(order, 0) }
 
   for (let i = 0; i < 40; i++) {
-    wmedian(order, g, i % 2 === 0 ? "up" : "down")
-    transpose(order, g, "down")
-    transpose(order, g, "up")
+    wmedian(order, g, i % 2 === 0 ? "up" : "down", externalSort)
+    transpose(order, g, "down", externalSort)
+    transpose(order, g, "up", externalSort)
     if (!update(order, i + 1)) {
       break
     }
   }
 
   return best
+}
+
+export function fixingSort(fixed: string[]) {
+  // if a should come first: -1
+  // if b should come first: 1
+  return fixed.length ? (a: string, b: string) => {
+    let f = fixed.indexOf(a) >= 0
+    let s = fixed.indexOf(b) >= 0
+    if (!f && !s || f && s) { return 0 }
+    return f && !s ? -1 : 1
+  } : undefined
 }

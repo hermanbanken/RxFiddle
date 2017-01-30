@@ -1,12 +1,16 @@
 import "../utils"
 import { crossings } from "./crossings"
-import { Direction, edges, flip, foreachTuple } from "./index"
+import { Direction, ExternalSort, edges, flip, foreachTuple } from "./index"
 import { Graph } from "graphlib"
+
+export let debug = {
+  on: false,
+}
 
 /*
  * @see http://www.graphviz.org/Documentation/TSE93.pdf page 16
  */
-export function transpose(ranks: string[][], g: Graph, direction: Direction): string[][] {
+export function transpose(ranks: string[][], g: Graph, direction: Direction, externalSort?: ExternalSort): string[][] {
   let improved = true
   while (improved) {
     improved = false
@@ -18,14 +22,21 @@ export function transpose(ranks: string[][], g: Graph, direction: Direction): st
         if (direction === "down") {
           es = flip(es)
         }
-        if (crossings([v, w], ref, es) > crossings([w, v], ref, es)) {
+
+        let xsort = typeof externalSort === "undefined" ? 0 : externalSort(v, w)
+        if (xsort > 0 || xsort === 0 && crossings([v, w], ref, es) > crossings([w, v], ref, es)) {
           improved = true
-          let tmp = rank[i]
-          rank[i] = rank[j]
-          rank[j] = tmp
+          swap(rank, i, j)
         }
       })
     })
   }
+
   return ranks
+}
+
+function swap<T>(list: T[], i: number, j: number) {
+  let tmp = list[i]
+  list[i] = list[j]
+  list[j] = tmp
 }

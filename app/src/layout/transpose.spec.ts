@@ -1,4 +1,5 @@
-import { transpose } from "./transpose"
+import { fixingSort } from "./ordering"
+import { transpose, debug } from "./transpose"
 import { expect } from "chai"
 import { Graph } from "graphlib"
 import { suite, test } from "mocha-typescript"
@@ -95,6 +96,37 @@ export default class TransposeSpec {
 
     i = transpose(i, g, "down")
     i = transpose(i, g, "up")
+    expect(i).to.deep.eq(e)
+  }
+
+  @test
+  public "test 7 external sort"() {
+    ///   -----d-e-f-g-h--
+    ///           / / /
+    ///          ////
+    ///         //   e d
+    ///        /     | |
+    ///   -----a-----b-c--
+
+    let g = asGraph([
+      { v: "f", w: "a" },
+      { v: "g", w: "a" },
+      { v: "h", w: "a" },
+      { v: "e", w: "b" },
+      { v: "d", w: "c" },
+    ])
+    let i = [["d", "e", "f", "g", "h"], ["a", "b", "c"]]
+
+    ///   -e-d-f-g-h--
+    ///    | | | | |
+    ///    | | | | |
+    ///    | | | |/ 
+    ///    | | | /   
+    ///   -b-c-a------
+    let e = [["e", "d", "f", "g", "h"], ["b", "c", "a"]]
+
+    i = transpose(i, g, "down", fixingSort(["e", "b"]))
+    i = transpose(i, g, "up", fixingSort(["e", "b"]))
     expect(i).to.deep.eq(e)
   }
 

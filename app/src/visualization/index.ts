@@ -1,37 +1,18 @@
-import StructureGraph from "./structureGraph"
+import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger"
+import TypedGraph from "../collector/typedgraph"
 import { generateColors } from "../color"
 import "../object/extensions"
 import "../utils"
-import { StackFrame } from "../utils"
-import { ICallRecord, ICallStart } from "../collector/callrecord"
-import { RxFiddleEdge } from "../collector/edge"
-import { IEvent } from "../collector/event"
-import {
-  LayouterOutput, Ranked,
-  indexedBy, rankLongestPath, rankFromTopGraph, structureLayout,
-  toDot,
-} from "../collector/graphutils"
-import { AddObservable, AddSubscription, ICollector } from "../collector/logger"
-import { RxFiddleNode } from "../collector/node"
-import TypedGraph from "../collector/typedgraph"
-import { Graph, alg } from "graphlib"
-import { VNode } from "snabbdom/vnode"
-import * as Rx from "rx"
-import { normalize, denormalize, DummyEdge } from "../layout/normalize"
-import { ordering } from "../layout/ordering"
-import { priorityLayout } from "../layout/priority"
 import layoutf from "./layout"
+import * as Rx from "rx"
+import { h, init as snabbdom_init } from "snabbdom"
+import attrs_module from "snabbdom/modules/attributes"
+import class_module from "snabbdom/modules/class"
+import event_module from "snabbdom/modules/eventlisteners"
+import style_module from "snabbdom/modules/style"
+import { VNode } from "snabbdom/vnode"
 
-const snabbdom = require('snabbdom');
-const patch = snabbdom.init([ // Init patch function with chosen modules
-  require('snabbdom/modules/class').default, // makes it easy to toggle classes
-  require('snabbdom/modules/attributes').default, // for setting properties on DOM elements
-  require('snabbdom/modules/style').default, // handles styling on elements with support for animations
-  require('snabbdom/modules/eventlisteners').default, // attaches event listeners
-]);
-const h = require('snabbdom/h').default; // helper function for creating vnodes
-
-import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger"
+const patch = snabbdom_init([class_module, attrs_module, style_module, event_module])
 
 export interface DataSource {
   dataObs: Rx.Observable<Message>
@@ -44,7 +25,7 @@ export type ViewState = {
 }
 
 const emptyViewState: ViewState = {
-  focusNodes: [],
+  focusNodes: [5, 39, 2],
   openGroups: [],
   openGroupsAll: true,
 }
@@ -59,12 +40,14 @@ export type GraphEdge = {
 
 export class Grapher {
 
+  public viewState: Rx.Observable<ViewState>
   public graph: Rx.Observable<TypedGraph<GraphNode, GraphEdge>>
 
   constructor(collector: DataSource, viewState: Rx.Observable<ViewState> = Rx.Observable.empty<ViewState>()) {
+    this.viewState = viewState.startWith(emptyViewState)
     this.graph = collector.dataObs
       .scan<TypedGraph<any, any>>(this.next, new TypedGraph<GraphNode, GraphEdge>())
-      .combineLatest(viewState.startWith(emptyViewState), this.filter)
+      .combineLatest(this.viewState, this.filter)
   }
 
   private next(graph: TypedGraph<GraphNode, GraphEdge>, event: Message) {
@@ -107,42 +90,60 @@ export class Grapher {
 
 export default class Visualizer {
 
+  public focusNodes = new Rx.Subject<string[]>()
   public DOM: Rx.Observable<VNode>
 
+  private clicks: Rx.Observable<string>
   private grapher: Grapher
-  private app: HTMLElement
+  private app: HTMLElement | VNode
 
   constructor(grapher: Grapher, dom?: HTMLElement, controls?: HTMLElement) {
     this.grapher = grapher
     this.app = dom
 
-    this.DOM = grapher.graph.debounce(10).map(graph => {
-      let l = layoutf(graph)
-      console.log(graph.toDot(), l)
+    // TODO workaround for Rx.Subject
+    this.focusNodes = new Rx.Subject<string[]>()
+    // let fn = this.grapher.viewState.map(vs => vs.focusNodes.map(n => `${n}`))
 
-      // let render: VNode[] = []
-      // let marbles: VNode[] = []
-      // sg.renderMarbles(graph, this.choices)
-      // let app = h("app", [
-      //   h("master", [svg(l)].concat(marbles)),
-      //   h("detail", [
-      //     h("svg", {
-      //       attrs: {
-      //         id: "svg",
-      //         style: "width: 200px; height: 200px",
-      //         version: "1.1",
-      //         xmlns: "http://www.w3.org/2000/svg",
-      //       },
-      //     }, render.concat(defs())),
-      //   ]),
-      // ])
-      // return app
-      return svg(l)
-    })
+    let inp = grapher.graph
+      .debounce(10)
+      .combineLatest(this.focusNodes, (g, f) => {
+        console.log("Rendering with", g, f)
+        return ({ focusNodes: f, layout: layoutf(g, f) })
+      })
+    let { svg, clicks } = graph$(inp)
+
+    this.DOM = svg
+    this.clicks = clicks
+
+    // new StructureGraph().renderMarbles(graph, choices)
+    // let render: VNode[] = []
+    // let marbles: VNode[] = []
+    // sg.renderMarbles(graph, this.choices)
+    // let app = h("app", [
+    //   h("master", [svg(l)].concat(marbles)),
+    //   h("detail", [
+    //     h("svg", {
+    //       attrs: {
+    //         id: "svg",
+    //         style: "width: 200px; height: 200px",
+    //         version: "1.1",
+    //         xmlns: "http://www.w3.org/2000/svg",
+    //       },
+    //     }, render.concat(defs())),
+    //   ]),
+    // ])
+    // return app
   }
 
   public run() {
-    this.DOM.subscribe(d => patch(this.app, d))
+    this.DOM
+      .do(v => console.log("render output", (window as any).v = v))
+      .subscribe(d => this.app = patch(this.app, d))
+    this.clicks
+      .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
+      .startWith([])
+      .subscribe(this.focusNodes)
   }
 
   public attach(node: HTMLElement) {
@@ -151,18 +152,34 @@ export default class Visualizer {
   }
 
   public step() {
-    // window.requestAnimationFrame(() => this.step())
     this.run()
   }
 
 }
 
-function svg(l: {
+type In = Rx.Observable<({ layout: Layout, focusNodes: string[] })>
+type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string> }
+function graph$(inp: In): Out {
+  let result = inp.map(data => {
+    return graph(data.layout, data.focusNodes)
+  }).publish().refCount()
+
+  return {
+    clicks: result.flatMap(_ => _.clicks),
+    svg: result.map(_ => _.svg),
+  }
+}
+
+type Layout = {
   edges: { points: [{ x: number, y: number }], v: string, w: string }[],
   nodes: { id: string, x: number, y: number }[],
-}[]) {
+}[]
+
+function graph(l: Layout, focusNodes: string[]): { svg: VNode, clicks: Rx.Observable<string> } {
+  console.log("Rendering graph", focusNodes)
   let u = 100
   let mu = u / 2
+
   let elements = l.flatMap((level, levelIndex) => {
     let edges = level.edges.map(({ v, w, points }) => {
       let path = points.map(({x, y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
@@ -182,11 +199,11 @@ function svg(l: {
     attrs: {
       cx: mu + mu * item.x,
       cy: mu + mu * item.y,
-      fill: colorIndex(parseInt(item.id, 10)),
+      fill: focusNodes.indexOf(item.id) >= 0 ? "black" : colorIndex(parseInt(item.id, 10)),
       r: 5,
     },
     on: {
-      click: (e: any) => console.log(item.id),
+      click: (e: any) => clicks.onNext(item.id),
     },
   })))
 
@@ -194,8 +211,8 @@ function svg(l: {
     .flatMap(level => level.nodes)
     .reduce((p: number, n: { x: number }) => Math.max(p, n.x), 0) as number
 
-  console.log(elements)
-  return h("svg", {
+  let clicks = new Rx.Subject<string>()
+  let svg = h("svg", {
     attrs: {
       id: "structure",
       style: `width: ${xmax * u}px; height: ${u * (0.5 + elements.length)}px`,
@@ -203,6 +220,11 @@ function svg(l: {
       xmlns: "http://www.w3.org/2000/svg",
     },
   }, elements)
+
+  return {
+    svg,
+    clicks,
+  }
 }
 
 const colors = generateColors(40)

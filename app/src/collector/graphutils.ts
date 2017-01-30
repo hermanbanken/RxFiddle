@@ -115,6 +115,10 @@ export function rankLongestPath(g: Graph): { [id: string]: number } {
 }
 
 export function rankFromTop(g: Graph): { [id: string]: number } {
+  let sanitized = new Graph()
+  g.edges().filter(e => e.v !== e.w).forEach(e => sanitized.setEdge(e.v, e.w))
+  g.nodes().forEach(n => sanitized.setNode(n))
+
   let visited: { [id: string]: boolean } = {}
   let ranks: { [id: string]: number } = {}
 
@@ -124,7 +128,7 @@ export function rankFromTop(g: Graph): { [id: string]: number } {
     }
     visited[v] = true
 
-    let rank = _.max(_.map(g.inEdges(v), (e) => {
+    let rank = _.max(_.map(sanitized.inEdges(v), (e) => {
       return dfs(e.v) + (g.edge(e) && g.edge(e).minlen || 1)
     }))
 
@@ -135,7 +139,8 @@ export function rankFromTop(g: Graph): { [id: string]: number } {
     return (ranks[v] = rank)
   }
 
-  _.each(g.sinks(), dfs)
+  _.each(sanitized.sinks(), dfs)
+
   return ranks
 }
 
@@ -151,8 +156,13 @@ export function rankLongestPathGraph<V, E>(g: TypedGraph<V, E>): TypedGraph<V & 
 export function rankFromTopGraph<V, E>(g: TypedGraph<V, E>): TypedGraph<V & Ranked, E> {
   let ranked = (g as any) as TypedGraph<V & Ranked, E>
   let ranks = rankFromTop(g)
+  let allSet = true
   ranked.nodes().map(n => {
     ranked.node(n).rank = ranks[n]
+    if (typeof ranks[n] === "undefined") {
+      allSet = false
+      console.error("No rank for " + n, ranks)
+    }
   })
   return ranked
 }
