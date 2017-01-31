@@ -280,8 +280,8 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
   let ns = l[0].nodes.map(circle)
 
   let elements = l
-    .flatMap((level, levelIndex) => level.edges.map(edge))
-    .concat(ns.flatMap(n => n.svg))
+    .flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort)
+    .concat(ns.flatMap(n => n.svg).sort(vnodeSort))
 
   let xmax = l
     .flatMap(level => level.nodes)
@@ -366,3 +366,7 @@ const defs: () => VNode[] = () => [h("defs", [
     },
   }, [h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
 ])]
+
+function vnodeSort(vna: VNode, vnb: VNode): number {
+  return vna.key.toString().localeCompare(vnb.key.toString())
+}
