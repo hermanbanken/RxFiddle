@@ -105,9 +105,9 @@ export default class Visualizer {
       .combineLatest(this.viewState, (graph, state) => {
         let filtered = this.filter(graph, state)
         return ({
-          focusNodes: state.focusNodes,
           graph: filtered,
           layout: layoutf(filtered, state.focusNodes),
+          viewState: state,
         })
       })
     let { svg, clicks } = graph$(inp)
@@ -165,11 +165,11 @@ export default class Visualizer {
 
 }
 
-type In = Rx.Observable<({ layout: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, GraphEdge> })>
+type In = Rx.Observable<({ layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode, GraphEdge> })>
 type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string> }
 function graph$(inp: In): Out {
   let result = inp.map(data => {
-    return graph(data.layout, data.focusNodes, data.graph)
+    return graph(data.layout, data.viewState, data.graph)
   }).publish().refCount()
 
   return {
@@ -186,10 +186,32 @@ type Layout = {
 const u = 100
 const mu = u / 2
 
-function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, GraphEdge>): {
+function spath(ps: { x: number, y: number }[]): string {
+  return "M" + ps.map(({x, y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
+}
+
+function bpath(ps: { x: number, y: number }[]): string {
+  let last = ps[ps.length - 1]
+  return "M " + mapTuples(ps, (a, b) =>
+    `${mu + mu * a.x} ${mu + mu * a.y} C ${mu * (1 + a.x)} ${mu * (1.5 + a.y)}, ${mu + mu * b.x} ${mu * (0.5 + b.y)}, `
+  ).join("") + ` ${mu + mu * last.x} ${mu + mu * last.y}`
+}
+
+export function mapTuples<T, R>(list: T[], f: (a: T, b: T, anr: number, bnr: number) => R): R[] {
+  let result = []
+  for (let i = 1, ref = i - 1; i < list.length; i++ , ref++) {
+    result.push(f(list[ref], list[i], ref, i))
+  }
+  return result
+}
+
+function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode, GraphEdge>): {
   svg: VNode, clicks: Rx.Observable<string>
 } {
-  console.log("Layout", l)
+  console.log("Layout", layout)
+
+  // Collect clicks in Subject
+  let clicks = new Rx.Subject<string>()
 
   function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
     let { v, w, points } = edge
@@ -197,10 +219,9 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
 
     let isHigher = labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
 
-    let path = points.map(({x, y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
     return h("path", {
       attrs: {
-        d: `M${path}`,
+        d: bpath(points),
         fill: "transparent",
         id: `${v}/${w}`,
         stroke: isHigher ? "rgba(200,0,0,0.1)" : "rgba(0,0,0,0.1)",
@@ -220,9 +241,20 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
     let methods = labels.map(nl => nl.label)
       .filter((label: any) => typeof label.kind !== "undefined" && label.kind === "observable")
 
-    let text = methods.slice(-1).map((l: any) => `${l.method}(${l.args})`)[0] || node.name || item.id
+    let text = methods.map((l: any) => `${l.method}(${l.args})`).join(", ") || node.name || item.id
 
-    let svg = h("circle", {
+    let shade = h("circle", {
+      attrs: {
+        cx: mu + mu * item.x,
+        cy: mu + mu * item.y + 1,
+        fill: "rgba(0,0,0,.3)",
+        r: 5,
+      },
+      key: `circle-shade-${item.id}`,
+      style: { transition: "all 1s" },
+    })
+
+    let circ = h("circle", {
       attrs: {
         cx: mu + mu * item.x,
         cy: mu + mu * item.y,
@@ -230,12 +262,14 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
         id: `circle-${item.id}`,
         r: 5,
         stroke: "black",
-        "stroke-width": focusNodes.indexOf(item.id) >= 0 ? 1 : 0,
+        "stroke-width": viewState.focusNodes.indexOf(item.id) >= 0 ? 1 : 0,
       },
       key: `circle-${item.id}`,
-      on: { click: (e: any) => clicks.onNext(item.id) },
+      on: { click: (e: any) => clicks.onNext(item.id), mouseover: (e: any) => console.log(item.id, labels) },
       style: { transition: "all 1s" },
     })
+
+    let svg = [/*shade, */circ]
 
     let html = h("div", {
       attrs: { class: "graph-label" },
@@ -247,50 +281,23 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
         transition: "all 1s",
       },
     }, [h("span", text)])
-    // [
-    //   h("rect", {
-    //     attrs: {
-    //       fill: "rgba(0,0,0,.75)",
-    //       height: 20,
-    //       id: `rect-${item.id}`,
-    //       rx: 4,
-    //       ry: 4,
-    //       width: 30,
-    //       x: mu + mu * item.x + 8,
-    //       y: mu + mu * item.y - 10,
-    //     },
-    //     key: `rect-${item.id}`,
-    //     style: { transition: "all 1s" },
-    //   }),
-    //   h("text", {
-    //     attrs: {
-    //       fill: "white",
-    //       id: `text-${item.id}`,
-    //       x: mu + mu * item.x + 10,
-    //       y: mu + mu * item.y + 5,
-    //     },
-    //     key: `text-${item.id}`,
-    //     style: { transition: "all 1s" },
-    //   }, text),
-    // ])
 
-    return { html: [html], svg: [svg] }
+    return { html: [html], svg }
   }
 
-  let ns = l[0].nodes.map(circle)
+  let ns = layout[0].nodes.map(circle)
 
-  let elements = l
+  let elements = layout
     .flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort)
     .concat(ns.flatMap(n => n.svg).sort(vnodeSort))
 
-  let xmax = l
+  // Calculate SVG bounds
+  let xmax = layout
     .flatMap(level => level.nodes)
     .reduce((p: number, n: { x: number }) => Math.max(p, n.x), 0) as number
-  let ymax = l
+  let ymax = layout
     .flatMap(level => level.nodes)
     .reduce((p: number, n: { y: number }) => Math.max(p, n.y), 0) as number
-
-  let clicks = new Rx.Subject<string>()
 
   let svg = h("svg", {
     attrs: {
@@ -312,9 +319,9 @@ function graph(l: Layout, focusNodes: string[], graph: TypedGraph<GraphNode, Gra
       id: "structure-mask",
     },
     style: {
-      height: (ymax + 2) * mu,
+      height: `${(ymax + 2) * mu}px`,
       position: "relative",
-      width: (xmax + 2) * mu,
+      width: `${(xmax + 2) * mu}px`,
     },
   }, [svg].concat(ns.flatMap(n => n.html)))
 
