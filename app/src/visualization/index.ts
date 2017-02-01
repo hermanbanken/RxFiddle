@@ -1,9 +1,11 @@
+import { groupBy } from "../collector/graphutils"
 import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger"
 import TypedGraph from "../collector/typedgraph"
 import { generateColors } from "../color"
 import "../object/extensions"
 import "../utils"
 import layoutf from "./layout"
+import MorphModule, { Path } from "./morph"
 import * as Rx from "rx"
 import { h, init as snabbdom_init } from "snabbdom"
 import attrs_module from "snabbdom/modules/attributes"
@@ -12,7 +14,7 @@ import event_module from "snabbdom/modules/eventlisteners"
 import style_module from "snabbdom/modules/style"
 import { VNode } from "snabbdom/vnode"
 
-const patch = snabbdom_init([class_module, attrs_module, style_module, event_module])
+const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule])
 
 export interface DataSource {
   dataObs: Rx.Observable<Message>
@@ -88,11 +90,12 @@ export default class Visualizer {
     return this.focusNodes.startWith([]).combineLatest(this.openGroups.startWith([]), (fn, og) => ({
       focusNodes: fn,
       openGroups: og,
-      openGroupsAll: true,
+      openGroupsAll: false,
     }))
   }
 
   private clicks: Rx.Observable<string>
+  private groupClicks: Rx.Observable<string>
   private grapher: Grapher
   private app: HTMLElement | VNode
 
@@ -110,10 +113,11 @@ export default class Visualizer {
           viewState: state,
         })
       })
-    let { svg, clicks } = graph$(inp)
+    let { svg, clicks, groupClicks } = graph$(inp)
 
     this.DOM = svg
     this.clicks = clicks
+    this.groupClicks = groupClicks
 
     // new StructureGraph().renderMarbles(graph, choices)
     // let render: VNode[] = []
@@ -142,6 +146,10 @@ export default class Visualizer {
       .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
       .startWith([])
       .subscribe(this.focusNodes)
+    this.groupClicks
+      .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
+      .startWith([])
+      .subscribe(this.openGroups)
   }
 
   public attach(node: HTMLElement) {
@@ -155,18 +163,29 @@ export default class Visualizer {
 
   private filter(graph: TypedGraph<GraphNode, GraphEdge>, viewState: ViewState): TypedGraph<GraphNode, GraphEdge> {
     return graph.filterNodes((id, node: GraphNode) => {
-      let groups = node.labels.flatMap(l => l.groups || [])
-      return viewState.openGroupsAll ||
-        !groups ||
-        groups.length === 0 ||
-        (groups.slice(-1).find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
+      let annotations = node.labels
+        .filter(ann => (ann.label as any).kind === "observable")
+      if (annotations.length === 0) {
+        return true
+      }
+      return annotations
+        .some(ann => !ann.groups.length || ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0))
+      // let groups = node.labels.flatMap(l => l.groups && l.groups.slice(-1) || [])
+      // if (groups && groups.length > 0) {
+      //   console.log("groups", groups, "testing", groups.slice(-1)
+      //     .find(g => viewState.openGroups.indexOf(`${g}`) >= 0))
+      // }
+      // return viewState.openGroupsAll ||
+      //   !groups ||
+      //   groups.length === 0 ||
+      //   (groups.find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
     })
   }
 
 }
 
 type In = Rx.Observable<({ layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode, GraphEdge> })>
-type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string> }
+type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string>, groupClicks: Rx.Observable<string> }
 function graph$(inp: In): Out {
   let result = inp.map(data => {
     return graph(data.layout, data.viewState, data.graph)
@@ -174,6 +193,7 @@ function graph$(inp: In): Out {
 
   return {
     clicks: result.flatMap(_ => _.clicks),
+    groupClicks: result.flatMap(_ => _.groupClicks),
     svg: result.map(_ => _.svg),
   }
 }
@@ -206,12 +226,13 @@ export function mapTuples<T, R>(list: T[], f: (a: T, b: T, anr: number, bnr: num
 }
 
 function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode, GraphEdge>): {
-  svg: VNode, clicks: Rx.Observable<string>
+  svg: VNode, clicks: Rx.Observable<string>, groupClicks: Rx.Observable<string>,
 } {
   console.log("Layout", layout)
 
   // Collect clicks in Subject
   let clicks = new Rx.Subject<string>()
+  let groupClicks = new Rx.Subject<string>()
 
   function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
     let { v, w, points } = edge
@@ -265,7 +286,10 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
         "stroke-width": viewState.focusNodes.indexOf(item.id) >= 0 ? 1 : 0,
       },
       key: `circle-${item.id}`,
-      on: { click: (e: any) => clicks.onNext(item.id), mouseover: (e: any) => console.log(item.id, labels) },
+      on: {
+        click: (e: any) => clicks.onNext(item.id),
+        mouseover: (e: any) => console.log(item.id, labels),
+      },
       style: { transition: "all 1s" },
     })
 
@@ -274,7 +298,10 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
     let html = h("div", {
       attrs: { class: "graph-label" },
       key: `overlay-${item.id}`,
-      on: { click: (e: any) => clicks.onNext(item.id) },
+      on: {
+        click: (e: any) => clicks.onNext(item.id),
+        mouseover: (e: any) => console.log(item.id, labels),
+      },
       style: {
         left: `${mu + mu * item.x}px`,
         top: `${mu + mu * item.y}px`,
@@ -285,11 +312,33 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
     return { html: [html], svg }
   }
 
+  // groups
+  let grouped = groupBy(n =>
+    n.group,
+    layout[0].nodes
+      .flatMap(node => graph.node(node.id).labels
+        .flatMap(_ => _.groups)
+        .filter(_ => typeof _ === "number")
+        .map(group => ({ node, group }))
+      )
+  )
+  let groups = Object.keys(grouped).map(k => ({ key: k, group: grouped[k] }))
+  let gps = groups
+    .flatMap(({ group, key }, index) => group.map(_ => _.node).map(({ x, y}) => h("circle", {
+      attrs: {
+        cx: mu + mu * x,
+        cy: mu + mu * y,
+        fill: colorIndex(parseInt(key, 10), .3),
+        r: mu / 2,
+      },
+    })))
+
   let ns = layout[0].nodes.map(circle)
 
-  let elements = layout
+  let elements = gps.concat(layout
     .flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort)
     .concat(ns.flatMap(n => n.svg).sort(vnodeSort))
+  )
 
   // Calculate SVG bounds
   let xmax = layout
@@ -325,17 +374,27 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
     },
   }, [svg].concat(ns.flatMap(n => n.html)))
 
+  let controls = h("div", [
+    h("div", ["Groups: ", ...groups.flatMap(g => [h("span", {
+      on: { click: () => groupClicks.onNext(g.key) },
+    }, g.key), ", "])]),
+    h("div", ["Open groups: ", ...viewState.openGroups.flatMap(key => [h("span", key), ", "])]),
+  ])
+
+  let panel = h("div", [controls, mask])
+
   return {
-    svg: mask,
+    svg: panel,
     clicks,
+    groupClicks,
   }
 }
 
 const colors = generateColors(40)
-function colorIndex(i: number) {
+function colorIndex(i: number, alpha: number = 1) {
   if (typeof i === "undefined" || isNaN(i)) { return "transparent" }
   let [r, g, b] = colors[i % colors.length]
-  return `rgb(${r},${g},${b})`
+  return alpha === 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`
 }
 (window as any).colors = colors
 

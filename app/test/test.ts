@@ -5,6 +5,7 @@ import OrderingTest from "../src/layout/ordering.spec"
 import TransposeTest from "../src/layout/transpose.spec"
 import MedianTest from "../src/layout/median.spec"
 import PriorityLayoutSpec from "../src/layout/priority.spec"
+import MorphSpec from "../src/visualization/morph.spec"
 import VisualizationLayoutTest from "../src/visualization/layout.spec"
 
 new OperatorTest()
@@ -16,3 +17,4 @@ new CrossingTest()
 new TransposeTest()
 new MedianTest()
 new PriorityLayoutSpec()
+new MorphSpec()
