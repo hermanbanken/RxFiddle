@@ -248,6 +248,7 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
         stroke: isHigher ? "rgba(200,0,0,0.1)" : "rgba(0,0,0,0.1)",
         "stroke-width": 10,
       },
+      hook: { prepatch: MorphModule.prepare },
       key: `${v}/${w}`,
       on: { click: () => console.log(v, w, labels) },
       style: {
@@ -329,16 +330,22 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
         cx: mu + mu * x,
         cy: mu + mu * y,
         fill: colorIndex(parseInt(key, 10), .3),
+        id: `group-${key}`,
         r: mu / 2,
+      },
+      key: `group-${key}`,
+      style: {
+        transition: "all 1s",
       },
     })))
 
   let ns = layout[0].nodes.map(circle)
 
-  let elements = gps.concat(layout
-    .flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort)
-    .concat(ns.flatMap(n => n.svg).sort(vnodeSort))
-  )
+  let elements = [
+    h("g", gps),
+    h("g", layout.flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort)),
+    h("g", ns.flatMap(n => n.svg).sort(vnodeSort)),
+  ]
 
   // Calculate SVG bounds
   let xmax = layout

@@ -1,22 +1,45 @@
-import { VNode } from "snabbdom/vnode"
+import { VNode, VNodeData } from "snabbdom/vnode"
+declare module "snabbdom/vnode" {
+  interface VNodeData {
+    morph?: any
+    attrs?: any
+  }
+}
 
-export default {
-  update: (oldVNode: VNode, vnode: VNode) => {
+let morphModule = {
+  prepare: (oldVNode: VNode, vnode: VNode) => {
     if (typeof oldVNode.data.attrs === "object" && typeof vnode.data.attrs === "object") {
       if (typeof oldVNode.data.attrs.d === "string" && typeof vnode.data.attrs.d === "string") {
+        prepare(oldVNode, vnode)
+      }
+    }
+  },
+  update: (oldVNode: VNode, vnode: VNode) => {
+    if (typeof vnode.data.morph === "object") {
+      if (typeof vnode.data.morph["--final-d"] === "string") {
         keepEdgePointsEqual(oldVNode, vnode)
       }
     }
   },
 }
 
-/**
- * Ensures Edges keep the same amount of points.
- * Animation is only possible if the d attributes contains an equal amount of control points.
- */
-function keepEdgePointsEqual(oldVNode: VNode, vnode: VNode) {
-  let od = oldVNode.data.attrs.d as string
-  let nd = vnode.data.attrs.d as string
+export default morphModule
+
+let raf = (typeof window !== "undefined" && window.requestAnimationFrame) || setTimeout
+let nextFrame = (fn: FrameRequestCallback) => { raf(() => { raf(fn) }) }
+
+function prepare(oldVNode: VNode, vnode: VNode) {
+  let elm = oldVNode.elm as Element
+  if (!elm) {
+    console.warn("Prepatch without vnode element", oldVNode, vnode)
+    return
+  }
+  let oldAttrs = (oldVNode.data as VNodeData).attrs || {}
+  let attrs = (vnode.data as VNodeData).attrs || {}
+  let morph = (vnode.data as VNodeData).morph = {} as any
+
+  let od = oldAttrs.d as string
+  let nd = attrs.d as string
   if (od === nd) {
     return
   }
@@ -26,17 +49,58 @@ function keepEdgePointsEqual(oldVNode: VNode, vnode: VNode) {
     return
   }
 
+  let expand = Math.abs(ocs.length - ncs.length)
   if (ocs.length < ncs.length) {
-    oldVNode.data.attrs.d = Path.parse(od).expand(1).toString()
-    console.log("old vnode set attribute d", oldVNode.data.attrs.d);
-    (oldVNode.elm as Element).setAttribute("d", oldVNode.data.attrs.d)
-    assert(svgControls(oldVNode.data.attrs.d).join("") === ncs, "successfully patched")
+    // Expand
+    let path = Path.parse(od).expand(expand).toString()
+    morph["--current-d"] = od
+    morph["--immediate-d"] = path
+    morph["--final-d"] = attrs.d
+    attrs.d = path
   } else {
-    vnode.data.attrs.d = Path.parse(nd).expand(1).toString()
-    console.log("new vnode.data.attrs.d", vnode.data.attrs.d)
-    vnode.data.attrs.dbefore = nd
-    assert(svgControls(vnode.data.attrs.d).join("") === ocs, "successfully patched")
+    // Contract
+    let path = Path.parse(nd).expand(expand).toString()
+    morph["--current-d"] = od
+    morph["--nextframe-d"] = path
+    morph["--final-d"] = nd
+    attrs.d = od
   }
+}
+
+/**
+ * Ensures Edges keep the same amount of points.
+ * Animation is only possible if the d attributes contains an equal amount of control points.
+ */
+function keepEdgePointsEqual(oldVNode: VNode, vnode: VNode) {
+  let elm = vnode.elm as Element
+  let morph = (vnode.data as VNodeData).morph || {}
+  let attrs = (vnode.data as VNodeData).attrs || {}
+
+  let final = morph["--final-d"]
+  if (typeof morph["--immediate-d"] === "string") {
+    if ((elm as any).morphListener) {
+      elm.removeEventListener("transitionend", (elm as any).morphListener)
+    }
+    nextFrame(() => {
+      elm.setAttribute("d", final)
+      attrs.d = final
+    })
+  } else {
+    let listener = (ev: TransitionEvent) => {
+      if (ev.target !== elm) {
+        return
+      }
+      elm.setAttribute("d", final)
+      elm.removeEventListener("transitionend", listener)
+    }
+    elm.addEventListener("transitionend", listener)
+    elm.setAttribute("d", morph["--nextframe-d"]);
+    (elm as any).morphListener = listener
+    nextFrame(() => {
+      attrs.d = final
+    })
+  }
+  delete vnode.data.morph
 }
 
 export class Point {
@@ -79,7 +143,7 @@ export class Segment {
   public static parsePath(path: string): Segment[] {
     let ms = path.match(/[MLHVZCSQTA](([\s,]*([\d\.\_]+)+)*)/ig)
     let ss = ms.map(match => {
-      let ps = match.substr(1).split(/[\s,]+/).filter(p => p.length > 0).map(n => parseInt(n, 10))
+      let ps = match.substr(1).split(/[\s,]+/).filter(p => p.length > 0).map(n => parseFloat(n))
       return new Segment(match[0], ps)
     })
     return ss.reduce((p, n) => Segment.addOrConcat(p, n), [])
