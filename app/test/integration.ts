@@ -1,7 +1,5 @@
-import { Grapher, LayerCrossingEdge } from "../src/collector/grapher"
 import { toDot, rankLongestPathGraph, groupByUniq } from "../src/collector/graphutils"
 import { ordering } from "../src/layout/ordering"
-import layout from "../src/layout/layout"
 import { normalize } from "../src/layout/normalize"
 import { priorityLayout } from "../src/layout/priority"
 import { InstrumentationTest } from "./instrumentationTest"
@@ -34,8 +32,8 @@ export class IntegrationTest extends InstrumentationTest {
 
     merged.subscribe()
 
-    let grapher = new Grapher(this.rxcollector)
-    grapher.process()
+    // let grapher = new Grapher(this.rxcollector)
+    // grapher.process()
 
     // let leveledDot = toDot(
     //   grapher.leveledGraph.filterNodes((n, l) => l.level !== "code"),

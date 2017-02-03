@@ -44,68 +44,71 @@ export class Grapher {
 
   public graph: Rx.Observable<Graphs>
 
-  // TODO move to scan / memo
-  public subToObs: { [obs: number]: number } = {}
-  public subGraph = new TypedGraph<number, undefined>()
-
   constructor(collector: DataSource) {
     // this.viewState = viewState.startWith(emptyViewState)
     this.graph = collector.dataObs
-      .scan(this.next.bind(this), {
+      .scan(grapherNext, {
         main: new TypedGraph<GraphNode, GraphEdge>(),
         subscriptions: new TypedGraph<number, undefined>(),
       })
-      // .combineLatest(this.viewState, this.filter)
-
-      ; (window as any).subGraph = this.subGraph
+    // .combineLatest(this.viewState, this.filter)
   }
+}
 
-  private next(graphs: Graphs, event: Message) {
-    let { main, subscriptions } = graphs
-    switch (event.type) {
+function setEdge<V, E>(
+  v: string | number, w: string | number,
+  graph: TypedGraph<V, E>,
+  nodeCreate: () => V, value?: E
+) {
+  v = `${v}`
+  w = `${w}`
+  if (!graph.hasNode(v)) {
+    graph.setNode(v, nodeCreate())
+  }
+  if (!graph.hasNode(w)) {
+    graph.setNode(w, nodeCreate())
+  }
+  graph.setEdge(v, w, value)
+}
 
-      case "node": main.setNode(`${event.id}`, {
+export function grapherNext(graphs: Graphs, event: Message) {
+  let { main, subscriptions } = graphs
+  switch (event.type) {
+
+    case "node": main.setNode(`${event.id}`, {
+      labels: [],
+      name: event.node.name,
+    })
+      break
+
+    case "edge":
+      let e: GraphEdge = main.edge(`${event.edge.v}`, `${event.edge.w}`) || {
         labels: [],
-        name: event.node.name,
-      })
-        break
+      }
+      e.labels.push(event)
 
-      case "edge":
-        let e: GraphEdge = main.edge(`${event.edge.v}`, `${event.edge.w}`) || {
-          labels: [],
-        }
-        e.labels.push(event)
+      let edgeLabel = event.edge.label
+      if (edgeLabel.type === "subscription sink") {
+        setEdge(edgeLabel.v, edgeLabel.w, subscriptions, () => ({}))
+      }
 
-        let edgeLabel = event.edge.label
-        if (edgeLabel.type === "subscription sink") {
-          subscriptions.setEdge(edgeLabel.v.toString(10), edgeLabel.w.toString(10))
-          // if (graph.hasNode(edgeLabel.v.toString(10))) {
-          //   graph.setEdge(`${edgeLabel.v}`, `${event.edge.w}`, null)
-          // }
-          // if (graph.hasNode(edgeLabel.w.toString(10))) {
-          //   graph.setEdge(`${event.edge.v}`, `${edgeLabel.w}`, null)
-          // }
-        }
+      setEdge(event.edge.v, event.edge.w, main, () => ({}), e)
+      break
 
-        main.setEdge(`${event.edge.v}`, `${event.edge.w}`, e)
-        break
+    case "label":
+      main.node(`${event.node}`).labels.push(event)
+      let label = event.label
+      if (label.type === "subscription") {
+        subscriptions.setNode(label.id.toString(10), event.node)
+      }
+      break
 
-      case "label":
-        main.node(`${event.node}`).labels.push(event)
-        let label = event.label
-        if (label.type === "subscription") {
-          this.subToObs[label.id] = event.node
-          subscriptions.setNode(label.id.toString(10), event.node)
-        }
-        break
-
-      default: break
-    }
-
-    ; (window as any).graph = graph
-
-    return { main, subscriptions }
+    default: break
   }
+
+  ; (window as any).graph = graph
+
+  return { main, subscriptions }
 }
 
 export default class Visualizer {
@@ -174,7 +177,7 @@ export default class Visualizer {
   private filter(graphs: Graphs, viewState: ViewState): Graphs {
     return {
       main: graphs.main.filterNodes((id, node: GraphNode) => {
-        let annotations = node.labels
+        let annotations = (node ? node.labels || [] : [])
           .filter(ann => (ann.label as any).kind === "observable")
         if (annotations.length === 0) {
           return true
@@ -251,7 +254,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
 
   function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
     let { v, w, points } = edge
-    let labels = graph.edge(v, w).labels
+    let labels = (graph.edge(v, w) || { labels: [] }).labels
 
     let isHigher = labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
 
@@ -274,7 +277,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
 
   function circle(item: { id: string, x: number, y: number }): { svg: VNode[], html: VNode[] } {
     let node = graph.node(item.id)
-    let labels = node.labels
+    let labels = node.labels || []
     let methods = labels.map(nl => nl.label)
       .filter((label: any) => typeof label.kind !== "undefined" && label.kind === "observable")
 
@@ -333,7 +336,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   let grouped = groupBy(n =>
     n.group,
     layout[0].nodes
-      .flatMap(node => graph.node(node.id).labels
+      .flatMap(node => (graph.node(node.id).labels || [])
         .flatMap(_ => _.groups)
         .filter(_ => typeof _ === "number")
         .map(group => ({ node, group }))
@@ -406,6 +409,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
 
   let panel = h("div", [controls, mask])
 
+  let diagram = [h("div")]
   if (viewState.focusNodes.length) {
     let subIds = graph.node(viewState.focusNodes[0])
       .labels
@@ -417,36 +421,27 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
     let inn = collect(subId.toString(10), w => graphs.subscriptions.hasNode(w) ? graphs.subscriptions.inEdges(w).map(e => e.v) : [])
     let out = collect(subId.toString(10), v => graphs.subscriptions.hasNode(v) ? graphs.subscriptions.outEdges(v).map(e => e.w) : [])
     let path = inn.reverse().concat([`${subId}`]).concat(out)
-    let obsPath = path.map(v => graphs.subscriptions.node(v))
-    console.log(path)
-    debugger
+    let input: MarbleInput[] = path.map(v => `${graphs.subscriptions.node(v)}`).flatMap(n =>
+      (graphs.main.inEdges(n) || [])
+        .map(e => ({ edge: graphs.main.edge(e), type: "edge" } as MarbleInput))
+        .concat([{ node: graphs.main.node(n), type: "node" }]))
+
+    diagram = renderMarbles(input)
   }
 
-  // new StructureGraph().renderMarbles(graph, choices)
-  // let render: VNode[] = []
-  // let marbles: VNode[] = []
-  // sg.renderMarbles(graph, this.choices)
-  // let app = h("app", [
-  //   h("master", [svg(l)].concat(marbles)),
-  //   h("detail", [
-  //     h("svg", {
-  //       attrs: {
-  //         id: "svg",
-  //         style: "width: 200px; height: 200px",
-  //         version: "1.1",
-  //         xmlns: "http://www.w3.org/2000/svg",
-  //       },
-  //     }, render.concat(defs())),
-  //   ]),
-  // ])
-  // return app
+  let app = h("app", [
+    h("master", panel),
+    h("detail", diagram),
+  ])
 
   return {
-    svg: panel,
+    svg: app,
     clicks,
     groupClicks,
   }
 }
+
+type MarbleInput = { type: "edge", edge: GraphEdge } | { type: "node", node: GraphNode }
 
 function collect(start: string, f: (start: string) => string[]): string[] {
   return f(start).flatMap(n => [n].concat(collect(n, f)))
@@ -499,24 +494,27 @@ function vnodeSort(vna: VNode, vnb: VNode): number {
   return vna.key.toString().localeCompare(vnb.key.toString())
 }
 
-// function renderMarbles(graph: Graph, choices: string[]): VNode[] {
-//   let coordinator = new MarbleCoordinator()
-//   let u = StructureGraph.chunk
-//   let main = StructureGraph.traverse(graph, choices)
-//   main.forEach((v) => coordinator.add(graph.node(v)))
+function renderMarbles(inputs: MarbleInput[]): VNode[] {
+  let coordinator = new MarbleCoordinator()
+  inputs.forEach(e => { if (e.type === "edge") { coordinator.add(e.edge) } })
 
-//   let root = h("div", {
-//     attrs: {
-//       id: "marbles",
-//       style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
-//     },
-//   }, main.flatMap((v, i) => {
-//     let clazz = "operator " + (typeof graph.node(v).locationText !== "undefined" ? "withStack" : "")
-//     let box = h("div", { attrs: { class: clazz } }, [
-//       h("div", [], graph.node(v).name),
-//       h("div", [], graph.node(v).locationText),
-//     ])
-//     return [box, coordinator.render(graph.node(v))]
-//   }))
-//   return [root]
-// }
+  let root = h("div", {
+    attrs: {
+      id: "marbles",
+      style: `width: ${u * 2}px; height: ${u * (0.5 + inputs.length)}px`,
+    },
+  }, inputs.map((input, i) => {
+    if (input.type === "node") {
+      if (typeof input.node === "undefined") { return h("div") }
+      let clazz = "operator withoutStack"
+      let box = h("div", { attrs: { class: clazz } }, [
+        h("div", [], input.node.name),
+        h("div", [], "stackFrame locationText"),
+      ].filter((_, idx) => idx === 0))
+      return box
+    } else {
+      return coordinator.render(input.edge)
+    }
+  }))
+  return [root]
+}

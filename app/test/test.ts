@@ -1,5 +1,6 @@
 import { OperatorTest } from "./operators"
 import { SubscriptionTest } from "./subscriptions"
+import { GenerateTest } from "./generate"
 import CrossingTest from "../src/layout/crossings.spec"
 import OrderingTest from "../src/layout/ordering.spec"
 import TransposeTest from "../src/layout/transpose.spec"
@@ -12,6 +13,7 @@ new OperatorTest()
 new OrderingTest()
 new VisualizationLayoutTest()
 
+new GenerateTest()
 new SubscriptionTest()
 new CrossingTest()
 new TransposeTest()

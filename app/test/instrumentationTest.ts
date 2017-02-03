@@ -1,5 +1,5 @@
 import Instrumentation, { defaultSubjects } from "../src/collector/instrumentation"
-import Collector, { NewCollector, RxCollector } from "../src/collector/logger"
+import Collector, { RxCollector } from "../src/collector/logger"
 import { suite } from "mocha-typescript"
 
 @suite
@@ -14,7 +14,7 @@ export class InstrumentationTest {
     // this.instrumentation = new Instrumentation(defaultSubjects, this.collector)
     // this.instrumentation.setup()
 
-    this.collector = new NewCollector()
+    this.collector = new Collector()
     this.instrumentation = new Instrumentation(defaultSubjects, this.collector)
     this.instrumentation.setup()
   }
@@ -41,7 +41,7 @@ export class InstrumentationTest {
     return this.collector as Collector
   }
 
-  public get newcollector(): NewCollector {
-    return this.collector as NewCollector
+  public get newcollector(): Collector {
+    return this.collector as Collector
   }
 }

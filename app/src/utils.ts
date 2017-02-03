@@ -1,9 +1,3 @@
-import { Edge, Graph } from "graphlib"
-import * as GraphLib from "graphlib"
-import * as rx from "rx"
-import { VNode } from "snabbdom/vnode"
-import { RxFiddleNode } from "./collector/node"
-
 /* tslint:disable:no-namespace */
 /* tslint:disable:interface-name */
 
@@ -71,14 +65,15 @@ export interface StackFrame {
   source: string
 }
 
-/* Extension of Snabbdom declaration */
-declare module "snabbdom" {
-  export interface PatchFunction {
-    (oldVNode: VNode | HTMLElement, vnode: VNode): VNode;
-  }
-}
-
 /* random */
 export function endsWith(self: string, suffix: string): boolean {
   return self.indexOf(suffix, self.length - suffix.length) !== -1
 };
+
+export function last<T>(list: T[]): T {
+  return list.length >= 1 ? list[list.length - 1] : undefined
+}
+
+export function head<T>(list: T[]): T {
+  return list.length >= 1 ? list[0] : undefined
+}

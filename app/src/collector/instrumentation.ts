@@ -1,7 +1,7 @@
 import "../utils"
 import { ICallRecord, ICallStart, ICallEnd } from "./callrecord"
 import { ICollector } from "./logger"
-import { RxCollector } from "./visualizer"
+import { RxCollector } from "../collector/collector"
 import * as Rx from "rx"
 
 const rxAny: any = <any>Rx
