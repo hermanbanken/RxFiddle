@@ -225,7 +225,7 @@ export type Edge = {
   edge: {
     v: number
     w: number
-    label: SubscriptionLinkLabel | SubscriptionHigherOrderLinkLabel | IEvent | ObservableTimingLabel
+    label: SubscriptionLinkLabel | SubscriptionHigherOrderLinkLabel | ObservableTimingLabel
   }
 }
 
@@ -233,7 +233,7 @@ export type NodeLabel = {
   group?: number
   groups?: number[]
   type: "label"
-  label: SubcriptionLabel | ObservableLabel
+  label: SubcriptionLabel | ObservableLabel | EventLabel
   node: number
 }
 
@@ -261,6 +261,7 @@ export type SubscriptionHigherOrderLinkLabel = {
 
 export type EventLabel = {
   event: IEvent
+  subscription: number
   type: "event"
 }
 

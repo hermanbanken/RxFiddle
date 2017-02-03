@@ -1,5 +1,5 @@
 import { groupBy } from "../collector/graphutils"
-import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger"
+import { Edge as EdgeLabel, Message, NodeLabel, EventLabel, ObservableLabel } from "../collector/logger"
 import TypedGraph from "../collector/typedgraph"
 import { generateColors } from "../color"
 import "../object/extensions"
@@ -96,7 +96,7 @@ export function grapherNext(graphs: Graphs, event: Message) {
       break
 
     case "label":
-      main.node(`${event.node}`).labels.push(event)
+      (main.node(`${event.node}`) || main.node(`${(event.label as EventLabel).subscription}`)).labels.push(event)
       let label = event.label
       if (label.type === "subscription") {
         subscriptions.setNode(label.id.toString(10), event.node)
@@ -178,7 +178,7 @@ export default class Visualizer {
     return {
       main: graphs.main.filterNodes((id, node: GraphNode) => {
         let annotations = (node ? node.labels || [] : [])
-          .filter(ann => (ann.label as any).kind === "observable")
+          .filter(ann => ann.label.type === "observable")
         if (annotations.length === 0) {
           return true
         }
@@ -279,7 +279,8 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
     let node = graph.node(item.id)
     let labels = node.labels || []
     let methods = labels.map(nl => nl.label)
-      .filter((label: any) => typeof label.kind !== "undefined" && label.kind === "observable")
+      .filter(label => label.type === "observable")
+      .reverse()
 
     let text = methods.map((l: any) => `${l.method}(${l.args})`).join(", ") || node.name || item.id
 
@@ -421,10 +422,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
     let inn = collect(subId.toString(10), w => graphs.subscriptions.hasNode(w) ? graphs.subscriptions.inEdges(w).map(e => e.v) : [])
     let out = collect(subId.toString(10), v => graphs.subscriptions.hasNode(v) ? graphs.subscriptions.outEdges(v).map(e => e.w) : [])
     let path = inn.reverse().concat([`${subId}`]).concat(out)
-    let input: MarbleInput[] = path.map(v => `${graphs.subscriptions.node(v)}`).flatMap(n =>
-      (graphs.main.inEdges(n) || [])
-        .map(e => ({ edge: graphs.main.edge(e), type: "edge" } as MarbleInput))
-        .concat([{ node: graphs.main.node(n), type: "node" }]))
+    let input = path.map(v => graphs.main.node(graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`))
 
     diagram = renderMarbles(input)
   }
@@ -440,8 +438,6 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
     groupClicks,
   }
 }
-
-type MarbleInput = { type: "edge", edge: GraphEdge } | { type: "node", node: GraphNode }
 
 function collect(start: string, f: (start: string) => string[]): string[] {
   return f(start).flatMap(n => [n].concat(collect(n, f)))
@@ -494,27 +490,27 @@ function vnodeSort(vna: VNode, vnb: VNode): number {
   return vna.key.toString().localeCompare(vnb.key.toString())
 }
 
-function renderMarbles(inputs: MarbleInput[]): VNode[] {
+function renderMarbles(nodes: GraphNode[]): VNode[] {
   let coordinator = new MarbleCoordinator()
-  inputs.forEach(e => { if (e.type === "edge") { coordinator.add(e.edge) } })
+  let all_events: EventLabel[] = nodes.flatMap(n => n.labels).map(l => l.label).flatMap(l => l.type === "event" ? [l] : [])
+  coordinator.add(all_events)
 
   let root = h("div", {
     attrs: {
       id: "marbles",
-      style: `width: ${u * 2}px; height: ${u * (0.5 + inputs.length)}px`,
+      style: `width: ${u * 2}px; height: ${u * (0.5 + nodes.length)}px`,
     },
-  }, inputs.map((input, i) => {
-    if (input.type === "node") {
-      if (typeof input.node === "undefined") { return h("div") }
-      let clazz = "operator withoutStack"
-      let box = h("div", { attrs: { class: clazz } }, [
-        h("div", [], input.node.name),
-        h("div", [], "stackFrame locationText"),
-      ].filter((_, idx) => idx === 0))
-      return box
-    } else {
-      return coordinator.render(input.edge)
-    }
+  }, nodes.flatMap((node, i) => {
+    let obs = node.labels.map(_ => _.label).find(_ => _.type === "observable") as ObservableLabel
+    let events = node.labels.map(_ => _.label).filter(_ => _.type === "event").map((evl: EventLabel) => evl)
+
+    let clazz = "operator withoutStack"
+    let box = h("div", { attrs: { class: clazz } }, [
+      h("div", [], obs ? `${obs.method}(${obs.args})` : node.name),
+      h("div", [], "stackFrame locationText"),
+    ].filter((_, idx) => idx === 0))
+
+    return [box].concat([coordinator.render(events)])
   }))
   return [root]
 }

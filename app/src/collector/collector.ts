@@ -1,6 +1,6 @@
 import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
 import { Event } from "./event"
-import { Edge, Message, NodeLabel, ObserverStorage, formatArguments } from "./logger"
+import { Edge, EventLabel, Message, NodeLabel, ObserverStorage, formatArguments } from "./logger"
 import * as Rx from "rx"
 
 type Group = {
@@ -92,6 +92,7 @@ export default class NewCollector implements RxCollector {
         this.groups.push({ call: record, id: this.groupId++, used: false })
         break
       case "subscribe":
+      case "event":
         [].filter.call(record.arguments, isSubscription)
           .forEach((sub: any) => {
             let set = this.observerStorage.set(this.id(record.subject).get(), this.id(sub).get())
@@ -159,19 +160,20 @@ export default class NewCollector implements RxCollector {
               }
             }
           })
-        break
-      case "event":
+
         let event = Event.fromRecord(record)
         if (event && event.type === "subscribe" || typeof event === "undefined") {
           break
         }
-        let e: Edge = {
-          edge: {
-            label: event,
-            v: record.parent ? this.observerToObs(this.id(record.parent.subject).get()) : 0,
-            w: this.observerToObs(this.id(record.subject).get()),
-          },
-          type: "edge",
+        let sub = this.findRootObserverId(record.subject)
+        let e: NodeLabel = {
+          label: {
+            event,
+            subscription: sub,
+            type: "event",
+          } as EventLabel,
+          node: this.observerToObs(sub),
+          type: "label",
         }
         this.messages.push(e)
       default:
@@ -289,6 +291,14 @@ export default class NewCollector implements RxCollector {
         return (obs as any)[this.hash]
       },
       set: (n: number) => (obs as any)[this.hash] = n,
+    }
+  }
+
+  private findRootObserverId<T>(observer: any) {
+    if (typeof observer === "object" && observer.observer) {
+      return this.id(observer.observer).get()
+    } else {
+      return this.id(observer).get()
     }
   }
 }

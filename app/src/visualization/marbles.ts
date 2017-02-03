@@ -1,4 +1,5 @@
 import { IEvent } from "../collector/event"
+import { EventLabel, NodeLabel } from "../collector/logger"
 import { GraphEdge } from "./index"
 import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
@@ -16,19 +17,16 @@ export class MarbleCoordinator {
   private max: number
 
   // Calc bounds
-  public add(edge: GraphEdge): void {
-    let events = edge.labels.map(e => e.edge.label).flatMap(l => isEvent(l) ?
-      [l] : [])
-
+  public add(edges: EventLabel[]): void {
+    let events = edges.map(_ => _.event)
     let times = events.map(e => e.time)
     this.min = times.reduce((m, n) => typeof m !== "undefined" ? Math.min(m, n) : n, this.min)
     this.max = times.reduce((m, n) => typeof m !== "undefined" ? Math.max(m, n) : n, this.max)
   }
 
   // Rendering
-  public render(edge: GraphEdge): VNode {
-    let events = edge.labels.map(e => e.edge.label).flatMap(l => isEvent(l) ?
-      [l] : [])
+  public render(edges: EventLabel[]): VNode {
+    let events = edges.map(_ => _.event)
 
     let marbles = events.map(e => h("svg", {
       attrs: { x: `${this.relTime(e.time)}%`, y: "50%" },
