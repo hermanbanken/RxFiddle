@@ -5,7 +5,8 @@ import { generateColors } from "../color"
 import "../object/extensions"
 import "../utils"
 import layoutf from "./layout"
-import MorphModule, { Path } from "./morph"
+import { MarbleCoordinator } from "./marbles"
+import MorphModule from "./morph"
 import * as Rx from "rx"
 import { h, init as snabbdom_init } from "snabbdom"
 import attrs_module from "snabbdom/modules/attributes"
@@ -26,12 +27,6 @@ export type ViewState = {
   openGroupsAll: boolean
 }
 
-const emptyViewState: ViewState = {
-  focusNodes: ["5", "39", "2"],
-  openGroups: [],
-  openGroupsAll: true,
-}
-
 export type GraphNode = {
   name: string
   labels: NodeLabel[]
@@ -40,42 +35,76 @@ export type GraphEdge = {
   labels: EdgeLabel[]
 }
 
+export type Graphs = {
+  main: TypedGraph<GraphNode, GraphEdge>,
+  subscriptions: TypedGraph<number, undefined>,
+}
+
 export class Grapher {
 
-  public graph: Rx.Observable<TypedGraph<GraphNode, GraphEdge>>
+  public graph: Rx.Observable<Graphs>
+
+  // TODO move to scan / memo
+  public subToObs: { [obs: number]: number } = {}
+  public subGraph = new TypedGraph<number, undefined>()
 
   constructor(collector: DataSource) {
     // this.viewState = viewState.startWith(emptyViewState)
     this.graph = collector.dataObs
-      .scan<TypedGraph<any, any>>(this.next, new TypedGraph<GraphNode, GraphEdge>())
-    // .combineLatest(this.viewState, this.filter)
+      .scan(this.next.bind(this), {
+        main: new TypedGraph<GraphNode, GraphEdge>(),
+        subscriptions: new TypedGraph<number, undefined>(),
+      })
+      // .combineLatest(this.viewState, this.filter)
+
+      ; (window as any).subGraph = this.subGraph
   }
 
-  private next(graph: TypedGraph<GraphNode, GraphEdge>, event: Message) {
+  private next(graphs: Graphs, event: Message) {
+    let { main, subscriptions } = graphs
     switch (event.type) {
 
-      case "node": graph.setNode(`${event.id}`, {
+      case "node": main.setNode(`${event.id}`, {
         labels: [],
         name: event.node.name,
       })
         break
 
       case "edge":
-        let e: GraphEdge = graph.edge(`${event.edge.v}`, `${event.edge.w}`) || {
+        let e: GraphEdge = main.edge(`${event.edge.v}`, `${event.edge.w}`) || {
           labels: [],
         }
         e.labels.push(event)
-        graph.setEdge(`${event.edge.v}`, `${event.edge.w}`, e)
+
+        let edgeLabel = event.edge.label
+        if (edgeLabel.type === "subscription sink") {
+          subscriptions.setEdge(edgeLabel.v.toString(10), edgeLabel.w.toString(10))
+          // if (graph.hasNode(edgeLabel.v.toString(10))) {
+          //   graph.setEdge(`${edgeLabel.v}`, `${event.edge.w}`, null)
+          // }
+          // if (graph.hasNode(edgeLabel.w.toString(10))) {
+          //   graph.setEdge(`${event.edge.v}`, `${edgeLabel.w}`, null)
+          // }
+        }
+
+        main.setEdge(`${event.edge.v}`, `${event.edge.w}`, e)
         break
 
       case "label":
-        graph.node(`${event.node}`).labels.push(event)
+        main.node(`${event.node}`).labels.push(event)
+        let label = event.label
+        if (label.type === "subscription") {
+          this.subToObs[label.id] = event.node
+          subscriptions.setNode(label.id.toString(10), event.node)
+        }
         break
 
       default: break
     }
 
-    return graph
+    ; (window as any).graph = graph
+
+    return { main, subscriptions }
   }
 }
 
@@ -105,11 +134,11 @@ export default class Visualizer {
 
     let inp = grapher.graph
       .debounce(10)
-      .combineLatest(this.viewState, (graph, state) => {
-        let filtered = this.filter(graph, state)
+      .combineLatest(this.viewState, (graphs, state) => {
+        let filtered = this.filter(graphs, state)
         return ({
-          graph: filtered,
-          layout: layoutf(filtered, state.focusNodes),
+          graphs: filtered,
+          layout: layoutf(filtered.main, state.focusNodes),
           viewState: state,
         })
       })
@@ -118,25 +147,6 @@ export default class Visualizer {
     this.DOM = svg
     this.clicks = clicks
     this.groupClicks = groupClicks
-
-    // new StructureGraph().renderMarbles(graph, choices)
-    // let render: VNode[] = []
-    // let marbles: VNode[] = []
-    // sg.renderMarbles(graph, this.choices)
-    // let app = h("app", [
-    //   h("master", [svg(l)].concat(marbles)),
-    //   h("detail", [
-    //     h("svg", {
-    //       attrs: {
-    //         id: "svg",
-    //         style: "width: 200px; height: 200px",
-    //         version: "1.1",
-    //         xmlns: "http://www.w3.org/2000/svg",
-    //       },
-    //     }, render.concat(defs())),
-    //   ]),
-    // ])
-    // return app
   }
 
   public run() {
@@ -161,34 +171,36 @@ export default class Visualizer {
     this.run()
   }
 
-  private filter(graph: TypedGraph<GraphNode, GraphEdge>, viewState: ViewState): TypedGraph<GraphNode, GraphEdge> {
-    return graph.filterNodes((id, node: GraphNode) => {
-      let annotations = node.labels
-        .filter(ann => (ann.label as any).kind === "observable")
-      if (annotations.length === 0) {
-        return true
-      }
-      return annotations
-        .some(ann => !ann.groups.length || ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0))
-      // let groups = node.labels.flatMap(l => l.groups && l.groups.slice(-1) || [])
-      // if (groups && groups.length > 0) {
-      //   console.log("groups", groups, "testing", groups.slice(-1)
-      //     .find(g => viewState.openGroups.indexOf(`${g}`) >= 0))
-      // }
-      // return viewState.openGroupsAll ||
-      //   !groups ||
-      //   groups.length === 0 ||
-      //   (groups.find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
-    })
+  private filter(graphs: Graphs, viewState: ViewState): Graphs {
+    return {
+      main: graphs.main.filterNodes((id, node: GraphNode) => {
+        let annotations = node.labels
+          .filter(ann => (ann.label as any).kind === "observable")
+        if (annotations.length === 0) {
+          return true
+        }
+        return annotations
+          .some(ann => !ann.groups.length || ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0))
+        // let groups = node.labels.flatMap(l => l.groups && l.groups.slice(-1) || [])
+        // if (groups && groups.length > 0) {
+        //   console.log("groups", groups, "testing", groups.slice(-1)
+        //     .find(g => viewState.openGroups.indexOf(`${g}`) >= 0))
+        // }
+        // return viewState.openGroupsAll ||
+        //   !groups ||
+        //   groups.length === 0 ||
+        //   (groups.find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
+      }),
+      subscriptions: graphs.subscriptions,
+    }
   }
-
 }
 
-type In = Rx.Observable<({ layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode, GraphEdge> })>
+type In = Rx.Observable<({ layout: Layout, viewState: ViewState, graphs: Graphs })>
 type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string>, groupClicks: Rx.Observable<string> }
 function graph$(inp: In): Out {
   let result = inp.map(data => {
-    return graph(data.layout, data.viewState, data.graph)
+    return graph(data.layout, data.viewState, data.graphs)
   }).publish().refCount()
 
   return {
@@ -206,6 +218,7 @@ type Layout = {
 const u = 100
 const mu = u / 2
 
+// tslint:disable-next-line:no-unused-variable
 function spath(ps: { x: number, y: number }[]): string {
   return "M" + ps.map(({x, y}) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
 }
@@ -225,10 +238,12 @@ export function mapTuples<T, R>(list: T[], f: (a: T, b: T, anr: number, bnr: num
   return result
 }
 
-function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode, GraphEdge>): {
+function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   svg: VNode, clicks: Rx.Observable<string>, groupClicks: Rx.Observable<string>,
 } {
   console.log("Layout", layout)
+
+  let graph = graphs.main
 
   // Collect clicks in Subject
   let clicks = new Rx.Subject<string>()
@@ -265,6 +280,7 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
 
     let text = methods.map((l: any) => `${l.method}(${l.args})`).join(", ") || node.name || item.id
 
+    // tslint:disable-next-line:no-unused-variable
     let shade = h("circle", {
       attrs: {
         cx: mu + mu * item.x,
@@ -323,7 +339,7 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
         .map(group => ({ node, group }))
       )
   )
-  let groups = Object.keys(grouped).map(k => ({ key: k, group: grouped[k] }))
+  let groups = Object.keys(grouped).map(k => ({ group: grouped[k], key: k }))
   let gps = groups
     .flatMap(({ group, key }, index) => group.map(_ => _.node).map(({ x, y}) => h("circle", {
       attrs: {
@@ -331,7 +347,7 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
         cy: mu + mu * y,
         fill: colorIndex(parseInt(key, 10), .3),
         id: `group-${key}`,
-        r: mu / 2,
+        r: mu / 4,
       },
       key: `group-${key}`,
       style: {
@@ -390,11 +406,50 @@ function graph(layout: Layout, viewState: ViewState, graph: TypedGraph<GraphNode
 
   let panel = h("div", [controls, mask])
 
+  if (viewState.focusNodes.length) {
+    let subIds = graph.node(viewState.focusNodes[0])
+      .labels
+      .map(l => l.label)
+      .flatMap(l => l.type === "subscription" ? [l.id] : [])
+    let subId = subIds[0]
+
+    // tslint:disable-next-line:max-line-length
+    let inn = collect(subId.toString(10), w => graphs.subscriptions.hasNode(w) ? graphs.subscriptions.inEdges(w).map(e => e.v) : [])
+    let out = collect(subId.toString(10), v => graphs.subscriptions.hasNode(v) ? graphs.subscriptions.outEdges(v).map(e => e.w) : [])
+    let path = inn.reverse().concat([`${subId}`]).concat(out)
+    let obsPath = path.map(v => graphs.subscriptions.node(v))
+    console.log(path)
+    debugger
+  }
+
+  // new StructureGraph().renderMarbles(graph, choices)
+  // let render: VNode[] = []
+  // let marbles: VNode[] = []
+  // sg.renderMarbles(graph, this.choices)
+  // let app = h("app", [
+  //   h("master", [svg(l)].concat(marbles)),
+  //   h("detail", [
+  //     h("svg", {
+  //       attrs: {
+  //         id: "svg",
+  //         style: "width: 200px; height: 200px",
+  //         version: "1.1",
+  //         xmlns: "http://www.w3.org/2000/svg",
+  //       },
+  //     }, render.concat(defs())),
+  //   ]),
+  // ])
+  // return app
+
   return {
     svg: panel,
     clicks,
     groupClicks,
   }
+}
+
+function collect(start: string, f: (start: string) => string[]): string[] {
+  return f(start).flatMap(n => [n].concat(collect(n, f)))
 }
 
 const colors = generateColors(40)
@@ -443,3 +498,25 @@ const defs: () => VNode[] = () => [h("defs", [
 function vnodeSort(vna: VNode, vnb: VNode): number {
   return vna.key.toString().localeCompare(vnb.key.toString())
 }
+
+// function renderMarbles(graph: Graph, choices: string[]): VNode[] {
+//   let coordinator = new MarbleCoordinator()
+//   let u = StructureGraph.chunk
+//   let main = StructureGraph.traverse(graph, choices)
+//   main.forEach((v) => coordinator.add(graph.node(v)))
+
+//   let root = h("div", {
+//     attrs: {
+//       id: "marbles",
+//       style: `width: ${u * 2}px; height: ${u * (0.5 + main.length)}px`,
+//     },
+//   }, main.flatMap((v, i) => {
+//     let clazz = "operator " + (typeof graph.node(v).locationText !== "undefined" ? "withStack" : "")
+//     let box = h("div", { attrs: { class: clazz } }, [
+//       h("div", [], graph.node(v).name),
+//       h("div", [], graph.node(v).locationText),
+//     ])
+//     return [box, coordinator.render(graph.node(v))]
+//   }))
+//   return [root]
+// }

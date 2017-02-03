@@ -3,12 +3,9 @@ import { formatArguments } from "./logger"
 
 export type IEventType = "next" | "error" | "complete" | "subscribe" | "dispose"
 
-export interface IEvent {
-  type: IEventType
-  time: number
-}
+export type IEvent = Next<any> | Subscribe | Complete | Error | Dispose
 
-export class Event implements IEvent {
+export class Event {
   public static fromRecord(record: ICallStart): IEvent | null {
     switch (record.method) {
       case "next":
@@ -47,6 +44,7 @@ export class Event implements IEvent {
 
 export class Next<T> extends Event {
   public value: string
+  public type: "next"
   constructor(time: number, value: T) {
     super("next", time)
     this.value = formatArguments([value])
@@ -55,6 +53,7 @@ export class Next<T> extends Event {
 
 export class Error extends Event {
   public error: Error
+  public type: "error"
   constructor(time: number, error: Error) {
     super("error", time)
     this.error = error
@@ -62,13 +61,16 @@ export class Error extends Event {
 }
 
 export class Complete extends Event {
+  public type: "complete"
   constructor(time: number) { super("complete", time) }
 }
 
 export class Subscribe extends Event {
+  public type: "subscribe"
   constructor(time: number) { super("subscribe", time) }
 }
 
 export class Dispose extends Event {
+  public type: "dispose"
   constructor(time: number) { super("dispose", time) }
 }

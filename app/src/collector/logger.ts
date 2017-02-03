@@ -298,15 +298,44 @@ export type Edge = {
   edge: {
     v: number
     w: number
-    label: {}
+    label: SubscriptionLinkLabel | SubscriptionHigherOrderLinkLabel | IEvent | ObservableTimingLabel
   }
 }
+
 export type NodeLabel = {
   group?: number
   groups?: number[]
   type: "label"
-  label: {}
+  label: SubcriptionLabel | ObservableLabel
   node: number
+}
+
+export type ObservableTimingLabel = {
+  time: number
+  type: "observable link"
+}
+
+export type SubcriptionLabel = {
+  id: number
+  type: "subscription"
+}
+
+export type SubscriptionLinkLabel = {
+  type: "subscription sink"
+  v: number
+  w: number
+}
+
+export type SubscriptionHigherOrderLinkLabel = {
+  type: "higherOrderSubscription sink",
+  id: number
+  parent: number
+}
+
+export type ObservableLabel = {
+  args: any
+  method: string
+  type: "observable"
 }
 
 export type Message = Node | Edge | NodeLabel
@@ -444,7 +473,7 @@ export class NewCollector implements RxCollector {
           groups: this.groups.map(g => g.id),
           label: {
             args: formatArguments(record.arguments),
-            kind: "observable",
+            type: "observable",
             method: record.method,
           },
           node: observable,
@@ -455,6 +484,7 @@ export class NewCollector implements RxCollector {
           edge: {
             label: {
               time: record.time,
+              type: "observable link",
             },
             v: source,
             w: observable,
