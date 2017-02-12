@@ -29,7 +29,21 @@
     <button id="c">Sample C (Some RxMarble Component)</button>
     <div id="controls"></div>
   </top>
+  <textarea style="height:300px;display: block;flex: 0;min-height: 170px;width: 290px;position: absolute;bottom: 0;left: 0;">let A = Rx.Observable.of(1, 2, 3)
+  .map(i => "hello " + i)
+  .filter(_ => true)
+  .map(_ => _)
+  .skip(1)
+  .share()
+
+A.flatMapLatest(s => Rx.Observable.of("postfix").startWith(s))
+  .groupBy(s => s[s.length - 1])
+  .map(o => o.startWith("group of " + o.key))
+  .mergeAll()
+  .subscribe()
+</textarea>
   <app>
+
   </app>
 </div>
 
