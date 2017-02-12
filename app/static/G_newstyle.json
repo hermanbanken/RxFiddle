@@ -1,0 +1,4854 @@
+[
+  {
+    "id": 0,
+    "node": {
+      "name": "FromArrayObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "1, 2, 3",
+      "method": "of",
+      "type": "observable"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "id": 2,
+    "node": {
+      "name": "MapObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "i => \"hello \" + i",
+      "method": "map",
+      "type": "observable"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356081,
+        "type": "observable link"
+      },
+      "v": 0,
+      "w": 2
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "id": 5,
+    "node": {
+      "name": "FilterObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "_ => true",
+      "method": "filter",
+      "type": "observable"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356082,
+        "type": "observable link"
+      },
+      "v": 2,
+      "w": 5
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "id": 8,
+    "node": {
+      "name": "MapObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "_ => _",
+      "method": "map",
+      "type": "observable"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356083,
+        "type": "observable link"
+      },
+      "v": 5,
+      "w": 8
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "id": 11,
+    "node": {
+      "name": "SkipObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "1",
+      "method": "skip",
+      "type": "observable"
+    },
+    "node": 11,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356083,
+        "type": "observable link"
+      },
+      "v": 8,
+      "w": 11
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "id": 14,
+    "node": {
+      "name": "Subject"
+    },
+    "type": "node"
+  },
+  {
+    "id": 15,
+    "node": {
+      "name": "AnonymousObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [
+      5,
+      6,
+      7
+    ],
+    "label": {
+      "args": "",
+      "method": "asObservable",
+      "type": "observable"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356086,
+        "type": "observable link"
+      },
+      "v": 11,
+      "w": 15
+    },
+    "groups": [
+      5,
+      6,
+      7
+    ],
+    "type": "edge"
+  },
+  {
+    "id": 18,
+    "node": {
+      "name": "ConnectableObservable"
+    },
+    "type": "node"
+  },
+  {
+    "group": 7,
+    "groups": [
+      5,
+      6
+    ],
+    "label": {
+      "args": "[object Subject]",
+      "method": "multicast",
+      "type": "observable"
+    },
+    "node": 18,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356086,
+        "type": "observable link"
+      },
+      "v": 11,
+      "w": 18
+    },
+    "groups": [
+      5,
+      6
+    ],
+    "type": "edge"
+  },
+  {
+    "group": 6,
+    "groups": [
+      5
+    ],
+    "label": {
+      "args": "",
+      "method": "publish",
+      "type": "observable"
+    },
+    "node": 18,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356085,
+        "type": "observable link"
+      },
+      "v": 11,
+      "w": 18
+    },
+    "groups": [
+      5
+    ],
+    "type": "edge"
+  },
+  {
+    "id": 23,
+    "node": {
+      "name": "RefCountObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [
+      5
+    ],
+    "label": {
+      "args": "",
+      "method": "refCount",
+      "type": "observable"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356087,
+        "type": "observable link"
+      },
+      "v": 18,
+      "w": 23
+    },
+    "groups": [
+      5
+    ],
+    "type": "edge"
+  },
+  {
+    "group": 5,
+    "groups": [],
+    "label": {
+      "args": "",
+      "method": "share",
+      "type": "observable"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356084,
+        "type": "observable link"
+      },
+      "v": 11,
+      "w": 23
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "id": 28,
+    "node": {
+      "name": "FlatMapObservable"
+    },
+    "type": "node"
+  },
+  {
+    "id": 29,
+    "node": {
+      "name": "SwitchObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [
+      10
+    ],
+    "label": {
+      "args": "",
+      "method": "switchLatest",
+      "type": "observable"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356088,
+        "type": "observable link"
+      },
+      "v": 28,
+      "w": 29
+    },
+    "groups": [
+      10
+    ],
+    "type": "edge"
+  },
+  {
+    "group": 10,
+    "groups": [],
+    "label": {
+      "args": "s => Rx.Observable.of(\"postfix\").startWith(s)",
+      "method": "flatMapLatest",
+      "type": "observable"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356088,
+        "type": "observable link"
+      },
+      "v": 23,
+      "w": 29
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "id": 34,
+    "node": {
+      "name": "AnonymousObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [
+      12
+    ],
+    "label": {
+      "args": "s => s[s.length - 1], undefined, function () {\n    return NEVER_OBSERVABLE;\n  }",
+      "method": "groupByUntil",
+      "type": "observable"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356090,
+        "type": "observable link"
+      },
+      "v": 29,
+      "w": 34
+    },
+    "groups": [
+      12
+    ],
+    "type": "edge"
+  },
+  {
+    "group": 12,
+    "groups": [],
+    "label": {
+      "args": "s => s[s.length - 1]",
+      "method": "groupBy",
+      "type": "observable"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356089,
+        "type": "observable link"
+      },
+      "v": 29,
+      "w": 34
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "id": 39,
+    "node": {
+      "name": "MapObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "o => o.startWith(\"group of \" + o.key)",
+      "method": "map",
+      "type": "observable"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356090,
+        "type": "observable link"
+      },
+      "v": 34,
+      "w": 39
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "id": 42,
+    "node": {
+      "name": "MergeAllObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "",
+      "method": "mergeAll",
+      "type": "observable"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356091,
+        "type": "observable link"
+      },
+      "v": 39,
+      "w": 42
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 45,
+      "type": "subscription"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 46,
+      "type": "subscription"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 46,
+        "w": 45
+      },
+      "v": 39,
+      "w": 42
+    },
+    "id": 47,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 46,
+      "type": "subscription"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 49,
+      "type": "subscription"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 49,
+        "w": 46
+      },
+      "v": 34,
+      "w": 39
+    },
+    "id": 50,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 51,
+      "type": "subscription"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 51,
+        "w": 49
+      },
+      "v": 34,
+      "w": 34
+    },
+    "id": 52,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 51,
+      "type": "subscription"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 54,
+      "type": "subscription"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 55,
+      "type": "subscription"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 55,
+        "w": 54
+      },
+      "v": 28,
+      "w": 29
+    },
+    "id": 56,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 55,
+      "type": "subscription"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 58,
+      "type": "subscription"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 58,
+        "w": 55
+      },
+      "v": 23,
+      "w": 28
+    },
+    "id": 59,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 58,
+      "type": "subscription"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 61,
+      "type": "subscription"
+    },
+    "node": 18,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 61,
+        "w": 58
+      },
+      "v": 18,
+      "w": 23
+    },
+    "id": 62,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 61,
+      "type": "subscription"
+    },
+    "node": 18,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 61,
+      "type": "subscription"
+    },
+    "node": 14,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 61,
+      "type": "subscription"
+    },
+    "node": 14,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 14,
+      "type": "subscription"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 67,
+      "type": "subscription"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 67,
+        "w": 14
+      },
+      "v": 15,
+      "w": 15
+    },
+    "id": 68,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 67,
+      "type": "subscription"
+    },
+    "node": 11,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 67,
+      "type": "subscription"
+    },
+    "node": 11,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 71,
+      "type": "subscription"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 71,
+        "w": 67
+      },
+      "v": 8,
+      "w": 11
+    },
+    "id": 72,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 71,
+      "type": "subscription"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 74,
+      "type": "subscription"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 74,
+        "w": 71
+      },
+      "v": 5,
+      "w": 8
+    },
+    "id": 75,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 74,
+      "type": "subscription"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 77,
+      "type": "subscription"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 77,
+        "w": 74
+      },
+      "v": 2,
+      "w": 5
+    },
+    "id": 78,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 77,
+      "type": "subscription"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 80,
+      "type": "subscription"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 80,
+        "w": 77
+      },
+      "v": 0,
+      "w": 2
+    },
+    "id": 81,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 80,
+      "type": "subscription"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356149,
+        "value": "1"
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356150,
+        "value": "1"
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356153,
+        "value": "hello 1"
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356154,
+        "value": "hello 1"
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356160,
+        "value": "hello 1"
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356161,
+        "value": "hello 1"
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356167,
+        "value": "hello 1"
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356168,
+        "value": "hello 1"
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356169,
+        "value": "2"
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356169,
+        "value": "2"
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356172,
+        "value": "hello 2"
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356173,
+        "value": "hello 2"
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356177,
+        "value": "hello 2"
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356177,
+        "value": "hello 2"
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356182,
+        "value": "hello 2"
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356183,
+        "value": "hello 2"
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356184,
+        "value": "hello 2"
+      },
+      "subscription": 67,
+      "type": "event"
+    },
+    "node": 11,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356185,
+        "value": "hello 2"
+      },
+      "subscription": 14,
+      "type": "event"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356186,
+        "value": "hello 2"
+      },
+      "subscription": 14,
+      "type": "event"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356187,
+        "value": "hello 2"
+      },
+      "subscription": 58,
+      "type": "event"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356189,
+        "value": "hello 2"
+      },
+      "subscription": 58,
+      "type": "event"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "id": 104,
+    "node": {
+      "name": "FromArrayObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "postfix",
+      "method": "of",
+      "type": "observable"
+    },
+    "node": 104,
+    "type": "label"
+  },
+  {
+    "id": 106,
+    "node": {
+      "name": "ConcatObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "hello 2",
+      "method": "startWith",
+      "type": "observable"
+    },
+    "node": 106,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356197,
+        "type": "observable link"
+      },
+      "v": 104,
+      "w": 106
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356199,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 55,
+      "type": "event"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356200,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 55,
+      "type": "event"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 111,
+      "type": "subscription"
+    },
+    "node": 106,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 111,
+        "parent": 55,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 106,
+      "w": 28
+    },
+    "id": 112,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 111,
+      "type": "subscription"
+    },
+    "node": 106,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 111,
+        "parent": 55,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 106,
+      "w": 28
+    },
+    "id": 114,
+    "type": "edge"
+  },
+  {
+    "id": 115,
+    "node": {
+      "name": "FromArrayObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 116,
+      "type": "subscription"
+    },
+    "node": 115,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 116,
+        "w": 111
+      },
+      "v": 115,
+      "w": 106
+    },
+    "id": 117,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 116,
+      "type": "subscription"
+    },
+    "node": 115,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356212,
+        "value": "hello 2"
+      },
+      "subscription": 116,
+      "type": "event"
+    },
+    "node": 115,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356214,
+        "value": "hello 2"
+      },
+      "subscription": 116,
+      "type": "event"
+    },
+    "node": 115,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356216,
+        "value": "hello 2"
+      },
+      "subscription": 111,
+      "type": "event"
+    },
+    "node": 106,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356218,
+        "value": "hello 2"
+      },
+      "subscription": 111,
+      "type": "event"
+    },
+    "node": 106,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356220,
+        "value": "hello 2"
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356222,
+        "value": "hello 2"
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "id": 125,
+    "node": {
+      "name": "GroupedObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356229,
+        "value": "[object GroupedObservable]"
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356232,
+        "value": "[object GroupedObservable]"
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "id": 128,
+    "node": {
+      "name": "ConcatObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [
+      25
+    ],
+    "label": {
+      "args": "group of 2",
+      "method": "startWith",
+      "type": "observable"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356239,
+        "type": "observable link"
+      },
+      "v": 125,
+      "w": 128
+    },
+    "groups": [
+      25
+    ],
+    "type": "edge"
+  },
+  {
+    "group": 25,
+    "groups": [],
+    "label": {
+      "args": "[object GroupedObservable], 0, [object MapObservable]",
+      "method": "selector",
+      "type": "observable"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356237,
+        "type": "observable link"
+      },
+      "v": 125,
+      "w": 128
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356237,
+        "type": "observable link"
+      },
+      "v": 39,
+      "w": 128
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356242,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356248,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 136,
+      "type": "subscription"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 136,
+        "parent": 46,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 128,
+      "w": 39
+    },
+    "id": 137,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 136,
+      "type": "subscription"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 136,
+        "parent": 46,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 128,
+      "w": 39
+    },
+    "id": 139,
+    "type": "edge"
+  },
+  {
+    "id": 140,
+    "node": {
+      "name": "FromArrayObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 141,
+      "type": "subscription"
+    },
+    "node": 140,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 141,
+        "w": 136
+      },
+      "v": 140,
+      "w": 128
+    },
+    "id": 142,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 141,
+      "type": "subscription"
+    },
+    "node": 140,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356261,
+        "value": "group of 2"
+      },
+      "subscription": 141,
+      "type": "event"
+    },
+    "node": 140,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356265,
+        "value": "group of 2"
+      },
+      "subscription": 141,
+      "type": "event"
+    },
+    "node": 140,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356268,
+        "value": "group of 2"
+      },
+      "subscription": 136,
+      "type": "event"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356271,
+        "value": "group of 2"
+      },
+      "subscription": 136,
+      "type": "event"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356274,
+        "value": "group of 2"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356277,
+        "value": "group of 2"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356290
+      },
+      "subscription": 141,
+      "type": "event"
+    },
+    "node": 140,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356293
+      },
+      "subscription": 141,
+      "type": "event"
+    },
+    "node": 140,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 152,
+      "type": "subscription"
+    },
+    "node": 125,
+    "type": "label"
+  },
+  {
+    "id": 153,
+    "node": {
+      "name": "UnderlyingObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 152,
+      "type": "subscription"
+    },
+    "node": 153,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 152,
+      "type": "subscription"
+    },
+    "node": 153,
+    "type": "label"
+  },
+  {
+    "id": 156,
+    "node": {
+      "name": "Subject"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 157,
+      "type": "subscription"
+    },
+    "node": 156,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 157,
+        "w": 152
+      },
+      "v": 156,
+      "w": 153
+    },
+    "id": 158,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 157,
+      "type": "subscription"
+    },
+    "node": 156,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356319
+      },
+      "subscription": 141,
+      "type": "event"
+    },
+    "node": 140,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356322
+      },
+      "subscription": 141,
+      "type": "event"
+    },
+    "node": 140,
+    "type": "label"
+  },
+  {
+    "id": 162,
+    "node": {
+      "name": "NeverObservable"
+    },
+    "type": "node"
+  },
+  {
+    "id": 163,
+    "node": {
+      "name": "TakeObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "1",
+      "method": "take",
+      "type": "observable"
+    },
+    "node": 163,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356324,
+        "type": "observable link"
+      },
+      "v": 162,
+      "w": 163
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 166,
+      "type": "subscription"
+    },
+    "node": 163,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 167,
+      "type": "subscription"
+    },
+    "node": 162,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 167,
+        "w": 166
+      },
+      "v": 162,
+      "w": 163
+    },
+    "id": 168,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 167,
+      "type": "subscription"
+    },
+    "node": 162,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356341,
+        "value": "hello 2"
+      },
+      "subscription": 156,
+      "type": "event"
+    },
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356344,
+        "value": "hello 2"
+      },
+      "subscription": 152,
+      "type": "event"
+    },
+    "node": 153,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356346,
+        "value": "hello 2"
+      },
+      "subscription": 152,
+      "type": "event"
+    },
+    "node": 153,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356349,
+        "value": "hello 2"
+      },
+      "subscription": 136,
+      "type": "event"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356352,
+        "value": "hello 2"
+      },
+      "subscription": 136,
+      "type": "event"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356355,
+        "value": "hello 2"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356358,
+        "value": "hello 2"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356366
+      },
+      "subscription": 116,
+      "type": "event"
+    },
+    "node": 115,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356368
+      },
+      "subscription": 116,
+      "type": "event"
+    },
+    "node": 115,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 179,
+      "type": "subscription"
+    },
+    "node": 104,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 179,
+      "type": "subscription"
+    },
+    "node": 104,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356384
+      },
+      "subscription": 116,
+      "type": "event"
+    },
+    "node": 115,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356386
+      },
+      "subscription": 116,
+      "type": "event"
+    },
+    "node": 115,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356386,
+        "value": "postfix"
+      },
+      "subscription": 179,
+      "type": "event"
+    },
+    "node": 104,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356387,
+        "value": "postfix"
+      },
+      "subscription": 179,
+      "type": "event"
+    },
+    "node": 104,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356388,
+        "value": "postfix"
+      },
+      "subscription": 111,
+      "type": "event"
+    },
+    "node": 106,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356389,
+        "value": "postfix"
+      },
+      "subscription": 111,
+      "type": "event"
+    },
+    "node": 106,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356389,
+        "value": "postfix"
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356390,
+        "value": "postfix"
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "id": 189,
+    "node": {
+      "name": "GroupedObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356393,
+        "value": "[object GroupedObservable]"
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356394,
+        "value": "[object GroupedObservable]"
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "id": 192,
+    "node": {
+      "name": "ConcatObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [
+      28
+    ],
+    "label": {
+      "args": "group of x",
+      "method": "startWith",
+      "type": "observable"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356398,
+        "type": "observable link"
+      },
+      "v": 189,
+      "w": 192
+    },
+    "groups": [
+      28
+    ],
+    "type": "edge"
+  },
+  {
+    "group": 28,
+    "groups": [],
+    "label": {
+      "args": "[object GroupedObservable], 1, [object MapObservable]",
+      "method": "selector",
+      "type": "observable"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356397,
+        "type": "observable link"
+      },
+      "v": 189,
+      "w": 192
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356397,
+        "type": "observable link"
+      },
+      "v": 39,
+      "w": 192
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356399,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356400,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 200,
+      "type": "subscription"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 200,
+        "parent": 46,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 192,
+      "w": 39
+    },
+    "id": 201,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 200,
+      "type": "subscription"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 200,
+        "parent": 46,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 192,
+      "w": 39
+    },
+    "id": 203,
+    "type": "edge"
+  },
+  {
+    "id": 204,
+    "node": {
+      "name": "FromArrayObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 205,
+      "type": "subscription"
+    },
+    "node": 204,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 205,
+        "w": 200
+      },
+      "v": 204,
+      "w": 192
+    },
+    "id": 206,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 205,
+      "type": "subscription"
+    },
+    "node": 204,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356407,
+        "value": "group of x"
+      },
+      "subscription": 205,
+      "type": "event"
+    },
+    "node": 204,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356409,
+        "value": "group of x"
+      },
+      "subscription": 205,
+      "type": "event"
+    },
+    "node": 204,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356411,
+        "value": "group of x"
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356413,
+        "value": "group of x"
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356415,
+        "value": "group of x"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356420,
+        "value": "group of x"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356425
+      },
+      "subscription": 205,
+      "type": "event"
+    },
+    "node": 204,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356427
+      },
+      "subscription": 205,
+      "type": "event"
+    },
+    "node": 204,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 216,
+      "type": "subscription"
+    },
+    "node": 189,
+    "type": "label"
+  },
+  {
+    "id": 217,
+    "node": {
+      "name": "UnderlyingObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 216,
+      "type": "subscription"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 216,
+      "type": "subscription"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "id": 220,
+    "node": {
+      "name": "Subject"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 221,
+      "type": "subscription"
+    },
+    "node": 220,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 221,
+        "w": 216
+      },
+      "v": 220,
+      "w": 217
+    },
+    "id": 222,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 221,
+      "type": "subscription"
+    },
+    "node": 220,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356444
+      },
+      "subscription": 205,
+      "type": "event"
+    },
+    "node": 204,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356445
+      },
+      "subscription": 205,
+      "type": "event"
+    },
+    "node": 204,
+    "type": "label"
+  },
+  {
+    "id": 226,
+    "node": {
+      "name": "NeverObservable"
+    },
+    "type": "node"
+  },
+  {
+    "id": 227,
+    "node": {
+      "name": "TakeObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "1",
+      "method": "take",
+      "type": "observable"
+    },
+    "node": 227,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356446,
+        "type": "observable link"
+      },
+      "v": 226,
+      "w": 227
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 230,
+      "type": "subscription"
+    },
+    "node": 227,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 231,
+      "type": "subscription"
+    },
+    "node": 226,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 231,
+        "w": 230
+      },
+      "v": 226,
+      "w": 227
+    },
+    "id": 232,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 231,
+      "type": "subscription"
+    },
+    "node": 226,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356454,
+        "value": "postfix"
+      },
+      "subscription": 220,
+      "type": "event"
+    },
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356455,
+        "value": "postfix"
+      },
+      "subscription": 216,
+      "type": "event"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356456,
+        "value": "postfix"
+      },
+      "subscription": 216,
+      "type": "event"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356457,
+        "value": "postfix"
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356458,
+        "value": "postfix"
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356459,
+        "value": "postfix"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356463,
+        "value": "postfix"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356467,
+        "value": "3"
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356468,
+        "value": "3"
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356471,
+        "value": "hello 3"
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356472,
+        "value": "hello 3"
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356475,
+        "value": "hello 3"
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356476,
+        "value": "hello 3"
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356479,
+        "value": "hello 3"
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356480,
+        "value": "hello 3"
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356482,
+        "value": "hello 3"
+      },
+      "subscription": 67,
+      "type": "event"
+    },
+    "node": 11,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356483,
+        "value": "hello 3"
+      },
+      "subscription": 14,
+      "type": "event"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356484,
+        "value": "hello 3"
+      },
+      "subscription": 14,
+      "type": "event"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356486,
+        "value": "hello 3"
+      },
+      "subscription": 58,
+      "type": "event"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356487,
+        "value": "hello 3"
+      },
+      "subscription": 58,
+      "type": "event"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "id": 254,
+    "node": {
+      "name": "FromArrayObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "postfix",
+      "method": "of",
+      "type": "observable"
+    },
+    "node": 254,
+    "type": "label"
+  },
+  {
+    "id": 256,
+    "node": {
+      "name": "ConcatObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "hello 3",
+      "method": "startWith",
+      "type": "observable"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356493,
+        "type": "observable link"
+      },
+      "v": 254,
+      "w": 256
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356495,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 55,
+      "type": "event"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356496,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 55,
+      "type": "event"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356498
+      },
+      "subscription": 111,
+      "type": "event"
+    },
+    "node": 106,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356500
+      },
+      "subscription": 179,
+      "type": "event"
+    },
+    "node": 104,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 263,
+      "type": "subscription"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 263,
+        "parent": 55,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 256,
+      "w": 28
+    },
+    "id": 264,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 263,
+      "type": "subscription"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 263,
+        "parent": 55,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 256,
+      "w": 28
+    },
+    "id": 266,
+    "type": "edge"
+  },
+  {
+    "id": 267,
+    "node": {
+      "name": "FromArrayObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 268,
+      "type": "subscription"
+    },
+    "node": 267,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 268,
+        "w": 263
+      },
+      "v": 267,
+      "w": 256
+    },
+    "id": 269,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 268,
+      "type": "subscription"
+    },
+    "node": 267,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356512,
+        "value": "hello 3"
+      },
+      "subscription": 268,
+      "type": "event"
+    },
+    "node": 267,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356514,
+        "value": "hello 3"
+      },
+      "subscription": 268,
+      "type": "event"
+    },
+    "node": 267,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356516,
+        "value": "hello 3"
+      },
+      "subscription": 263,
+      "type": "event"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356518,
+        "value": "hello 3"
+      },
+      "subscription": 263,
+      "type": "event"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356521,
+        "value": "hello 3"
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356523,
+        "value": "hello 3"
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "id": 277,
+    "node": {
+      "name": "GroupedObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356530,
+        "value": "[object GroupedObservable]"
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356533,
+        "value": "[object GroupedObservable]"
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "id": 280,
+    "node": {
+      "name": "ConcatObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [
+      36
+    ],
+    "label": {
+      "args": "group of 3",
+      "method": "startWith",
+      "type": "observable"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356540,
+        "type": "observable link"
+      },
+      "v": 277,
+      "w": 280
+    },
+    "groups": [
+      36
+    ],
+    "type": "edge"
+  },
+  {
+    "group": 36,
+    "groups": [],
+    "label": {
+      "args": "[object GroupedObservable], 2, [object MapObservable]",
+      "method": "selector",
+      "type": "observable"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356538,
+        "type": "observable link"
+      },
+      "v": 277,
+      "w": 280
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356538,
+        "type": "observable link"
+      },
+      "v": 39,
+      "w": 280
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356543,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356545,
+        "value": "[object ConcatObservable]"
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 288,
+      "type": "subscription"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 288,
+        "parent": 46,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 280,
+      "w": 39
+    },
+    "id": 289,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 288,
+      "type": "subscription"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "id": 288,
+        "parent": 46,
+        "type": "higherOrderSubscription sink"
+      },
+      "v": 280,
+      "w": 39
+    },
+    "id": 291,
+    "type": "edge"
+  },
+  {
+    "id": 292,
+    "node": {
+      "name": "FromArrayObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 293,
+      "type": "subscription"
+    },
+    "node": 292,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 293,
+        "w": 288
+      },
+      "v": 292,
+      "w": 280
+    },
+    "id": 294,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 293,
+      "type": "subscription"
+    },
+    "node": 292,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356570,
+        "value": "group of 3"
+      },
+      "subscription": 293,
+      "type": "event"
+    },
+    "node": 292,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356574,
+        "value": "group of 3"
+      },
+      "subscription": 293,
+      "type": "event"
+    },
+    "node": 292,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356578,
+        "value": "group of 3"
+      },
+      "subscription": 288,
+      "type": "event"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356582,
+        "value": "group of 3"
+      },
+      "subscription": 288,
+      "type": "event"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356587,
+        "value": "group of 3"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356593,
+        "value": "group of 3"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356607
+      },
+      "subscription": 293,
+      "type": "event"
+    },
+    "node": 292,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356615
+      },
+      "subscription": 293,
+      "type": "event"
+    },
+    "node": 292,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 304,
+      "type": "subscription"
+    },
+    "node": 277,
+    "type": "label"
+  },
+  {
+    "id": 305,
+    "node": {
+      "name": "UnderlyingObservable"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 304,
+      "type": "subscription"
+    },
+    "node": 305,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 304,
+      "type": "subscription"
+    },
+    "node": 305,
+    "type": "label"
+  },
+  {
+    "id": 308,
+    "node": {
+      "name": "Subject"
+    },
+    "type": "node"
+  },
+  {
+    "label": {
+      "id": 309,
+      "type": "subscription"
+    },
+    "node": 308,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 309,
+        "w": 304
+      },
+      "v": 308,
+      "w": 305
+    },
+    "id": 310,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 309,
+      "type": "subscription"
+    },
+    "node": 308,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356644
+      },
+      "subscription": 293,
+      "type": "event"
+    },
+    "node": 292,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356646
+      },
+      "subscription": 293,
+      "type": "event"
+    },
+    "node": 292,
+    "type": "label"
+  },
+  {
+    "id": 314,
+    "node": {
+      "name": "NeverObservable"
+    },
+    "type": "node"
+  },
+  {
+    "id": 315,
+    "node": {
+      "name": "TakeObservable"
+    },
+    "type": "node"
+  },
+  {
+    "groups": [],
+    "label": {
+      "args": "1",
+      "method": "take",
+      "type": "observable"
+    },
+    "node": 315,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "time": 1486713356649,
+        "type": "observable link"
+      },
+      "v": 314,
+      "w": 315
+    },
+    "groups": [],
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 318,
+      "type": "subscription"
+    },
+    "node": 315,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 319,
+      "type": "subscription"
+    },
+    "node": 314,
+    "type": "label"
+  },
+  {
+    "edge": {
+      "label": {
+        "type": "subscription sink",
+        "v": 319,
+        "w": 318
+      },
+      "v": 314,
+      "w": 315
+    },
+    "id": 320,
+    "type": "edge"
+  },
+  {
+    "label": {
+      "id": 319,
+      "type": "subscription"
+    },
+    "node": 314,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356663,
+        "value": "hello 3"
+      },
+      "subscription": 308,
+      "type": "event"
+    },
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356665,
+        "value": "hello 3"
+      },
+      "subscription": 304,
+      "type": "event"
+    },
+    "node": 305,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356668,
+        "value": "hello 3"
+      },
+      "subscription": 304,
+      "type": "event"
+    },
+    "node": 305,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356670,
+        "value": "hello 3"
+      },
+      "subscription": 288,
+      "type": "event"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356673,
+        "value": "hello 3"
+      },
+      "subscription": 288,
+      "type": "event"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356675,
+        "value": "hello 3"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356678,
+        "value": "hello 3"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356686
+      },
+      "subscription": 268,
+      "type": "event"
+    },
+    "node": 267,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356688
+      },
+      "subscription": 268,
+      "type": "event"
+    },
+    "node": 267,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 331,
+      "type": "subscription"
+    },
+    "node": 254,
+    "type": "label"
+  },
+  {
+    "label": {
+      "id": 331,
+      "type": "subscription"
+    },
+    "node": 254,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356698
+      },
+      "subscription": 268,
+      "type": "event"
+    },
+    "node": 267,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356703
+      },
+      "subscription": 268,
+      "type": "event"
+    },
+    "node": 267,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356703,
+        "value": "postfix"
+      },
+      "subscription": 331,
+      "type": "event"
+    },
+    "node": 254,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356704,
+        "value": "postfix"
+      },
+      "subscription": 331,
+      "type": "event"
+    },
+    "node": 254,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356705,
+        "value": "postfix"
+      },
+      "subscription": 263,
+      "type": "event"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356706,
+        "value": "postfix"
+      },
+      "subscription": 263,
+      "type": "event"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356706,
+        "value": "postfix"
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356707,
+        "value": "postfix"
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356710,
+        "value": "postfix"
+      },
+      "subscription": 220,
+      "type": "event"
+    },
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356711,
+        "value": "postfix"
+      },
+      "subscription": 216,
+      "type": "event"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356712,
+        "value": "postfix"
+      },
+      "subscription": 216,
+      "type": "event"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356713,
+        "value": "postfix"
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356714,
+        "value": "postfix"
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356716,
+        "value": "postfix"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "next",
+        "time": 1486713356717,
+        "value": "postfix"
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356720
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356721
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356721
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356722
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356723
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356724
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356724
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356726
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356727
+      },
+      "subscription": 67,
+      "type": "event"
+    },
+    "node": 11,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356728
+      },
+      "subscription": 14,
+      "type": "event"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356729
+      },
+      "subscription": 14,
+      "type": "event"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356730
+      },
+      "subscription": 58,
+      "type": "event"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356732
+      },
+      "subscription": 58,
+      "type": "event"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356733
+      },
+      "subscription": 55,
+      "type": "event"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356734
+      },
+      "subscription": 55,
+      "type": "event"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356736
+      },
+      "subscription": 55,
+      "type": "event"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356737
+      },
+      "subscription": 58,
+      "type": "event"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356739
+      },
+      "subscription": 14,
+      "type": "event"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356743
+      },
+      "subscription": 67,
+      "type": "event"
+    },
+    "node": 11,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356744
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356746
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356748
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356749
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356750
+      },
+      "subscription": 58,
+      "type": "event"
+    },
+    "node": 23,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356752
+      },
+      "subscription": 14,
+      "type": "event"
+    },
+    "node": 15,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356753
+      },
+      "subscription": 67,
+      "type": "event"
+    },
+    "node": 11,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356754
+      },
+      "subscription": 71,
+      "type": "event"
+    },
+    "node": 8,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356755
+      },
+      "subscription": 74,
+      "type": "event"
+    },
+    "node": 5,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356756
+      },
+      "subscription": 77,
+      "type": "event"
+    },
+    "node": 2,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356756
+      },
+      "subscription": 80,
+      "type": "event"
+    },
+    "node": 0,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356757
+      },
+      "subscription": 331,
+      "type": "event"
+    },
+    "node": 254,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356758
+      },
+      "subscription": 331,
+      "type": "event"
+    },
+    "node": 254,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356760
+      },
+      "subscription": 263,
+      "type": "event"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356761
+      },
+      "subscription": 263,
+      "type": "event"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356762
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356763
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356766
+      },
+      "subscription": 156,
+      "type": "event"
+    },
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356767
+      },
+      "subscription": 152,
+      "type": "event"
+    },
+    "node": 153,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356769
+      },
+      "subscription": 152,
+      "type": "event"
+    },
+    "node": 153,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356774
+      },
+      "subscription": 136,
+      "type": "event"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356775
+      },
+      "subscription": 136,
+      "type": "event"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356777
+      },
+      "subscription": 136,
+      "type": "event"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356779
+      },
+      "subscription": 152,
+      "type": "event"
+    },
+    "node": 153,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356780
+      },
+      "subscription": 136,
+      "type": "event"
+    },
+    "node": 128,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356785
+      },
+      "subscription": 152,
+      "type": "event"
+    },
+    "node": 153,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356786
+      },
+      "subscription": 220,
+      "type": "event"
+    },
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356787
+      },
+      "subscription": 216,
+      "type": "event"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356788
+      },
+      "subscription": 216,
+      "type": "event"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356793
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356794
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356796
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356797
+      },
+      "subscription": 216,
+      "type": "event"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356799
+      },
+      "subscription": 200,
+      "type": "event"
+    },
+    "node": 192,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356800
+      },
+      "subscription": 216,
+      "type": "event"
+    },
+    "node": 217,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356801
+      },
+      "subscription": 308,
+      "type": "event"
+    },
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356802
+      },
+      "subscription": 304,
+      "type": "event"
+    },
+    "node": 305,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356803
+      },
+      "subscription": 304,
+      "type": "event"
+    },
+    "node": 305,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356808
+      },
+      "subscription": 288,
+      "type": "event"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356810
+      },
+      "subscription": 288,
+      "type": "event"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356811
+      },
+      "subscription": 288,
+      "type": "event"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356813
+      },
+      "subscription": 304,
+      "type": "event"
+    },
+    "node": 305,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356814
+      },
+      "subscription": 288,
+      "type": "event"
+    },
+    "node": 280,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356816
+      },
+      "subscription": 304,
+      "type": "event"
+    },
+    "node": 305,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356817
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356818
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356819
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356820
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356824
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "complete",
+        "time": 1486713356825
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356829
+      },
+      "subscription": 45,
+      "type": "event"
+    },
+    "node": 42,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356830
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356832
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356833
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356835
+      },
+      "subscription": 55,
+      "type": "event"
+    },
+    "node": 28,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356836
+      },
+      "subscription": 263,
+      "type": "event"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356838
+      },
+      "subscription": 331,
+      "type": "event"
+    },
+    "node": 254,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356839
+      },
+      "subscription": 166,
+      "type": "event"
+    },
+    "node": 163,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356841
+      },
+      "subscription": 167,
+      "type": "event"
+    },
+    "node": 162,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356842
+      },
+      "subscription": 230,
+      "type": "event"
+    },
+    "node": 227,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356844
+      },
+      "subscription": 231,
+      "type": "event"
+    },
+    "node": 226,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356845
+      },
+      "subscription": 318,
+      "type": "event"
+    },
+    "node": 315,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356847
+      },
+      "subscription": 319,
+      "type": "event"
+    },
+    "node": 314,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356848
+      },
+      "subscription": 46,
+      "type": "event"
+    },
+    "node": 39,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356849
+      },
+      "subscription": 49,
+      "type": "event"
+    },
+    "node": 34,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356850
+      },
+      "subscription": 54,
+      "type": "event"
+    },
+    "node": 29,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356851
+      },
+      "subscription": 263,
+      "type": "event"
+    },
+    "node": 256,
+    "type": "label"
+  },
+  {
+    "label": {
+      "event": {
+        "type": "dispose",
+        "time": 1486713356851
+      },
+      "subscription": 331,
+      "type": "event"
+    },
+    "node": 254,
+    "type": "label"
+  }
+]

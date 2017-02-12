@@ -22,6 +22,11 @@ detail {
   text-align: left;
 }
 
+detail {
+  max-width: 50%;
+}
+
+
 #app {
   background: white;
   display: flex;
@@ -37,6 +42,8 @@ top {
   padding: 0 5px;
   background: #262626;
   color: #e2e2e2;
+  flex: 0;
+  min-width: 100%;
 }
 
 #svg {
@@ -59,6 +66,7 @@ app {
   display: flex;
   flex-direction: row;
   width: 100%;
+  min-height: 100%;
   overflow-y: auto;
 }
 
@@ -67,6 +75,7 @@ path.branch:hover { stroke: darkslategray; }
 
 #marbles {
   flex: 1;
+  padding-left: 15px;
   padding-right: 15px;
 }
 
@@ -88,6 +97,12 @@ master > * {
 
 .operator.withStack {
   line-height: 25px;
+}
+
+.operator div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .operator div + div {
@@ -142,15 +157,12 @@ master > * {
     marker-end: url(#arrow);
 }
 
-detail {
-  flex: 0;
-}
-
 master {
   flex: 1;
-  display: flex;
-  flex-direction: row;
+  /*display: flex;
+  flex-direction: row;*/
   stroke: black;
+  max-width: 50%;
 }
 
 master path {

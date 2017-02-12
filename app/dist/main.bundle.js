@@ -1,92 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
-function callRecordType(record) {
-    if (record.subjectName === "Observable" ||
-        record.subjectName === "Observable.prototype" ||
-        record.subjectName === "ObservableBase.prototype" ||
-        record.subjectName.indexOf("Observable") >= 0) {
-        if (record.method === "subscribe" || record.method === "_subscribe" || record.method === "__subscribe") {
-            return "subscribe";
-        }
-        return "setup";
-    }
-    else {
-        return "event";
-    }
-}
-exports.callRecordType = callRecordType;
-
-},{}],2:[function(require,module,exports){
-"use strict";
-const logger_1 = require("./logger");
-class Event {
-    constructor(type, time) {
-        this.type = type;
-        this.time = time;
-    }
-    static fromRecord(record) {
-        switch (record.method) {
-            case "next":
-            case "error":
-            case "completed":
-                return;
-            case "onNext":
-                return new Next(record.time, record.arguments[0]);
-            case "onError":
-            case "fail":
-                return new Error(record.time, record.arguments[0]);
-            case "onCompleted":
-                return new Complete(record.time);
-            case "subscribe":
-            case "_subscribe":
-            case "__subscribe":
-                return new Subscribe(record.time);
-            case "dispose":
-                return new Dispose(record.time);
-            default: break;
-        }
-    }
-    static fromJson(input) {
-        switch (input.type) {
-            case "next": return new Next(input.time, input.value);
-            case "error": return new Error(input.time, input.error);
-            case "complete": return new Complete(input.time);
-            case "subscribe": return new Subscribe(input.time);
-            case "dispose": return new Dispose(input.time);
-            default: return null;
-        }
-    }
-}
-exports.Event = Event;
-class Next extends Event {
-    constructor(time, value) {
-        super("next", time);
-        this.value = logger_1.formatArguments([value]);
-    }
-}
-exports.Next = Next;
-class Error extends Event {
-    constructor(time, error) {
-        super("error", time);
-        this.error = error;
-    }
-}
-exports.Error = Error;
-class Complete extends Event {
-    constructor(time) { super("complete", time); }
-}
-exports.Complete = Complete;
-class Subscribe extends Event {
-    constructor(time) { super("subscribe", time); }
-}
-exports.Subscribe = Subscribe;
-class Dispose extends Event {
-    constructor(time) { super("dispose", time); }
-}
-exports.Dispose = Dispose;
-
-},{"./logger":6}],3:[function(require,module,exports){
-"use strict";
 require("../utils");
 const graphlib_1 = require("graphlib");
 const _ = require("lodash");
@@ -234,7 +147,10 @@ function rankFromTopGraph(g) {
     let ranks = rankFromTop(g);
     let allSet = true;
     ranked.nodes().map(n => {
-        ranked.node(n).rank = ranks[n];
+        let node = ranked.node(n);
+        if (typeof node === "object") {
+            node.rank = ranks[n];
+        }
         if (typeof ranks[n] === "undefined") {
             allSet = false;
             console.error("No rank for " + n, ranks);
@@ -560,19 +476,11 @@ function toDot(graph, props, edgeProps) {
 }
 exports.toDot = toDot;
 
-},{"../utils":18,"graphlib":112,"lodash":153}],4:[function(require,module,exports){
+},{"../utils":14,"graphlib":109,"lodash":150}],2:[function(require,module,exports){
 "use strict";
-const event_1 = require("./event");
-const logger_1 = require("./logger");
 const Rx = require("rx");
 class JsonCollector {
     constructor(url) {
-        this.data = [];
-        this.indices = {
-            observables: {},
-            stackframes: {},
-            subscriptions: {},
-        };
         this.subject = new Rx.Subject();
         this.write = () => {
             // intentionally left blank
@@ -596,935 +504,14 @@ class JsonCollector {
         }
         this.dataObs = this.subject.asObservable();
     }
-    get length() {
-        return this.data.length;
-    }
-    getLog(id) {
-        return this.data[id];
-    }
-    getStack(id) {
-        if (this.data[id] instanceof logger_1.AddStackFrame) {
-            return this.data[id];
-        }
-        else {
-            return null;
-        }
-    }
-    getObservable(id) {
-        if (this.data[id] instanceof logger_1.AddObservable) {
-            return this.data[id];
-        }
-        else {
-            return null;
-        }
-    }
-    getSubscription(id) {
-        if ("observableId" in this.data[id]) {
-            return this.data[id];
-        }
-        else {
-            return null;
-        }
-    }
-    getEvent(id) {
-        if (this.data[id] instanceof logger_1.AddEvent) {
-            return this.data[id];
-        }
-        else {
-            return null;
-        }
-    }
     receive(v) {
         this.subject.onNext(v);
-        if ("event" in v && "subscription" in v) {
-            let r = this.merge(new logger_1.AddEvent(), v, {
-                event: event_1.Event.fromJson(v.event)
-            });
-            this.data.push(r);
-            // index
-            let index = this.indices.subscriptions[r.subscription];
-            if (typeof index === "undefined") {
-                index = this.indices.subscriptions[r.subscription] = { events: [], scoping: [] };
-            }
-            index.events.push(this.data.length - 1);
-        }
-        if ("observableId" in v) {
-            let r = this.merge(new logger_1.AddSubscriptionImpl(), v);
-            this.data.push(r);
-            // index
-            if (typeof r.scopeId !== "undefined") {
-                if (typeof this.indices.subscriptions[r.scopeId] === "object") {
-                    this.indices.subscriptions[r.scopeId].scoping.push(r.id);
-                }
-                else {
-                    console.warn("Invalid index", this.indices, "scopeId", r.scopeId, "id", r.id);
-                }
-            }
-        }
-        if ("stackframe" in v) {
-            let r = this.merge(new logger_1.AddStackFrame(), v);
-            this.data.push(r);
-            // index
-            this.indices.stackframes[r.stackframe.source] = r.id;
-        }
-        if ("method" in v) {
-            let r = this.merge(new logger_1.AddObservable(), v);
-            this.data.push(r);
-            // index
-            this.indices.observables[r.id] = { childs: [], inner: [], subscriptions: [] };
-            r.parents.forEach(parent => {
-                let index = this.indices.observables[parent];
-                if (typeof index !== "undefined") {
-                    index.childs.push(r.id);
-                }
-            });
-        }
-    }
-    merge(fresh, ...inputs) {
-        for (let input of inputs) {
-            for (let key in input) {
-                if (input.hasOwnProperty(key)) {
-                    fresh[key] = input[key];
-                }
-            }
-        }
-        return fresh;
     }
 }
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = JsonCollector;
 
-},{"./event":2,"./logger":6,"rx":156}],5:[function(require,module,exports){
-"use strict";
-const logger_1 = require("./logger");
-function subsLens(collector, subs) {
-    let events = () => {
-        let subsIds = subs().map(s => s && s.id).filter(v => typeof v !== "undefined");
-        return subsIds
-            .map(subId => collector.indices.subscriptions[subId].events)
-            .map(eventIds => eventIds.map(eid => collector.getEvent(eid)))
-            .reduce((list, next) => list.concat(next), [])
-            .map(e => e.event);
-    };
-    let scoping = () => {
-        return subs().map(s => s.id)
-            .map(subId => collector.indices.subscriptions[subId].scoping)
-            .reduce((list, ls) => list.concat(ls), [])
-            .map(subId => collector.getSubscription(subId));
-    };
-    return {
-        all: () => subs(),
-        completes: () => events().filter(e => e.type === "complete"),
-        errors: () => events().filter(e => e.type === "error"),
-        events,
-        nexts: () => events().filter(e => e.type === "next"),
-        scoping: () => subsLens(collector, scoping),
-    };
-}
-function obsLens(collector, get) {
-    let subs = () => {
-        let obsIds = get().map(o => o.id);
-        return obsIds
-            .map(id => collector.indices.observables[id].subscriptions)
-            .map(subIds => subIds.map(subId => collector.getSubscription(subId)))
-            .reduce((list, next) => list.concat(next), []);
-    };
-    return {
-        all: () => get(),
-        childs: () => {
-            let query = () => get()
-                .map(_ => collector.indices.observables[_.id].childs)
-                .reduce((list, _) => list.concat(_), [])
-                .map(i => collector.getObservable(i))
-                .filter(_ => typeof _.callParent === "undefined");
-            return obsLens(collector, query);
-        },
-        each: () => get().map(obs => obsLens(collector, () => [obs])),
-        internals: () => {
-            let query = () => {
-                let ids = get().map(o => o.id);
-                return collector.data
-                    .filter(o => o instanceof logger_1.AddObservable &&
-                    typeof o.callParent === "number" &&
-                    ids.indexOf(o.callParent) >= 0);
-            };
-            return obsLens(collector, query);
-        },
-        subscriptions: () => subsLens(collector, subs),
-    };
-}
-function lens(collector) {
-    return {
-        all: () => {
-            let obs = () => collector.data
-                .filter(e => e instanceof logger_1.AddObservable);
-            return obsLens(collector, obs);
-        },
-        find: (selector) => {
-            let obs = () => typeof selector === "number" ?
-                [collector.getObservable(selector)] :
-                collector.data.filter(e => e instanceof logger_1.AddObservable &&
-                    (e.method === selector));
-            return obsLens(collector, obs);
-        },
-        roots: () => {
-            let obs = () => collector.data
-                .filter(e => e instanceof logger_1.AddObservable && e.parents.length === 0);
-            return obsLens(collector, obs);
-        }
-    };
-}
-exports.lens = lens;
-
-},{"./logger":6}],6:[function(require,module,exports){
-"use strict";
-const callrecord_1 = require("./callrecord");
-const event_1 = require("./event");
-const lens_1 = require("./lens");
-const Rx = require("rx");
-const ErrorStackParser = require("error-stack-parser");
-function isStream(v) {
-    return v instanceof Rx.Observable;
-}
-function isSubscription(v) {
-    return typeof v === "object" && v !== null && typeof v.dispose === "function";
-}
-function isObservable(v) {
-    return typeof v === "object" && v !== null && typeof v.subscribe === "function";
-}
-function formatArguments(args) {
-    return [].map.call(args, (a) => {
-        switch (typeof a) {
-            case "undefined": return "undefined";
-            case "object":
-                if (Array.isArray(a)) {
-                    return `[${formatArguments(a)}]`;
-                }
-                else {
-                    return a.toString() === "[object Object]" ? `[object ${a.constructor.name}]` : a;
-                }
-            case "function":
-                if (typeof a.__original === "function") {
-                    return a.__original.toString();
-                }
-                return a.toString();
-            case "string":
-                return a.substring(0, 512);
-            case "number":
-                return a;
-            default: throw new TypeError(`Invalid type ${typeof a}`);
-        }
-    }).join(", ");
-}
-exports.formatArguments = formatArguments;
-function last(list) {
-    return list.length >= 1 ? list[list.length - 1] : undefined;
-}
-function head(list) {
-    return list.length >= 1 ? list[0] : undefined;
-}
-function elvis(item, path) {
-    let next = typeof item === "object" && path.length && path[0] in item ? item[path[0]] : undefined;
-    if (path.length > 1) {
-        return elvis(next, path.slice(1));
-    }
-    else if (typeof next !== "undefined") {
-        return [next];
-    }
-    else {
-        return [];
-    }
-}
-function keys(obj) {
-    return Object.keys(obj);
-}
-function numkeys(obj) {
-    return Object.keys(obj)
-        .map(v => typeof v === "number" ? v : parseInt(v, 10))
-        .filter(v => !isNaN(v));
-}
-function instanceAddSubscription(input) {
-    return typeof input !== "undefined" && "observableId" in input && "id" in input;
-}
-exports.instanceAddSubscription = instanceAddSubscription;
-function guessing(value, ...args) {
-    console.warn("Guessed", value, ".", ...args);
-    return value;
-}
-function ascend(obj) {
-    let objs = Array.isArray(obj) ? obj : [obj];
-    let items = objs.filter(o => o)
-        .map(_ => Object.keys(_).map(key => _[key]))
-        .reduce((list, n) => list.concat(n, []), []);
-    return {
-        items,
-        ascend: () => ascend(items),
-    };
-}
-function ascendingFind(target, test, maxLevel = 10) {
-    if (test(target)) {
-        return target;
-    }
-    let result = ascend(target);
-    let level = 0;
-    do {
-        let finding = result.items.find(test);
-        if (typeof finding !== "undefined") {
-            return finding;
-        }
-        result = result.ascend();
-        level++;
-    } while (level < maxLevel);
-}
-class AddStackFrame {
-}
-exports.AddStackFrame = AddStackFrame;
-class AddStructureEntry {
-}
-exports.AddStructureEntry = AddStructureEntry;
-class AddObservable {
-    inspect(depth, opts) {
-        return `AddObservable(${this.method || this.constructor.name}, id: ${this.id}, parents: [${this.parents}])`;
-    }
-    toString() {
-        return this.inspect(0);
-    }
-}
-exports.AddObservable = AddObservable;
-class AddSubscriptionImpl {
-    inspect(depth, opts) {
-        return `AddSubscription(${this.id}, 
-      observable: ${this.observableId}, sinks: [${this.sinks}], scope: ${this.scopeId})`;
-    }
-    toString() {
-        return this.inspect(0);
-    }
-}
-exports.AddSubscriptionImpl = AddSubscriptionImpl;
-class AddEvent {
-}
-exports.AddEvent = AddEvent;
-class ObserverSet {
-    constructor(observable) {
-        this.ids = [];
-        this.relations = [];
-        this.tags = {};
-        this.observable = observable;
-    }
-    inspect(depth, opts) {
-        let ts = depth > 0 ? numkeys(this.tags).map(v => {
-            return this.tags[v] ? `\n\t${v}: ${this.tags[v].join(",")}` : v;
-        }) : "[..]";
-        return `ObservableSet(o: ${this.observable}, [${this.ids}], ${ts})`;
-    }
-    toString() {
-        return this.inspect(1);
-    }
-}
-exports.ObserverSet = ObserverSet;
-class ObserverStorage {
-    constructor() {
-        this.sets = [];
-        this.observableToSets = {};
-        this.observerToSet = {};
-        this.observerToObservable = {};
-    }
-    set(forObservable, forObserver) {
-        let set;
-        let setId;
-        if (typeof this.observerToSet[forObserver] !== "undefined") {
-            setId = this.observerToSet[forObserver];
-            set = this.sets[setId];
-        }
-        else {
-            set = new ObserverSet(forObservable);
-            this.observableToSets[forObservable] = (this.observableToSets[forObservable] || []).concat([set]);
-            setId = this.sets.push(set) - 1;
-        }
-        function addTag(observer, tag) {
-            if (typeof set.tags[observer] === "undefined") {
-                set.tags[observer] = [];
-            }
-            if (set.tags[observer].indexOf(tag) < 0) {
-                set.tags[observer].push(tag);
-            }
-        }
-        return {
-            addCore: (observer, ...tags) => {
-                if (set.ids.indexOf(observer) < 0) {
-                    set.ids.push(observer);
-                }
-                tags.forEach(t => addTag(observer, t));
-                this.observerToSet[observer] = setId;
-                this.observerToObservable[observer] = forObservable;
-            },
-            addRelation: (observer, ...tags) => {
-                if (set.relations.indexOf(observer) < 0) {
-                    set.relations.push(observer);
-                }
-                tags.forEach(t => addTag(observer, t));
-            },
-        };
-    }
-}
-exports.ObserverStorage = ObserverStorage;
-function existsSomewhereIn(obj, search) {
-    let searched = [];
-    let depth = 0;
-    let toBeSearched = keys(obj).map(key => ({ key, value: obj[key] }));
-    while (toBeSearched.length && depth++ < 3) {
-        let found = toBeSearched.find(v => search.indexOf(v.value) >= 0);
-        if (found) {
-            return found.key;
-        }
-        searched.push(...toBeSearched.map(pair => pair.value));
-        toBeSearched = toBeSearched
-            .filter(pair => typeof pair.value === "object" && pair.value !== null)
-            .flatMap(p => keys(p.value).map(k => ({ key: p.key + "." + k, value: p.value[k] })))
-            .filter(pair => searched.indexOf(pair.value) < 0);
-    }
-    return;
-}
-class NewCollector {
-    constructor() {
-        this.collectorId = Collector.collectorId++;
-        this.messages = [];
-        this.observerStorage = new ObserverStorage();
-        this.groups = [];
-        this.groupId = 0;
-        this.collectorId = Collector.collectorId++;
-        this.hash = this.collectorId ? `__hash${this.collectorId}` : "__hash";
-    }
-    observerToObs(observer) {
-        let oid = typeof observer === "number" ? observer : this.id(observer).get();
-        return this.observerStorage.observerToObservable[oid];
-    }
-    before(record, parents) {
-        this.tags(record.subject, ...record.arguments);
-        switch (callrecord_1.callRecordType(record)) {
-            case "setup":
-                // Track group entry
-                this.groups.slice(-1).forEach(g => g.used = true);
-                this.groups.push({ call: record, id: this.groupId++, used: false });
-                break;
-            case "subscribe":
-                [].filter.call(record.arguments, isSubscription)
-                    .forEach((sub) => {
-                    let set = this.observerStorage.set(this.id(record.subject).get(), this.id(sub).get());
-                    set.addCore(this.id(sub).get(), "1");
-                    // Add subscription label
-                    this.messages.push({
-                        label: {
-                            id: this.id(sub).get(),
-                            type: "subscription",
-                        },
-                        node: this.id(record.subject).get(),
-                        type: "label",
-                    });
-                    // Find higher order sink:
-                    // see if this sub has higher order sinks
-                    // TODO verify robustness of .parent & add other patterns
-                    if (sub.parent) {
-                        set.addRelation(this.id(sub.parent).get(), "3 higher sink");
-                        let parentObs = this.observerToObs(sub.parent);
-                        // Add subscription link
-                        this.messages.push({
-                            edge: {
-                                label: {
-                                    id: this.id(sub).get(),
-                                    parent: this.id(sub.parent).get(),
-                                    type: "higherOrderSubscription sink",
-                                },
-                                v: this.id(record.subject).get(),
-                                w: parentObs,
-                            },
-                            id: this.messages.length,
-                            type: "edge",
-                        });
-                    }
-                    // Find sink:
-                    // see if this sub links to record.parent.arguments.0 => link
-                    if (record.parent) {
-                        let ps = [].filter.call(record.parent.arguments, isSubscription);
-                        let key = existsSomewhereIn(sub, ps);
-                        if (key) {
-                            let sinks = elvis(sub, key.split("."));
-                            // console.log(
-                            //   record.subject.constructor.name, "-|>",
-                            //   sinks.map(v => v.constructor.name))
-                            sinks.forEach(sink => {
-                                set.addRelation(this.id(sink).get(), "2 sink");
-                                this.messages.push({
-                                    edge: {
-                                        label: {
-                                            type: "subscription sink",
-                                            v: this.id(sub).get(),
-                                            w: this.id(sink).get(),
-                                        },
-                                        v: this.observerToObs(sub),
-                                        w: this.observerToObs(sink),
-                                    },
-                                    id: this.messages.length,
-                                    type: "edge",
-                                });
-                            });
-                        }
-                    }
-                });
-                break;
-            case "event":
-                let event = event_1.Event.fromRecord(record);
-                if (event && event.type === "subscribe" || typeof event === "undefined") {
-                    break;
-                }
-                let e = {
-                    edge: { label: event, v: 0, w: 0 },
-                    type: "edge",
-                };
-                this.messages.push(e);
-            default:
-        }
-        return this;
-    }
-    after(record) {
-        this.tags(record.returned);
-        switch (callrecord_1.callRecordType(record)) {
-            case "setup":
-                let group = this.groups.pop();
-                if (!isObservable(record.returned)) {
-                    break;
-                }
-                let observable = this.id(record.returned).get();
-                let observableSources = [record.subject, ...record.arguments]
-                    .filter(v => isObservable(v) && !isSubscription(v))
-                    .map(v => this.id(v).get());
-                this.messages.push({
-                    group: group.used ? group.id : undefined,
-                    groups: this.groups.map(g => g.id),
-                    label: {
-                        args: formatArguments(record.arguments),
-                        kind: "observable",
-                        method: record.method,
-                    },
-                    node: observable,
-                    type: "label",
-                });
-                this.messages.push(...observableSources.map(source => ({
-                    edge: {
-                        label: {
-                            time: record.time,
-                        },
-                        v: source,
-                        w: observable,
-                    },
-                    groups: this.groups.map(g => g.id),
-                    type: "edge",
-                })));
-                break;
-            case "subscribe":
-                break;
-            default:
-        }
-        return;
-    }
-    wrapHigherOrder(subject, fn) {
-        let self = this;
-        if (typeof fn === "function") {
-            let wrap = function wrapper(val, id, subjectSuspect) {
-                let result = fn.apply(this, arguments);
-                if (typeof result === "object" && isStream(result) && subjectSuspect) {
-                    return self.proxy(result);
-                }
-                return result;
-            };
-            wrap.__original = fn;
-            return wrap;
-        }
-        return fn;
-    }
-    proxy(target) {
-        return new Proxy(target, {
-            get: (obj, name) => {
-                if (name === "isScoped") {
-                    return true;
-                }
-                return obj[name];
-            },
-        });
-    }
-    tags(...items) {
-        items.forEach(item => {
-            if (typeof item !== "object") {
-                return;
-            }
-            if (isSubscription(item) || isObservable(item)) {
-                // Find in structure
-                if (isSubscription(item) && isSubscription(item.observer)) {
-                    this.tags(item.observer);
-                }
-                this.id(item).getOrSet(() => {
-                    let id = this.messages.length;
-                    if (isObservable(item)) {
-                        this.messages.push({
-                            id,
-                            node: {
-                                name: item.constructor.name || item.toString(),
-                            },
-                            type: "node",
-                        });
-                    }
-                    return id;
-                });
-            }
-        });
-    }
-    id(obs) {
-        return {
-            get: () => typeof obs !== "undefined" && obs !== null ? obs[this.hash] : undefined,
-            getOrSet: (orSet) => {
-                if (typeof obs[this.hash] === "undefined") {
-                    obs[this.hash] = orSet();
-                }
-                return obs[this.hash];
-            },
-            set: (n) => obs[this.hash] = n,
-        };
-    }
-}
-exports.NewCollector = NewCollector;
-class Collector {
-    constructor() {
-        this.indices = {
-            observables: {},
-            stackframes: {},
-            subscriptions: {},
-        };
-        this.data = [];
-        this.allRecords = [];
-        this.trace = [];
-        this.queue = [];
-        this.groups = [];
-        this.collectorId = Collector.collectorId++;
-        this.hash = this.collectorId ? `__hash${this.collectorId}` : "__hash";
-    }
-    static reset() {
-        this.collectorId = 0;
-    }
-    lens() {
-        return lens_1.lens(this);
-    }
-    before(record, parents) {
-        this.allRecords.push(record);
-        this.queue.push(record);
-        this.trace.push({
-            groups: this.groups.map(g => g.call.method),
-            kind: "before",
-            method: record.method,
-        });
-        switch (callrecord_1.callRecordType(record)) {
-            case "setup": {
-                // Track group entry
-                this.groups.push({
-                    call: record,
-                    id: 0,
-                    used: false,
-                });
-                let item = new AddStructureEntry();
-                item.id = this.data.length;
-                item.method = record.method;
-                item.parents = [];
-                if (typeof record.subject !== "undefined") {
-                    item.parents.push(this.observable(record.subject));
-                }
-                this.data.push(item);
-                break;
-            }
-            default: break;
-        }
-        return this;
-    }
-    after(record) {
-        this.trace.push({
-            kind: "after",
-            method: record.method,
-        });
-        if (callrecord_1.callRecordType(record) === "setup") {
-            // Track group entry
-            this.groups.pop();
-        }
-        switch (callrecord_1.callRecordType(record)) {
-            case "setup": {
-                this.observable(record.returned, record);
-                break;
-            }
-            case "subscribe":
-                {
-                    let sinkSubscriber = ascendingFind(record.arguments[0], (o) => {
-                        return this.getSubscription(this.id(o).get()) && true || false;
-                    });
-                    new Array(record.returned).filter(o => typeof o === "object").forEach((observer) => {
-                        // Add higher order links, recording upstream nested 
-                        // observables (eg flatMap's inner FlatMapObservable)
-                        let scopeId = undefined;
-                        if (record.subject.isScoped) {
-                            let found = ascendingFind(record.arguments[0], (o) => {
-                                return this.observableForObserver(o) && true;
-                            });
-                            scopeId = this.id(found).get();
-                        }
-                        if (observer && record.subject) {
-                            // log subscribe
-                            let subid = this.subscription(observer, record.subject, scopeId, sinkSubscriber);
-                            // indices
-                            if (typeof scopeId !== "undefined") {
-                                this.indices.subscriptions[scopeId].scoping.push(subid);
-                            }
-                        }
-                    });
-                }
-                break;
-            case "event":
-                let sid = this.id(record.subject).get();
-                if (this.getObservable(sid)) {
-                    // console.log("Subject", this.getObservable(sid), "found", "subs:",
-                    //   this.data.filter(e => sid === (e as any).observableId))
-                    let subs = this.data.filter(e => sid === e.observableId);
-                    if (subs.length === 1) {
-                        sid = subs[0].id;
-                    }
-                }
-                let event = event_1.Event.fromRecord(record);
-                if (event && event.type === "subscribe" || typeof event === "undefined") {
-                    return;
-                }
-                if (typeof sid !== "undefined") {
-                    let node = new AddEvent();
-                    node.event = event;
-                    node.subscription = sid;
-                    this.data.push(node);
-                    let index = this.indices.subscriptions[sid];
-                    if (typeof index === "undefined") {
-                        index = this.indices.subscriptions[sid] = { events: [], scoping: [] };
-                    }
-                    index.events.push(this.data.length - 1);
-                }
-                else {
-                    if (record.method === "dispose") {
-                    }
-                }
-                break;
-            default:
-                throw new Error("unreachable");
-        }
-    }
-    get length() {
-        return this.data.length;
-    }
-    getLog(id) {
-        return this.data[id];
-    }
-    getObservable(id) {
-        let node = this.data[id];
-        if (node instanceof AddObservable) {
-            return node;
-        }
-    }
-    getSubscription(id) {
-        let node = this.data[id];
-        if (node && node.kind === "subscription") {
-            return node;
-        }
-    }
-    getStack(id) {
-        let node = this.data[id];
-        if (node instanceof AddStackFrame) {
-            return node;
-        }
-    }
-    getEvent(id) {
-        let node = this.data[id];
-        if (node instanceof AddEvent) {
-            return node;
-        }
-    }
-    wrapHigherOrder(subject, fn) {
-        let self = this;
-        if (typeof fn === "function") {
-            return function wrapper(val, id, subjectSuspect) {
-                let result = fn.apply(this, arguments);
-                if (typeof result === "object" && isStream(result) && subjectSuspect) {
-                    return self.proxy(result);
-                }
-                return result;
-            };
-        }
-        return fn;
-    }
-    pretty(o) {
-        let id = this.id(o).get();
-        if (typeof id !== "undefined") {
-            let node = this.data[id];
-            if (instanceAddSubscription(node)) {
-                let obs = this.getObservable(node.observableId);
-                return `${o.constructor.name}(${id}, observable: ${obs})`;
-            }
-            if (node instanceof AddEvent) {
-                let oid = this.getSubscription(node.subscription).observableId;
-                return `${node.event.type}(subscription: ${node.subscription}, observable: ${oid})`;
-            }
-            if (node instanceof AddObservable) {
-                return `${o.constructor.name}(${id})`;
-            }
-        }
-        return `anonymous ${o.constructor.name}`;
-    }
-    proxy(target) {
-        return new Proxy(target, {
-            get: (obj, name) => {
-                if (name === "isScoped") {
-                    return true;
-                }
-                return obj[name];
-            },
-        });
-    }
-    stackFrame(record) {
-        if (typeof record === "undefined" || typeof record.stack === "undefined") {
-            return undefined;
-        }
-        // Code Location
-        let parsed = ErrorStackParser.parse(record);
-        return parsed.slice(1, 3).reduceRight((prev, stack) => {
-            let id = this.indices.stackframes[stack.source];
-            if (typeof id === "undefined") {
-                this.indices.stackframes[stack.source] = id = this.data.length;
-                let node = new AddStackFrame();
-                node.id = id;
-                node.stackframe = stack;
-                node.parent = prev;
-                this.data.push(node);
-            }
-            return id;
-        }, undefined);
-    }
-    observableForObserver(observer) {
-        let id = this.id(observer).get();
-        if (typeof id === "undefined") {
-            return;
-        }
-        let node = this.getSubscription(id);
-        let obs = node && this.getObservable(node.observableId) || undefined;
-        return obs;
-    }
-    enrichWithCall(node, record, observable) {
-        if (typeof node.method !== "undefined") {
-            return;
-        }
-        node.stack = this.stackFrame(record);
-        node.arguments = record && record.arguments;
-        node.method = record && record.method || observable.constructor.name;
-        // Add call-parent
-        if (record && record.parent) {
-        }
-        else if (this.queue.length > 0) {
-        }
-        let parents = [record && record.subject].concat(record && record.arguments)
-            .filter(isStream)
-            .map((arg) => this.observable(arg));
-        node.parents = parents;
-        this.indices.observables[node.id] = { childs: [], inner: [], subscriptions: [] };
-        parents.forEach(parent => {
-            let index = this.indices.observables[parent];
-            if (typeof index !== "undefined") {
-                index.childs.push(node.id);
-            }
-        });
-    }
-    observable(obs, record) {
-        let existingId = this.id(obs).get();
-        if (typeof record !== "undefined" &&
-            typeof existingId !== "undefined" &&
-            typeof this.data[existingId] !== "undefined") {
-            this.enrichWithCall(this.getObservable(existingId), record, obs);
-        }
-        // ensure all dependencies are tagged
-        [record && record.subject].concat(record && record.arguments)
-            .filter(isStream)
-            .map((arg) => this.observable(arg));
-        return (this.id(obs).getOrSet(() => {
-            // if (typeof record !== "undefined") {
-            let node = new AddObservable();
-            node.id = this.data.length;
-            node.parents = [];
-            this.data.push(node);
-            this.enrichWithCall(node, record, obs);
-            return node.id;
-            // }
-        }));
-    }
-    /**
-     * AnonymousObservable uses AnonymousObserver to subscribe, which does not list its sinks.
-     * We can guess though, that the previously created observer is the sink
-     */
-    heuristicallyGetSinkSubscribers() {
-        if (this.getSubscription(this.data.length - 1)) {
-            return [guessing(this.data.length - 1, "No sink Observer found, using previous Observer as most probable sink.")];
-        }
-        return [];
-    }
-    subscription(sub, observable, scopeId, sink) {
-        let obsId = this.observable(observable);
-        let create = (id) => {
-            let sinks = sink ? [this.id(sink).get()] : this.heuristicallyGetSinkSubscribers();
-            let node = new AddSubscriptionImpl();
-            this.data.push(node);
-            node.id = id;
-            node.sinks = sinks;
-            node.observableId = obsId;
-            if (typeof scopeId !== "undefined") {
-                node.scopeId = scopeId;
-            }
-            this.indices.subscriptions[id] = { events: [], scoping: [] };
-            let index = this.indices.observables[node.observableId];
-            if (typeof index !== "undefined") {
-                index.subscriptions.push(id);
-            }
-        };
-        // if (typeof (<any>observable).onNext !== "undefined") {
-        //   console.warn("subject!!!", sub, observable)
-        // }
-        // let maybeSubject: AddObservable = this.getObservable(this.id(sub).get())
-        // if (typeof maybeSubject !== "undefined") {
-        //   console.warn("subject!!!")
-        //   let id = this.id(sub).get()
-        //   let node = create(id)
-        //   Object.assign(this.data[id], node)
-        //   return this.id(sub).get()
-        // }
-        return this.id(sub).getOrSet(() => {
-            let id = this.data.length;
-            create(id);
-            return id;
-        });
-    }
-    id(obs) {
-        return {
-            get: () => typeof obs !== "undefined" && obs !== null ? obs[this.hash] : undefined,
-            getOrSet: (orSet) => {
-                if (typeof obs[this.hash] === "undefined") {
-                    obs[this.hash] = orSet();
-                }
-                return obs[this.hash];
-            },
-            set: (n) => obs[this.hash] = n,
-        };
-    }
-}
-Collector.collectorId = 0;
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.default = Collector;
-
-},{"./callrecord":1,"./event":2,"./lens":5,"error-stack-parser":60,"rx":156}],7:[function(require,module,exports){
+},{"rx":153}],3:[function(require,module,exports){
 "use strict";
 const graphlib_1 = require("graphlib");
 const _ = require("lodash");
@@ -1656,7 +643,7 @@ function dotEscape(n) {
     return n.match(/[\-.()]/) ? `"${n.replace(/[()]/g, "")}"` : n;
 }
 
-},{"graphlib":112,"lodash":153}],8:[function(require,module,exports){
+},{"graphlib":109,"lodash":150}],4:[function(require,module,exports){
 /* tslint:disable:one-variable-per-declaration */
 /* tslint:disable:switch-default */
 /* tslint:disable:no-bitwise */
@@ -1710,7 +697,7 @@ function generateColors(count) {
 }
 exports.generateColors = generateColors;
 
-},{}],9:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 const index_1 = require("./index");
 function sorting(a, b) {
@@ -1770,7 +757,7 @@ function order_crossings(order, g) {
 }
 exports.order_crossings = order_crossings;
 
-},{"./index":10}],10:[function(require,module,exports){
+},{"./index":6}],6:[function(require,module,exports){
 "use strict";
 require("../utils");
 function neg(d) { return d === "up" ? "down" : "up"; }
@@ -1805,7 +792,7 @@ function edges(g, direction, nodes) {
 }
 exports.edges = edges;
 
-},{"../utils":18}],11:[function(require,module,exports){
+},{"../utils":14}],7:[function(require,module,exports){
 "use strict";
 const index_1 = require("./index");
 function wmedian(ranks, g, dir, externalSort) {
@@ -1856,7 +843,7 @@ function median(list) {
 }
 exports.median = median;
 
-},{"./index":10}],12:[function(require,module,exports){
+},{"./index":6}],8:[function(require,module,exports){
 "use strict";
 const graphutils_1 = require("../collector/graphutils");
 function normalize(g, createDummy) {
@@ -1915,7 +902,7 @@ function paired(list, f) {
     return list.slice(1).map((w, i) => f(list[i], w, i));
 }
 
-},{"../collector/graphutils":3}],13:[function(require,module,exports){
+},{"../collector/graphutils":1}],9:[function(require,module,exports){
 "use strict";
 const crossings_1 = require("./crossings");
 const median_1 = require("./median");
@@ -1990,7 +977,7 @@ function fixingSort(fixed) {
 }
 exports.fixingSort = fixingSort;
 
-},{"./crossings":9,"./median":11,"./transpose":15}],14:[function(require,module,exports){
+},{"./crossings":5,"./median":7,"./transpose":11}],10:[function(require,module,exports){
 "use strict";
 const index_1 = require("./index");
 function priorityLayout(ranks, g, focusNodes = []) {
@@ -2106,7 +1093,7 @@ function priorityLayoutAlign(items) {
 }
 exports.priorityLayoutAlign = priorityLayoutAlign;
 
-},{"./index":10}],15:[function(require,module,exports){
+},{"./index":6}],11:[function(require,module,exports){
 "use strict";
 require("../utils");
 const crossings_1 = require("./crossings");
@@ -2146,7 +1133,7 @@ function swap(list, i, j) {
     list[j] = tmp;
 }
 
-},{"../utils":18,"./crossings":9,"./index":10}],16:[function(require,module,exports){
+},{"../utils":14,"./crossings":5,"./index":6}],12:[function(require,module,exports){
 "use strict";
 const visualization_1 = require("./visualization");
 const dom_1 = require("@cycle/dom");
@@ -2157,7 +1144,7 @@ const rxmarbles_1 = require("rxmarbles");
 const jsonCollector_1 = require("./collector/jsonCollector");
 const Observable = Rx.Observable;
 window.Rx = Rx;
-let collector = new jsonCollector_1.default("F_newstyle.json");
+let collector = new jsonCollector_1.default("G_newstyle.json");
 // let collector = new Collector()
 // let instrumentation = new Instrumentation(defaultSubjects, collector)
 // instrumentation.setup()
@@ -2259,7 +1246,7 @@ ids.addEventListener("click", () => {
 });
 c();
 
-},{"./collector/jsonCollector":4,"./visualization":19,"@cycle/dom":33,"@cycle/rx-run":55,"immutable":133,"rx":156,"rxmarbles":182}],17:[function(require,module,exports){
+},{"./collector/jsonCollector":2,"./visualization":15,"@cycle/dom":31,"@cycle/rx-run":53,"immutable":130,"rx":153,"rxmarbles":178}],13:[function(require,module,exports){
 ///<reference path="extensions.d.ts"/>
 Object.values = function objectValues(obj) {
     let values = [];
@@ -2271,7 +1258,9 @@ Object.values = function objectValues(obj) {
     return values;
 };
 
-},{}],18:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
+/* tslint:disable:no-namespace */
+/* tslint:disable:interface-name */
 "use strict";
 function flatMap(f) {
     return this.reduce((p, n, index) => p.concat(f(n, index)), []);
@@ -2289,57 +1278,89 @@ function endsWith(self, suffix) {
 }
 exports.endsWith = endsWith;
 ;
+function last(list) {
+    return list.length >= 1 ? list[list.length - 1] : undefined;
+}
+exports.last = last;
+function head(list) {
+    return list.length >= 1 ? list[0] : undefined;
+}
+exports.head = head;
 
-},{}],19:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 "use strict";
+const graphutils_1 = require("../collector/graphutils");
 const typedgraph_1 = require("../collector/typedgraph");
 const color_1 = require("../color");
 require("../object/extensions");
 require("../utils");
 const layout_1 = require("./layout");
+const marbles_1 = require("./marbles");
+const morph_1 = require("./morph");
 const Rx = require("rx");
 const snabbdom_1 = require("snabbdom");
 const attributes_1 = require("snabbdom/modules/attributes");
 const class_1 = require("snabbdom/modules/class");
 const eventlisteners_1 = require("snabbdom/modules/eventlisteners");
 const style_1 = require("snabbdom/modules/style");
-const patch = snabbdom_1.init([class_1.default, attributes_1.default, style_1.default, eventlisteners_1.default]);
-const emptyViewState = {
-    focusNodes: ["5", "39", "2"],
-    openGroups: [],
-    openGroupsAll: true,
-};
+const patch = snabbdom_1.init([class_1.default, attributes_1.default, style_1.default, eventlisteners_1.default, morph_1.default]);
 class Grapher {
     constructor(collector) {
         // this.viewState = viewState.startWith(emptyViewState)
         this.graph = collector.dataObs
-            .scan(this.next, new typedgraph_1.default());
+            .scan(grapherNext, {
+            main: new typedgraph_1.default(),
+            subscriptions: new typedgraph_1.default(),
+        });
         // .combineLatest(this.viewState, this.filter)
-    }
-    next(graph, event) {
-        switch (event.type) {
-            case "node":
-                graph.setNode(`${event.id}`, {
-                    labels: [],
-                    name: event.node.name,
-                });
-                break;
-            case "edge":
-                let e = graph.edge(`${event.edge.v}`, `${event.edge.w}`) || {
-                    labels: [],
-                };
-                e.labels.push(event);
-                graph.setEdge(`${event.edge.v}`, `${event.edge.w}`, e);
-                break;
-            case "label":
-                graph.node(`${event.node}`).labels.push(event);
-                break;
-            default: break;
-        }
-        return graph;
     }
 }
 exports.Grapher = Grapher;
+function setEdge(v, w, graph, nodeCreate, value) {
+    v = `${v}`;
+    w = `${w}`;
+    if (!graph.hasNode(v)) {
+        graph.setNode(v, nodeCreate());
+    }
+    if (!graph.hasNode(w)) {
+        graph.setNode(w, nodeCreate());
+    }
+    graph.setEdge(v, w, value);
+}
+function grapherNext(graphs, event) {
+    let { main, subscriptions } = graphs;
+    switch (event.type) {
+        case "node":
+            main.setNode(`${event.id}`, {
+                labels: [],
+                name: event.node.name,
+            });
+            break;
+        case "edge":
+            let e = main.edge(`${event.edge.v}`, `${event.edge.w}`) || {
+                labels: [],
+            };
+            e.labels.push(event);
+            let edgeLabel = event.edge.label;
+            if (edgeLabel.type === "subscription sink") {
+                setEdge(edgeLabel.v, edgeLabel.w, subscriptions, () => ({}));
+            }
+            setEdge(event.edge.v, event.edge.w, main, () => ({}), e);
+            break;
+        case "label":
+            (main.node(`${event.node}`) || main.node(`${event.label.subscription}`)).labels.push(event);
+            let label = event.label;
+            if (label.type === "subscription") {
+                subscriptions.setNode(label.id.toString(10), event.node);
+            }
+            break;
+        default: break;
+    }
+    ;
+    window.graph = graph;
+    return { main, subscriptions };
+}
+exports.grapherNext = grapherNext;
 class Visualizer {
     constructor(grapher, dom, controls) {
         // TODO workaround for Rx.Subject's
@@ -2349,41 +1370,24 @@ class Visualizer {
         this.app = dom;
         let inp = grapher.graph
             .debounce(10)
-            .combineLatest(this.viewState, (graph, state) => {
-            let filtered = this.filter(graph, state);
+            .combineLatest(this.viewState, (graphs, state) => {
+            let filtered = this.filter(graphs, state);
             return ({
-                focusNodes: state.focusNodes,
-                graph: filtered,
-                layout: layout_1.default(filtered, state.focusNodes),
+                graphs: filtered,
+                layout: layout_1.default(filtered.main, state.focusNodes),
+                viewState: state,
             });
         });
-        let { svg, clicks } = graph$(inp);
+        let { svg, clicks, groupClicks } = graph$(inp);
         this.DOM = svg;
         this.clicks = clicks;
-        // new StructureGraph().renderMarbles(graph, choices)
-        // let render: VNode[] = []
-        // let marbles: VNode[] = []
-        // sg.renderMarbles(graph, this.choices)
-        // let app = h("app", [
-        //   h("master", [svg(l)].concat(marbles)),
-        //   h("detail", [
-        //     h("svg", {
-        //       attrs: {
-        //         id: "svg",
-        //         style: "width: 200px; height: 200px",
-        //         version: "1.1",
-        //         xmlns: "http://www.w3.org/2000/svg",
-        //       },
-        //     }, render.concat(defs())),
-        //   ]),
-        // ])
-        // return app
+        this.groupClicks = groupClicks;
     }
     get viewState() {
         return this.focusNodes.startWith([]).combineLatest(this.openGroups.startWith([]), (fn, og) => ({
             focusNodes: fn,
             openGroups: og,
-            openGroupsAll: true,
+            openGroupsAll: false,
         }));
     }
     run() {
@@ -2393,6 +1397,10 @@ class Visualizer {
             .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
             .startWith([])
             .subscribe(this.focusNodes);
+        this.groupClicks
+            .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
+            .startWith([])
+            .subscribe(this.openGroups);
     }
     attach(node) {
         this.app = node;
@@ -2401,44 +1409,79 @@ class Visualizer {
     step() {
         this.run();
     }
-    filter(graph, viewState) {
-        return graph.filterNodes((id, node) => {
-            let groups = node.labels.flatMap(l => l.groups || []);
-            return viewState.openGroupsAll ||
-                !groups ||
-                groups.length === 0 ||
-                (groups.slice(-1).find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true);
-        });
+    filter(graphs, viewState) {
+        return {
+            main: graphs.main.filterNodes((id, node) => {
+                let annotations = (node ? node.labels || [] : [])
+                    .filter(ann => ann.label.type === "observable");
+                if (annotations.length === 0) {
+                    return true;
+                }
+                return annotations
+                    .some(ann => !ann.groups.length || ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0));
+                // let groups = node.labels.flatMap(l => l.groups && l.groups.slice(-1) || [])
+                // if (groups && groups.length > 0) {
+                //   console.log("groups", groups, "testing", groups.slice(-1)
+                //     .find(g => viewState.openGroups.indexOf(`${g}`) >= 0))
+                // }
+                // return viewState.openGroupsAll ||
+                //   !groups ||
+                //   groups.length === 0 ||
+                //   (groups.find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
+            }),
+            subscriptions: graphs.subscriptions,
+        };
     }
 }
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Visualizer;
 function graph$(inp) {
     let result = inp.map(data => {
-        return graph(data.layout, data.focusNodes, data.graph);
+        return graph(data.layout, data.viewState, data.graphs);
     }).publish().refCount();
     return {
         clicks: result.flatMap(_ => _.clicks),
+        groupClicks: result.flatMap(_ => _.groupClicks),
         svg: result.map(_ => _.svg),
     };
 }
 const u = 100;
 const mu = u / 2;
-function graph(l, focusNodes, graph) {
-    console.log("Layout", l);
+// tslint:disable-next-line:no-unused-variable
+function spath(ps) {
+    return "M" + ps.map(({ x, y }) => `${mu + mu * x} ${mu + mu * y}`).join(" L ");
+}
+function bpath(ps) {
+    let last = ps[ps.length - 1];
+    return "M " + mapTuples(ps, (a, b) => `${mu + mu * a.x} ${mu + mu * a.y} C ${mu * (1 + a.x)} ${mu * (1.5 + a.y)}, ${mu + mu * b.x} ${mu * (0.5 + b.y)}, `).join("") + ` ${mu + mu * last.x} ${mu + mu * last.y}`;
+}
+function mapTuples(list, f) {
+    let result = [];
+    for (let i = 1, ref = i - 1; i < list.length; i++, ref++) {
+        result.push(f(list[ref], list[i], ref, i));
+    }
+    return result;
+}
+exports.mapTuples = mapTuples;
+function graph(layout, viewState, graphs) {
+    console.log("Layout", layout);
+    let graph = graphs.main;
+    // Collect clicks in Subject
+    let clicks = new Rx.Subject();
+    let groupClicks = new Rx.Subject();
     function edge(edge) {
         let { v, w, points } = edge;
-        let labels = graph.edge(v, w).labels;
+        let labels = (graph.edge(v, w) || { labels: [] }).labels;
         let isHigher = labels.map(_ => _.edge.label).map((_) => _.type).indexOf("higherOrderSubscription sink") >= 0;
-        let path = points.map(({ x, y }) => `${mu + mu * x} ${mu + mu * y}`).join(" L ");
         return snabbdom_1.h("path", {
             attrs: {
-                d: `M${path}`,
+                d: bpath(points),
                 fill: "transparent",
                 id: `${v}/${w}`,
                 stroke: isHigher ? "rgba(200,0,0,0.1)" : "rgba(0,0,0,0.1)",
                 "stroke-width": 10,
             },
+            hook: { prepatch: morph_1.default.prepare },
             key: `${v}/${w}`,
             on: { click: () => console.log(v, w, labels) },
             style: {
@@ -2448,11 +1491,23 @@ function graph(l, focusNodes, graph) {
     }
     function circle(item) {
         let node = graph.node(item.id);
-        let labels = node.labels;
+        let labels = node.labels || [];
         let methods = labels.map(nl => nl.label)
-            .filter((label) => typeof label.kind !== "undefined" && label.kind === "observable");
-        let text = methods.slice(-1).map((l) => `${l.method}(${l.args})`)[0] || node.name || item.id;
-        let svg = snabbdom_1.h("circle", {
+            .filter(label => label.type === "observable")
+            .reverse();
+        let text = methods.map((l) => `${l.method}(${l.args})`).join(", ") || node.name || item.id;
+        // tslint:disable-next-line:no-unused-variable
+        let shade = snabbdom_1.h("circle", {
+            attrs: {
+                cx: mu + mu * item.x,
+                cy: mu + mu * item.y + 1,
+                fill: "rgba(0,0,0,.3)",
+                r: 5,
+            },
+            key: `circle-shade-${item.id}`,
+            style: { transition: "all 1s" },
+        });
+        let circ = snabbdom_1.h("circle", {
             attrs: {
                 cx: mu + mu * item.x,
                 cy: mu + mu * item.y,
@@ -2460,61 +1515,65 @@ function graph(l, focusNodes, graph) {
                 id: `circle-${item.id}`,
                 r: 5,
                 stroke: "black",
-                "stroke-width": focusNodes.indexOf(item.id) >= 0 ? 1 : 0,
+                "stroke-width": viewState.focusNodes.indexOf(item.id) >= 0 ? 1 : 0,
             },
             key: `circle-${item.id}`,
-            on: { click: (e) => clicks.onNext(item.id) },
+            on: {
+                click: (e) => clicks.onNext(item.id),
+                mouseover: (e) => console.log(item.id, labels),
+            },
             style: { transition: "all 1s" },
         });
+        let svg = [/*shade, */ circ];
         let html = snabbdom_1.h("div", {
             attrs: { class: "graph-label" },
             key: `overlay-${item.id}`,
-            on: { click: (e) => clicks.onNext(item.id) },
+            on: {
+                click: (e) => clicks.onNext(item.id),
+                mouseover: (e) => console.log(item.id, labels),
+            },
             style: {
                 left: `${mu + mu * item.x}px`,
                 top: `${mu + mu * item.y}px`,
                 transition: "all 1s",
             },
         }, [snabbdom_1.h("span", text)]);
-        // [
-        //   h("rect", {
-        //     attrs: {
-        //       fill: "rgba(0,0,0,.75)",
-        //       height: 20,
-        //       id: `rect-${item.id}`,
-        //       rx: 4,
-        //       ry: 4,
-        //       width: 30,
-        //       x: mu + mu * item.x + 8,
-        //       y: mu + mu * item.y - 10,
-        //     },
-        //     key: `rect-${item.id}`,
-        //     style: { transition: "all 1s" },
-        //   }),
-        //   h("text", {
-        //     attrs: {
-        //       fill: "white",
-        //       id: `text-${item.id}`,
-        //       x: mu + mu * item.x + 10,
-        //       y: mu + mu * item.y + 5,
-        //     },
-        //     key: `text-${item.id}`,
-        //     style: { transition: "all 1s" },
-        //   }, text),
-        // ])
-        return { html: [html], svg: [svg] };
+        return { html: [html], svg };
     }
-    let ns = l[0].nodes.map(circle);
-    let elements = l
-        .flatMap((level, levelIndex) => level.edges.map(edge))
-        .concat(ns.flatMap(n => n.svg));
-    let xmax = l
+    // groups
+    let grouped = graphutils_1.groupBy(n => n.group, layout[0].nodes
+        .flatMap(node => (graph.node(node.id).labels || [])
+        .flatMap(_ => _.groups)
+        .filter(_ => typeof _ === "number")
+        .map(group => ({ node, group }))));
+    let groups = Object.keys(grouped).map(k => ({ group: grouped[k], key: k }));
+    let gps = groups
+        .flatMap(({ group, key }, index) => group.map(_ => _.node).map(({ x, y }) => snabbdom_1.h("circle", {
+        attrs: {
+            cx: mu + mu * x,
+            cy: mu + mu * y,
+            fill: colorIndex(parseInt(key, 10), .3),
+            id: `group-${key}`,
+            r: mu / 4,
+        },
+        key: `group-${key}`,
+        style: {
+            transition: "all 1s",
+        },
+    })));
+    let ns = layout[0].nodes.map(circle);
+    let elements = [
+        snabbdom_1.h("g", gps),
+        snabbdom_1.h("g", layout.flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort)),
+        snabbdom_1.h("g", ns.flatMap(n => n.svg).sort(vnodeSort)),
+    ];
+    // Calculate SVG bounds
+    let xmax = layout
         .flatMap(level => level.nodes)
         .reduce((p, n) => Math.max(p, n.x), 0);
-    let ymax = l
+    let ymax = layout
         .flatMap(level => level.nodes)
         .reduce((p, n) => Math.max(p, n.y), 0);
-    let clicks = new Rx.Subject();
     let svg = snabbdom_1.h("svg", {
         attrs: {
             id: "structure",
@@ -2534,31 +1593,60 @@ function graph(l, focusNodes, graph) {
             id: "structure-mask",
         },
         style: {
-            height: (ymax + 2) * mu,
+            height: `${(ymax + 2) * mu}px`,
             position: "relative",
-            width: (xmax + 2) * mu,
+            width: `${(xmax + 2) * mu}px`,
         },
     }, [svg].concat(ns.flatMap(n => n.html)));
+    let controls = snabbdom_1.h("div", [
+        snabbdom_1.h("div", ["Groups: ", ...groups.flatMap(g => [snabbdom_1.h("span", {
+                    on: { click: () => groupClicks.onNext(g.key) },
+                }, g.key), ", "])]),
+        snabbdom_1.h("div", ["Open groups: ", ...viewState.openGroups.flatMap(key => [snabbdom_1.h("span", key), ", "])]),
+    ]);
+    let panel = snabbdom_1.h("div", [controls, mask]);
+    let diagram = [snabbdom_1.h("div")];
+    if (viewState.focusNodes.length) {
+        let subIds = graph.node(viewState.focusNodes[0])
+            .labels
+            .map(l => l.label)
+            .flatMap(l => l.type === "subscription" ? [l.id] : []);
+        let subId = subIds[0];
+        // tslint:disable-next-line:max-line-length
+        let inn = collect(subId.toString(10), w => graphs.subscriptions.hasNode(w) ? graphs.subscriptions.inEdges(w).map(e => e.v) : []);
+        let out = collect(subId.toString(10), v => graphs.subscriptions.hasNode(v) ? graphs.subscriptions.outEdges(v).map(e => e.w) : []);
+        let path = inn.reverse().concat([`${subId}`]).concat(out);
+        let input = path.map(v => graphs.main.node(graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`));
+        diagram = renderMarbles(input);
+    }
+    let app = snabbdom_1.h("app", [
+        snabbdom_1.h("master", panel),
+        snabbdom_1.h("detail", diagram),
+    ]);
     return {
-        svg: mask,
+        svg: app,
         clicks,
+        groupClicks,
     };
 }
+function collect(start, f) {
+    return f(start).flatMap(n => [n].concat(collect(n, f)));
+}
 const colors = color_1.generateColors(40);
-function colorIndex(i) {
+function colorIndex(i, alpha = 1) {
     if (typeof i === "undefined" || isNaN(i)) {
         return "transparent";
     }
     let [r, g, b] = colors[i % colors.length];
-    return `rgb(${r},${g},${b})`;
+    return alpha === 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
 }
 window.colors = colors;
 const defs = () => [snabbdom_1.h("defs", [
         snabbdom_1.h("filter", {
-            attrs: { height: "130%", id: "dropshadow" },
+            attrs: { height: "200%", id: "dropshadow", width: "200%" },
         }, [
-            snabbdom_1.h("feGaussianBlur", { attrs: { in: "SourceAlpha", stdDeviation: "3" } }),
-            snabbdom_1.h("feOffset", { attrs: { dx: 2, dy: 2, result: "offsetblur" } }),
+            snabbdom_1.h("feGaussianBlur", { attrs: { in: "SourceAlpha", stdDeviation: "2" } }),
+            snabbdom_1.h("feOffset", { attrs: { dx: 0, dy: 0, result: "offsetblur" } }),
             snabbdom_1.h("feMerge", [
                 snabbdom_1.h("feMergeNode"),
                 snabbdom_1.h("feMergeNode", { attrs: { in: "SourceGraphic" } }),
@@ -2587,8 +1675,33 @@ const defs = () => [snabbdom_1.h("defs", [
             },
         }, [snabbdom_1.h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
     ])];
+function vnodeSort(vna, vnb) {
+    return vna.key.toString().localeCompare(vnb.key.toString());
+}
+function renderMarbles(nodes) {
+    let coordinator = new marbles_1.MarbleCoordinator();
+    let all_events = nodes.flatMap(n => n.labels).map(l => l.label).flatMap(l => l.type === "event" ? [l] : []);
+    coordinator.add(all_events);
+    console.log("All events", all_events);
+    let root = snabbdom_1.h("div", {
+        attrs: {
+            id: "marbles",
+            style: `min-width: ${u * 2}px; height: ${u * (1.5 * nodes.length)}px`,
+        },
+    }, nodes.flatMap((node, i) => {
+        let obs = node.labels.map(_ => _.label).reverse().find(_ => _.type === "observable");
+        let events = node.labels.map(_ => _.label).filter(_ => _.type === "event").map((evl) => evl);
+        let clazz = "operator withoutStack";
+        let box = snabbdom_1.h("div", { attrs: { class: clazz } }, [
+            snabbdom_1.h("div", [], obs ? `${obs.method}(${obs.args})` : node.name),
+            snabbdom_1.h("div", [], "stackFrame locationText"),
+        ].filter((_, idx) => idx === 0));
+        return [box].concat([coordinator.render(events)]);
+    }));
+    return [root];
+}
 
-},{"../collector/typedgraph":7,"../color":8,"../object/extensions":17,"../utils":18,"./layout":20,"rx":156,"snabbdom":173,"snabbdom/modules/attributes":169,"snabbdom/modules/class":170,"snabbdom/modules/eventlisteners":171,"snabbdom/modules/style":172}],20:[function(require,module,exports){
+},{"../collector/graphutils":1,"../collector/typedgraph":3,"../color":4,"../object/extensions":13,"../utils":14,"./layout":16,"./marbles":17,"./morph":18,"rx":153,"snabbdom":170,"snabbdom/modules/attributes":166,"snabbdom/modules/class":167,"snabbdom/modules/eventlisteners":168,"snabbdom/modules/style":169}],16:[function(require,module,exports){
 "use strict";
 const graphutils_1 = require("../collector/graphutils");
 const normalize_1 = require("../layout/normalize");
@@ -2637,7 +1750,339 @@ function layout(graph, focusNodes = []) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = layout;
 
-},{"../collector/graphutils":3,"../layout/normalize":12,"../layout/ordering":13,"../layout/priority":14,"../object/extensions":17,"../utils":18}],21:[function(require,module,exports){
+},{"../collector/graphutils":1,"../layout/normalize":8,"../layout/ordering":9,"../layout/priority":10,"../object/extensions":13,"../utils":14}],17:[function(require,module,exports){
+"use strict";
+const h_1 = require("snabbdom/h");
+function isEvent(n) {
+    return "time" in n && "type" in n &&
+        n.type === "next" ||
+        n.type === "error" || n.type === "compnete" ||
+        n.type === "subscribe" || n.type === "dispose";
+}
+class MarbleCoordinator {
+    // Calc bounds
+    add(edges) {
+        let events = edges.map(_ => _.event);
+        let times = events.map(e => e.time);
+        this.min = times.reduce((m, n) => typeof m !== "undefined" ? Math.min(m, n) : n, this.min);
+        this.max = times.reduce((m, n) => typeof m !== "undefined" ? Math.max(m, n) : n, this.max);
+    }
+    // Rendering
+    render(edges) {
+        let events = edges.map(_ => _.event);
+        let marbles = events.map(e => h_1.h("svg", {
+            attrs: { x: `${this.relTime(e.time)}%`, y: "50%" },
+        }, [h_1.h("path", {
+                attrs: { class: "arrow", d: "M 0 -50 L 0 48" },
+            }), h_1.h("circle", {
+                attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
+            })]));
+        return h_1.h("svg", {
+            attrs: {
+                class: "marblediagram",
+            },
+        }, [
+            h_1.h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
+        ].concat(marbles).concat(defs()));
+    }
+    relTime(t) {
+        return (t - this.min) / (this.max - this.min) * 95 + 2.5;
+    }
+}
+exports.MarbleCoordinator = MarbleCoordinator;
+const defs = () => [h_1.h("defs", [
+        h_1.h("marker", {
+            attrs: {
+                id: "arrow",
+                markerHeight: 10,
+                markerUnits: "strokeWidth",
+                markerWidth: 10,
+                orient: "auto",
+                overflow: "visible",
+                refx: 0, refy: 3,
+            },
+        }, [h_1.h("path", { attrs: { d: "M-4,-2 L-4,2 L0,0 z", fill: "inherit" } })]),
+        h_1.h("marker", {
+            attrs: {
+                id: "arrow-reverse",
+                markerHeight: 10,
+                markerUnits: "strokeWidth",
+                markerWidth: 10,
+                orient: "auto",
+                overflow: "visible",
+                refx: 0, refy: 3,
+            },
+        }, [h_1.h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
+    ])];
+
+},{"snabbdom/h":163}],18:[function(require,module,exports){
+"use strict";
+let morphModule = {
+    prepare: (oldVNode, vnode) => {
+        if (typeof oldVNode.data.attrs === "object" && typeof vnode.data.attrs === "object") {
+            if (typeof oldVNode.data.attrs.d === "string" && typeof vnode.data.attrs.d === "string") {
+                prepare(oldVNode, vnode);
+            }
+        }
+    },
+    update: (oldVNode, vnode) => {
+        if (typeof vnode.data.morph === "object") {
+            if (typeof vnode.data.morph["--final-d"] === "string") {
+                keepEdgePointsEqual(oldVNode, vnode);
+            }
+        }
+    },
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = morphModule;
+let raf = (typeof window !== "undefined" && window.requestAnimationFrame) || setTimeout;
+let nextFrame = (fn) => { raf(() => { raf(fn); }); };
+function prepare(oldVNode, vnode) {
+    let elm = oldVNode.elm;
+    if (!elm) {
+        console.warn("Prepatch without vnode element", oldVNode, vnode);
+        return;
+    }
+    let oldAttrs = oldVNode.data.attrs || {};
+    let attrs = vnode.data.attrs || {};
+    let morph = vnode.data.morph = {};
+    let od = oldAttrs.d;
+    let nd = attrs.d;
+    if (od === nd) {
+        return;
+    }
+    let ocs = svgControls(od).join("");
+    let ncs = svgControls(nd).join("");
+    if (ocs === ncs) {
+        return;
+    }
+    let expand = Math.abs(ocs.length - ncs.length);
+    if (ocs.length < ncs.length) {
+        // Expand
+        let path = Path.parse(od).expand(expand).toString();
+        morph["--current-d"] = od;
+        morph["--immediate-d"] = path;
+        morph["--final-d"] = attrs.d;
+        attrs.d = path;
+    }
+    else {
+        // Contract
+        let path = Path.parse(nd).expand(expand).toString();
+        morph["--current-d"] = od;
+        morph["--nextframe-d"] = path;
+        morph["--final-d"] = nd;
+        attrs.d = od;
+    }
+}
+/**
+ * Ensures Edges keep the same amount of points.
+ * Animation is only possible if the d attributes contains an equal amount of control points.
+ */
+function keepEdgePointsEqual(oldVNode, vnode) {
+    let elm = vnode.elm;
+    let morph = vnode.data.morph || {};
+    let attrs = vnode.data.attrs || {};
+    let final = morph["--final-d"];
+    if (typeof morph["--immediate-d"] === "string") {
+        if (elm.morphListener) {
+            elm.removeEventListener("transitionend", elm.morphListener);
+        }
+        nextFrame(() => {
+            elm.setAttribute("d", final);
+            attrs.d = final;
+        });
+    }
+    else {
+        let listener = (ev) => {
+            if (ev.target !== elm) {
+                return;
+            }
+            elm.setAttribute("d", final);
+            elm.removeEventListener("transitionend", listener);
+        };
+        elm.addEventListener("transitionend", listener);
+        elm.setAttribute("d", morph["--nextframe-d"]);
+        elm.morphListener = listener;
+        nextFrame(() => {
+            attrs.d = final;
+        });
+    }
+    delete vnode.data.morph;
+}
+class Point {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    toString() {
+        return `${this.x} ${this.y}`;
+    }
+    delta(other) {
+        return { dx: other.x - this.x, dy: other.y - this.y };
+    }
+}
+exports.Point = Point;
+class Path {
+    static parse(path) {
+        return new Path(Segment.parsePath(path));
+    }
+    constructor(segments) {
+        this.segments = segments;
+    }
+    toString() {
+        return this.segments.join(" ");
+    }
+    expand(adjust) {
+        let output = this.segments.map((s, i) => i === this.segments.length - 1 ? s.expand(adjust) : s);
+        return new Path(output);
+    }
+}
+exports.Path = Path;
+class Segment {
+    static parsePath(path) {
+        let ms = path.match(/[MLHVZCSQTA](([\s,]*([\d\.\_]+)+)*)/ig);
+        let ss = ms.map(match => {
+            let ps = match.substr(1).split(/[\s,]+/).filter(p => p.length > 0).map(n => parseFloat(n));
+            return new Segment(match[0], ps);
+        });
+        return ss.reduce((p, n) => Segment.addOrConcat(p, n), []);
+    }
+    static addOrConcat(list, next) {
+        let last = tail(list);
+        return last ? list.slice(0, list.length - 1).concat(last.combine(next)) : [next];
+    }
+    get x() {
+        return this.points[this.points.length - 2];
+    }
+    get y() {
+        return this.points[this.points.length - 1];
+    }
+    get ps() {
+        let arr = [];
+        for (let i = 0; i + 1 < this.points.length; i += 2) {
+            arr.push(new Point(this.points[i], this.points[i + 1]));
+        }
+        return arr;
+    }
+    get isAbsolute() {
+        return this.modifier.toUpperCase() === this.modifier;
+    }
+    get deltas() {
+        switch (this.modifier) {
+            case "M":
+            case "L":
+            case "C":
+                return sliced(this.ps, 2, 1)
+                    .map(([a, b]) => ({ dx: b.x - a.x, dy: b.y - a.y }));
+            case "m":
+            case "l":
+            case "c":
+                return this.ps.map(({ x, y }) => ({ dx: x, dy: y }));
+            default: throw new Error("deltas() not implemented for " + this.modifier);
+        }
+    }
+    get ratios() {
+        return this.deltas
+            .filter(v => !(v.dx === 0 && v.dy === 0))
+            .map(v => v.dx / v.dy);
+    }
+    get isStraight() {
+        if (this.points.length === 2) {
+            return true;
+        }
+        let ratio = this.ratios
+            .reduce((p, n) => typeof p === "number" ? p === n && n : (typeof p === "undefined" ? n : false), undefined);
+        return typeof ratio === "number";
+    }
+    get multiplicity() {
+        switch (this.modifier) {
+            case "M":
+            case "m":
+            case "L":
+            case "l":
+                return 1;
+            case "Q":
+            case "q":
+                return 2;
+            case "C":
+            case "c":
+                return 3;
+            default: return 0;
+        }
+    }
+    get slack() {
+        return Math.max(0, this.points.length / (this.multiplicity * 2) - 1);
+    }
+    constructor(modifier, points) {
+        this.modifier = modifier;
+        this.points = points;
+    }
+    expand(adjust) {
+        let ps = this.points.slice(0);
+        // Duplicate end n times
+        let arr = Array.apply(null, { length: this.multiplicity * adjust }).flatMap((_) => ps.slice(-2));
+        ps.splice(ps.length, 0, ...arr);
+        return new Segment(this.modifier, ps);
+    }
+    toString() {
+        switch (this.modifier) {
+            case "c":
+            case "C":
+                return sliced(this.ps, 3, 3).map(ps => "C " + ps.join(",")).join(" ");
+            default: return this.ps.map(p => `${this.modifier} ${p}`).join(" ");
+        }
+    }
+    combine(other) {
+        if (other.modifier === this.modifier) {
+            let deltas;
+            if (other.isAbsolute) {
+                deltas = this.deltas.concat([tail(this.ps).delta(other.ps[0])]).concat(other.deltas);
+            }
+            else {
+                deltas = this.deltas.concat(other.deltas);
+            }
+            let rs = ratio(deltas);
+            if (typeof rs !== "boolean") {
+                return [new Segment(this.modifier, this.points.concat(other.points))];
+            }
+        }
+        return [this, other];
+    }
+}
+exports.Segment = Segment;
+function ratio(deltas) {
+    if (deltas.length === 1) {
+        return undefined;
+    }
+    let ratios = deltas
+        .filter(v => !(v.dx === 0 && v.dy === 0))
+        .map(v => v.dx / v.dy);
+    return ratios
+        .reduce((p, n) => typeof p === "number" ? p === n && n : (typeof p === "undefined" ? n : false), undefined);
+}
+const SVGControlChars = "MLHVZCSQTA";
+const SVGControls = new RegExp(`^[${SVGControlChars}]{1}$`, "i");
+function svgControls(d) {
+    return d.split("").filter(c => SVGControls.test(c));
+}
+function tail(list) {
+    return list[list.length - 1];
+}
+function assert(b, message) {
+    if (!b) {
+        throw new Error("Assertion failed" + (message ? `: ${message}` : ""));
+    }
+    return;
+}
+function sliced(list, size, step) {
+    let output = [];
+    for (let i = 0; i + size <= list.length; i += step) {
+        output.push(list.slice(i, i + size));
+    }
+    return output;
+}
+
+},{}],19:[function(require,module,exports){
 "use strict";
 function logToConsoleError(err) {
     var target = err.stack || err;
@@ -2748,7 +2193,7 @@ function Cycle(main, drivers, options) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Cycle;
 
-},{}],22:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
@@ -2785,7 +2230,7 @@ var BodyDOMSource = (function () {
 }());
 exports.BodyDOMSource = BodyDOMSource;
 
-},{"./fromEvent":30,"@cycle/xstream-adapter":56,"xstream":181}],23:[function(require,module,exports){
+},{"./fromEvent":28,"@cycle/xstream-adapter":54,"xstream":177}],21:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
@@ -2822,7 +2267,7 @@ var DocumentDOMSource = (function () {
 }());
 exports.DocumentDOMSource = DocumentDOMSource;
 
-},{"./fromEvent":30,"@cycle/xstream-adapter":56,"xstream":181}],24:[function(require,module,exports){
+},{"./fromEvent":28,"@cycle/xstream-adapter":54,"xstream":177}],22:[function(require,module,exports){
 "use strict";
 var ScopeChecker_1 = require('./ScopeChecker');
 var utils_1 = require('./utils');
@@ -2865,7 +2310,7 @@ var ElementFinder = (function () {
 }());
 exports.ElementFinder = ElementFinder;
 
-},{"./ScopeChecker":28,"./utils":41,"matches-selector":154}],25:[function(require,module,exports){
+},{"./ScopeChecker":26,"./utils":39,"matches-selector":151}],23:[function(require,module,exports){
 "use strict";
 var ScopeChecker_1 = require('./ScopeChecker');
 var utils_1 = require('./utils');
@@ -3000,7 +2445,7 @@ var EventDelegator = (function () {
 }());
 exports.EventDelegator = EventDelegator;
 
-},{"./ScopeChecker":28,"./utils":41,"matches-selector":154}],26:[function(require,module,exports){
+},{"./ScopeChecker":26,"./utils":39,"matches-selector":151}],24:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
@@ -3028,7 +2473,7 @@ var HTMLSource = (function () {
 }());
 exports.HTMLSource = HTMLSource;
 
-},{"@cycle/xstream-adapter":56,"xstream":181}],27:[function(require,module,exports){
+},{"@cycle/xstream-adapter":54,"xstream":177}],25:[function(require,module,exports){
 "use strict";
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
 var DocumentDOMSource_1 = require('./DocumentDOMSource');
@@ -3226,7 +2671,7 @@ var MainDOMSource = (function () {
 }());
 exports.MainDOMSource = MainDOMSource;
 
-},{"./BodyDOMSource":22,"./DocumentDOMSource":23,"./ElementFinder":24,"./EventDelegator":25,"./fromEvent":30,"./isolate":34,"./utils":41,"@cycle/xstream-adapter":56,"matches-selector":154,"xstream":181}],28:[function(require,module,exports){
+},{"./BodyDOMSource":20,"./DocumentDOMSource":21,"./ElementFinder":22,"./EventDelegator":23,"./fromEvent":28,"./isolate":32,"./utils":39,"@cycle/xstream-adapter":54,"matches-selector":151,"xstream":177}],26:[function(require,module,exports){
 "use strict";
 var ScopeChecker = (function () {
     function ScopeChecker(scope, isolateModule) {
@@ -3249,7 +2694,7 @@ var ScopeChecker = (function () {
 }());
 exports.ScopeChecker = ScopeChecker;
 
-},{}],29:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 "use strict";
 var hyperscript_1 = require('./hyperscript');
 var classNameFromVNode_1 = require('snabbdom-selector/lib/classNameFromVNode');
@@ -3282,7 +2727,7 @@ var VNodeWrapper = (function () {
 }());
 exports.VNodeWrapper = VNodeWrapper;
 
-},{"./hyperscript":32,"snabbdom-selector/lib/classNameFromVNode":157,"snabbdom-selector/lib/selectorParser":158}],30:[function(require,module,exports){
+},{"./hyperscript":30,"snabbdom-selector/lib/classNameFromVNode":154,"snabbdom-selector/lib/selectorParser":155}],28:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 function fromEvent(element, eventName, useCapture) {
@@ -3301,7 +2746,7 @@ function fromEvent(element, eventName, useCapture) {
 }
 exports.fromEvent = fromEvent;
 
-},{"xstream":181}],31:[function(require,module,exports){
+},{"xstream":177}],29:[function(require,module,exports){
 "use strict";
 var hyperscript_1 = require('./hyperscript');
 function isValidString(param) {
@@ -3374,7 +2819,7 @@ TAG_NAMES.forEach(function (n) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exported;
 
-},{"./hyperscript":32}],32:[function(require,module,exports){
+},{"./hyperscript":30}],30:[function(require,module,exports){
 "use strict";
 var is = require('snabbdom/is');
 var vnode = require('snabbdom/vnode');
@@ -3438,7 +2883,7 @@ function h(sel, b, c) {
 exports.h = h;
 ;
 
-},{"snabbdom/is":44,"snabbdom/vnode":53}],33:[function(require,module,exports){
+},{"snabbdom/is":42,"snabbdom/vnode":51}],31:[function(require,module,exports){
 "use strict";
 var thunk = require('snabbdom/thunk');
 exports.thunk = thunk;
@@ -3723,7 +3168,7 @@ exports.u = hyperscript_helpers_1.default.u;
 exports.ul = hyperscript_helpers_1.default.ul;
 exports.video = hyperscript_helpers_1.default.video;
 
-},{"./hyperscript":32,"./hyperscript-helpers":31,"./makeDOMDriver":36,"./makeHTMLDriver":37,"./mockDOMSource":38,"snabbdom/thunk":52}],34:[function(require,module,exports){
+},{"./hyperscript":30,"./hyperscript-helpers":29,"./makeDOMDriver":34,"./makeHTMLDriver":35,"./mockDOMSource":36,"snabbdom/thunk":50}],32:[function(require,module,exports){
 "use strict";
 var utils_1 = require('./utils');
 function isolateSource(source, scope) {
@@ -3749,7 +3194,7 @@ function isolateSink(sink, scope) {
 }
 exports.isolateSink = isolateSink;
 
-},{"./utils":41}],35:[function(require,module,exports){
+},{"./utils":39}],33:[function(require,module,exports){
 "use strict";
 var MapPolyfill = require('es6-map');
 var IsolateModule = (function () {
@@ -3854,7 +3299,7 @@ var IsolateModule = (function () {
 }());
 exports.IsolateModule = IsolateModule;
 
-},{"es6-map":100}],36:[function(require,module,exports){
+},{"es6-map":97}],34:[function(require,module,exports){
 "use strict";
 var snabbdom_1 = require('snabbdom');
 var xstream_1 = require('xstream');
@@ -3913,7 +3358,7 @@ function makeDOMDriver(container, options) {
 }
 exports.makeDOMDriver = makeDOMDriver;
 
-},{"./MainDOMSource":27,"./VNodeWrapper":29,"./isolateModule":35,"./modules":39,"./transposition":40,"./utils":41,"@cycle/xstream-adapter":56,"es6-map":100,"snabbdom":51,"xstream":181}],37:[function(require,module,exports){
+},{"./MainDOMSource":25,"./VNodeWrapper":27,"./isolateModule":33,"./modules":37,"./transposition":38,"./utils":39,"@cycle/xstream-adapter":54,"es6-map":97,"snabbdom":49,"xstream":177}],35:[function(require,module,exports){
 "use strict";
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
 var transposition_1 = require('./transposition');
@@ -3942,7 +3387,7 @@ function makeHTMLDriver(effect, options) {
 }
 exports.makeHTMLDriver = makeHTMLDriver;
 
-},{"./HTMLSource":26,"./transposition":40,"@cycle/xstream-adapter":56,"snabbdom-to-html":160}],38:[function(require,module,exports){
+},{"./HTMLSource":24,"./transposition":38,"@cycle/xstream-adapter":54,"snabbdom-to-html":157}],36:[function(require,module,exports){
 "use strict";
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
 var xstream_1 = require('xstream');
@@ -4013,7 +3458,7 @@ function mockDOMSource(streamAdapter, mockConfig) {
 }
 exports.mockDOMSource = mockDOMSource;
 
-},{"@cycle/xstream-adapter":56,"xstream":181}],39:[function(require,module,exports){
+},{"@cycle/xstream-adapter":54,"xstream":177}],37:[function(require,module,exports){
 "use strict";
 var ClassModule = require('snabbdom/modules/class');
 exports.ClassModule = ClassModule;
@@ -4030,7 +3475,7 @@ exports.HeroModule = HeroModule;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = [StyleModule, ClassModule, PropsModule, AttrsModule];
 
-},{"snabbdom/modules/attributes":45,"snabbdom/modules/class":46,"snabbdom/modules/eventlisteners":47,"snabbdom/modules/hero":48,"snabbdom/modules/props":49,"snabbdom/modules/style":50}],40:[function(require,module,exports){
+},{"snabbdom/modules/attributes":43,"snabbdom/modules/class":44,"snabbdom/modules/eventlisteners":45,"snabbdom/modules/hero":46,"snabbdom/modules/props":47,"snabbdom/modules/style":48}],38:[function(require,module,exports){
 "use strict";
 var xstream_adapter_1 = require('@cycle/xstream-adapter');
 var xstream_1 = require('xstream');
@@ -4082,7 +3527,7 @@ function makeTransposeVNode(runStreamAdapter) {
 }
 exports.makeTransposeVNode = makeTransposeVNode;
 
-},{"@cycle/xstream-adapter":56,"xstream":181}],41:[function(require,module,exports){
+},{"@cycle/xstream-adapter":54,"xstream":177}],39:[function(require,module,exports){
 "use strict";
 function isElement(obj) {
     return typeof HTMLElement === "object" ?
@@ -4118,7 +3563,7 @@ function getSelectors(namespace) {
 }
 exports.getSelectors = getSelectors;
 
-},{}],42:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 var VNode = require('./vnode');
 var is = require('./is');
 
@@ -4153,7 +3598,7 @@ module.exports = function h(sel, b, c) {
   return VNode(sel, data, children, text, undefined);
 };
 
-},{"./is":44,"./vnode":53}],43:[function(require,module,exports){
+},{"./is":42,"./vnode":51}],41:[function(require,module,exports){
 function createElement(tagName){
   return document.createElement(tagName);
 }
@@ -4209,13 +3654,13 @@ module.exports = {
   setTextContent: setTextContent
 };
 
-},{}],44:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 module.exports = {
   array: Array.isArray,
   primitive: function(s) { return typeof s === 'string' || typeof s === 'number'; },
 };
 
-},{}],45:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 var booleanAttrs = ["allowfullscreen", "async", "autofocus", "autoplay", "checked", "compact", "controls", "declare", 
                 "default", "defaultchecked", "defaultmuted", "defaultselected", "defer", "disabled", "draggable", 
                 "enabled", "formnovalidate", "hidden", "indeterminate", "inert", "ismap", "itemscope", "loop", "multiple", 
@@ -4256,7 +3701,7 @@ function updateAttrs(oldVnode, vnode) {
 
 module.exports = {create: updateAttrs, update: updateAttrs};
 
-},{}],46:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 function updateClass(oldVnode, vnode) {
   var cur, name, elm = vnode.elm,
       oldClass = oldVnode.data.class || {},
@@ -4276,7 +3721,7 @@ function updateClass(oldVnode, vnode) {
 
 module.exports = {create: updateClass, update: updateClass};
 
-},{}],47:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 var is = require('../is');
 
 function arrInvoker(arr) {
@@ -4336,7 +3781,7 @@ function updateEventListeners(oldVnode, vnode) {
 
 module.exports = {create: updateEventListeners, update: updateEventListeners};
 
-},{"../is":44}],48:[function(require,module,exports){
+},{"../is":42}],46:[function(require,module,exports){
 var raf = (typeof window !== 'undefined' && window.requestAnimationFrame) || setTimeout;
 var nextFrame = function(fn) { raf(function() { raf(fn); }); };
 
@@ -4490,7 +3935,7 @@ function post() {
 
 module.exports = {pre: pre, create: create, destroy: destroy, post: post};
 
-},{}],49:[function(require,module,exports){
+},{}],47:[function(require,module,exports){
 function updateProps(oldVnode, vnode) {
   var key, cur, old, elm = vnode.elm,
       oldProps = oldVnode.data.props || {}, props = vnode.data.props || {};
@@ -4510,7 +3955,7 @@ function updateProps(oldVnode, vnode) {
 
 module.exports = {create: updateProps, update: updateProps};
 
-},{}],50:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 var raf = (typeof window !== 'undefined' && window.requestAnimationFrame) || setTimeout;
 var nextFrame = function(fn) { raf(function() { raf(fn); }); };
 
@@ -4576,7 +4021,7 @@ function applyRemoveStyle(vnode, rm) {
 
 module.exports = {create: updateStyle, update: updateStyle, destroy: applyDestroyStyle, remove: applyRemoveStyle};
 
-},{}],51:[function(require,module,exports){
+},{}],49:[function(require,module,exports){
 // jshint newcap: false
 /* global require, module, document, Node */
 'use strict';
@@ -4836,7 +4281,7 @@ function init(modules, api) {
 
 module.exports = {init: init};
 
-},{"./htmldomapi":43,"./is":44,"./vnode":53}],52:[function(require,module,exports){
+},{"./htmldomapi":41,"./is":42,"./vnode":51}],50:[function(require,module,exports){
 var h = require('./h');
 
 function copyToThunk(vnode, thunk) {
@@ -4884,14 +4329,14 @@ module.exports = function(sel, key, fn, args) {
   });
 };
 
-},{"./h":42}],53:[function(require,module,exports){
+},{"./h":40}],51:[function(require,module,exports){
 module.exports = function(sel, data, children, text, elm) {
   var key = data === undefined ? undefined : data.key;
   return {sel: sel, data: data, children: children,
           text: text, elm: elm, key: key};
 };
 
-},{}],54:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 "use strict";
 var Rx = require('rx');
 var RxJSAdapter = {
@@ -4939,7 +4384,7 @@ var RxJSAdapter = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = RxJSAdapter;
 
-},{"rx":156}],55:[function(require,module,exports){
+},{"rx":153}],53:[function(require,module,exports){
 "use strict";
 var base_1 = require('@cycle/base');
 var rx_adapter_1 = require('@cycle/rx-adapter');
@@ -5010,7 +4455,7 @@ Cycle.run = run;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Cycle;
 
-},{"@cycle/base":21,"@cycle/rx-adapter":54}],56:[function(require,module,exports){
+},{"@cycle/base":19,"@cycle/rx-adapter":52}],54:[function(require,module,exports){
 "use strict";
 var xstream_1 = require('xstream');
 var XStreamAdapter = {
@@ -5056,7 +4501,7 @@ var XStreamAdapter = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = XStreamAdapter;
 
-},{"xstream":181}],57:[function(require,module,exports){
+},{"xstream":177}],55:[function(require,module,exports){
 /*!
  * Cross-Browser Split 1.1.1
  * Copyright 2007-2012 Steven Levithan <stevenlevithan.com>
@@ -5164,7 +4609,7 @@ module.exports = (function split(undef) {
   return self;
 })();
 
-},{}],58:[function(require,module,exports){
+},{}],56:[function(require,module,exports){
 'use strict';
 
 var copy       = require('es5-ext/object/copy')
@@ -5197,7 +4642,7 @@ module.exports = function (props/*, bindTo*/) {
 	});
 };
 
-},{"es5-ext/object/copy":73,"es5-ext/object/map":81,"es5-ext/object/valid-callable":87,"es5-ext/object/valid-value":88}],59:[function(require,module,exports){
+},{"es5-ext/object/copy":70,"es5-ext/object/map":78,"es5-ext/object/valid-callable":84,"es5-ext/object/valid-value":85}],57:[function(require,module,exports){
 'use strict';
 
 var assign        = require('es5-ext/object/assign')
@@ -5262,226 +4707,7 @@ d.gs = function (dscr, get, set/*, options*/) {
 	return !options ? desc : assign(normalizeOpts(options), desc);
 };
 
-},{"es5-ext/object/assign":70,"es5-ext/object/is-callable":76,"es5-ext/object/normalize-options":82,"es5-ext/string/#/contains":89}],60:[function(require,module,exports){
-(function(root, factory) {
-    'use strict';
-    // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js, Rhino, and browsers.
-
-    /* istanbul ignore next */
-    if (typeof define === 'function' && define.amd) {
-        define('error-stack-parser', ['stackframe'], factory);
-    } else if (typeof exports === 'object') {
-        module.exports = factory(require('stackframe'));
-    } else {
-        root.ErrorStackParser = factory(root.StackFrame);
-    }
-}(this, function ErrorStackParser(StackFrame) {
-    'use strict';
-
-    var FIREFOX_SAFARI_STACK_REGEXP = /(^|@)\S+\:\d+/;
-    var CHROME_IE_STACK_REGEXP = /^\s*at .*(\S+\:\d+|\(native\))/m;
-    var SAFARI_NATIVE_CODE_REGEXP = /^(eval@)?(\[native code\])?$/;
-
-    function _map(array, fn, thisArg) {
-        if (typeof Array.prototype.map === 'function') {
-            return array.map(fn, thisArg);
-        } else {
-            var output = new Array(array.length);
-            for (var i = 0; i < array.length; i++) {
-                output[i] = fn.call(thisArg, array[i]);
-            }
-            return output;
-        }
-    }
-
-    function _filter(array, fn, thisArg) {
-        if (typeof Array.prototype.filter === 'function') {
-            return array.filter(fn, thisArg);
-        } else {
-            var output = [];
-            for (var i = 0; i < array.length; i++) {
-                if (fn.call(thisArg, array[i])) {
-                    output.push(array[i]);
-                }
-            }
-            return output;
-        }
-    }
-
-    function _indexOf(array, target) {
-        if (typeof Array.prototype.indexOf === 'function') {
-            return array.indexOf(target);
-        } else {
-            for (var i = 0; i < array.length; i++) {
-                if (array[i] === target) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-    }
-
-    return {
-        /**
-         * Given an Error object, extract the most information from it.
-         *
-         * @param {Error} error object
-         * @return {Array} of StackFrames
-         */
-        parse: function ErrorStackParser$$parse(error) {
-            if (typeof error.stacktrace !== 'undefined' || typeof error['opera#sourceloc'] !== 'undefined') {
-                return this.parseOpera(error);
-            } else if (error.stack && error.stack.match(CHROME_IE_STACK_REGEXP)) {
-                return this.parseV8OrIE(error);
-            } else if (error.stack) {
-                return this.parseFFOrSafari(error);
-            } else {
-                throw new Error('Cannot parse given Error object');
-            }
-        },
-
-        // Separate line and column numbers from a string of the form: (URI:Line:Column)
-        extractLocation: function ErrorStackParser$$extractLocation(urlLike) {
-            // Fail-fast but return locations like "(native)"
-            if (urlLike.indexOf(':') === -1) {
-                return [urlLike];
-            }
-
-            var regExp = /(.+?)(?:\:(\d+))?(?:\:(\d+))?$/;
-            var parts = regExp.exec(urlLike.replace(/[\(\)]/g, ''));
-            return [parts[1], parts[2] || undefined, parts[3] || undefined];
-        },
-
-        parseV8OrIE: function ErrorStackParser$$parseV8OrIE(error) {
-            var filtered = _filter(error.stack.split('\n'), function(line) {
-                return !!line.match(CHROME_IE_STACK_REGEXP);
-            }, this);
-
-            return _map(filtered, function(line) {
-                if (line.indexOf('(eval ') > -1) {
-                    // Throw away eval information until we implement stacktrace.js/stackframe#8
-                    line = line.replace(/eval code/g, 'eval').replace(/(\(eval at [^\()]*)|(\)\,.*$)/g, '');
-                }
-                var tokens = line.replace(/^\s+/, '').replace(/\(eval code/g, '(').split(/\s+/).slice(1);
-                var locationParts = this.extractLocation(tokens.pop());
-                var functionName = tokens.join(' ') || undefined;
-                var fileName = _indexOf(['eval', '<anonymous>'], locationParts[0]) > -1 ? undefined : locationParts[0];
-
-                return new StackFrame(functionName, undefined, fileName, locationParts[1], locationParts[2], line);
-            }, this);
-        },
-
-        parseFFOrSafari: function ErrorStackParser$$parseFFOrSafari(error) {
-            var filtered = _filter(error.stack.split('\n'), function(line) {
-                return !line.match(SAFARI_NATIVE_CODE_REGEXP);
-            }, this);
-
-            return _map(filtered, function(line) {
-                // Throw away eval information until we implement stacktrace.js/stackframe#8
-                if (line.indexOf(' > eval') > -1) {
-                    line = line.replace(/ line (\d+)(?: > eval line \d+)* > eval\:\d+\:\d+/g, ':$1');
-                }
-
-                if (line.indexOf('@') === -1 && line.indexOf(':') === -1) {
-                    // Safari eval frames only have function names and nothing else
-                    return new StackFrame(line);
-                } else {
-                    var tokens = line.split('@');
-                    var locationParts = this.extractLocation(tokens.pop());
-                    var functionName = tokens.join('@') || undefined;
-                    return new StackFrame(functionName,
-                        undefined,
-                        locationParts[0],
-                        locationParts[1],
-                        locationParts[2],
-                        line);
-                }
-            }, this);
-        },
-
-        parseOpera: function ErrorStackParser$$parseOpera(e) {
-            if (!e.stacktrace || (e.message.indexOf('\n') > -1 &&
-                e.message.split('\n').length > e.stacktrace.split('\n').length)) {
-                return this.parseOpera9(e);
-            } else if (!e.stack) {
-                return this.parseOpera10(e);
-            } else {
-                return this.parseOpera11(e);
-            }
-        },
-
-        parseOpera9: function ErrorStackParser$$parseOpera9(e) {
-            var lineRE = /Line (\d+).*script (?:in )?(\S+)/i;
-            var lines = e.message.split('\n');
-            var result = [];
-
-            for (var i = 2, len = lines.length; i < len; i += 2) {
-                var match = lineRE.exec(lines[i]);
-                if (match) {
-                    result.push(new StackFrame(undefined, undefined, match[2], match[1], undefined, lines[i]));
-                }
-            }
-
-            return result;
-        },
-
-        parseOpera10: function ErrorStackParser$$parseOpera10(e) {
-            var lineRE = /Line (\d+).*script (?:in )?(\S+)(?:: In function (\S+))?$/i;
-            var lines = e.stacktrace.split('\n');
-            var result = [];
-
-            for (var i = 0, len = lines.length; i < len; i += 2) {
-                var match = lineRE.exec(lines[i]);
-                if (match) {
-                    result.push(
-                        new StackFrame(
-                            match[3] || undefined,
-                            undefined,
-                            match[2],
-                            match[1],
-                            undefined,
-                            lines[i]
-                        )
-                    );
-                }
-            }
-
-            return result;
-        },
-
-        // Opera 10.65+ Error.stack very similar to FF/Safari
-        parseOpera11: function ErrorStackParser$$parseOpera11(error) {
-            var filtered = _filter(error.stack.split('\n'), function(line) {
-                return !!line.match(FIREFOX_SAFARI_STACK_REGEXP) && !line.match(/^Error created at/);
-            }, this);
-
-            return _map(filtered, function(line) {
-                var tokens = line.split('@');
-                var locationParts = this.extractLocation(tokens.pop());
-                var functionCall = (tokens.shift() || '');
-                var functionName = functionCall
-                        .replace(/<anonymous function(: (\w+))?>/, '$2')
-                        .replace(/\([^\)]*\)/g, '') || undefined;
-                var argsRaw;
-                if (functionCall.match(/\(([^\)]*)\)/)) {
-                    argsRaw = functionCall.replace(/^[^\(]+\(([^\)]*)\)$/, '$1');
-                }
-                var args = (argsRaw === undefined || argsRaw === '[arguments not available]') ?
-                    undefined : argsRaw.split(',');
-                return new StackFrame(
-                    functionName,
-                    args,
-                    locationParts[0],
-                    locationParts[1],
-                    locationParts[2],
-                    line);
-            }, this);
-        }
-    };
-}));
-
-
-},{"stackframe":176}],61:[function(require,module,exports){
+},{"es5-ext/object/assign":67,"es5-ext/object/is-callable":73,"es5-ext/object/normalize-options":79,"es5-ext/string/#/contains":86}],58:[function(require,module,exports){
 // Inspired by Google Closure:
 // http://closure-library.googlecode.com/svn/docs/
 // closure_goog_array_array.js.html#goog.array.clear
@@ -5495,7 +4721,7 @@ module.exports = function () {
 	return this;
 };
 
-},{"../../object/valid-value":88}],62:[function(require,module,exports){
+},{"../../object/valid-value":85}],59:[function(require,module,exports){
 'use strict';
 
 var toPosInt = require('../../number/to-pos-integer')
@@ -5526,7 +4752,7 @@ module.exports = function (searchElement/*, fromIndex*/) {
 	return -1;
 };
 
-},{"../../number/to-pos-integer":68,"../../object/valid-value":88}],63:[function(require,module,exports){
+},{"../../number/to-pos-integer":65,"../../object/valid-value":85}],60:[function(require,module,exports){
 'use strict';
 
 var toString = Object.prototype.toString
@@ -5535,14 +4761,14 @@ var toString = Object.prototype.toString
 
 module.exports = function (x) { return (toString.call(x) === id); };
 
-},{}],64:[function(require,module,exports){
+},{}],61:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./is-implemented')()
 	? Math.sign
 	: require('./shim');
 
-},{"./is-implemented":65,"./shim":66}],65:[function(require,module,exports){
+},{"./is-implemented":62,"./shim":63}],62:[function(require,module,exports){
 'use strict';
 
 module.exports = function () {
@@ -5551,7 +4777,7 @@ module.exports = function () {
 	return ((sign(10) === 1) && (sign(-20) === -1));
 };
 
-},{}],66:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
 'use strict';
 
 module.exports = function (value) {
@@ -5560,7 +4786,7 @@ module.exports = function (value) {
 	return (value > 0) ? 1 : -1;
 };
 
-},{}],67:[function(require,module,exports){
+},{}],64:[function(require,module,exports){
 'use strict';
 
 var sign = require('../math/sign')
@@ -5574,7 +4800,7 @@ module.exports = function (value) {
 	return sign(value) * floor(abs(value));
 };
 
-},{"../math/sign":64}],68:[function(require,module,exports){
+},{"../math/sign":61}],65:[function(require,module,exports){
 'use strict';
 
 var toInteger = require('./to-integer')
@@ -5583,7 +4809,7 @@ var toInteger = require('./to-integer')
 
 module.exports = function (value) { return max(0, toInteger(value)); };
 
-},{"./to-integer":67}],69:[function(require,module,exports){
+},{"./to-integer":64}],66:[function(require,module,exports){
 // Internal method, used by iteration functions.
 // Calls a function for each key-value pair found in object
 // Optionally takes compareFn to iterate object in specific order
@@ -5614,14 +4840,14 @@ module.exports = function (method, defVal) {
 	};
 };
 
-},{"./valid-callable":87,"./valid-value":88}],70:[function(require,module,exports){
+},{"./valid-callable":84,"./valid-value":85}],67:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./is-implemented')()
 	? Object.assign
 	: require('./shim');
 
-},{"./is-implemented":71,"./shim":72}],71:[function(require,module,exports){
+},{"./is-implemented":68,"./shim":69}],68:[function(require,module,exports){
 'use strict';
 
 module.exports = function () {
@@ -5632,7 +4858,7 @@ module.exports = function () {
 	return (obj.foo + obj.bar + obj.trzy) === 'razdwatrzy';
 };
 
-},{}],72:[function(require,module,exports){
+},{}],69:[function(require,module,exports){
 'use strict';
 
 var keys  = require('../keys')
@@ -5656,7 +4882,7 @@ module.exports = function (dest, src/*, …srcn*/) {
 	return dest;
 };
 
-},{"../keys":78,"../valid-value":88}],73:[function(require,module,exports){
+},{"../keys":75,"../valid-value":85}],70:[function(require,module,exports){
 'use strict';
 
 var assign = require('./assign')
@@ -5668,7 +4894,7 @@ module.exports = function (obj) {
 	return assign({}, obj);
 };
 
-},{"./assign":70,"./valid-value":88}],74:[function(require,module,exports){
+},{"./assign":67,"./valid-value":85}],71:[function(require,module,exports){
 // Workaround for http://code.google.com/p/v8/issues/detail?id=2804
 
 'use strict';
@@ -5706,19 +4932,19 @@ module.exports = (function () {
 	};
 }());
 
-},{"./set-prototype-of/is-implemented":85,"./set-prototype-of/shim":86}],75:[function(require,module,exports){
+},{"./set-prototype-of/is-implemented":82,"./set-prototype-of/shim":83}],72:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./_iterate')('forEach');
 
-},{"./_iterate":69}],76:[function(require,module,exports){
+},{"./_iterate":66}],73:[function(require,module,exports){
 // Deprecated
 
 'use strict';
 
 module.exports = function (obj) { return typeof obj === 'function'; };
 
-},{}],77:[function(require,module,exports){
+},{}],74:[function(require,module,exports){
 'use strict';
 
 var map = { function: true, object: true };
@@ -5727,14 +4953,14 @@ module.exports = function (x) {
 	return ((x != null) && map[typeof x]) || false;
 };
 
-},{}],78:[function(require,module,exports){
+},{}],75:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./is-implemented')()
 	? Object.keys
 	: require('./shim');
 
-},{"./is-implemented":79,"./shim":80}],79:[function(require,module,exports){
+},{"./is-implemented":76,"./shim":77}],76:[function(require,module,exports){
 'use strict';
 
 module.exports = function () {
@@ -5744,7 +4970,7 @@ module.exports = function () {
 	} catch (e) { return false; }
 };
 
-},{}],80:[function(require,module,exports){
+},{}],77:[function(require,module,exports){
 'use strict';
 
 var keys = Object.keys;
@@ -5753,7 +4979,7 @@ module.exports = function (object) {
 	return keys(object == null ? object : Object(object));
 };
 
-},{}],81:[function(require,module,exports){
+},{}],78:[function(require,module,exports){
 'use strict';
 
 var callable = require('./valid-callable')
@@ -5770,7 +4996,7 @@ module.exports = function (obj, cb/*, thisArg*/) {
 	return o;
 };
 
-},{"./for-each":75,"./valid-callable":87}],82:[function(require,module,exports){
+},{"./for-each":72,"./valid-callable":84}],79:[function(require,module,exports){
 'use strict';
 
 var forEach = Array.prototype.forEach, create = Object.create;
@@ -5789,7 +5015,7 @@ module.exports = function (options/*, …options*/) {
 	return result;
 };
 
-},{}],83:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 'use strict';
 
 var forEach = Array.prototype.forEach, create = Object.create;
@@ -5800,14 +5026,14 @@ module.exports = function (arg/*, …args*/) {
 	return set;
 };
 
-},{}],84:[function(require,module,exports){
+},{}],81:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./is-implemented')()
 	? Object.setPrototypeOf
 	: require('./shim');
 
-},{"./is-implemented":85,"./shim":86}],85:[function(require,module,exports){
+},{"./is-implemented":82,"./shim":83}],82:[function(require,module,exports){
 'use strict';
 
 var create = Object.create, getPrototypeOf = Object.getPrototypeOf
@@ -5820,7 +5046,7 @@ module.exports = function (/*customCreate*/) {
 	return getPrototypeOf(setPrototypeOf(customCreate(null), x)) === x;
 };
 
-},{}],86:[function(require,module,exports){
+},{}],83:[function(require,module,exports){
 // Big thanks to @WebReflection for sorting this out
 // https://gist.github.com/WebReflection/5593554
 
@@ -5895,7 +5121,7 @@ module.exports = (function (status) {
 
 require('../create');
 
-},{"../create":74,"../is-object":77,"../valid-value":88}],87:[function(require,module,exports){
+},{"../create":71,"../is-object":74,"../valid-value":85}],84:[function(require,module,exports){
 'use strict';
 
 module.exports = function (fn) {
@@ -5903,7 +5129,7 @@ module.exports = function (fn) {
 	return fn;
 };
 
-},{}],88:[function(require,module,exports){
+},{}],85:[function(require,module,exports){
 'use strict';
 
 module.exports = function (value) {
@@ -5911,14 +5137,14 @@ module.exports = function (value) {
 	return value;
 };
 
-},{}],89:[function(require,module,exports){
+},{}],86:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./is-implemented')()
 	? String.prototype.contains
 	: require('./shim');
 
-},{"./is-implemented":90,"./shim":91}],90:[function(require,module,exports){
+},{"./is-implemented":87,"./shim":88}],87:[function(require,module,exports){
 'use strict';
 
 var str = 'razdwatrzy';
@@ -5928,7 +5154,7 @@ module.exports = function () {
 	return ((str.contains('dwa') === true) && (str.contains('foo') === false));
 };
 
-},{}],91:[function(require,module,exports){
+},{}],88:[function(require,module,exports){
 'use strict';
 
 var indexOf = String.prototype.indexOf;
@@ -5937,7 +5163,7 @@ module.exports = function (searchString/*, position*/) {
 	return indexOf.call(this, searchString, arguments[1]) > -1;
 };
 
-},{}],92:[function(require,module,exports){
+},{}],89:[function(require,module,exports){
 'use strict';
 
 var toString = Object.prototype.toString
@@ -5949,7 +5175,7 @@ module.exports = function (x) {
 		((x instanceof String) || (toString.call(x) === id))) || false;
 };
 
-},{}],93:[function(require,module,exports){
+},{}],90:[function(require,module,exports){
 'use strict';
 
 var setPrototypeOf = require('es5-ext/object/set-prototype-of')
@@ -5981,7 +5207,7 @@ ArrayIterator.prototype = Object.create(Iterator.prototype, {
 	toString: d(function () { return '[object Array Iterator]'; })
 });
 
-},{"./":96,"d":59,"es5-ext/object/set-prototype-of":84,"es5-ext/string/#/contains":89}],94:[function(require,module,exports){
+},{"./":93,"d":57,"es5-ext/object/set-prototype-of":81,"es5-ext/string/#/contains":86}],91:[function(require,module,exports){
 'use strict';
 
 var isArguments = require('es5-ext/function/is-arguments')
@@ -6029,7 +5255,7 @@ module.exports = function (iterable, cb/*, thisArg*/) {
 	}
 };
 
-},{"./get":95,"es5-ext/function/is-arguments":63,"es5-ext/object/valid-callable":87,"es5-ext/string/is-string":92}],95:[function(require,module,exports){
+},{"./get":92,"es5-ext/function/is-arguments":60,"es5-ext/object/valid-callable":84,"es5-ext/string/is-string":89}],92:[function(require,module,exports){
 'use strict';
 
 var isArguments    = require('es5-ext/function/is-arguments')
@@ -6046,7 +5272,7 @@ module.exports = function (obj) {
 	return new ArrayIterator(obj);
 };
 
-},{"./array":93,"./string":98,"./valid-iterable":99,"es5-ext/function/is-arguments":63,"es5-ext/string/is-string":92,"es6-symbol":106}],96:[function(require,module,exports){
+},{"./array":90,"./string":95,"./valid-iterable":96,"es5-ext/function/is-arguments":60,"es5-ext/string/is-string":89,"es6-symbol":103}],93:[function(require,module,exports){
 'use strict';
 
 var clear    = require('es5-ext/array/#/clear')
@@ -6138,7 +5364,7 @@ defineProperty(Iterator.prototype, Symbol.iterator, d(function () {
 }));
 defineProperty(Iterator.prototype, Symbol.toStringTag, d('', 'Iterator'));
 
-},{"d":59,"d/auto-bind":58,"es5-ext/array/#/clear":61,"es5-ext/object/assign":70,"es5-ext/object/valid-callable":87,"es5-ext/object/valid-value":88,"es6-symbol":106}],97:[function(require,module,exports){
+},{"d":57,"d/auto-bind":56,"es5-ext/array/#/clear":58,"es5-ext/object/assign":67,"es5-ext/object/valid-callable":84,"es5-ext/object/valid-value":85,"es6-symbol":103}],94:[function(require,module,exports){
 'use strict';
 
 var isArguments    = require('es5-ext/function/is-arguments')
@@ -6155,7 +5381,7 @@ module.exports = function (value) {
 	return (typeof value[iteratorSymbol] === 'function');
 };
 
-},{"es5-ext/function/is-arguments":63,"es5-ext/string/is-string":92,"es6-symbol":106}],98:[function(require,module,exports){
+},{"es5-ext/function/is-arguments":60,"es5-ext/string/is-string":89,"es6-symbol":103}],95:[function(require,module,exports){
 // Thanks @mathiasbynens
 // http://mathiasbynens.be/notes/javascript-unicode#iterating-over-symbols
 
@@ -6194,7 +5420,7 @@ StringIterator.prototype = Object.create(Iterator.prototype, {
 	toString: d(function () { return '[object String Iterator]'; })
 });
 
-},{"./":96,"d":59,"es5-ext/object/set-prototype-of":84}],99:[function(require,module,exports){
+},{"./":93,"d":57,"es5-ext/object/set-prototype-of":81}],96:[function(require,module,exports){
 'use strict';
 
 var isIterable = require('./is-iterable');
@@ -6204,12 +5430,12 @@ module.exports = function (value) {
 	return value;
 };
 
-},{"./is-iterable":97}],100:[function(require,module,exports){
+},{"./is-iterable":94}],97:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./is-implemented')() ? Map : require('./polyfill');
 
-},{"./is-implemented":101,"./polyfill":105}],101:[function(require,module,exports){
+},{"./is-implemented":98,"./polyfill":102}],98:[function(require,module,exports){
 'use strict';
 
 module.exports = function () {
@@ -6243,7 +5469,7 @@ module.exports = function () {
 	return true;
 };
 
-},{}],102:[function(require,module,exports){
+},{}],99:[function(require,module,exports){
 // Exports true if environment provides native `Map` implementation,
 // whatever that is.
 
@@ -6254,13 +5480,13 @@ module.exports = (function () {
 	return (Object.prototype.toString.call(new Map()) === '[object Map]');
 }());
 
-},{}],103:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 'use strict';
 
 module.exports = require('es5-ext/object/primitive-set')('key',
 	'value', 'key+value');
 
-},{"es5-ext/object/primitive-set":83}],104:[function(require,module,exports){
+},{"es5-ext/object/primitive-set":80}],101:[function(require,module,exports){
 'use strict';
 
 var setPrototypeOf    = require('es5-ext/object/set-prototype-of')
@@ -6300,7 +5526,7 @@ MapIterator.prototype = Object.create(Iterator.prototype, {
 Object.defineProperty(MapIterator.prototype, toStringTagSymbol,
 	d('c', 'Map Iterator'));
 
-},{"./iterator-kinds":103,"d":59,"es5-ext/object/set-prototype-of":84,"es6-iterator":96,"es6-symbol":106}],105:[function(require,module,exports){
+},{"./iterator-kinds":100,"d":57,"es5-ext/object/set-prototype-of":81,"es6-iterator":93,"es6-symbol":103}],102:[function(require,module,exports){
 'use strict';
 
 var clear          = require('es5-ext/array/#/clear')
@@ -6406,12 +5632,12 @@ Object.defineProperty(MapPoly.prototype, Symbol.iterator, d(function () {
 }));
 Object.defineProperty(MapPoly.prototype, Symbol.toStringTag, d('c', 'Map'));
 
-},{"./is-native-implemented":102,"./lib/iterator":104,"d":59,"es5-ext/array/#/clear":61,"es5-ext/array/#/e-index-of":62,"es5-ext/object/set-prototype-of":84,"es5-ext/object/valid-callable":87,"es5-ext/object/valid-value":88,"es6-iterator/for-of":94,"es6-iterator/valid-iterable":99,"es6-symbol":106,"event-emitter":111}],106:[function(require,module,exports){
+},{"./is-native-implemented":99,"./lib/iterator":101,"d":57,"es5-ext/array/#/clear":58,"es5-ext/array/#/e-index-of":59,"es5-ext/object/set-prototype-of":81,"es5-ext/object/valid-callable":84,"es5-ext/object/valid-value":85,"es6-iterator/for-of":91,"es6-iterator/valid-iterable":96,"es6-symbol":103,"event-emitter":108}],103:[function(require,module,exports){
 'use strict';
 
 module.exports = require('./is-implemented')() ? Symbol : require('./polyfill');
 
-},{"./is-implemented":107,"./polyfill":109}],107:[function(require,module,exports){
+},{"./is-implemented":104,"./polyfill":106}],104:[function(require,module,exports){
 'use strict';
 
 var validTypes = { object: true, symbol: true };
@@ -6430,7 +5656,7 @@ module.exports = function () {
 	return true;
 };
 
-},{}],108:[function(require,module,exports){
+},{}],105:[function(require,module,exports){
 'use strict';
 
 module.exports = function (x) {
@@ -6441,7 +5667,7 @@ module.exports = function (x) {
 	return (x[x.constructor.toStringTag] === 'Symbol');
 };
 
-},{}],109:[function(require,module,exports){
+},{}],106:[function(require,module,exports){
 // ES2015 Symbol polyfill for environments that do not support it (or partially support it)
 
 'use strict';
@@ -6561,7 +5787,7 @@ defineProperty(HiddenSymbol.prototype, SymbolPolyfill.toStringTag,
 defineProperty(HiddenSymbol.prototype, SymbolPolyfill.toPrimitive,
 	d('c', SymbolPolyfill.prototype[SymbolPolyfill.toPrimitive]));
 
-},{"./validate-symbol":110,"d":59}],110:[function(require,module,exports){
+},{"./validate-symbol":107,"d":57}],107:[function(require,module,exports){
 'use strict';
 
 var isSymbol = require('./is-symbol');
@@ -6571,7 +5797,7 @@ module.exports = function (value) {
 	return value;
 };
 
-},{"./is-symbol":108}],111:[function(require,module,exports){
+},{"./is-symbol":105}],108:[function(require,module,exports){
 'use strict';
 
 var d        = require('d')
@@ -6705,7 +5931,7 @@ module.exports = exports = function (o) {
 };
 exports.methods = methods;
 
-},{"d":59,"es5-ext/object/valid-callable":87}],112:[function(require,module,exports){
+},{"d":57,"es5-ext/object/valid-callable":84}],109:[function(require,module,exports){
 /**
  * Copyright (c) 2014, Chris Pettitt
  * All rights reserved.
@@ -6745,7 +5971,7 @@ module.exports = {
   version: lib.version
 };
 
-},{"./lib":128,"./lib/alg":119,"./lib/json":129}],113:[function(require,module,exports){
+},{"./lib":125,"./lib/alg":116,"./lib/json":126}],110:[function(require,module,exports){
 var _ = require("../lodash");
 
 module.exports = components;
@@ -6774,7 +6000,7 @@ function components(g) {
   return cmpts;
 }
 
-},{"../lodash":130}],114:[function(require,module,exports){
+},{"../lodash":127}],111:[function(require,module,exports){
 var _ = require("../lodash");
 
 module.exports = dfs;
@@ -6815,7 +6041,7 @@ function doDfs(g, v, postorder, visited, acc) {
   }
 }
 
-},{"../lodash":130}],115:[function(require,module,exports){
+},{"../lodash":127}],112:[function(require,module,exports){
 var dijkstra = require("./dijkstra"),
     _ = require("../lodash");
 
@@ -6827,7 +6053,7 @@ function dijkstraAll(g, weightFunc, edgeFunc) {
   }, {});
 }
 
-},{"../lodash":130,"./dijkstra":116}],116:[function(require,module,exports){
+},{"../lodash":127,"./dijkstra":113}],113:[function(require,module,exports){
 var _ = require("../lodash"),
     PriorityQueue = require("../data/priority-queue");
 
@@ -6883,7 +6109,7 @@ function runDijkstra(g, source, weightFn, edgeFn) {
   return results;
 }
 
-},{"../data/priority-queue":126,"../lodash":130}],117:[function(require,module,exports){
+},{"../data/priority-queue":123,"../lodash":127}],114:[function(require,module,exports){
 var _ = require("../lodash"),
     tarjan = require("./tarjan");
 
@@ -6895,7 +6121,7 @@ function findCycles(g) {
   });
 }
 
-},{"../lodash":130,"./tarjan":124}],118:[function(require,module,exports){
+},{"../lodash":127,"./tarjan":121}],115:[function(require,module,exports){
 var _ = require("../lodash");
 
 module.exports = floydWarshall;
@@ -6947,7 +6173,7 @@ function runFloydWarshall(g, weightFn, edgeFn) {
   return results;
 }
 
-},{"../lodash":130}],119:[function(require,module,exports){
+},{"../lodash":127}],116:[function(require,module,exports){
 module.exports = {
   components: require("./components"),
   dijkstra: require("./dijkstra"),
@@ -6962,7 +6188,7 @@ module.exports = {
   topsort: require("./topsort")
 };
 
-},{"./components":113,"./dijkstra":116,"./dijkstra-all":115,"./find-cycles":117,"./floyd-warshall":118,"./is-acyclic":120,"./postorder":121,"./preorder":122,"./prim":123,"./tarjan":124,"./topsort":125}],120:[function(require,module,exports){
+},{"./components":110,"./dijkstra":113,"./dijkstra-all":112,"./find-cycles":114,"./floyd-warshall":115,"./is-acyclic":117,"./postorder":118,"./preorder":119,"./prim":120,"./tarjan":121,"./topsort":122}],117:[function(require,module,exports){
 var topsort = require("./topsort");
 
 module.exports = isAcyclic;
@@ -6979,7 +6205,7 @@ function isAcyclic(g) {
   return true;
 }
 
-},{"./topsort":125}],121:[function(require,module,exports){
+},{"./topsort":122}],118:[function(require,module,exports){
 var dfs = require("./dfs");
 
 module.exports = postorder;
@@ -6988,7 +6214,7 @@ function postorder(g, vs) {
   return dfs(g, vs, "post");
 }
 
-},{"./dfs":114}],122:[function(require,module,exports){
+},{"./dfs":111}],119:[function(require,module,exports){
 var dfs = require("./dfs");
 
 module.exports = preorder;
@@ -6997,7 +6223,7 @@ function preorder(g, vs) {
   return dfs(g, vs, "pre");
 }
 
-},{"./dfs":114}],123:[function(require,module,exports){
+},{"./dfs":111}],120:[function(require,module,exports){
 var _ = require("../lodash"),
     Graph = require("../graph"),
     PriorityQueue = require("../data/priority-queue");
@@ -7051,7 +6277,7 @@ function prim(g, weightFunc) {
   return result;
 }
 
-},{"../data/priority-queue":126,"../graph":127,"../lodash":130}],124:[function(require,module,exports){
+},{"../data/priority-queue":123,"../graph":124,"../lodash":127}],121:[function(require,module,exports){
 var _ = require("../lodash");
 
 module.exports = tarjan;
@@ -7100,7 +6326,7 @@ function tarjan(g) {
   return results;
 }
 
-},{"../lodash":130}],125:[function(require,module,exports){
+},{"../lodash":127}],122:[function(require,module,exports){
 var _ = require("../lodash");
 
 module.exports = topsort;
@@ -7136,7 +6362,7 @@ function topsort(g) {
 
 function CycleException() {}
 
-},{"../lodash":130}],126:[function(require,module,exports){
+},{"../lodash":127}],123:[function(require,module,exports){
 var _ = require("../lodash");
 
 module.exports = PriorityQueue;
@@ -7290,7 +6516,7 @@ PriorityQueue.prototype._swap = function(i, j) {
   keyIndices[origArrI.key] = j;
 };
 
-},{"../lodash":130}],127:[function(require,module,exports){
+},{"../lodash":127}],124:[function(require,module,exports){
 "use strict";
 
 var _ = require("./lodash");
@@ -7811,14 +7037,14 @@ function edgeObjToId(isDirected, edgeObj) {
   return edgeArgsToId(isDirected, edgeObj.v, edgeObj.w, edgeObj.name);
 }
 
-},{"./lodash":130}],128:[function(require,module,exports){
+},{"./lodash":127}],125:[function(require,module,exports){
 // Includes only the "core" of graphlib
 module.exports = {
   Graph: require("./graph"),
   version: require("./version")
 };
 
-},{"./graph":127,"./version":131}],129:[function(require,module,exports){
+},{"./graph":124,"./version":128}],126:[function(require,module,exports){
 var _ = require("./lodash"),
     Graph = require("./graph");
 
@@ -7886,7 +7112,7 @@ function read(json) {
   return g;
 }
 
-},{"./graph":127,"./lodash":130}],130:[function(require,module,exports){
+},{"./graph":124,"./lodash":127}],127:[function(require,module,exports){
 /* global window */
 
 var lodash;
@@ -7903,10 +7129,10 @@ if (!lodash) {
 
 module.exports = lodash;
 
-},{"lodash":132}],131:[function(require,module,exports){
+},{"lodash":129}],128:[function(require,module,exports){
 module.exports = '1.0.7';
 
-},{}],132:[function(require,module,exports){
+},{}],129:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -20261,7 +19487,7 @@ module.exports = '1.0.7';
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],133:[function(require,module,exports){
+},{}],130:[function(require,module,exports){
 /**
  *  Copyright (c) 2014-2015, Facebook, Inc.
  *  All rights reserved.
@@ -25241,7 +24467,7 @@ module.exports = '1.0.7';
   return Immutable;
 
 }));
-},{}],134:[function(require,module,exports){
+},{}],131:[function(require,module,exports){
 /**
  * lodash 3.1.4 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -25374,7 +24600,7 @@ function isLength(value) {
 
 module.exports = baseFlatten;
 
-},{"lodash.isarguments":146,"lodash.isarray":147}],135:[function(require,module,exports){
+},{"lodash.isarguments":143,"lodash.isarray":144}],132:[function(require,module,exports){
 /**
  * lodash 3.0.3 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -25424,7 +24650,7 @@ function createBaseFor(fromRight) {
 
 module.exports = baseFor;
 
-},{}],136:[function(require,module,exports){
+},{}],133:[function(require,module,exports){
 /**
  * lodash 3.1.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -25483,7 +24709,7 @@ function indexOfNaN(array, fromIndex, fromRight) {
 
 module.exports = baseIndexOf;
 
-},{}],137:[function(require,module,exports){
+},{}],134:[function(require,module,exports){
 /**
  * lodash 3.0.3 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -25553,7 +24779,7 @@ function baseUniq(array, iteratee) {
 
 module.exports = baseUniq;
 
-},{"lodash._baseindexof":136,"lodash._cacheindexof":139,"lodash._createcache":140}],138:[function(require,module,exports){
+},{"lodash._baseindexof":133,"lodash._cacheindexof":136,"lodash._createcache":137}],135:[function(require,module,exports){
 /**
  * lodash 3.0.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -25620,7 +24846,7 @@ function identity(value) {
 
 module.exports = bindCallback;
 
-},{}],139:[function(require,module,exports){
+},{}],136:[function(require,module,exports){
 /**
  * lodash 3.0.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -25675,7 +24901,7 @@ function isObject(value) {
 
 module.exports = cacheIndexOf;
 
-},{}],140:[function(require,module,exports){
+},{}],137:[function(require,module,exports){
 (function (global){
 /**
  * lodash 3.1.2 (Custom Build) <https://lodash.com/>
@@ -25770,7 +24996,7 @@ SetCache.prototype.push = cachePush;
 module.exports = createCache;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"lodash._getnative":141}],141:[function(require,module,exports){
+},{"lodash._getnative":138}],138:[function(require,module,exports){
 /**
  * lodash 3.9.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -25909,7 +25135,7 @@ function isNative(value) {
 
 module.exports = getNative;
 
-},{}],142:[function(require,module,exports){
+},{}],139:[function(require,module,exports){
 (function (global){
 /**
  * lodash 3.0.1 (Custom Build) <https://lodash.com/>
@@ -25972,7 +25198,7 @@ function checkGlobal(value) {
 module.exports = root;
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],143:[function(require,module,exports){
+},{}],140:[function(require,module,exports){
 /**
  * lodash 3.2.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -26157,7 +25383,7 @@ function deburr(string) {
 
 module.exports = deburr;
 
-},{"lodash._root":142}],144:[function(require,module,exports){
+},{"lodash._root":139}],141:[function(require,module,exports){
 /**
  * lodash 3.2.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -26339,7 +25565,7 @@ function escape(string) {
 
 module.exports = escape;
 
-},{"lodash._root":142}],145:[function(require,module,exports){
+},{"lodash._root":139}],142:[function(require,module,exports){
 /**
  * lodash 3.0.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -26412,7 +25638,7 @@ var forOwn = createForOwn(baseForOwn);
 
 module.exports = forOwn;
 
-},{"lodash._basefor":135,"lodash._bindcallback":138,"lodash.keys":149}],146:[function(require,module,exports){
+},{"lodash._basefor":132,"lodash._bindcallback":135,"lodash.keys":146}],143:[function(require,module,exports){
 /**
  * lodash (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -26643,7 +25869,7 @@ function isObjectLike(value) {
 
 module.exports = isArguments;
 
-},{}],147:[function(require,module,exports){
+},{}],144:[function(require,module,exports){
 /**
  * lodash 3.0.4 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -26825,7 +26051,7 @@ function isNative(value) {
 
 module.exports = isArray;
 
-},{}],148:[function(require,module,exports){
+},{}],145:[function(require,module,exports){
 /**
  * lodash 3.1.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -26899,7 +26125,7 @@ var kebabCase = createCompounder(function(result, word, index) {
 
 module.exports = kebabCase;
 
-},{"lodash.deburr":143,"lodash.words":152}],149:[function(require,module,exports){
+},{"lodash.deburr":140,"lodash.words":149}],146:[function(require,module,exports){
 /**
  * lodash 3.1.2 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -27137,7 +26363,7 @@ function keysIn(object) {
 
 module.exports = keys;
 
-},{"lodash._getnative":141,"lodash.isarguments":146,"lodash.isarray":147}],150:[function(require,module,exports){
+},{"lodash._getnative":138,"lodash.isarguments":143,"lodash.isarray":144}],147:[function(require,module,exports){
 /**
  * lodash 3.6.1 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -27206,7 +26432,7 @@ function restParam(func, start) {
 
 module.exports = restParam;
 
-},{}],151:[function(require,module,exports){
+},{}],148:[function(require,module,exports){
 /**
  * lodash 3.1.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modern modularize exports="npm" -o ./`
@@ -27243,7 +26469,7 @@ var union = restParam(function(arrays) {
 
 module.exports = union;
 
-},{"lodash._baseflatten":134,"lodash._baseuniq":137,"lodash.restparam":150}],152:[function(require,module,exports){
+},{"lodash._baseflatten":131,"lodash._baseuniq":134,"lodash.restparam":147}],149:[function(require,module,exports){
 /**
  * lodash 3.2.0 (Custom Build) <https://lodash.com/>
  * Build: `lodash modularize exports="npm" -o ./`
@@ -27443,7 +26669,7 @@ function words(string, pattern, guard) {
 
 module.exports = words;
 
-},{"lodash._root":142}],153:[function(require,module,exports){
+},{"lodash._root":139}],150:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -44512,7 +43738,7 @@ module.exports = words;
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],154:[function(require,module,exports){
+},{}],151:[function(require,module,exports){
 'use strict';
 
 var proto = Element.prototype;
@@ -44542,7 +43768,7 @@ function match(el, selector) {
   }
   return false;
 }
-},{}],155:[function(require,module,exports){
+},{}],152:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -44724,7 +43950,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],156:[function(require,module,exports){
+},{}],153:[function(require,module,exports){
 (function (process,global){
 // Copyright (c) Microsoft, All rights reserved. See License.txt in the project root for license information.
 
@@ -57116,7 +56342,7 @@ var ReactiveTest = Rx.ReactiveTest = {
 }.call(this));
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":155}],157:[function(require,module,exports){
+},{"_process":152}],154:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -57158,7 +56384,7 @@ function classNameFromVNode(vNode) {
 
   return cn.trim();
 }
-},{"./selectorParser":158}],158:[function(require,module,exports){
+},{"./selectorParser":155}],155:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -57216,7 +56442,7 @@ function selectorParser() {
     className: classes.join(' ')
   };
 }
-},{"browser-split":57}],159:[function(require,module,exports){
+},{"browser-split":55}],156:[function(require,module,exports){
 
 // All SVG children elements, not in this list, should self-close
 
@@ -57239,12 +56465,12 @@ module.exports = {
   'metadata': true,
   'title': true
 };
-},{}],160:[function(require,module,exports){
+},{}],157:[function(require,module,exports){
 
 var init = require('./init');
 
 module.exports = init([require('./modules/attributes'), require('./modules/style')]);
-},{"./init":161,"./modules/attributes":162,"./modules/style":163}],161:[function(require,module,exports){
+},{"./init":158,"./modules/attributes":159,"./modules/style":160}],158:[function(require,module,exports){
 
 var parseSelector = require('./parse-selector');
 var VOID_ELEMENTS = require('./void-elements');
@@ -57304,7 +56530,7 @@ module.exports = function init(modules) {
     return tag.join('');
   };
 };
-},{"./container-elements":159,"./parse-selector":164,"./void-elements":165}],162:[function(require,module,exports){
+},{"./container-elements":156,"./parse-selector":161,"./void-elements":162}],159:[function(require,module,exports){
 
 var forOwn = require('lodash.forown');
 var escape = require('lodash.escape');
@@ -57369,7 +56595,7 @@ function setAttributes(values, target) {
     target[key] = value;
   });
 }
-},{"../parse-selector":164,"lodash.escape":144,"lodash.forown":145,"lodash.union":151}],163:[function(require,module,exports){
+},{"../parse-selector":161,"lodash.escape":141,"lodash.forown":142,"lodash.union":148}],160:[function(require,module,exports){
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var forOwn = require('lodash.forown');
@@ -57396,7 +56622,7 @@ module.exports = function style(vnode) {
 
   return styles.length ? 'style="' + styles.join('; ') + '"' : '';
 };
-},{"lodash.escape":144,"lodash.forown":145,"lodash.kebabcase":148}],164:[function(require,module,exports){
+},{"lodash.escape":141,"lodash.forown":142,"lodash.kebabcase":145}],161:[function(require,module,exports){
 
 // https://github.com/Matt-Esch/virtual-dom/blob/master/virtual-hyperscript/parse-tag.js
 
@@ -57443,7 +56669,7 @@ module.exports = function parseSelector(selector, upper) {
     className: classes.join(' ')
   };
 };
-},{"browser-split":57}],165:[function(require,module,exports){
+},{"browser-split":55}],162:[function(require,module,exports){
 
 // http://www.w3.org/html/wg/drafts/html/master/syntax.html#void-elements
 
@@ -57464,7 +56690,7 @@ module.exports = {
   track: true,
   wbr: true
 };
-},{}],166:[function(require,module,exports){
+},{}],163:[function(require,module,exports){
 "use strict";
 var vnode_1 = require("./vnode");
 var is = require("./is");
@@ -57524,7 +56750,7 @@ exports.h = h;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = h;
 
-},{"./is":168,"./vnode":175}],167:[function(require,module,exports){
+},{"./is":165,"./vnode":172}],164:[function(require,module,exports){
 "use strict";
 function createElement(tagName) {
     return document.createElement(tagName);
@@ -57571,7 +56797,7 @@ exports.htmlDomApi = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.htmlDomApi;
 
-},{}],168:[function(require,module,exports){
+},{}],165:[function(require,module,exports){
 "use strict";
 exports.array = Array.isArray;
 function primitive(s) {
@@ -57579,7 +56805,7 @@ function primitive(s) {
 }
 exports.primitive = primitive;
 
-},{}],169:[function(require,module,exports){
+},{}],166:[function(require,module,exports){
 "use strict";
 var NamespaceURIs = {
     "xlink": "http://www.w3.org/1999/xlink"
@@ -57631,7 +56857,7 @@ exports.attributesModule = { create: updateAttrs, update: updateAttrs };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.attributesModule;
 
-},{}],170:[function(require,module,exports){
+},{}],167:[function(require,module,exports){
 "use strict";
 function updateClass(oldVnode, vnode) {
     var cur, name, elm = vnode.elm, oldClass = oldVnode.data.class, klass = vnode.data.class;
@@ -57657,7 +56883,7 @@ exports.classModule = { create: updateClass, update: updateClass };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.classModule;
 
-},{}],171:[function(require,module,exports){
+},{}],168:[function(require,module,exports){
 "use strict";
 function invokeHandler(handler, vnode, event) {
     if (typeof handler === "function") {
@@ -57753,7 +56979,7 @@ exports.eventListenersModule = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.eventListenersModule;
 
-},{}],172:[function(require,module,exports){
+},{}],169:[function(require,module,exports){
 "use strict";
 var raf = (typeof window !== 'undefined' && window.requestAnimationFrame) || setTimeout;
 var nextFrame = function (fn) { raf(function () { raf(fn); }); };
@@ -57840,7 +57066,7 @@ exports.styleModule = {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.styleModule;
 
-},{}],173:[function(require,module,exports){
+},{}],170:[function(require,module,exports){
 "use strict";
 var vnode_1 = require("./vnode");
 var is = require("./is");
@@ -58126,7 +57352,7 @@ function init(modules, domApi) {
 }
 exports.init = init;
 
-},{"./h":166,"./htmldomapi":167,"./is":168,"./thunk":174,"./vnode":175}],174:[function(require,module,exports){
+},{"./h":163,"./htmldomapi":164,"./is":165,"./thunk":171,"./vnode":172}],171:[function(require,module,exports){
 "use strict";
 var h_1 = require("./h");
 function copyToThunk(vnode, thunk) {
@@ -58173,7 +57399,7 @@ exports.thunk = function thunk(sel, key, fn, args) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = exports.thunk;
 
-},{"./h":166}],175:[function(require,module,exports){
+},{"./h":163}],172:[function(require,module,exports){
 "use strict";
 function vnode(sel, data, children, text, elm) {
     var key = data === undefined ? undefined : data.key;
@@ -58184,119 +57410,10 @@ exports.vnode = vnode;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = vnode;
 
-},{}],176:[function(require,module,exports){
-(function (root, factory) {
-    'use strict';
-    // Universal Module Definition (UMD) to support AMD, CommonJS/Node.js, Rhino, and browsers.
-
-    /* istanbul ignore next */
-    if (typeof define === 'function' && define.amd) {
-        define('stackframe', [], factory);
-    } else if (typeof exports === 'object') {
-        module.exports = factory();
-    } else {
-        root.StackFrame = factory();
-    }
-}(this, function () {
-    'use strict';
-    function _isNumber(n) {
-        return !isNaN(parseFloat(n)) && isFinite(n);
-    }
-
-    function StackFrame(functionName, args, fileName, lineNumber, columnNumber, source) {
-        if (functionName !== undefined) {
-            this.setFunctionName(functionName);
-        }
-        if (args !== undefined) {
-            this.setArgs(args);
-        }
-        if (fileName !== undefined) {
-            this.setFileName(fileName);
-        }
-        if (lineNumber !== undefined) {
-            this.setLineNumber(lineNumber);
-        }
-        if (columnNumber !== undefined) {
-            this.setColumnNumber(columnNumber);
-        }
-        if (source !== undefined) {
-            this.setSource(source);
-        }
-    }
-
-    StackFrame.prototype = {
-        getFunctionName: function () {
-            return this.functionName;
-        },
-        setFunctionName: function (v) {
-            this.functionName = String(v);
-        },
-
-        getArgs: function () {
-            return this.args;
-        },
-        setArgs: function (v) {
-            if (Object.prototype.toString.call(v) !== '[object Array]') {
-                throw new TypeError('Args must be an Array');
-            }
-            this.args = v;
-        },
-
-        // NOTE: Property name may be misleading as it includes the path,
-        // but it somewhat mirrors V8's JavaScriptStackTraceApi
-        // https://code.google.com/p/v8/wiki/JavaScriptStackTraceApi and Gecko's
-        // http://mxr.mozilla.org/mozilla-central/source/xpcom/base/nsIException.idl#14
-        getFileName: function () {
-            return this.fileName;
-        },
-        setFileName: function (v) {
-            this.fileName = String(v);
-        },
-
-        getLineNumber: function () {
-            return this.lineNumber;
-        },
-        setLineNumber: function (v) {
-            if (!_isNumber(v)) {
-                throw new TypeError('Line Number must be a Number');
-            }
-            this.lineNumber = Number(v);
-        },
-
-        getColumnNumber: function () {
-            return this.columnNumber;
-        },
-        setColumnNumber: function (v) {
-            if (!_isNumber(v)) {
-                throw new TypeError('Column Number must be a Number');
-            }
-            this.columnNumber = Number(v);
-        },
-
-        getSource: function () {
-            return this.source;
-        },
-        setSource: function (v) {
-            this.source = String(v);
-        },
-
-        toString: function() {
-            var functionName = this.getFunctionName() || '{anonymous}';
-            var args = '(' + (this.getArgs() || []).join(',') + ')';
-            var fileName = this.getFileName() ? ('@' + this.getFileName()) : '';
-            var lineNumber = _isNumber(this.getLineNumber()) ? (':' + this.getLineNumber()) : '';
-            var columnNumber = _isNumber(this.getColumnNumber()) ? (':' + this.getColumnNumber()) : '';
-            return functionName + args + fileName + lineNumber + columnNumber;
-        }
-    };
-
-    return StackFrame;
-}));
-
-},{}],177:[function(require,module,exports){
+},{}],173:[function(require,module,exports){
 module.exports = require('./lib/index');
 
-},{"./lib/index":178}],178:[function(require,module,exports){
+},{"./lib/index":174}],174:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -58328,7 +57445,7 @@ if (typeof self !== 'undefined') {
 var result = (0, _ponyfill2['default'])(root);
 exports['default'] = result;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./ponyfill":179}],179:[function(require,module,exports){
+},{"./ponyfill":175}],175:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -58352,7 +57469,7 @@ function symbolObservablePonyfill(root) {
 
 	return result;
 };
-},{}],180:[function(require,module,exports){
+},{}],176:[function(require,module,exports){
 "use strict";
 var __extends = (this && this.__extends) || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
@@ -60208,7 +59325,7 @@ exports.MemoryStream = MemoryStream;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = Stream;
 
-},{"symbol-observable":177}],181:[function(require,module,exports){
+},{"symbol-observable":173}],177:[function(require,module,exports){
 "use strict";
 var core_1 = require('./core');
 exports.Stream = core_1.Stream;
@@ -60216,7 +59333,7 @@ exports.MemoryStream = core_1.MemoryStream;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.default = core_1.Stream;
 
-},{"./core":180}],182:[function(require,module,exports){
+},{"./core":176}],178:[function(require,module,exports){
 (function (global){
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.rxmarbles = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(_dereq_,module,exports){
 "use strict";
@@ -88285,4 +87402,4 @@ exports.textUnselectable = textUnselectable;
 },{"@cycle/dom":12,"immutable":77}]},{},[152])(152)
 });
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}]},{},[16]);
+},{}]},{},[12]);

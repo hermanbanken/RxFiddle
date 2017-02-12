@@ -1,5 +1,5 @@
 import "../utils";
-import { RxCollector } from "./visualizer";
+import { RxCollector } from "../collector/collector";
 import * as Rx from "rx";
 export declare let defaultSubjects: {
     Observable: Rx.ObservableStatic;

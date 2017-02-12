@@ -1,5 +1,4 @@
 import { StackFrame } from "../utils";
-import { Visualizer } from "./visualizer";
 export declare type ICallRecord = ICallStart & ICallEnd;
 export interface ICallStart {
     id: number | string | null;
@@ -11,7 +10,6 @@ export interface ICallStart {
     time: number;
     parent?: ICallStart;
     childs: (ICallRecord | ICallStart)[];
-    visualizer?: Visualizer;
 }
 export interface ICallEnd {
     returned: any | null;

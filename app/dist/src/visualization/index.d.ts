@@ -19,22 +19,31 @@ export declare type GraphNode = {
 export declare type GraphEdge = {
     labels: EdgeLabel[];
 };
+export declare type Graphs = {
+    main: TypedGraph<GraphNode, GraphEdge>;
+    subscriptions: TypedGraph<number, undefined>;
+};
 export declare class Grapher {
-    graph: Rx.Observable<TypedGraph<GraphNode, GraphEdge>>;
+    graph: Rx.Observable<Graphs>;
     constructor(collector: DataSource);
-    private next(graph, event);
 }
+export declare function grapherNext(graphs: Graphs, event: Message): {
+    main: TypedGraph<GraphNode, GraphEdge>;
+    subscriptions: TypedGraph<number, undefined>;
+};
 export default class Visualizer {
     focusNodes: Rx.Subject<string[]>;
     openGroups: Rx.Subject<string[]>;
     DOM: Rx.Observable<VNode>;
     readonly viewState: Rx.Observable<ViewState>;
     private clicks;
+    private groupClicks;
     private grapher;
     private app;
     constructor(grapher: Grapher, dom?: HTMLElement, controls?: HTMLElement);
     run(): void;
     attach(node: HTMLElement): void;
     step(): void;
-    private filter(graph, viewState);
+    private filter(graphs, viewState);
 }
+export declare function mapTuples<T, R>(list: T[], f: (a: T, b: T, anr: number, bnr: number) => R): R[];

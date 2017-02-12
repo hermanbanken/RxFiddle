@@ -8,7 +8,7 @@ const rxmarbles_1 = require("rxmarbles");
 const jsonCollector_1 = require("./collector/jsonCollector");
 const Observable = Rx.Observable;
 window.Rx = Rx;
-let collector = new jsonCollector_1.default("F_newstyle.json");
+let collector = new jsonCollector_1.default("G_newstyle.json");
 // let collector = new Collector()
 // let instrumentation = new Instrumentation(defaultSubjects, collector)
 // instrumentation.setup()

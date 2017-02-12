@@ -1,3 +1,5 @@
+/* tslint:disable:no-namespace */
+/* tslint:disable:interface-name */
 "use strict";
 function flatMap(f) {
     return this.reduce((p, n, index) => p.concat(f(n, index)), []);
@@ -15,4 +17,12 @@ function endsWith(self, suffix) {
 }
 exports.endsWith = endsWith;
 ;
+function last(list) {
+    return list.length >= 1 ? list[list.length - 1] : undefined;
+}
+exports.last = last;
+function head(list) {
+    return list.length >= 1 ? list[0] : undefined;
+}
+exports.head = head;
 //# sourceMappingURL=utils.js.map

@@ -5,7 +5,6 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
-const grapher_1 = require("../src/collector/grapher");
 const instrumentationTest_1 = require("./instrumentationTest");
 const mocha_typescript_1 = require("mocha-typescript");
 const Rx = require("rx");
@@ -27,8 +26,8 @@ let IntegrationTest = class IntegrationTest extends instrumentationTest_1.Instru
             .filter((a) => true)
             .map(a => a)));
         merged.subscribe();
-        let grapher = new grapher_1.Grapher(this.rxcollector);
-        grapher.process();
+        // let grapher = new Grapher(this.rxcollector)
+        // grapher.process()
         // let leveledDot = toDot(
         //   grapher.leveledGraph.filterNodes((n, l) => l.level !== "code"),
         //   n => {

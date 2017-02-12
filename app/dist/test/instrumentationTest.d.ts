@@ -1,5 +1,5 @@
 import Instrumentation from "../src/collector/instrumentation";
-import Collector, { NewCollector, RxCollector } from "../src/collector/logger";
+import Collector, { RxCollector } from "../src/collector/logger";
 export declare class InstrumentationTest {
     protected instrumentation: Instrumentation;
     protected collector: RxCollector;
@@ -8,5 +8,5 @@ export declare class InstrumentationTest {
     ensureCollector(arg: any): arg is Collector;
     rxCheck(): void;
     readonly rxcollector: Collector;
-    readonly newcollector: NewCollector;
+    readonly newcollector: Collector;
 }

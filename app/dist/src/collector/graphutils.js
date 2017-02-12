@@ -146,7 +146,10 @@ function rankFromTopGraph(g) {
     let ranks = rankFromTop(g);
     let allSet = true;
     ranked.nodes().map(n => {
-        ranked.node(n).rank = ranks[n];
+        let node = ranked.node(n);
+        if (typeof node === "object") {
+            node.rank = ranks[n];
+        }
         if (typeof ranks[n] === "undefined") {
             allSet = false;
             console.error("No rank for " + n, ranks);

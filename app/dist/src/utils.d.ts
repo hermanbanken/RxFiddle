@@ -1,4 +1,3 @@
-import { VNode } from "snabbdom/vnode";
 declare module "rx" {
     interface Observable<T> {
     }
@@ -36,9 +35,7 @@ export interface StackFrame {
     columnNumber: number;
     source: string;
 }
-declare module "snabbdom" {
-    interface PatchFunction {
-        (oldVNode: VNode | HTMLElement, vnode: VNode): VNode;
-    }
-}
 export declare function endsWith(self: string, suffix: string): boolean;
+export declare function last<T>(list: T[]): T;
+export declare function head<T>(list: T[]): T;
+export {};

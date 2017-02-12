@@ -14,7 +14,7 @@ let InstrumentationTest = class InstrumentationTest {
         // this.collector = new Collector()
         // this.instrumentation = new Instrumentation(defaultSubjects, this.collector)
         // this.instrumentation.setup()
-        this.collector = new logger_1.NewCollector();
+        this.collector = new logger_1.default();
         this.instrumentation = new instrumentation_1.default(instrumentation_1.defaultSubjects, this.collector);
         this.instrumentation.setup();
     }
