@@ -494,14 +494,15 @@ function renderMarbles(nodes: GraphNode[]): VNode[] {
   let coordinator = new MarbleCoordinator()
   let all_events: EventLabel[] = nodes.flatMap(n => n.labels).map(l => l.label).flatMap(l => l.type === "event" ? [l] : [])
   coordinator.add(all_events)
+  console.log("All events", all_events)
 
   let root = h("div", {
     attrs: {
       id: "marbles",
-      style: `width: ${u * 2}px; height: ${u * (0.5 + nodes.length)}px`,
+      style: `min-width: ${u * 2}px; height: ${u * (1.5 * nodes.length)}px`,
     },
   }, nodes.flatMap((node, i) => {
-    let obs = node.labels.map(_ => _.label).find(_ => _.type === "observable") as ObservableLabel
+    let obs = node.labels.map(_ => _.label).reverse().find(_ => _.type === "observable") as ObservableLabel
     let events = node.labels.map(_ => _.label).filter(_ => _.type === "event").map((evl: EventLabel) => evl)
 
     let clazz = "operator withoutStack"

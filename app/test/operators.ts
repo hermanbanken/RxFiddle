@@ -28,6 +28,13 @@ function complexObs() {
 @suite
 export class OperatorTest extends InstrumentationTest {
 
+  @test
+  public "write file"() {
+    complexObs()
+
+    let fs = require("fs")
+    fs.writeFileSync("static/G_newstyle.json", jsonify(this.newcollector.messages))
+  }
   // // @test
   // public "test coverage"() {
   //   let tested = [
