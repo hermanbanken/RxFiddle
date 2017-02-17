@@ -225,6 +225,6 @@ g.circle:hover text, g.circle:hover rect {
   white-space: nowrap;
 }
 
-.graph-label:hover span {
+.graph-label:hover span, .graph-label.focus span {
   display: block;
 }

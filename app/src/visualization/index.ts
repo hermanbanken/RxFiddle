@@ -252,18 +252,44 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   let clicks = new Rx.Subject<string>()
   let groupClicks = new Rx.Subject<string>()
 
+  // Determine shown subscription flow
+  let flowPath: [string, GraphNode][] = []
+  if (viewState.focusNodes.length) {
+    let subIds = graph.node(viewState.focusNodes[0])
+      .labels
+      .map(l => l.label)
+      .flatMap(l => l.type === "subscription" ? [l.id] : [])
+    let subId = subIds[0]
+
+    // tslint:disable-next-line:max-line-length
+    let inn = collect(subId.toString(10), w => graphs.subscriptions.hasNode(w) ? graphs.subscriptions.inEdges(w).map(e => e.v) : [])
+    let out = collect(subId.toString(10), v => graphs.subscriptions.hasNode(v) ? graphs.subscriptions.outEdges(v).map(e => e.w) : [])
+    let path = inn.reverse().concat([`${subId}`]).concat(out)
+    flowPath = path.map(v => [
+      graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`,
+      graphs.main.node(graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`)
+    ] as [string, GraphNode])
+  }
+
+  let flowPathIds = flowPath.map(_ => _[0])
+  console.log("flow", flowPath, flowPathIds)
+
+  // Render edges
   function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
     let { v, w, points } = edge
     let labels = (graph.edge(v, w) || { labels: [] }).labels
 
     let isHigher = labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
 
+    let isSelected = flowPathIds.indexOf(w) >= 0 && flowPathIds.indexOf(v) >= 0
+    let alpha = isSelected ? 0.3 : 0.1
+
     return h("path", {
       attrs: {
         d: bpath(points),
         fill: "transparent",
         id: `${v}/${w}`,
-        stroke: isHigher ? "rgba(200,0,0,0.1)" : "rgba(0,0,0,0.1)",
+        stroke: isHigher ? `rgba(200,0,0,${alpha})` : `rgba(0,0,0,${alpha})`,
         "stroke-width": 10,
       },
       hook: { prepatch: MorphModule.prepare },
@@ -275,6 +301,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
     })
   }
 
+  // Render nodes
   function circle(item: { id: string, x: number, y: number }): { svg: VNode[], html: VNode[] } {
     let node = graph.node(item.id)
     let labels = node.labels || []
@@ -283,6 +310,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       .reverse()
 
     let text = methods.map((l: any) => `${l.method}(${l.args})`).join(", ") || node.name || item.id
+    let isSelected = flowPathIds.indexOf(item.id) >= 0
 
     // tslint:disable-next-line:no-unused-variable
     let shade = h("circle", {
@@ -304,7 +332,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
         id: `circle-${item.id}`,
         r: 5,
         stroke: "black",
-        "stroke-width": viewState.focusNodes.indexOf(item.id) >= 0 ? 1 : 0,
+        "stroke-width": isSelected ? 1 : 0,
       },
       key: `circle-${item.id}`,
       on: {
@@ -317,7 +345,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
     let svg = [/*shade, */circ]
 
     let html = h("div", {
-      attrs: { class: "graph-label" },
+      attrs: { class: `graph-label ${isSelected ? "focus" : ""}` },
       key: `overlay-${item.id}`,
       on: {
         click: (e: any) => clicks.onNext(item.id),
@@ -333,7 +361,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
     return { html: [html], svg }
   }
 
-  // groups
+  // Render groups
   let grouped = groupBy(n =>
     n.group,
     layout[0].nodes
@@ -410,21 +438,10 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
 
   let panel = h("div", [controls, mask])
 
+  // Optionally show flow
   let diagram = [h("div")]
-  if (viewState.focusNodes.length) {
-    let subIds = graph.node(viewState.focusNodes[0])
-      .labels
-      .map(l => l.label)
-      .flatMap(l => l.type === "subscription" ? [l.id] : [])
-    let subId = subIds[0]
-
-    // tslint:disable-next-line:max-line-length
-    let inn = collect(subId.toString(10), w => graphs.subscriptions.hasNode(w) ? graphs.subscriptions.inEdges(w).map(e => e.v) : [])
-    let out = collect(subId.toString(10), v => graphs.subscriptions.hasNode(v) ? graphs.subscriptions.outEdges(v).map(e => e.w) : [])
-    let path = inn.reverse().concat([`${subId}`]).concat(out)
-    let input = path.map(v => graphs.main.node(graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`))
-
-    diagram = renderMarbles(input)
+  if (flowPath.length) {
+    diagram = renderMarbles(flowPath.map(_ => _[1]))
   }
 
   let app = h("app", [
