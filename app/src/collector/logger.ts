@@ -225,8 +225,10 @@ export type Edge = {
   edge: {
     v: number
     w: number
-    label: SubscriptionLinkLabel | SubscriptionHigherOrderLinkLabel | ObservableTimingLabel
+    label: SubscriptionLinkLabel | SubscriptionHigherOrderLinkLabel | ObservableTimingLabel,
+    reason: string
   }
+  groups?: number[]
 }
 
 export type NodeLabel = {

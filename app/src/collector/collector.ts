@@ -1,3 +1,4 @@
+import { jsonify } from "../../test/utils"
 import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
 import { Event } from "./event"
 import { Edge, EventLabel, Message, NodeLabel, ObserverStorage, formatArguments } from "./logger"
@@ -123,6 +124,7 @@ export default class NewCollector implements RxCollector {
                     parent: this.id(sub.parent).get(),
                     type: "higherOrderSubscription sink",
                   },
+                  reason: "before/event/if(sub.parent): " + jsonify(record),
                   v: this.id(record.subject).get(),
                   w: parentObs,
                 },
@@ -150,8 +152,11 @@ export default class NewCollector implements RxCollector {
                         v: this.id(sub).get(),
                         w: this.id(sink).get(),
                       },
-                      v: this.observerToObs(sub),
-                      w: this.observerToObs(sink),
+                      reason: "before/event/if(record.parent): " + jsonify(record),
+                      v: Math.min(this.observerToObs(sub), this.observerToObs(sink)),
+                      w: Math.max(this.observerToObs(sub), this.observerToObs(sink)),
+                      // v: this.observerToObs(sink),
+                      // w: this.observerToObs(sub),
                     },
                     id: this.messages.length,
                     type: "edge",
@@ -197,7 +202,7 @@ export default class NewCollector implements RxCollector {
         }
 
         let observable: number = this.id(record.returned).get()
-        let observableSources: number[] = [record.subject, ...record.arguments]
+        let observableSources: number[] = [record.subject/*, ...record.arguments*/]
           .filter(v => isObservable(v) && !isSubscription(v))
           .map(v => this.id(v).get())
 
@@ -213,12 +218,17 @@ export default class NewCollector implements RxCollector {
           type: "label",
         } as NodeLabel)
 
+        if (record.returned.constructor.name === "FlatMapObservable") {
+          console.log("FlatMapObservable", observableSources, observable, record)
+        }
+
         this.messages.push(...observableSources.map(source => ({
           edge: {
             label: {
               time: record.time,
               type: "observable link",
             },
+            reason: `after/setup: ${record.method}` + jsonify(record),
             v: source,
             w: observable,
           },
@@ -270,7 +280,7 @@ export default class NewCollector implements RxCollector {
         }
         this.id(item).getOrSet(() => {
           let id = this.messages.length
-          if (isObservable(item)) {
+          if (isObservable(item) || isSubscription(item)) {
             this.messages.push({
               id,
               node: {

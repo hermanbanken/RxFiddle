@@ -47,6 +47,10 @@ export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes: string
     (id, label) => [{ id: ranked.node(id.v).rank < ranked.node(id.w).rank ? id : { v: id.w, w: id.v }, label }]
   )
 
+  // Re-add single component nodes removed during ranking
+  console.log(graph.nodes())
+  graph.nodes().filter(n => !ranked.hasNode(n)).forEach(n => { console.log("re-adding", n); ranked.setNode(n, { rank: 0 }) })
+
   let ord = ordering(initialOrd, rankedAndEdgeFixed, fixingSort(focusNodes))
   let layout = priorityLayout(ord, ranked, focusNodes)
   let byId = indexedBy(n => n.id, layout)

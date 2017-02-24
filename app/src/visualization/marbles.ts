@@ -25,15 +25,16 @@ export class MarbleCoordinator {
   }
 
   // Rendering
-  public render(edges: EventLabel[]): VNode {
+  public render(edges: EventLabel[], debug?: (...arg: any[]) => void): VNode {
     let events = edges.map(_ => _.event)
 
     let marbles = events.map(e => h("svg", {
-      attrs: { x: `${this.relTime(e.time)}%`, y: "50%" },
+      attrs: { x: `${(isNaN(this.relTime(e.time)) ? 50 : this.relTime(e.time))}%`, y: "50%" },
     }, [h("path", {
       attrs: { class: "arrow", d: "M 0 -50 L 0 48" },
     }), h("circle", {
       attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
+      on: { mouseover: () => debug ? debug(e) : true },
     })]))
 
     return h("svg", {

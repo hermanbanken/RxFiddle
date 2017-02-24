@@ -179,6 +179,7 @@ export function removeSlack<V extends Ranked, E>(g: TypedGraph<V, E>): TypedGrap
   })
   g.edges().forEach(e => g.setEdge(e.v, e.w, Object.assign({}, g.edge(e), { minlen: 1, weight: 1 })))
 
+  // TODO remove debug assignment
   if (typeof window === "object") {
     (window as any).gjson = json
   }

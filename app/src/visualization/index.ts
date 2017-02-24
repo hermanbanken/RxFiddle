@@ -36,8 +36,17 @@ export type GraphEdge = {
 }
 
 export type Graphs = {
+  full: TypedGraph<GraphNode, GraphEdge>,
   main: TypedGraph<GraphNode, GraphEdge>,
   subscriptions: TypedGraph<number, undefined>,
+}
+
+function debug(...args: any[]) {
+  if (typeof document === "object") {
+    document.getElementById("debug").innerText = args.map(a => JSON.stringify(a, null, "  ")).join("\n")
+  } else {
+    console.log.apply(console, args)
+  }
 }
 
 export class Grapher {
@@ -48,6 +57,7 @@ export class Grapher {
     // this.viewState = viewState.startWith(emptyViewState)
     this.graph = collector.dataObs
       .scan(grapherNext, {
+        full: new TypedGraph<GraphNode, GraphEdge>(),
         main: new TypedGraph<GraphNode, GraphEdge>(),
         subscriptions: new TypedGraph<number, undefined>(),
       })
@@ -72,6 +82,10 @@ function setEdge<V, E>(
 }
 
 export function grapherNext(graphs: Graphs, event: Message) {
+  if (event.type === "node" && event.id === 3) {
+    console.log(event)
+    debugger
+  }
   let { main, subscriptions } = graphs
   switch (event.type) {
 
@@ -90,13 +104,15 @@ export function grapherNext(graphs: Graphs, event: Message) {
       let edgeLabel = event.edge.label
       if (edgeLabel.type === "subscription sink") {
         setEdge(edgeLabel.v, edgeLabel.w, subscriptions, () => ({}))
+        setEdge(edgeLabel.v, edgeLabel.w, main, () => ({}))
       }
 
       setEdge(event.edge.v, event.edge.w, main, () => ({}), e)
       break
 
     case "label":
-      (main.node(`${event.node}`) || main.node(`${(event.label as EventLabel).subscription}`)).labels.push(event)
+      let node = main.node(`${event.node}`) || "subscription" in event.label && main.node(`${(event.label as EventLabel).subscription}`)
+      if (node && node.labels) { node.labels.push(event) }
       let label = event.label
       if (label.type === "subscription") {
         subscriptions.setNode(label.id.toString(10), event.node)
@@ -108,7 +124,7 @@ export function grapherNext(graphs: Graphs, event: Message) {
 
   ; (window as any).graph = graph
 
-  return { main, subscriptions }
+  return { full: main.filterNodes(() => true), main, subscriptions }
 }
 
 export default class Visualizer {
@@ -176,7 +192,9 @@ export default class Visualizer {
 
   private filter(graphs: Graphs, viewState: ViewState): Graphs {
     return {
+      full: graphs.full,
       main: graphs.main.filterNodes((id, node: GraphNode) => {
+        if (id) { return true } // TODO remove dummy
         let annotations = (node ? node.labels || [] : [])
           .filter(ann => ann.label.type === "observable")
         if (annotations.length === 0) {
@@ -193,6 +211,11 @@ export default class Visualizer {
         //   !groups ||
         //   groups.length === 0 ||
         //   (groups.find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
+      }).filterEdges((ids, edge) => {
+        if (ids) { return true } // TODO remove dummy
+        return edge && edge.labels
+          .filter(ann => ann.edge.label.type === "observable link")
+          .some(ann => !ann.groups || !ann.groups.length || ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0))
       }),
       subscriptions: graphs.subscriptions,
     }
@@ -248,6 +271,9 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
 } {
   console.log("Layout", layout)
 
+  if (typeof window === "object") {
+    (window as any).graphs = graphs
+  }
   let graph = graphs.main
 
   // Collect clicks in Subject
@@ -263,14 +289,57 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       .flatMap(l => l.type === "subscription" ? [l.id] : [])
     let subId = subIds[0]
 
+    // tslint:disable:max-line-length
+    function findNext(directionDown: boolean, subscriptionId?: string, observableId?: string): { subscriptionId?: string, observableId?: string } {
+      if (directionDown) {
+        let es = graphs.subscriptions.outEdges(subscriptionId)
+        let os = graphs.full.outEdges(observableId)
+        if (subscriptionId && es) {
+          let out = es.map(_ => _.w)[0]
+          return { observableId: graphs.full.hasNode(out) ? out : `${graphs.subscriptions.node(out)}`, subscriptionId: out }
+        } else if (observableId && os && os.length) {
+          let obs = os[0].w || 'no w'
+          return { observableId: obs, subscriptionId: graphs.subscriptions.nodes().find(n => `${graphs.subscriptions.node(n)}` === obs) || null }
+        }
+      } else {
+        let es = graphs.subscriptions.inEdges(subscriptionId)
+        let os = graphs.full.inEdges(observableId)
+        if (subscriptionId && es && es.length) {
+          let out = es.map(_ => _.v)[0]
+          return { observableId: graphs.full.hasNode(out) ? out : `${graphs.subscriptions.node(out)}`, subscriptionId: out }
+        } else if (observableId && os && os.length) {
+          let obs = os[0].v || 'no v'
+          return { observableId: obs, subscriptionId: graphs.subscriptions.nodes().find(n => `${graphs.subscriptions.node(n)}` === obs) || null }
+        }
+      }
+    }
+
+    let start: { subscriptionId?: string, observableId?: string, current?: boolean } = { observableId: viewState.focusNodes[0], subscriptionId: `${subId}`, current: true }
+    let forward = [start]
+    let next = start
+    let i = 0
+    while (next && i++ < 100) {
+      next = findNext(true, next.subscriptionId, next.observableId)
+      if (next) { forward.push(next) }
+    }
+    let backward = []
+    next = start
+    while (next && i++ < 100) {
+      next = findNext(false, next.subscriptionId, next.observableId)
+      if (next) { backward.unshift(next) }
+    }
+
+    console.log("full flow", backward.concat(forward))
+
     // tslint:disable-next-line:max-line-length
     let inn = collect(subId.toString(10), w => graphs.subscriptions.hasNode(w) ? graphs.subscriptions.inEdges(w).map(e => e.v) : [])
     let out = collect(subId.toString(10), v => graphs.subscriptions.hasNode(v) ? graphs.subscriptions.outEdges(v).map(e => e.w) : [])
-    let path = inn.reverse().concat([`${subId}`]).concat(out)
+    let path = inn.reverse().concat([`${subId}`]).concat(out).reverse()
     flowPath = path.map(v => [
       graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`,
       graphs.main.node(graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`)
     ] as [string, GraphNode])
+    // tslint:ensable:max-line-length
   }
 
   let flowPathIds = flowPath.map(_ => _[0])
@@ -279,7 +348,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   // Render edges
   function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
     let { v, w, points } = edge
-    let labels = (graph.edge(v, w) || { labels: [] }).labels
+    let labels = (graph.edge(v, w) || { labels: [] }).labels || []
 
     let isHigher = labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
 
@@ -296,7 +365,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       },
       hook: { prepatch: MorphModule.prepare },
       key: `${v}/${w}`,
-      on: { click: () => console.log(v, w, labels) },
+      on: { mouseover: () => debug(v, w, graph.edge(v, w)) },
       style: {
         transition: "d 1s",
       },
@@ -339,7 +408,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       key: `circle-${item.id}`,
       on: {
         click: (e: any) => clicks.onNext(item.id),
-        mouseover: (e: any) => console.log(item.id, labels),
+        mouseover: (e: any) => debug(item.id, graph.node(item.id)),
       },
       style: { transition: "all 1s" },
     })
@@ -351,7 +420,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       key: `overlay-${item.id}`,
       on: {
         click: (e: any) => clicks.onNext(item.id),
-        mouseover: (e: any) => console.log(item.id, labels),
+        mouseover: (e: any) => debug(item.id, graph.node(item.id)),
       },
       style: {
         left: `${mu + mu * item.x}px`,
@@ -511,7 +580,7 @@ function vnodeSort(vna: VNode, vnb: VNode): number {
 
 function renderMarbles(nodes: GraphNode[]): VNode[] {
   let coordinator = new MarbleCoordinator()
-  let all_events: EventLabel[] = nodes.flatMap(n => n.labels).map(l => l.label).flatMap(l => l.type === "event" ? [l] : [])
+  let all_events: EventLabel[] = nodes.flatMap(n => n && n.labels || []).map(l => l.label).flatMap(l => l.type === "event" ? [l] : [])
   coordinator.add(all_events)
   console.log("All events", all_events)
 
@@ -521,16 +590,19 @@ function renderMarbles(nodes: GraphNode[]): VNode[] {
       style: `min-width: ${u * 2}px; height: ${u * (1.5 * nodes.length)}px`,
     },
   }, nodes.flatMap((node, i) => {
+    let clazz = "operator withoutStack"
+    if (!node) {
+      return [h("div", { attrs: { class: clazz } }, "Unknown node")]
+    }
     let obs = node.labels.map(_ => _.label).reverse().find(_ => _.type === "observable") as ObservableLabel
     let events = node.labels.map(_ => _.label).filter(_ => _.type === "event").map((evl: EventLabel) => evl)
 
-    let clazz = "operator withoutStack"
     let box = h("div", { attrs: { class: clazz } }, [
       h("div", [], obs ? `${obs.method}(${obs.args})` : node.name),
       h("div", [], "stackFrame locationText"),
     ].filter((_, idx) => idx === 0))
 
-    return [box].concat([coordinator.render(events)])
+    return [box].concat([coordinator.render(events, debug)])
   }))
   return [root]
 }

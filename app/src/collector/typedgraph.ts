@@ -35,6 +35,7 @@ export default class TypedGraph<V, E> extends Graph {
   public filterEdges(filter: (obj: GraphEdge, label: E) => boolean): this {
     let copy = new TypedGraph<V, E>(this.options)
     copy.setGraph(this.graph())
+    _.each(this.nodes(), n => copy.setNode(n, this.node(n)))
     _.each(this.edges(), (e) => {
       let label = this.edge(e)
       if (filter(e, label)) {
