@@ -1,24 +1,52 @@
-import { indexedBy, rankFromTopGraph } from "../collector/graphutils"
+import { indexedBy, rankFromTopGraph, removeSlack } from "../collector/graphutils"
 import TypedGraph from "../collector/typedgraph"
 import { normalize } from "../layout/normalize"
-import { ordering, fixingSort } from "../layout/ordering"
+import { fixingSort, ordering } from "../layout/ordering"
 import { priorityLayout } from "../layout/priority"
 import "../object/extensions"
 import "../utils"
+import * as dagre from "dagre"
+import { Graph } from "graphlib"
 
 export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes: string[] = []): {
-  edges: { points: [{ x: number, y: number }], v: string, w: string }[],
+  edges: { points: { x: number, y: number }[], v: string, w: string }[],
   nodes: { id: string, x: number, y: number }[],
 }[] {
-  let ranked = normalize(rankFromTopGraph(graph), v => ({ rank: v.rank }))
 
-  let byRank = [] as string[][]
-  ranked.nodes().forEach((n: string) => {
-    let rank = ranked.node(n).rank
-    byRank[rank] = (byRank[rank] || []).concat([n])
-  })
+  // // Use Dagre:
+  // graph.setGraph({ width: undefined })
+  // dagre.layout(graph as any)
+  // /* tslint:disable:no-unreachable */
+  // let extractNode = (n: string, l: { x: number, y: number }) => ({ x: l.x / 50, y: l.y / 50, id: n })
+  // let extractEdge = (v: string, w: string, l: { points: { x: number, y: number }[] }) => ({
+  //   v, w,
+  //   points: l.points.map(p => ({ x: isNaN(p.x) ? 0 : p.x / 50, y: isNaN(p.y) ? 0 : p.y / 50 }))
+  // })
 
-  let initialOrd = Object.values(byRank)
+  // if (1 === 1) {
+  //   return [{
+  //     edges: graph.edges().map(e => extractEdge(e.v, e.w, graph.edge(e) as any)),
+  //     nodes: graph.nodes().map(n => extractNode(n, graph.node(n) as any)),
+  //   }]
+  // }
+
+  function distinct<T>(list: T[]) {
+    return list.sort().reduce((list, next) => list[0] == next ? list : [next].concat(list), [])
+  }
+
+  let ranked = normalize(removeSlack(rankFromTopGraph(graph)), v => ({ rank: v.rank }))
+
+  let initialOrd: string[][] = ranked.nodes()
+    .map(n => ({ n, rank: ranked.node(n).rank }))
+    .sort((a, b) => a.rank - b.rank)
+    .reduce<{ lastRank: number, store: string[][] }>(
+    (memo, next) => ({
+      lastRank: next.rank, store: memo.lastRank === next.rank ?
+        [memo.store[0].concat(next.n)].concat(memo.store.slice(1)) : [[next.n]].concat(memo.store),
+    }),
+    { lastRank: -Infinity, store: [] })
+    .store.reverse()
+  console.log(initialOrd)
 
   // TODO verify neccessity of this step
   let rankedAndEdgeFixed = ranked.flatMap(
