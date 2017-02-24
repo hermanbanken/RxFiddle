@@ -166,6 +166,10 @@ export default class NewCollector implements RxCollector {
           break
         }
         let sub = this.findRootObserverId(record.subject)
+        // Prevent adding the same event for multiple wrapped Subscribers
+        if (record.parent && sub === this.findRootObserverId(record.parent.subject)) {
+          break
+        }
         let e: NodeLabel = {
           label: {
             event,
