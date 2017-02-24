@@ -30,23 +30,16 @@ export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes: string
   //   }]
   // }
 
-  function distinct<T>(list: T[]) {
-    return list.sort().reduce((list, next) => list[0] == next ? list : [next].concat(list), [])
-  }
-
   let ranked = normalize(removeSlack(rankFromTopGraph(graph)), v => ({ rank: v.rank }))
 
   let initialOrd: string[][] = ranked.nodes()
     .map(n => ({ n, rank: ranked.node(n).rank }))
     .sort((a, b) => a.rank - b.rank)
-    .reduce<{ lastRank: number, store: string[][] }>(
-    (memo, next) => ({
-      lastRank: next.rank, store: memo.lastRank === next.rank ?
-        [memo.store[0].concat(next.n)].concat(memo.store.slice(1)) : [[next.n]].concat(memo.store),
-    }),
-    { lastRank: -Infinity, store: [] })
-    .store.reverse()
-  console.log(initialOrd)
+    .reduce(({ store, lastRank }, next) => {
+      if (lastRank !== next.rank) { store.push([]) }
+      store[store.length - 1].push(next.n)
+      return { store, lastRank: next.rank }
+    }, { lastRank: -Infinity, store: [] as string[][] }).store
 
   // TODO verify neccessity of this step
   let rankedAndEdgeFixed = ranked.flatMap(

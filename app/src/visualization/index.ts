@@ -214,7 +214,7 @@ function graph$(inp: In): Out {
 }
 
 type Layout = {
-  edges: { points: [{ x: number, y: number }], v: string, w: string }[],
+  edges: { points: { x: number, y: number }[], v: string, w: string }[],
   nodes: { id: string, x: number, y: number }[],
 }[]
 
@@ -227,6 +227,8 @@ function spath(ps: { x: number, y: number }[]): string {
 }
 
 function bpath(ps: { x: number, y: number }[]): string {
+  // simple:
+  // return "M" + [ps[0], ps[1]].map((p) => `${mu + mu * p.x} ${mu + mu * p.y}`).join(" L ")
   let last = ps[ps.length - 1]
   return "M " + mapTuples(ps, (a, b) =>
     `${mu + mu * a.x} ${mu + mu * a.y} C ${mu * (1 + a.x)} ${mu * (1.5 + a.y)}, ${mu + mu * b.x} ${mu * (0.5 + b.y)}, `
@@ -309,7 +311,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       .filter(label => label.type === "observable")
       .reverse()
 
-    let text = methods.map((l: any) => `${l.method}(${l.args})`).join(", ") || node.name || item.id
+    let text = item.id + " " + (methods.map((l: any) => `${l.method}(${l.args})`).join(", ") || node.name || item.id)
     let isSelected = flowPathIds.indexOf(item.id) >= 0
 
     // tslint:disable-next-line:no-unused-variable

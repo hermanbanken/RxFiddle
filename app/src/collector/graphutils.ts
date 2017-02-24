@@ -1,7 +1,10 @@
+// import networkSimplex from "../layout/dagre/networksimplex"
 import "../utils"
 import TypedGraph from "./typedgraph"
-import { Edge as GraphEdge, Graph } from "graphlib"
+import { Edge as GraphEdge, Graph, alg, json } from "graphlib"
 import * as _ from "lodash"
+
+const networkSimplex = require("dagre/lib/rank/network-simplex")
 
 const TRACE = false
 function trace(...args: any[]) {
@@ -166,6 +169,44 @@ export function rankFromTopGraph<V, E>(g: TypedGraph<V, E>): TypedGraph<V & Rank
     }
   })
   return ranked
+}
+
+export function removeSlack<V extends Ranked, E>(g: TypedGraph<V, E>): TypedGraph<V & Ranked, E> {
+  g.nodes().forEach(v => {
+    let copy = Object.assign({}, g.node(v) || {} as any)
+    delete copy.ranked
+    g.setNode(v, Object.assign({}, g.node(v) || {} as any))
+  })
+  g.edges().forEach(e => g.setEdge(e.v, e.w, Object.assign({}, g.edge(e), { minlen: 1, weight: 1 })))
+
+  if (typeof window === "object") {
+    (window as any).gjson = json
+  }
+  // let rank = (v: string) => g.node(v).rank
+  // let f = g.flatMap<V, E>((id, label) => [{ id, label }], (e, label: E) => {
+  //   // Reverse
+  //   if (rank(e.v) > rank(e.w)) {
+  //     // TODO make sure original is reversed again
+  //     // e = { v: e.w, w: e.v }
+  //   }
+  //   return [{ id: e, label }]
+  // })
+
+  alg.components(g).map(c => g.filterNodes(n => c.indexOf(n) >= 0)).forEach(component => {
+    if (!alg.isAcyclic(component)) {
+      console.warn("Running networkSimplex on cyclic graph")
+    }
+    try {
+      networkSimplex(component)
+    } catch (e) {
+      console.warn("Fallback to rankFromTopGraph", e)
+      // rankFromTopGraph(component)
+    }
+    // Make all ranks be in range [0,1,2...)
+    let min = component.nodes().reduce((prev, c) => Math.min(prev, component.node(c).rank), Infinity)
+    component.nodes().forEach(n => component.node(n).rank -= min)
+  })
+  return g
 }
 
 function leftPad(l: number, a: any): string {
