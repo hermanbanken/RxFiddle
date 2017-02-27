@@ -1,7 +1,7 @@
 import { jsonify } from "../../test/utils"
 import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
 import { Event } from "./event"
-import { Edge, EventLabel, Message, NodeLabel, ObserverStorage, formatArguments } from "./logger"
+import { Edge, EventLabel, Message, Node, NodeLabel, ObserverStorage, formatArguments } from "./logger"
 import * as Rx from "rx"
 
 type Group = {
@@ -84,7 +84,8 @@ export default class NewCollector implements RxCollector {
   }
 
   public before(record: ICallStart, parents?: ICallStart[]): this {
-    this.tags(record.subject, ...record.arguments)
+    this.tags(true, record.subject)
+    this.tags(false, ...record.arguments)
 
     switch (callRecordType(record)) {
       case "setup":
@@ -192,11 +193,11 @@ export default class NewCollector implements RxCollector {
   }
 
   public after(record: ICallRecord): void {
-    this.tags(record.returned)
+    this.tags(false, record.returned)
 
     switch (callRecordType(record)) {
       case "setup":
-        let group = this.groups.pop()
+        let group: Group = this.groups.pop()
         if (!isObservable(record.returned)) {
           break
         }
@@ -232,6 +233,7 @@ export default class NewCollector implements RxCollector {
             v: source,
             w: observable,
           },
+          group: group.used ? group.id : undefined,
           groups: this.groups.map(g => g.id),
           type: "edge",
         } as Edge)))
@@ -270,13 +272,13 @@ export default class NewCollector implements RxCollector {
     })
   }
 
-  private tags(...items: any[]): void {
+  private tags(addContext: boolean, ...items: any[]): void {
     items.forEach(item => {
       if (typeof item !== "object") { return }
       if (isSubscription(item) || isObservable(item)) {
         // Find in structure
         if (isSubscription(item) && isSubscription(item.observer)) {
-          this.tags(item.observer)
+          this.tags(false, item.observer)
         }
         this.id(item).getOrSet(() => {
           let id = this.messages.length
@@ -284,10 +286,34 @@ export default class NewCollector implements RxCollector {
             this.messages.push({
               id,
               node: {
-                name: item.constructor.name || item.toString(),
+                name: item.constructor.name || jsonify(item),
               },
               type: "node",
-            })
+            } as Node)
+
+            if (isObservable(item.source) && addContext) {
+              this.messages.push({
+                groups: this.groups.map(g => g.id),
+                label: {
+                  args: undefined,
+                  method: undefined,
+                  type: "observable",
+                },
+                node: id,
+                type: "label",
+              } as NodeLabel, {
+                edge: {
+                  label: {
+                    time: undefined,
+                    type: "observable link",
+                  },
+                  v: this.id(item.source).get(),
+                  w: id,
+                },
+                groups: this.groups.map(g => g.id),
+                type: "edge",
+              } as Edge)
+            }
           }
           return id
         })

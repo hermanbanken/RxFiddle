@@ -212,6 +212,13 @@ export default class Instrumentation {
         subjectName: name || prototype.constructor.name,
       })
     })
+
+    // let ctor = prototype.constructor
+    // prototype.constructor = function () {
+    //   console.log("ctor", arguments)
+    //   let r = ctor.call(this, arguments)
+    //   return r
+    // }
   }
 
   public teardown(): void {

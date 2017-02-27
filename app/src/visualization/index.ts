@@ -194,11 +194,11 @@ export default class Visualizer {
     return {
       full: graphs.full,
       main: graphs.main.filterNodes((id, node: GraphNode) => {
-        if (id) { return true } // TODO remove dummy
+        // if (id) { return true } // TODO remove dummy
         let annotations = (node ? node.labels || [] : [])
           .filter(ann => ann.label.type === "observable")
         if (annotations.length === 0) {
-          return true
+          return false
         }
         return annotations
           .some(ann => !ann.groups.length || ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0))
@@ -212,14 +212,35 @@ export default class Visualizer {
         //   groups.length === 0 ||
         //   (groups.find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
       }).filterEdges((ids, edge) => {
-        if (ids) { return true } // TODO remove dummy
+        // if (ids) { return true } // TODO remove dummy
         return edge && edge.labels
           .filter(ann => ann.edge.label.type === "observable link")
-          .some(ann => !ann.groups || !ann.groups.length || ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0))
+          .some(ann => (
+            !ann.group ||
+            viewState.openGroups.indexOf(`${ann.group}`) === -1
+          ) && (
+              !ann.groups ||
+              !ann.groups.length ||
+              ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0)
+            )
+          )
       }),
       subscriptions: graphs.subscriptions,
     }
   }
+}
+
+function filterLabels(labels: NodeLabel[], viewState: ViewState): NodeLabel[] {
+  if (typeof labels === "undefined" || !labels.length) { return [] }
+  return labels
+    .filter(l => l.label.type === "observable")
+    .filter(l =>
+      viewState.openGroups.indexOf(`${l.group}`) === -1 && (
+        !l.groups ||
+        !l.groups.length ||
+        l.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0)
+      )
+    )
 }
 
 type In = Rx.Observable<({ layout: Layout, viewState: ViewState, graphs: Graphs })>
@@ -281,7 +302,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   let groupClicks = new Rx.Subject<string>()
 
   // Determine shown subscription flow
-  let flowPath: [string, GraphNode][] = []
+  let flowPath: { subscriptionId?: string, observableId?: string }[] = []
   if (viewState.focusNodes.length) {
     let subIds = graph.node(viewState.focusNodes[0])
       .labels
@@ -295,8 +316,9 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
         let es = graphs.subscriptions.outEdges(subscriptionId)
         let os = graphs.full.outEdges(observableId)
         if (subscriptionId && es) {
+          console.log("edges down", es, os)
           let out = es.map(_ => _.w)[0]
-          return { observableId: graphs.full.hasNode(out) ? out : `${graphs.subscriptions.node(out)}`, subscriptionId: out }
+          return { observableId: `${graphs.subscriptions.node(out)}`, subscriptionId: out }
         } else if (observableId && os && os.length) {
           let obs = os[0].w || 'no w'
           return { observableId: obs, subscriptionId: graphs.subscriptions.nodes().find(n => `${graphs.subscriptions.node(n)}` === obs) || null }
@@ -305,8 +327,9 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
         let es = graphs.subscriptions.inEdges(subscriptionId)
         let os = graphs.full.inEdges(observableId)
         if (subscriptionId && es && es.length) {
+          console.log("edges up", es, os)
           let out = es.map(_ => _.v)[0]
-          return { observableId: graphs.full.hasNode(out) ? out : `${graphs.subscriptions.node(out)}`, subscriptionId: out }
+          return { observableId: `${graphs.subscriptions.node(out)}`, subscriptionId: out }
         } else if (observableId && os && os.length) {
           let obs = os[0].v || 'no v'
           return { observableId: obs, subscriptionId: graphs.subscriptions.nodes().find(n => `${graphs.subscriptions.node(n)}` === obs) || null }
@@ -314,35 +337,28 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       }
     }
 
-    let start: { subscriptionId?: string, observableId?: string, current?: boolean } = { observableId: viewState.focusNodes[0], subscriptionId: `${subId}`, current: true }
-    let forward = [start]
-    let next = start
-    let i = 0
-    while (next && i++ < 100) {
-      next = findNext(true, next.subscriptionId, next.observableId)
-      if (next) { forward.push(next) }
-    }
-    let backward = []
-    next = start
-    while (next && i++ < 100) {
-      next = findNext(false, next.subscriptionId, next.observableId)
-      if (next) { backward.unshift(next) }
-    }
+    if (typeof subId !== "undefined") {
+      let start: { subscriptionId?: string, observableId?: string, current?: boolean } = { observableId: viewState.focusNodes[0], subscriptionId: `${subId}`, current: true }
+      let forward = [start]
+      let next = start
+      let i = 0
+      while (next && i++ < 100) {
+        next = findNext(true, next.subscriptionId, next.observableId)
+        if (next) { forward.push(next) }
+      }
+      let backward = []
+      next = start
+      while (next && i++ < 100) {
+        next = findNext(false, next.subscriptionId, next.observableId)
+        if (next) { backward.unshift(next) }
+      }
 
-    console.log("full flow", backward.concat(forward))
-
-    // tslint:disable-next-line:max-line-length
-    let inn = collect(subId.toString(10), w => graphs.subscriptions.hasNode(w) ? graphs.subscriptions.inEdges(w).map(e => e.v) : [])
-    let out = collect(subId.toString(10), v => graphs.subscriptions.hasNode(v) ? graphs.subscriptions.outEdges(v).map(e => e.w) : [])
-    let path = inn.reverse().concat([`${subId}`]).concat(out).reverse()
-    flowPath = path.map(v => [
-      graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`,
-      graphs.main.node(graphs.main.hasNode(v) ? v : `${graphs.subscriptions.node(v)}`)
-    ] as [string, GraphNode])
-    // tslint:ensable:max-line-length
+      flowPath = backward.concat(forward).filter(v => typeof v.subscriptionId !== "undefined")
+      // tslint:ensable:max-line-length
+    }
   }
 
-  let flowPathIds = flowPath.map(_ => _[0])
+  let flowPathIds = flowPath.map(_ => _.observableId)
   console.log("flow", flowPath, flowPathIds)
 
   // Render edges
@@ -375,9 +391,10 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   // Render nodes
   function circle(item: { id: string, x: number, y: number }): { svg: VNode[], html: VNode[] } {
     let node = graph.node(item.id)
-    let labels = node.labels || []
+    let labels = filterLabels(node.labels, viewState)
     let methods = labels.map(nl => nl.label)
       .filter(label => label.type === "observable")
+      .filter(label => "method" in label)
       .reverse()
 
     let text = item.id + " " + (methods.map((l: any) => `${l.method}(${l.args})`).join(", ") || node.name || item.id)
@@ -512,7 +529,7 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   // Optionally show flow
   let diagram = [h("div")]
   if (flowPath.length) {
-    diagram = renderMarbles(flowPath.map(_ => _[1]))
+    diagram = renderMarbles(flowPath.filter(_ => graphs.main.hasNode(_.observableId)).map(_ => graphs.full.node(_.observableId)), viewState)
   }
 
   let app = h("app", [
@@ -578,7 +595,7 @@ function vnodeSort(vna: VNode, vnb: VNode): number {
   return vna.key.toString().localeCompare(vnb.key.toString())
 }
 
-function renderMarbles(nodes: GraphNode[]): VNode[] {
+function renderMarbles(nodes: GraphNode[], viewState: ViewState): VNode[] {
   let coordinator = new MarbleCoordinator()
   let all_events: EventLabel[] = nodes.flatMap(n => n && n.labels || []).map(l => l.label).flatMap(l => l.type === "event" ? [l] : [])
   coordinator.add(all_events)
@@ -594,11 +611,11 @@ function renderMarbles(nodes: GraphNode[]): VNode[] {
     if (!node) {
       return [h("div", { attrs: { class: clazz } }, "Unknown node")]
     }
-    let obs = node.labels.map(_ => _.label).reverse().find(_ => _.type === "observable") as ObservableLabel
+    let obs = filterLabels(node.labels, viewState).map(_ => _.label)[0] as ObservableLabel
     let events = node.labels.map(_ => _.label).filter(_ => _.type === "event").map((evl: EventLabel) => evl)
 
     let box = h("div", { attrs: { class: clazz } }, [
-      h("div", [], obs ? `${obs.method}(${obs.args})` : node.name),
+      h("div", [], obs && obs.method ? `${obs.method}(${obs.args})` : node.name),
       h("div", [], "stackFrame locationText"),
     ].filter((_, idx) => idx === 0))
 

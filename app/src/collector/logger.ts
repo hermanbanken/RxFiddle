@@ -228,6 +228,7 @@ export type Edge = {
     label: SubscriptionLinkLabel | SubscriptionHigherOrderLinkLabel | ObservableTimingLabel,
     reason: string
   }
+  group?: number
   groups?: number[]
 }
 

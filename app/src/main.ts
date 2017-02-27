@@ -12,7 +12,7 @@ import JsonCollector from "./collector/jsonCollector"
 const Observable = Rx.Observable;
 (window as any).Rx = Rx
 
-let collector = new JsonCollector("G_newstyle.json")
+let collector = new JsonCollector("flatMap_newstyle.json")
 // let collector = new Collector()
 // let instrumentation = new Instrumentation(defaultSubjects, collector)
 // instrumentation.setup()
