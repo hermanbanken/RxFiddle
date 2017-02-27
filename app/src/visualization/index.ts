@@ -316,7 +316,6 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
         let es = graphs.subscriptions.outEdges(subscriptionId)
         let os = graphs.full.outEdges(observableId)
         if (subscriptionId && es) {
-          console.log("edges down", es, os)
           let out = es.map(_ => _.w)[0]
           return { observableId: `${graphs.subscriptions.node(out)}`, subscriptionId: out }
         } else if (observableId && os && os.length) {
@@ -327,7 +326,6 @@ function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
         let es = graphs.subscriptions.inEdges(subscriptionId)
         let os = graphs.full.inEdges(observableId)
         if (subscriptionId && es && es.length) {
-          console.log("edges up", es, os)
           let out = es.map(_ => _.v)[0]
           return { observableId: `${graphs.subscriptions.node(out)}`, subscriptionId: out }
         } else if (observableId && os && os.length) {
