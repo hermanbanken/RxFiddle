@@ -4,7 +4,7 @@ export function jsonify(obj: any) {
     if (typeof value === "string" && key === "stack") {
       return value.split("\\n")[0]
     }
-    if (typeof value === "object" && key === "parent" && "id" in value) {
+    if (typeof value === "object" && key === "parent" && value !== null && "id" in value) {
       return value.id
     }
     if (typeof value === "object" && key === "childs") {
