@@ -96,7 +96,9 @@ export default class TypedGraph<V, E> extends Graph {
 
   public toDot(
     nodeProps?: (n: V) => any,
-    edgeProps: (e: E) => any = () => ({ type: "s" }), cluster: (n: V) => string = () => ""
+    edgeProps: (e: E) => any = () => ({ type: "s" }), 
+    cluster: (n: V) => string = () => "",
+    extraProps: () => any = () => ["rankdir=LR", "splines=line"]
   ): string {
     let ns: string[] = this.nodes().map((n: string) => {
       let data = nodeProps && nodeProps(this.node(n))
@@ -132,8 +134,7 @@ export default class TypedGraph<V, E> extends Graph {
     })
 
     return ["digraph g", "{",
-      "rankdir=LR",
-      "splines=line",
+      ...extraProps(),
       ...cs,
       ...ns,
       ...es,
