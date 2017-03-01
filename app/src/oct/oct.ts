@@ -36,7 +36,7 @@ export class ObservableTree implements IObservableTree {
   }
 
   public inspect(depth: number, opts: any) {
-    return `ObservableTree(${this.id}, ${this.name}, ${this.sources && this.sources.map(s => pad(inspect(s, depth + 2, opts), 2))})`
+    return `ObservableTree(${this.id}, ${this.name}, ${(this.sources || []).map(s => pad(inspect(s, depth + 2, opts), 2))})`
   }
 }
 
@@ -88,7 +88,7 @@ export class ObserverTree implements IObserverTree {
   public setObservable(observable: IObservableTree[]): IObserverTree {
     if(this.observable) {
       if(this.observable !== observable[0]) {
-        console.log("Adding second observable to ",this,"being", observable[0])
+        console.log("Adding second observable to ", this, "being", observable[0])
       }
       return this
     }
@@ -98,7 +98,11 @@ export class ObserverTree implements IObserverTree {
   }
 
   public inspect(depth: number, opts: any) {
-    return `ObserverTree(${this.id}, ${this.name}, \n${pad(inspect(this.sink, depth + 2, opts), 2)}\n)`
+    if(this.sink) {
+      return `ObserverTree(${this.id}, ${this.name}, \n${pad(inspect(this.sink, depth + 1, opts), 1)}\n)`
+    } else {
+      return `ObserverTree(${this.id}, ${this.name})`
+    }
   }
 }
 
@@ -157,17 +161,21 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   setSources: (sources: IObservableTree[]) => IObservableTree;
   graph: TypedGraph<(IObservableTree|IObserverTree),{}>
 
-  public inspect(depth: number) {
-    return `SubjectTree(${this.id}, ${this.name})`
+  public inspect(depth: number, opts: any) {
+    return `SubjectTree(${this.id}, ${this.name}, \n${pad(inspect(this.sink, depth + 2, opts), 2)}\n)`
   }
 }
 
 applyMixins(SubjectTree, [ObservableTree, ObserverTree]);
 
 function applyMixins(derivedCtor: any, baseCtors: any[]) {
-    baseCtors.forEach(baseCtor => {
-        Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
-            derivedCtor.prototype[name] = baseCtor.prototype[name];
-        });
+  baseCtors.forEach(baseCtor => {
+    Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
+      // Only mix non-defined's, causing implemented methods to act as overloads. 
+      // Allows mixin to have a specialized constructor for example.
+      if(typeof derivedCtor.prototype[name] === "undefined") {
+        derivedCtor.prototype[name] = baseCtor.prototype[name];
+      }
     });
+  });
 }
