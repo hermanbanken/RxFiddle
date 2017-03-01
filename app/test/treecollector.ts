@@ -21,7 +21,10 @@ export class TreeCollectorTest {
     this.instrumentation.teardown()
   }
 
-	private flowsFrom(observable: IObservableTree, to: IObserverTree, remaining: number = 100) {
+	private flowsFrom(observable: IObservableTree, to: IObserverTree, remaining: number = 100): boolean {
+		if(to instanceof SubjectTree) {
+			// console.log("FlowsFrom", to)
+		}
 		if(to && to.observable === observable) {
 			return true
 		} else if(to && typeof to.inflow !== "undefined" && remaining > 0) {
@@ -30,6 +33,13 @@ export class TreeCollectorTest {
 			}
 		}
 		return false
+	}
+
+	private flowsTrough(to: IObserverTree, remaining: number = 20): string[] {
+		if(to && typeof to.inflow !== "undefined" && remaining > 0) {
+			return to.inflow.filter(f => f !== to).flatMap<string>(f => this.flowsTrough(f, remaining - 1).map<string>(flow => `${flow}/${to.observable.name}`))
+		}
+		return [to.observable.name]
 	}
 
 	private getObs(o: Rx.Observable<any>): IObservableTree | undefined {
@@ -110,6 +120,7 @@ export class TreeCollectorTest {
 
 		this.write("tree_d")
 
+		console.log("flowsThrough", this.flowsTrough(this.getSub(s)))
 		if(!this.flowsFrom(this.getObs(first), this.getSub(s))) {
 			throw new Error("No connected flow")
 		}
@@ -122,12 +133,14 @@ export class TreeCollectorTest {
       .share()
 		let end1 = shared.filter(_ => true)
 		let end2 = shared.reduce((a: number, b: number) => a + b)
-		end2.subscribe()
-		let s = end1.subscribe()
-
+		
+		let s2 = end2.subscribe()
+		let s1 = end1.subscribe()
+		
 		this.write("tree_e")
 
-		if(!this.flowsFrom(this.getObs(first), this.getSub(s))) {
+		console.log("flowsThrough", this.flowsTrough(this.getSub(s1)))
+		if(!this.flowsFrom(this.getObs(first), this.getSub(s1)) || !this.flowsFrom(this.getObs(first), this.getSub(s2))) {
 			throw new Error("No connected flow")
 		}
 	}
@@ -140,7 +153,7 @@ export class TreeCollectorTest {
 			.flatMap(item => inner)
 			.filter(_ => true)
 			.subscribe()
-			
+
 		this.write("tree_f")
 
 		if(!this.flowsFrom(this.getObs(first), this.getSub(s))) {

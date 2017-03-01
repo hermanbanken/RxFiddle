@@ -22,7 +22,7 @@ export class ObservableTree implements IObservableTree {
   public call?: MethodCall
   public sources?: IObservableTree[]
 
-  private graph: TypedGraph<(IObservableTree|IObserverTree),{}>
+  graph: TypedGraph<(IObservableTree|IObserverTree),{}>
   constructor(id: string, graph: TypedGraph<(IObservableTree|IObserverTree),{}>) {
     this.id = id
     this.graph = graph
@@ -33,6 +33,10 @@ export class ObservableTree implements IObservableTree {
     this.sources = sources
     sources.forEach(s => this.graph.setEdge(s.id, this.id, { label: 'source' }))
     return this
+  }
+
+  public inspect(depth: number, opts: any) {
+    return `ObservableTree(${this.id}, ${this.name}, ${this.sources && this.sources.map(s => pad(inspect(s, depth + 2, opts), 2))})`
   }
 }
 
@@ -56,7 +60,7 @@ export class ObserverTree implements IObserverTree {
   public inflow?: IObserverTree[]
   public events: IEvent[] = []
 
-  private graph: TypedGraph<(IObservableTree|IObserverTree),{}>
+  graph: TypedGraph<(IObservableTree|IObserverTree),{}>
   constructor(id: string, graph: TypedGraph<(IObservableTree|IObserverTree),{}>) {
     this.id = id
     this.graph = graph
@@ -64,6 +68,9 @@ export class ObserverTree implements IObserverTree {
   }
 
   public setSink(sinks: IObserverTree[], name?: string) {
+    if(this.sink === sinks[0]) {
+      return this
+    }
     this.sink = sinks[0]
     sinks.forEach(s => s.addInflow(this))
     sinks.forEach(s => this.graph.setEdge(this.id, s.id, { label: 'sink' + name }))
@@ -71,18 +78,55 @@ export class ObserverTree implements IObserverTree {
   }
   public addInflow(inflow: IObserverTree) {
     this.inflow = this.inflow || []
+    if(this.inflow.indexOf(inflow) >= 0) {
+      return this
+    }
     this.inflow.push(inflow)
     this.graph.setEdge(inflow.id, this.id, {})
     return this
   }
   public setObservable(observable: IObservableTree[]): IObserverTree {
+    if(this.observable) {
+      if(this.observable !== observable[0]) {
+        console.log("Adding second observable to ",this,"being", observable[0])
+      }
+      return this
+    }
     this.observable = observable[0]
     observable.forEach(o => this.graph.setEdge(o.id, this.id, { label: 'observable' }))
     return this
   }
+
+  public inspect(depth: number, opts: any) {
+    return `ObserverTree(${this.id}, ${this.name}, \n${pad(inspect(this.sink, depth + 2, opts), 2)}\n)`
+  }
 }
 
-export class SubjectTree implements IObservableTree, IObserverTree {
+function pad(string: string, depth: number): string {
+  if(depth <= 0 || !string) {
+    return string
+  }
+  return pad(string.split("\n").map(l => "  " + l).join("\n"), depth - 1)
+}
+
+function inspect(i: any, depth: number, opts: any): string {
+  if(i && i.inspect) {
+    return i.inspect(depth, opts)
+  } else if(i && i.toString) {
+    return i.toString()
+  } else {
+    return i
+  }
+}
+
+function addInflow(this: IObserverTree & { sgraph?: TypedGraph<IObservableTree|IObserverTree,{}> }, inflow: IObserverTree): IObserverTree {
+  this.inflow = this.inflow || []
+  this.inflow.push(inflow)
+  if(this.sgraph) this.sgraph.setEdge(inflow.id, this.id, {})
+  return this
+}
+
+export class SubjectTree implements ObservableTree, ObserverTree {
   public id: Id
   public name: string
   public args: IArguments
@@ -93,36 +137,37 @@ export class SubjectTree implements IObservableTree, IObserverTree {
   public sinks?: IObserverTree[]
   public events: IEvent[] = []
 
-  private graph: TypedGraph<(IObservableTree|IObserverTree),{}>
   constructor(id: string, graph: TypedGraph<(IObservableTree|IObserverTree),{}>) {
     this.id = id
     this.graph = graph
     graph.setNode(id, this)
   }
 
-  public setSink(sinks: IObserverTree[], name?: string) {
-    this.addSink(sinks, name)
-    return this
-  }
   public addSink(sinks: IObserverTree[], name?: string) {
-    this.sinks = (this.sinks || []).concat(sinks)
-    sinks.forEach(s => this.graph.setEdge(this.id, s.id, { label: 'sink '+name }))
+    let prev = this.sinks || []
+    this.setSink(sinks, name)
+    this.sinks = prev.concat(sinks)
     return this
   }
-  public addInflow(inflow: IObserverTree) {
-    this.inflow = this.inflow || []
-    this.inflow.push(inflow)
-    this.graph.setEdge(inflow.id, this.id)
-    return this
+
+  // Mixin Observable & Observer methods
+  setSink: (sinks: IObserverTree[], name?: string) => this;
+  addInflow: (inflow: IObserverTree) => this;
+  setObservable: (observable: IObservableTree[]) => IObserverTree;
+  setSources: (sources: IObservableTree[]) => IObservableTree;
+  graph: TypedGraph<(IObservableTree|IObserverTree),{}>
+
+  public inspect(depth: number) {
+    return `SubjectTree(${this.id}, ${this.name})`
   }
-  public setSources(sources: IObservableTree[]): IObservableTree {
-    this.sources = sources
-    sources.forEach(o => this.graph.setEdge(o.id, this.id, { label: 'source' }))
-    return this
-  }
-  public setObservable(observable: IObservableTree[]): IObserverTree {
-    this.observable = observable[0]
-    observable.forEach(o => this.graph.setEdge(o.id, this.id, { label: 'observable' }))
-    return this
-  }
+}
+
+applyMixins(SubjectTree, [ObservableTree, ObserverTree]);
+
+function applyMixins(derivedCtor: any, baseCtors: any[]) {
+    baseCtors.forEach(baseCtor => {
+        Object.getOwnPropertyNames(baseCtor.prototype).forEach(name => {
+            derivedCtor.prototype[name] = baseCtor.prototype[name];
+        });
+    });
 }
