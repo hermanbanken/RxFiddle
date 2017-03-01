@@ -16,11 +16,11 @@ function isStream(v: Rx.Observable<any>): boolean {
   return v instanceof (Rx as any).Observable
 }
 
-function isObserver<T>(v: any): v is any & Rx.Observer<T> {
+function isObserver<T>(v: any): v is Rx.Observer<T> & any {
   return typeof v === "object" && v !== null && typeof v.onNext === "function"
 }
 
-function isSubscription(v: any): v is any & Rx.Subscription {
+function isDisposable(v: any): v is Rx.Subscription & any {
   return typeof v === "object" && v !== null && typeof v.dispose === "function"
 }
 
@@ -112,25 +112,17 @@ export class TreeCollector implements RxCollector {
     this.stack.push(record)
     switch(callRecordType(record)) {
       case "subscribe":
-        if(record.subject.constructor.name === "Subject" && record.method === "_subscribe") {
-          break;
-        }
         this.tagObservable(record);
-        [].filter.call(record.arguments, isSubscription).forEach((s: any) => this.tagObserver(s))
+        [].filter.call(record.arguments, isDisposable).forEach((s: any) => this.tagObserver(s))
         break;
       case "event":
         let event = Event.fromRecord(record)
-        if(event) {
-          if(!this.tagObserver(record.subject)) {
-              console.log("event", record, "for no Subscription object:", record.subject)
-          }
-          this.tagObserver(record.subject).map(_ => _.events.push(event))
+        if(event && this.hasTag(record.subject)) {
+          this.tagObserver(record.subject).forEach(_ => _.events.push(event))
         }
         break;
       case "setup":
-        // if(this.stack.length <= 1) {
-          this.tagObservable(record.subject)
-        // }
+        this.tagObservable(record.subject)
     }
     return this
   }
@@ -138,41 +130,34 @@ export class TreeCollector implements RxCollector {
   public after(record: ICallRecord): void {
     switch(callRecordType(record)) {
       case "subscribe":
-        if(record.subject.constructor.name === "Subject" && record.method === "_subscribe") {
-          break;
+        if(record.subject.constructor.name === "Subject") {
+          // console.log("onto subject", record.arguments[0])
         }
-        [].filter.call(record.arguments, isSubscription).forEach((s: any) => this.tagObserver(s).map(_ => {
-          // console.log('sink', record.returned)
-          this.tagObserver(record.returned).forEach(s => {
-            s.setObservable(this.tagObservable(record.subject))
-            s.setSink([_], "/_.argument")
-          })
-          // _.setSink(this.tagSubscription(record.returned), "/_.argument")
+        let observers = [].filter.call(record.arguments, isObserver).slice(0, 1)
+        observers.forEach((s: any) => this.tagObserver(s).forEach(observer => {
+          let observable = this.tag(record.subject)
+          if(observable instanceof SubjectTree) {
+            // Special case for subjects
+            observable.addSink(([observer]), " subject")
+          } else if (observable instanceof ObservableTree) {
+            observer.setObservable([observable])
+          }
         }))
         break;
       case "setup":
-        // if(this.stack.length <= 1) {
-          this.tagObservable(record.returned, record).map(_ => {
-            // if(!_.sources || !_.sources.length) {
-            //   _.setSources([record.subject, ...record.arguments].flatMap(o => this.tagObservable(o)))
-            // }
-          })
-        // }
+        this.tagObservable(record.returned, record)
     }
     this.stack.pop()
+  }
+
+  private hasTag(input: any): boolean {
+    return typeof (input as any)[this.hash] !== "undefined"
   }
 
   private tag(input: any): IObserverTree | IObservableTree | undefined {
     let tree: IObserverTree | IObservableTree
     if(typeof (input as any)[this.hash] !== "undefined") {
       return (input as any)[this.hash]
-    }
-
-    if(!input.constructor.name && input._s && input._o) {
-      let sourceObs = this.tag(input._s) as IObservableTree
-      let observer = this.tag(input._o) as IObserverTree
-      observer.setObservable([sourceObs])
-      return observer
     }
 
     if(isObserver(input) && isObservable(input)) {
@@ -190,36 +175,42 @@ export class TreeCollector implements RxCollector {
     if(isObserver(input)) {
       (input as any)[this.hash] = tree = new ObserverTree(`${this.nextId++}`, this.graph)
       tree.name = input.constructor.name
+      // if(tree.name === "AutoDetachObserver") {
+      //   console.log("Captured ADO", new Error().stack)
+      // }
       this.all.push(tree)
       return tree
     }
   }
 
+  private tagDisposable(input: any): IObserverTree[] {
+    if(isDisposable(input)) {
+      input.source
+    }
+
+    return []
+  }
+
   private tagObserver(input: any): IObserverTree[] {
     if(isObserver(input)) {
-      if(isObserver(input.o) && isObserver(input.o.observer)) {
-        this.tagObserver(input.o.observer)
-      }
-      if(isObserver(input._o) && isObserver(input._o.observer)) {
-        this.tagObserver(input._o.observer)
+      // Rx specific: Subjects get subscribed AutoDetachObserver's, unfold these
+      if(isObserver(input.observer) && !this.hasTag(input) && input.constructor.name === "AutoDetachObserver") {
+        console.log("ADO", input);
+        ([this.tag(input) as IObserverTree]).forEach(o => o.setSink(([this.tag(input.observer) as IObserverTree]), " via upper ADO._o"))
+        // this.tagObserver(input.observer).forEach(o => o.setSink(this.tagObserver(input.observer._o), " via special ADO._o"))
       }
 
       let tree = this.tag(input) as IObserverTree
 
-      if(isObserver(input.o) && isObserver(input.o.observer)) {
-        this.tagObserver(input.o.observer).forEach(_ => tree.setSink([_], ".stepOverADO"))
-      }
-
-      if(isObserver(input._o) && isObserver(input._o.observer)) {
-        this.tagObserver(input._o.observer).forEach(_ => tree.setSink([_], ".stepOverADO"))
-      }
-
-      if(isObserver(input.o)) {
-        this.tagObserver(input.o).forEach(_ => tree.setSink([_], ".o"))
-      }
-      if(isObserver(input._o)) {
-        this.tagObserver(input._o).forEach(_ => tree.setSink([_], "._o"))
-      }
+      // Rx specific: InnerObservers have references to their sinks via a AutoDetachObserver
+      let list = elvis(input, ["o", "observer"]) // InnerObservers
+        .concat(elvis(input, ["_o", "observer"])) // InnerObservers
+        .concat(elvis(input, ["parent"])) // what was this again?
+        .concat(elvis(input, ["_s", "o"])) // ConcatObserver
+      // console.log(list)
+      list.slice(0, 1).forEach(sink => {
+        tree.setSink(this.tagObserver(sink), " via o.observer")
+      })
 
       return [tree]
     }
@@ -228,17 +219,14 @@ export class TreeCollector implements RxCollector {
 
   private tagObservable(input: any, callRecord?: ICallRecord): IObservableTree[] {
     if (isObservable(input)) {
-      let tree = (input as any)[this.hash] as IObservableTree
-      if (typeof tree === "undefined") {
-        (input as any)[this.hash] = tree = this.tag(input) as IObservableTree
-        tree.name = input.constructor.name
-        this.all.push(tree)
-      }
+      let tree = this.tag(input) as IObservableTree
       if(callRecord) {
         tree.call = { method: callRecord.method, args: callRecord.arguments }
       }
       if(input.source) {
-        tree.setSources([...this.tagObservable(input.source), ...this.tagObservable((input as any)._source)])
+        tree.setSources(this.tagObservable(input.source))
+      } else if((input as any)._sources) {
+        tree.setSources((input as any)._sources.flatMap((s: any) => this.tagObservable(s)))
       }
       return [tree]
     }
@@ -282,7 +270,7 @@ export default class NewCollector implements RxCollector {
         break
       case "subscribe":
       case "event":
-        [].filter.call(record.arguments, isSubscription)
+        [].filter.call(record.arguments, isDisposable)
           .forEach((sub: any) => {
             let set = this.observerStorage.set(this.id(record.subject).get(), this.id(sub).get())
             set.addCore(this.id(sub).get(), "1")
@@ -324,7 +312,7 @@ export default class NewCollector implements RxCollector {
             // Find sink:
             // see if this sub links to record.parent.arguments.0 => link
             if (record.parent) {
-              let ps = [].filter.call(record.parent.arguments, isSubscription)
+              let ps = [].filter.call(record.parent.arguments, isDisposable)
               let key = existsSomewhereIn(sub, ps)
               if (key) {
                 let sinks = elvis(sub, key.split("."))
@@ -391,7 +379,7 @@ export default class NewCollector implements RxCollector {
 
         let observable: number = this.id(record.returned).get()
         let observableSources: number[] = [record.subject/*, ...record.arguments*/]
-          .filter(v => isObservable(v) && !isSubscription(v))
+          .filter(v => isObservable(v) && !isDisposable(v))
           .map(v => this.id(v).get())
 
         this.messages.push({
@@ -462,14 +450,14 @@ export default class NewCollector implements RxCollector {
   private tags(addContext: boolean, ...items: any[]): void {
     items.forEach(item => {
       if (typeof item !== "object") { return }
-      if (isSubscription(item) || isObservable(item)) {
+      if (isDisposable(item) || isObservable(item)) {
         // Find in structure
-        if (isSubscription(item) && isSubscription(item.observer)) {
+        if (isDisposable(item) && isDisposable(item.observer)) {
           this.tags(false, item.observer)
         }
         this.id(item).getOrSet(() => {
           let id = this.messages.length
-          if (isObservable(item) || isSubscription(item)) {
+          if (isObservable(item) || isDisposable(item)) {
             this.messages.push({
               id,
               node: {

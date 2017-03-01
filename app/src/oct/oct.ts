@@ -90,6 +90,7 @@ export class SubjectTree implements IObservableTree, IObserverTree {
   public sources?: IObservableTree[]
   public observable: IObservableTree
   public sink?: IObserverTree
+  public sinks?: IObserverTree[]
   public events: IEvent[] = []
 
   private graph: TypedGraph<(IObservableTree|IObserverTree),{}>
@@ -99,9 +100,13 @@ export class SubjectTree implements IObservableTree, IObserverTree {
     graph.setNode(id, this)
   }
 
-  public setSink(sinks: IObserverTree[]) {
-    this.sink = sinks[0]
-    sinks.forEach(s => this.graph.setEdge(this.id, s.id, { label: 'sink '}))
+  public setSink(sinks: IObserverTree[], name?: string) {
+    this.addSink(sinks, name)
+    return this
+  }
+  public addSink(sinks: IObserverTree[], name?: string) {
+    this.sinks = (this.sinks || []).concat(sinks)
+    sinks.forEach(s => this.graph.setEdge(this.id, s.id, { label: 'sink '+name }))
     return this
   }
   public addInflow(inflow: IObserverTree) {

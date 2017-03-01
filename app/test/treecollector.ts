@@ -21,13 +21,13 @@ export class TreeCollectorTest {
     this.instrumentation.teardown()
   }
 
-	private flowsFrom(observable: IObservableTree, to: IObserverTree) {
+	private flowsFrom(observable: IObservableTree, to: IObserverTree, remaining: number = 100) {
 		if(to && to.observable === observable) {
 			return true
-		} else if(to && typeof to.inflow !== "undefined") {
-			// if(to.inflow.some(f => this.flowsFrom(observable, f))) {
-			// 	return true
-			// }
+		} else if(to && typeof to.inflow !== "undefined" && remaining > 0) {
+			if(to.inflow.some(f => this.flowsFrom(observable, f, remaining - 1))) {
+				return true
+			}
 		}
 		return false
 	}
@@ -36,6 +36,9 @@ export class TreeCollectorTest {
 		return (o as any)[this.collector.hash] as IObservableTree
 	}
 	private getSub(o: Rx.Subscription | Rx.Disposable): IObserverTree | undefined {
+		if("observer" in o) {
+			return (o as any)["observer"][this.collector.hash] as IObserverTree
+		}
 		return (o as any)[this.collector.hash] as IObserverTree
 	}
 
@@ -43,7 +46,7 @@ export class TreeCollectorTest {
 		let fs = require("fs")
 		fs.writeFileSync(`static/${name}.graph.txt`, this.collector.graph.toDot(
 			n => ({ label: n && n.name || n && n.id, color: n instanceof SubjectTree ? "purple" : (n instanceof ObserverTree ? "red" : "blue") }), 
-			e => Object.assign(e, { minlen: (e as any).label === "source" ? 2 : 1 }), 
+			e => Object.assign(e, { minlen: (e as any).label === "source" ? 1 : 1 }), 
 			n => n instanceof ObserverTree ? "red" : "blue", 
 			() => ["rankdir=TB"]
 			))
@@ -83,10 +86,13 @@ export class TreeCollectorTest {
 
 	@test
 	public gatherTreeC() {
-		let first = Rx.Observable.of(1, 2, 3)
-    let shared = first.share()
-		let end2 = shared.reduce((a: number, b: number) => a + b).skip(0).filter(t => true)
-    let s = end2.subscribe()
+		let first = Rx.Observable
+			.of(1, 2, 3)
+		let s = first
+			.reduce((a: number, b: number) => a + b)
+			.skip(0)
+			.filter(t => true)
+			.subscribe()
 
 		this.write("tree_c")
 
@@ -94,9 +100,23 @@ export class TreeCollectorTest {
 			throw new Error("No connected flow")
 		}
 	}
-	
+
 	@test
 	public gatherTreeD() {
+		let first = Rx.Observable.of(1, 2, 3).take(3)
+    let shared = first.share()
+		let end2 = shared.reduce((a: number, b: number) => a + b).skip(0).filter(t => true)
+    let s = end2.subscribe()
+
+		this.write("tree_d")
+
+		if(!this.flowsFrom(this.getObs(first), this.getSub(s))) {
+			throw new Error("No connected flow")
+		}
+	}
+	
+	@test
+	public gatherTreeE() {
 		let first = Rx.Observable.of(1, 2, 3)
     let shared = first
       .share()
@@ -105,7 +125,23 @@ export class TreeCollectorTest {
 		end2.subscribe()
 		let s = end1.subscribe()
 
-		this.write("tree_d")
+		this.write("tree_e")
+
+		if(!this.flowsFrom(this.getObs(first), this.getSub(s))) {
+			throw new Error("No connected flow")
+		}
+	}
+
+	@test
+	public gatherTreeF() {
+		let inner = Rx.Observable.just("a").startWith("b")
+		let first = Rx.Observable.of(1, 2, 3)
+    let s = first
+			.flatMap(item => inner)
+			.filter(_ => true)
+			.subscribe()
+			
+		this.write("tree_f")
 
 		if(!this.flowsFrom(this.getObs(first), this.getSub(s))) {
 			throw new Error("No connected flow")
