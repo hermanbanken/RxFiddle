@@ -9,6 +9,7 @@ export interface IObservableTree {
   call?: MethodCall
   sources?: IObservableTree[]
   setSources(sources: IObservableTree[]): IObservableTree
+  addMeta(meta: any): IObservableTree
 }
 
 export interface MethodCall {
@@ -22,16 +23,23 @@ export class ObservableTree implements IObservableTree {
   public call?: MethodCall
   public sources?: IObservableTree[]
 
-  graph: TypedGraph<(IObservableTree|IObserverTree),{}>
-  constructor(id: string, graph: TypedGraph<(IObservableTree|IObserverTree),{}>) {
+  logger: ITreeLogger
+  constructor(id: string, name: string, logger: ITreeLogger) {
     this.id = id
-    this.graph = graph
-    graph.setNode(id, this)
+    this.logger = logger
+    this.name = name
+    logger.addNode(id, "observable")
+    logger.addMeta(id, { name: this.name })
   }
 
   public setSources(sources: IObservableTree[]): IObservableTree {
     this.sources = sources
-    sources.forEach(s => this.graph.setEdge(s.id, this.id, { label: 'source' }))
+    sources.forEach(s => this.logger.addEdge(s.id, this.id, "addSource", { label: 'source' }))
+    return this
+  }
+
+  public addMeta(meta: any): IObservableTree {
+    this.logger.addMeta(this.id, meta)
     return this
   }
 
@@ -52,6 +60,17 @@ export interface IObserverTree {
   setObservable(observable: IObservableTree[]): IObserverTree
 }
 
+export type NodeType = "observable" | "subject" | "observer"
+                // O->O *-*    | O->S 1-1            | S->S *-*                
+export type EdgeType = "addSource" | "setObserverSource" | "addObserverSink"
+export interface ITreeLogger {
+  addNode(id: Id, type: NodeType): void
+  addMeta(id: Id, meta: any): void
+  addEdge(v: Id, w: Id, type: EdgeType, meta?: any): void
+}
+
+
+//TypedGraph<(IObservableTree|IObserverTree),{}>
 export class ObserverTree implements IObserverTree {
   public id: Id
   public name: string
@@ -60,20 +79,22 @@ export class ObserverTree implements IObserverTree {
   public inflow?: IObserverTree[]
   public events: IEvent[] = []
 
-  graph: TypedGraph<(IObservableTree|IObserverTree),{}>
-  constructor(id: string, graph: TypedGraph<(IObservableTree|IObserverTree),{}>) {
+  logger: ITreeLogger
+  constructor(id: string, name: string, logger: ITreeLogger) {
     this.id = id
-    this.graph = graph
-    graph.setNode(id, this)
+    this.logger = logger
+    this.name = name
+    logger.addNode(id, "observer")
+    logger.addMeta(id, { name: this.name })
   }
 
-  public setSink(sinks: IObserverTree[], name?: string) {
+  public setSink(sinks: IObserverTree[], name?: string): IObserverTree {
     if(this.sink === sinks[0]) {
       return this
     }
     this.sink = sinks[0]
     sinks.forEach(s => s.addInflow(this))
-    sinks.forEach(s => this.graph.setEdge(this.id, s.id, { label: 'sink' + name }))
+    sinks.forEach(s => this.logger.addEdge(this.id, s.id, "addObserverSink", { label: 'sink' + name }))
     return this
   }
   public addInflow(inflow: IObserverTree) {
@@ -82,7 +103,6 @@ export class ObserverTree implements IObserverTree {
       return this
     }
     this.inflow.push(inflow)
-    this.graph.setEdge(inflow.id, this.id, {})
     return this
   }
   public setObservable(observable: IObservableTree[]): IObserverTree {
@@ -93,7 +113,7 @@ export class ObserverTree implements IObserverTree {
       return this
     }
     this.observable = observable[0]
-    observable.forEach(o => this.graph.setEdge(o.id, this.id, { label: 'observable' }))
+    observable.forEach(o => this.logger.addEdge(o.id, this.id, "setObserverSource", { label: 'observable' }))
     return this
   }
 
@@ -123,13 +143,6 @@ function inspect(i: any, depth: number, opts: any): string {
   }
 }
 
-function addInflow(this: IObserverTree & { sgraph?: TypedGraph<IObservableTree|IObserverTree,{}> }, inflow: IObserverTree): IObserverTree {
-  this.inflow = this.inflow || []
-  this.inflow.push(inflow)
-  if(this.sgraph) this.sgraph.setEdge(inflow.id, this.id, {})
-  return this
-}
-
 export class SubjectTree implements ObservableTree, ObserverTree {
   public id: Id
   public name: string
@@ -141,10 +154,12 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   public sinks?: IObserverTree[]
   public events: IEvent[] = []
 
-  constructor(id: string, graph: TypedGraph<(IObservableTree|IObserverTree),{}>) {
+  constructor(id: string, name: string, logger: ITreeLogger) {
     this.id = id
-    this.graph = graph
-    graph.setNode(id, this)
+    this.logger = logger
+    this.name = name
+    logger.addNode(id, "subject")
+    logger.addMeta(id, { name: this.name })
   }
 
   public addSink(sinks: IObserverTree[], name?: string) {
@@ -159,7 +174,8 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   addInflow: (inflow: IObserverTree) => this;
   setObservable: (observable: IObservableTree[]) => IObserverTree;
   setSources: (sources: IObservableTree[]) => IObservableTree;
-  graph: TypedGraph<(IObservableTree|IObserverTree),{}>
+  addMeta: (meta:any) => this;
+  logger: ITreeLogger
 
   public inspect(depth: number, opts: any) {
     return `SubjectTree(${this.id}, ${this.name}, \n${pad(inspect(this.sink, depth + 2, opts), 2)}\n)`

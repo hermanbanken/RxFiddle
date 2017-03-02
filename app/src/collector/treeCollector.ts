@@ -4,23 +4,59 @@ import { Event } from "./event"
 import { Edge, EventLabel, Message, Node, NodeLabel, ObserverStorage, formatArguments } from "./logger"
 import * as Rx from "rx"
 import TypedGraph from "./typedgraph"
-import { ObserverTree, ObservableTree, SubjectTree, IObservableTree, IObserverTree } from "../oct/oct"
+import { ObserverTree, ObservableTree, SubjectTree, IObservableTree, IObserverTree, ITreeLogger, EdgeType, NodeType } from "../oct/oct"
 import { RxCollector, isObservable, isDisposable, isObserver, elvis } from "./collector"
+
+export class TreeGrapher implements ITreeLogger {
+	public graph = new TypedGraph<ObservableTree | ObserverTree, {}>()
+	addNode(id: string, type: NodeType): void {
+		this.graph.setNode(id)
+	}
+  addMeta(id: string, meta: any): void {
+		this.graph.setNode(id, Object.assign(this.graph.node(id) || {}, meta))
+	}
+  addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
+		this.graph.setEdge(v, w, meta)
+	}
+}
+
+export class TreeWriter implements ITreeLogger {
+	public messages: any[] = []
+	addNode(id: string, type: NodeType): void {
+		this.messages.push({ id, type })
+	}
+  addMeta(id: string, meta: any): void {
+		this.messages.push({ id, meta })
+	}
+  addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
+		this.messages.push({ v, w, type, meta })
+	}
+}
+
+export class TreeReader {
+	public treeGrapher: TreeGrapher = new TreeGrapher()
+	public next(message: any) {
+		if(typeof message.v !== "undefined" && typeof message.w !== "undefined") {
+			this.treeGrapher.addEdge(message.v, message.w, message.type, message.meta)
+		} else if (typeof message.type !== "undefined") {
+			this.treeGrapher.addNode(message.id, message.type)
+		} else {
+			this.treeGrapher.addMeta(message.id, message.meta)
+		}
+	}
+}
 
 export class TreeCollector implements RxCollector {
   public static collectorId = 0
   public hash: string
   public collectorId: number
-  public all: (IObserverTree | IObservableTree)[] = []
   public nextId = 1
-  public graph = new TypedGraph<(ObserverTree|ObservableTree),{}>()
-  public stack: ICallStart[] = []
-  
-  private record: ICallStart
-  
-  public constructor() {
+	public logger: ITreeLogger
+    
+  public constructor(logger: ITreeLogger) {
     this.collectorId = TreeCollector.collectorId++
     this.hash = this.collectorId ? `__thash${this.collectorId}` : "__thash"
+		this.logger = logger
   }
 
   public wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any {
@@ -50,8 +86,6 @@ export class TreeCollector implements RxCollector {
   }
 
   public before(record: ICallStart, parents?: ICallStart[]): this {
-    this.record = record
-    this.stack.push(record)
     switch(callRecordType(record)) {
       case "subscribe":
         this.tagObservable(record);
@@ -72,9 +106,6 @@ export class TreeCollector implements RxCollector {
   public after(record: ICallRecord): void {
     switch(callRecordType(record)) {
       case "subscribe":
-        if(record.subject.constructor.name === "Subject") {
-          // console.log("onto subject", record.arguments[0])
-        }
         let observers = [].filter.call(record.arguments, isObserver).slice(0, 1)
         observers.forEach((s: any) => this.tagObserver(s).forEach(observer => {
           let observable = this.tag(record.subject)
@@ -89,7 +120,6 @@ export class TreeCollector implements RxCollector {
       case "setup":
         this.tagObservable(record.returned, record)
     }
-    this.stack.pop()
   }
 
   private hasTag(input: any): boolean {
@@ -103,24 +133,15 @@ export class TreeCollector implements RxCollector {
     }
 
     if(isObserver(input) && isObservable(input)) {
-      (input as any)[this.hash] = tree = new SubjectTree(`${this.nextId++}`, this.graph)
-      tree.name = input.constructor.name
-      this.all.push(tree)
+      (input as any)[this.hash] = tree = new SubjectTree(`${this.nextId++}`, input.constructor.name, this.logger)
       return tree
     }
     if(isObservable(input)) {
-      (input as any)[this.hash] = tree = new ObservableTree(`${this.nextId++}`, this.graph)
-      tree.name = input.constructor.name
-      this.all.push(tree)
+      (input as any)[this.hash] = tree = new ObservableTree(`${this.nextId++}`, input.constructor.name, this.logger)
       return tree
     }
     if(isObserver(input)) {
-      (input as any)[this.hash] = tree = new ObserverTree(`${this.nextId++}`, this.graph)
-      tree.name = input.constructor.name
-      // if(tree.name === "AutoDetachObserver") {
-      //   console.log("Captured ADO", new Error().stack)
-      // }
-      this.all.push(tree)
+      (input as any)[this.hash] = tree = new ObserverTree(`${this.nextId++}`, input.constructor.name, this.logger)
       return tree
     }
   }
@@ -161,7 +182,7 @@ export class TreeCollector implements RxCollector {
     if (isObservable(input)) {
       let tree = this.tag(input) as IObservableTree
       if(callRecord) {
-        tree.call = { method: callRecord.method, args: callRecord.arguments }
+        tree.addMeta({ call: { method: callRecord.method, args: formatArguments(callRecord.arguments) }})
       }
       if(input.source) {
         tree.setSources(this.tagObservable(input.source))

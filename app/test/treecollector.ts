@@ -1,6 +1,6 @@
 import Instrumentation, { defaultSubjects } from "../src/collector/instrumentation"
 import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../src/oct/oct"
-import { TreeCollector } from "../src/collector/collector"
+import { TreeCollector, TreeWriter, TreeGrapher, TreeReader } from "../src/collector/treeCollector"
 import { jsonify } from "./utils"
 import { suite, test } from "mocha-typescript"
 import * as Rx from "rx"
@@ -10,9 +10,11 @@ export class TreeCollectorTest {
 
   protected instrumentation: Instrumentation
   protected collector: TreeCollector
+	protected writer: TreeWriter
 
   public before() {
-    this.collector = new TreeCollector()
+		this.writer = new TreeWriter()
+    this.collector = new TreeCollector(this.writer)
     this.instrumentation = new Instrumentation(defaultSubjects, this.collector)
     this.instrumentation.setup()
   }
@@ -22,9 +24,6 @@ export class TreeCollectorTest {
   }
 
 	private flowsFrom(observable: IObservableTree, to: IObserverTree, remaining: number = 100): boolean {
-		if(to instanceof SubjectTree) {
-			// console.log("FlowsFrom", to)
-		}
 		if(to && to.observable === observable) {
 			return true
 		} else if(to && typeof to.inflow !== "undefined" && remaining > 0) {
@@ -37,7 +36,7 @@ export class TreeCollectorTest {
 
 	private flowsTrough(to: IObserverTree, remaining: number = 20): string[] {
 		if(to && typeof to.inflow !== "undefined" && remaining > 0) {
-			return to.inflow.filter(f => f !== to).flatMap<string>(f => this.flowsTrough(f, remaining - 1).map<string>(flow => `${flow}/${to.observable.name}`))
+			return to.inflow.filter(f => f !== to).flatMap<string>(f => this.flowsTrough(f, remaining - 1).map<string>(flow => `${flow}/${to.observable && to.observable.name}`))
 		}
 		return [to.observable.name]
 	}
@@ -54,13 +53,15 @@ export class TreeCollectorTest {
 
 	public write(name: string) {
 		let fs = require("fs")
-		fs.writeFileSync(`static/${name}.graph.txt`, this.collector.graph.toDot(
+		let reader = new TreeReader()
+		this.writer.messages.forEach(m => reader.next(m))
+		fs.writeFileSync(`static/${name}.graph.txt`, reader.treeGrapher.graph.toDot(
 			n => ({ label: n && n.name || n && n.id, color: n instanceof SubjectTree ? "purple" : (n instanceof ObserverTree ? "red" : "blue") }), 
 			e => Object.assign(e, { minlen: (e as any).label === "source" ? 1 : 1 }), 
 			n => n instanceof ObserverTree ? "red" : "blue", 
 			() => ["rankdir=TB"]
 			))
-    fs.writeFileSync(`static/${name}.json`, jsonify([]))
+    fs.writeFileSync(`static/${name}.json`, jsonify(this.writer.messages))
 	}
 
 	@test
@@ -147,7 +148,7 @@ export class TreeCollectorTest {
 
 	@test
 	public gatherTreeF() {
-		let inner = Rx.Observable.just("a").startWith("b")
+		let inner = Rx.Observable.just("a").startWith("b").skip(1)
 		let first = Rx.Observable.of(1, 2, 3)
     let s = first
 			.flatMap(item => inner)
@@ -156,7 +157,8 @@ export class TreeCollectorTest {
 
 		this.write("tree_f")
 
-		if(!this.flowsFrom(this.getObs(first), this.getSub(s))) {
+		console.log(this.flowsTrough(this.getSub(s)))
+		if(!this.flowsFrom(this.getObs(first), this.getSub(s)) || !this.flowsFrom(this.getObs(inner), this.getSub(s))) {
 			throw new Error("No connected flow")
 		}
 	}
