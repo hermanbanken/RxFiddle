@@ -65,6 +65,11 @@ function isIObserver(a: any): a is IObserverTree {
   return a && "observable" in a
 }
 
+function distance(a: IObservableTree | IObserverTree, b: IObservableTree | IObserverTree): number {
+  if (isIObserver(a) && isIObserver(b)) {
+    return a.observable.id === b.observable.id ? 0.2 : 1
+  }
+  return 1
 }
 
 export default class Visualizer {
@@ -97,7 +102,11 @@ export default class Visualizer {
         let filtered = this.filter(graphs, state)
         return ({
           graphs: filtered,
-          layout: layoutf(filtered.main, state.focusNodes),
+          layout: layoutf(
+            filtered.subscriptions,
+            state.focusNodes,
+            (a, b) => distance(graphs.main.node(a), graphs.main.node(b))
+          ),
           viewState: state,
         })
       })

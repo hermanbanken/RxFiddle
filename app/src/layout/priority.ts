@@ -2,7 +2,12 @@ import { Direction, edges, foreachTuple } from "./index"
 import { Graph } from "graphlib"
 
 export type Layout = { y: number, x: number, id: string }[]
-export function priorityLayout(ranks: string[][], g: Graph, focusNodes: string[] = []): Layout {
+export function priorityLayout(
+  ranks: string[][],
+  g: Graph,
+  focusNodes: string[] = [],
+  distance: (a: string, b: string) => number = () => 1
+): Layout {
 
   let nodes = ranks.map((row, y) => row.map((n, x) => ({
     y,
@@ -34,7 +39,7 @@ export function priorityLayout(ranks: string[][], g: Graph, focusNodes: string[]
           )
         }
       })
-      priorityLayoutAlign(row)
+      priorityLayoutAlign(row, distance)
       return row
     })
   }
@@ -87,12 +92,16 @@ function absMin(a: number, b: number): number {
   return Math.abs(a) < Math.abs(b) ? a : b
 }
 export type PriorityLayoutItem = {
+  id: string,
   x: number,
   readonly priority: number,
   readonly barycenter: number,
   readonly spacing?: number,
 }
-export function priorityLayoutAlign<Label>(items: PriorityLayoutItem[]): void {
+export function priorityLayoutAlign<Label>(
+  items: PriorityLayoutItem[],
+  distance: (a: string, b: string) => number = () => 1
+): void {
   let move = (priority: number, index: number, requestedShift: number): number => {
     let subject = items[index]
     if (subject.priority > priority || requestedShift === 0) { return 0 }
@@ -106,8 +115,8 @@ export function priorityLayoutAlign<Label>(items: PriorityLayoutItem[]): void {
       subject.x += moved
       return moved
     }
-    let spacing = items[index + Math.min(0, Math.sign(requestedShift))].spacing || 1
     let next = index + Math.sign(requestedShift)
+    let spacing = distance(subject.id, items[next].id) || 1
     let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift) * spacing)
     // Bubble move
     let nextMoved = move(priority, next, requestedShift - slack)

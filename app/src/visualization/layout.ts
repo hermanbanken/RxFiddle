@@ -8,7 +8,11 @@ import "../utils"
 // import * as dagre from "dagre"
 // import { Graph } from "graphlib"
 
-export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes: string[] = []): {
+export default function layout<V, E>(
+  graph: TypedGraph<V, E>,
+  focusNodes: string[] = [],
+  distance: (a: string, b: string) => number = () => 1
+): {
   edges: { points: { x: number, y: number }[], v: string, w: string }[],
   nodes: { id: string, x: number, y: number }[],
 }[] {
@@ -49,10 +53,15 @@ export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes: string
 
   // Re-add single component nodes removed during ranking
   console.log(graph.nodes())
-  graph.nodes().filter(n => !ranked.hasNode(n)).forEach(n => { console.log("re-adding", n); ranked.setNode(n, { rank: 0 }) })
+  graph.nodes()
+    .filter(n => !ranked.hasNode(n))
+    .forEach(n => {
+      console.log("re-adding", n)
+      ranked.setNode(n, { rank: 0 })
+    })
 
   let ord = ordering(initialOrd, rankedAndEdgeFixed, fixingSort(focusNodes))
-  let layout = priorityLayout(ord, ranked, focusNodes)
+  let layout = priorityLayout(ord, ranked, focusNodes, distance)
   let byId = indexedBy(n => n.id, layout)
 
   type Expanded = { original: any, index: number, nodes: string[] }
