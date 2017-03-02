@@ -162,37 +162,39 @@ export class Lens {
   }
 
   public execute(collector: Collector): Observable[] {
-    let main = this.graphs(collector).main
-    let nodes = this.selectors.reduce((prev, action) => {
-      switch (action.type) {
-        case "find":
-          return prev.filter(n => n.node.labels.some(nl => {
-            let label = nl.label
-            return label.type === "observable" ? label.method === action.selector : false
-          }))
-        case "up":
-          return prev.flatMap(n => main.inEdges(n.id).map(e => ({ id: e.v, node: main.node(e.v) })))
-        case "down":
-          return prev.flatMap(n => main.outEdges(n.id).map(e => ({ id: e.w, node: main.node(e.w) })))
-        default: return prev
-      }
-    }, main.nodes().map(n => ({ id: n, node: main.node(n) })))
+    return []
+    // let main = this.graphs(collector).main
+    // let nodes = this.selectors.reduce((prev, action) => {
+    //   switch (action.type) {
+    //     case "find":
+    //       return prev.filter(n => n.node.labels.some(nl => {
+    //         let label = nl.label
+    //         return label.type === "observable" ? label.method === action.selector : false
+    //       }))
+    //     case "up":
+    //       return prev.flatMap(n => main.inEdges(n.id).map(e => ({ id: e.v, node: main.node(e.v) })))
+    //     case "down":
+    //       return prev.flatMap(n => main.outEdges(n.id).map(e => ({ id: e.w, node: main.node(e.w) })))
+    //     default: return prev
+    //   }
+    // }, main.nodes().map(n => ({ id: n, node: main.node(n) })))
 
-    return nodes.map(n => ({
-      id: n.id,
-      labels: n.node.labels.map(nl => nl.label).flatMap(label => label.type === "observable" ? [{
-        args: label.args + "",
-        method: label.method,
-        name: label.method,
-      }] : []),
-    }))
+    // return nodes.map(n => ({
+    //   id: n.id,
+    //   labels: n.node.labels.map(nl => nl.label).flatMap(label => label.type === "observable" ? [{
+    //     args: label.args + "",
+    //     method: label.method,
+    //     name: label.method,
+    //   }] : []),
+    // }))
   }
 
   protected graphs(collector: Collector) {
-    return collector.messages.reduce(grapherNext, {
-      main: new TypedGraph<GraphNode, GraphEdge>(),
-      subscriptions: new TypedGraph<number, undefined>(),
-    })
+    return {}
+    // return collector.messages.reduce(grapherNext, {
+    //   main: new TypedGraph<GraphNode, GraphEdge>(),
+    //   subscriptions: new TypedGraph<number, undefined>(),
+    // })
   }
 }
 

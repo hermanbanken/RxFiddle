@@ -1,28 +1,48 @@
-import { jsonify } from "../../test/utils"
+import {
+  EdgeType, IObservableTree, IObserverTree, ITreeLogger,
+  NodeType, ObservableTree, ObserverTree, SubjectTree,
+} from "../oct/oct"
 import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
+import { RxCollector, elvis, isDisposable, isObservable, isObserver } from "./collector"
 import { Event } from "./event"
-import { Edge, EventLabel, Message, Node, NodeLabel, ObserverStorage, formatArguments } from "./logger"
-import * as Rx from "rx"
+import { formatArguments } from "./logger"
 import TypedGraph from "./typedgraph"
-import { ObserverTree, ObservableTree, SubjectTree, IObservableTree, IObserverTree, ITreeLogger, EdgeType, NodeType } from "../oct/oct"
-import { RxCollector, isObservable, isDisposable, isObserver, elvis } from "./collector"
+import * as Rx from "rx"
 
 export class TreeGrapher implements ITreeLogger {
   public graph = new TypedGraph<ObservableTree | ObserverTree, {}>()
   public addNode(id: string, type: NodeType): void {
-    this.graph.setNode(id)
+    if (type === "observable") {
+      this.graph.setNode(id, new ObservableTree(id))
+    } else if (type === "subject") {
+      this.graph.setNode(id, new SubjectTree(id))
+    } else {
+      this.graph.setNode(id, new ObserverTree(id))
+    }
   }
   public addMeta(id: string, meta: any): void {
     let existing: any = this.graph.node(id) || {}
     for (let key in meta) {
       if (meta.hasOwnProperty(key)) {
-        existing[key] = (existing.key || [])
+        existing[key] = (existing[key] || [])
         existing[key].push(meta[key])
       }
     }
-    this.graph.setNode(id, Object.assign(this.graph.node(id) || {}, meta))
+    this.graph.setNode(id, existing)
   }
   public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
+    if (type === "addSource") {
+      let dest = this.graph.node(w) as ObservableTree
+      let sources = (dest.sources || []).concat([this.graph.node(v) as ObservableTree])
+      dest.setSources(sources)
+    } else if (type === "addObserverSink") {
+      let src = this.graph.node(v) as ObserverTree
+      src.setSink([this.graph.node(w) as ObserverTree], meta.label)
+    } else if (type === "setObserverSource") {
+      let src = this.graph.node(v) as ObservableTree
+      let dst = this.graph.node(w) as ObserverTree
+      dst.setObservable([src])
+    }
     this.graph.setEdge(v, w, meta)
   }
 }
@@ -175,9 +195,9 @@ export class TreeCollector implements RxCollector {
       let tree = this.tag(input) as IObservableTree
       if (callRecord) {
         tree.addMeta({
-          call: {
+          calls: {
             args: formatArguments(callRecord.arguments),
-            method: callRecord.method
+            method: callRecord.method,
           },
         })
       }

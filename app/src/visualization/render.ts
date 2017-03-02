@@ -1,9 +1,12 @@
-import { groupBy } from "../collector/graphutils"
-import { EventLabel, NodeLabel, ObservableLabel } from "../collector/logger"
+import { jsonify } from "../../test/utils"
+import { IEvent } from "../collector/event"
+import { NodeLabel } from "../collector/logger"
+import TypedGraph from "../collector/typedgraph"
 import { generateColors } from "../color"
 import "../object/extensions"
+import { IObservableTree, IObserverTree, ObservableTree, ObserverTree } from "../oct/oct"
 import "../utils"
-import { GraphNode, Graphs, ViewState } from "./index"
+import { Graphs, ViewState } from "./index"
 import { MarbleCoordinator } from "./marbles"
 import MorphModule from "./morph"
 import * as Rx from "rx"
@@ -67,84 +70,78 @@ export function mapTuples<T, R>(list: T[], f: (a: T, b: T, anr: number, bnr: num
   return result
 }
 
+function nodeLabel(node: IObservableTree | IObserverTree): string {
+  if (node instanceof ObservableTree && node.calls) {
+    let call = node.calls[node.calls.length - 1]
+    return `${call.method}(${call.args})`
+  }
+  if (node && node.names) {
+    return node.names[node.names.length - 1]
+  }
+  return ""
+}
+
+function getObservable(
+  observerNode: string,
+  lookupGraph: TypedGraph<IObservableTree | IObserverTree, {}>
+): IObservableTree | undefined {
+  let observable = lookupGraph
+    .inEdges(observerNode)
+    .map(e => lookupGraph.node(e.v))
+    .find(_ => !(_ instanceof ObserverTree))
+  return observable as IObservableTree
+}
+
+function collectUp(graph: TypedGraph<IObserverTree, {}>, node: IObserverTree): IObserverTree[] {
+  let inEdges = graph.inEdges(node.id)
+  if (inEdges && inEdges.length >= 1) {
+    return [node].concat(collectUp(graph, graph.node(inEdges[0].v)))
+  }
+  return [node]
+}
+function collectDown(graph: TypedGraph<IObserverTree, {}>, node: IObserverTree): IObserverTree[] {
+  let outEdges = graph.outEdges(node.id)
+  if (outEdges && outEdges.length === 1) {
+    return [node].concat(collectDown(graph, graph.node(outEdges[0].w)))
+  }
+  return [node]
+}
+
 export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   svg: VNode, clicks: Rx.Observable<string>, groupClicks: Rx.Observable<string>,
 } {
-  console.log("Layout", layout)
-
   if (typeof window === "object") {
     (window as any).graphs = graphs
   }
   let graph = graphs.main
+  console.log(layout)
 
   // Collect clicks in Subject
   let clicks = new Rx.Subject<string>()
   let groupClicks = new Rx.Subject<string>()
 
   // Determine shown subscription flow
-  let flowPath: { subscriptionId?: string, observableId?: string }[] = []
-  if (viewState.focusNodes.length) {
-    let subIds = graph.node(viewState.focusNodes[0])
-      .labels
-      .map(l => l.label)
-      .flatMap(l => l.type === "subscription" ? [l.id] : [])
-    let subId = subIds[0]
+  let flow: IObserverTree[] = viewState.focusNodes
+    .filter(n => graphs.subscriptions.hasNode(n))
+    .slice(-1)
+    .flatMap(last => {
+      let focussed = graphs.subscriptions.node(last)
+      return [
+        ...collectUp(graphs.subscriptions, focussed).slice(1).reverse(),
+        focussed,
+        ...collectDown(graphs.subscriptions, focussed).slice(1),
+      ]
+    })
 
-    // tslint:disable:max-line-length
-    function findNext(directionDown: boolean, subscriptionId?: string, observableId?: string): { subscriptionId?: string, observableId?: string } {
-      if (directionDown) {
-        let es = graphs.subscriptions.outEdges(subscriptionId)
-        let os = graphs.full.outEdges(observableId)
-        if (subscriptionId && es) {
-          let out = es.map(_ => _.w)[0]
-          return { observableId: `${graphs.subscriptions.node(out)}`, subscriptionId: out }
-        } else if (observableId && os && os.length) {
-          let obs = os[0].w || "no w"
-          return { observableId: obs, subscriptionId: graphs.subscriptions.nodes().find(n => `${graphs.subscriptions.node(n)}` === obs) || null }
-        }
-      } else {
-        let es = graphs.subscriptions.inEdges(subscriptionId)
-        let os = graphs.full.inEdges(observableId)
-        if (subscriptionId && es && es.length) {
-          let out = es.map(_ => _.v)[0]
-          return { observableId: `${graphs.subscriptions.node(out)}`, subscriptionId: out }
-        } else if (observableId && os && os.length) {
-          let obs = os[0].v || "no v"
-          return { observableId: obs, subscriptionId: graphs.subscriptions.nodes().find(n => `${graphs.subscriptions.node(n)}` === obs) || null }
-        }
-      }
-    }
-
-    if (typeof subId !== "undefined") {
-      let start: { subscriptionId?: string, observableId?: string, current?: boolean } = { current: true, observableId: viewState.focusNodes[0], subscriptionId: `${subId}` }
-      let forward = [start]
-      let next = start
-      let i = 0
-      while (next && i++ < 100) {
-        next = findNext(true, next.subscriptionId, next.observableId)
-        if (next) { forward.push(next) }
-      }
-      let backward = []
-      next = start
-      while (next && i++ < 100) {
-        next = findNext(false, next.subscriptionId, next.observableId)
-        if (next) { backward.unshift(next) }
-      }
-
-      flowPath = backward.concat(forward).filter(v => typeof v.subscriptionId !== "undefined")
-      // tslint:ensable:max-line-length
-    }
-  }
-
-  let flowPathIds = flowPath.map(_ => _.observableId)
-  console.log("flow", flowPath, flowPathIds)
+  let flowPathIds = flow.map(_ => _.id)
+  console.log("flow", flow, flowPathIds)
 
   // Render edges
   function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
     let { v, w, points } = edge
-    let labels = (graph.edge(v, w) || { labels: [] }).labels || []
+    // let labels = (graph.edge(v, w) || { labels: [] }).labels || []
 
-    let isHigher = labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
+    let isHigher = false;// labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
 
     let isSelected = flowPathIds.indexOf(w) >= 0 && flowPathIds.indexOf(v) >= 0
     let alpha = isSelected ? 0.3 : 0.1
@@ -168,15 +165,9 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
 
   // Render nodes
   function circle(item: { id: string, x: number, y: number }): { svg: VNode[], html: VNode[] } {
-    let node = graph.node(item.id)
-    let labels = filterLabels(node.labels, viewState)
-    let methods = labels.map(nl => nl.label)
-      .filter(label => label.type === "observable")
-      .filter(label => "method" in label)
-      .reverse()
-
-    let text = item.id + " " + (methods.map((l: any) => `${l.method}(${l.args})`).join(", ") || node.name || item.id)
-    let isSelected = flowPathIds.indexOf(item.id) >= 0
+    let node = getObservable(item.id, graphs.main)
+    let text = nodeLabel(node)
+    let isSelected = viewState.focusNodes.indexOf(item.id) >= 0
 
     // tslint:disable-next-line:no-unused-variable
     let shade = h("circle", {
@@ -227,36 +218,10 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
     return { html: [html], svg }
   }
 
-  // Render groups
-  let grouped = groupBy(n =>
-    n.group,
-    layout[0].nodes
-      .flatMap(node => (graph.node(node.id).labels || [])
-        .flatMap(_ => _.groups)
-        .filter(_ => typeof _ === "number")
-        .map(group => ({ node, group }))
-      )
-  )
-  let groups = Object.keys(grouped).map(k => ({ group: grouped[k], key: k }))
-  let gps = groups
-    .flatMap(({ group, key }, index) => group.map(_ => _.node).map(({ x, y }) => h("circle", {
-      attrs: {
-        cx: mu + mu * x,
-        cy: mu + mu * y,
-        fill: colorIndex(parseInt(key, 10), .3),
-        id: `group-${key}`,
-        r: mu / 4,
-      },
-      key: `group-${key}`,
-      style: {
-        transition: "all 1s",
-      },
-    })))
-
   let ns = layout[0].nodes.map(circle)
 
   let elements = [
-    h("g", gps),
+    // h("g", gps),
     h("g", layout.flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort)),
     h("g", ns.flatMap(n => n.svg).sort(vnodeSort)),
   ]
@@ -296,18 +261,21 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   }, [svg].concat(ns.flatMap(n => n.html)))
 
   let controls = h("div", [
-    h("div", ["Groups: ", ...groups.flatMap(g => [h("span", {
-      on: { click: () => groupClicks.onNext(g.key) },
-    }, g.key), ", "])]),
-    h("div", ["Open groups: ", ...viewState.openGroups.flatMap(key => [h("span", key), ", "])]),
+    // h("div", ["Groups: ", ...groups.flatMap(g => [h("span", {
+    //   on: { click: () => groupClicks.onNext(g.key) },
+    // }, g.key), ", "])]),
+    // h("div", ["Open groups: ", ...viewState.openGroups.flatMap(key => [h("span", key), ", "])]),
   ])
 
   let panel = h("div", [controls, mask])
 
   // Optionally show flow
   let diagram = [h("div")]
-  if (flowPath.length) {
-    diagram = renderMarbles(flowPath.filter(_ => graphs.main.hasNode(_.observableId)).map(_ => graphs.full.node(_.observableId)), viewState)
+  if (flow.length) {
+    diagram = renderMarbles(
+      flow.flatMap(observer => [observer.observable, observer]),
+      viewState
+    )
   }
 
   let app = h("app", [
@@ -373,9 +341,9 @@ function vnodeSort(vna: VNode, vnb: VNode): number {
   return vna.key.toString().localeCompare(vnb.key.toString())
 }
 
-function renderMarbles(nodes: GraphNode[], viewState: ViewState): VNode[] {
+function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: ViewState): VNode[] {
   let coordinator = new MarbleCoordinator()
-  let allEvents: EventLabel[] = nodes.flatMap(n => n && n.labels || []).map(l => l.label).flatMap(l => l.type === "event" ? [l] : [])
+  let allEvents: IEvent[] = nodes.flatMap((n: any) => n && "events" in n ? n.events as IEvent[] : [])
   coordinator.add(allEvents)
   console.log("All events", allEvents)
 
@@ -389,22 +357,28 @@ function renderMarbles(nodes: GraphNode[], viewState: ViewState): VNode[] {
     if (!node) {
       return [h("div", { attrs: { class: clazz } }, "Unknown node")]
     }
-    let obs = filterLabels(node.labels, viewState).map(_ => _.label)[0] as ObservableLabel
-    let events = node.labels.map(_ => _.label).filter(_ => _.type === "event").map((evl: EventLabel) => evl)
 
-    let box = h("div", { attrs: { class: clazz } }, [
-      h("div", [], obs && obs.method ? `${obs.method}(${obs.args})` : node.name),
-      h("div", [], "stackFrame locationText"),
-    ].filter((_, idx) => idx === 0))
+    if (node && "events" in node) {
+      let events: IEvent[] = (node as IObserverTree).events
+      return [coordinator.render(events, debug)]
+    } else {
+      let obs = node as IObservableTree
+      let name = obs.names && obs.names[obs.names.length - 1]
+      let call = obs.calls && obs.calls[obs.calls.length - 1]
+      let box = h("div", { attrs: { class: clazz } }, [
+        h("div", [], call && call.method ? `${call.method}(${call.args})` : name),
+        h("div", [], "stackFrame locationText"),
+      ].filter((_, idx) => idx === 0))
 
-    return [box].concat([coordinator.render(events, debug)])
+      return [box]
+    }
   }))
   return [root]
 }
 
 function debug(...args: any[]) {
   if (typeof document === "object") {
-    document.getElementById("debug").innerText = args.map(a => JSON.stringify(a, null, "  ")).join("\n")
+    document.getElementById("debug").innerText = args.map(a => jsonify(a)).join("\n")
   } else {
     console.log.apply(console, args)
   }

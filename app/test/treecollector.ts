@@ -1,6 +1,6 @@
 import Instrumentation, { defaultSubjects } from "../src/collector/instrumentation"
+import { TreeCollector, TreeReader, TreeWriter } from "../src/collector/treeCollector"
 import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../src/oct/oct"
-import { TreeCollector, TreeWriter, TreeGrapher, TreeReader } from "../src/collector/treeCollector"
 import { jsonify } from "./utils"
 import { suite, test } from "mocha-typescript"
 import * as Rx from "rx"
@@ -90,9 +90,12 @@ export class TreeCollectorTest {
   @test
   public gatherTreeD() {
     let first = Rx.Observable.of(1, 2, 3).take(3)
-    let shared = first.share()
-    let end2 = shared.reduce((a: number, b: number) => a + b).skip(0).filter(t => true)
-    let s = end2.subscribe()
+    let shared = first.publish()
+    let end = shared.reduce((a: number, b: number) => a + b).skip(0).filter(t => true)
+    let s = end.subscribe()
+    end.subscribe()
+    end.subscribe()
+    shared.connect()
 
     this.write("tree_d")
 

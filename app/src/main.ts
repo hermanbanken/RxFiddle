@@ -12,7 +12,7 @@ import JsonCollector from "./collector/jsonCollector"
 const Observable = Rx.Observable;
 (window as any).Rx = Rx
 
-let collector = new JsonCollector("G_newstyle.json")
+let collector = new JsonCollector()
 // let collector = new Collector()
 // let instrumentation = new Instrumentation(defaultSubjects, collector)
 // instrumentation.setup()
@@ -127,19 +127,47 @@ function run(m: Function) {
   m()
 }
 
+function onHashChange() {
+  let query = window.location.hash.substr(1).split("&").map(p => p.split("=")).reduce((p: any, n: string[]) => {
+    if (n[0].endsWith("[]")) {
+      let key = n[0].substr(0, n[0].length - 1)
+      p[key] = p[key] || []
+      p[key].push(n[1])
+    } else {
+      p[n[0]] = n[1]
+    }
+    return p
+  }, {}) || {}
+  console.log(query)
+  if (query.source) {
+    collector.restart(query.source)
+  }
+}
 
-document.getElementById("a").onclick = run.bind(null, a)
-document.getElementById("b").onclick = run.bind(null, b)
-document.getElementById("c").onclick = run.bind(null, c)
-let trace = document.getElementById("trace") as HTMLInputElement
-let ids = document.getElementById("showIds") as HTMLInputElement
+window.addEventListener("hashchange", onHashChange, false)
 
-trace.addEventListener("click", () => {
-  // instrumentation.stackTraces = trace.checked
-})
+if (!window.location.hash) {
+  window.location.hash = "source=tree_a"
+} else {
+  onHashChange()
+}
 
-ids.addEventListener("click", () => {
-  // vis.showIds = ids.checked
-})
+// document.getElementById("a").onclick = run.bind(null, a)
+// document.getElementById("a").onclick = () => { source = "tree_a.json"; collector.restart(source) }
+// document.getElementById("b").onclick = () => { source = "tree_b.json"; collector.restart(source) }
+// document.getElementById("c").onclick = () => { source = "tree_c.json"; collector.restart(source) }
+// document.getElementById("d").onclick = () => { source = "tree_d.json"; collector.restart(source) }
+// document.getElementById("e").onclick = () => { source = "tree_e.json"; collector.restart(source) }
+// document.getElementById("f").onclick = () => { source = "tree_f.json"; collector.restart(source) }
+// let trace = document.getElementById("trace") as HTMLInputElement
+// let ids = document.getElementById("showIds") as HTMLInputElement
+
+// trace.addEventListener("click", () => {
+//   // instrumentation.stackTraces = trace.checked
+// })
+
+// ids.addEventListener("click", () => {
+//   // vis.showIds = ids.checked
+// })
 
 c()

@@ -1,5 +1,7 @@
 import { Edge as EdgeLabel, EventLabel, Message, NodeLabel } from "../collector/logger"
+import { TreeCollector, TreeReader, TreeWriter } from "../collector/treeCollector"
 import TypedGraph from "../collector/typedgraph"
+import { IObservableTree, IObserverTree, ObservableTree, ObserverTree, SubjectTree } from "../oct/oct"
 import "../object/extensions"
 import "../utils"
 import layoutf from "./layout"
@@ -34,9 +36,8 @@ export type GraphEdge = {
 }
 
 export type Graphs = {
-  full: TypedGraph<GraphNode, GraphEdge>,
-  main: TypedGraph<GraphNode, GraphEdge>,
-  subscriptions: TypedGraph<number, undefined>,
+  main: TypedGraph<IObservableTree | IObserverTree, {}>,
+  subscriptions: TypedGraph<IObserverTree, {}>,
 }
 
 export class Grapher {
@@ -44,73 +45,26 @@ export class Grapher {
   public graph: Rx.Observable<Graphs>
 
   constructor(collector: DataSource) {
-    // this.viewState = viewState.startWith(emptyViewState)
-    this.graph = collector.dataObs
-      .scan(grapherNext, {
-        full: new TypedGraph<GraphNode, GraphEdge>(),
-        main: new TypedGraph<GraphNode, GraphEdge>(),
-        subscriptions: new TypedGraph<number, undefined>(),
-      })
-    // .combineLatest(this.viewState, this.filter)
+    this.graph = Rx.Observable.defer(() => collector.dataObs
+      .scan(grapherNext, new TreeReader()).map(reader => ({
+        main: reader.treeGrapher.graph,
+        subscriptions: reader.treeGrapher.graph
+          .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
+      }))
+    )
+      .repeat()
   }
 }
 
-function setEdge<V, E>(
-  v: string | number, w: string | number,
-  graph: TypedGraph<V, E>,
-  nodeCreate: () => V, value?: E
-) {
-  v = `${v}`
-  w = `${w}`
-  if (!graph.hasNode(v)) {
-    graph.setNode(v, nodeCreate())
-  }
-  if (!graph.hasNode(w)) {
-    graph.setNode(w, nodeCreate())
-  }
-  graph.setEdge(v, w, value)
+export function grapherNext(reader: TreeReader, event: Message): TreeReader {
+  reader.next(event)
+  return reader
 }
 
-export function grapherNext(graphs: Graphs, event: Message) {
-  let { main, subscriptions } = graphs
-  switch (event.type) {
+function isIObserver(a: any): a is IObserverTree {
+  return a && "observable" in a
+}
 
-    case "node": main.setNode(`${event.id}`, {
-      labels: [],
-      name: event.node.name,
-    })
-      break
-
-    case "edge":
-      let e: GraphEdge = main.edge(`${event.edge.v}`, `${event.edge.w}`) || {
-        labels: [],
-      }
-      e.labels.push(event)
-
-      let edgeLabel = event.edge.label
-      if (edgeLabel.type === "subscription sink") {
-        setEdge(edgeLabel.v, edgeLabel.w, subscriptions, () => ({}))
-        setEdge(edgeLabel.v, edgeLabel.w, main, () => ({}))
-      }
-
-      setEdge(event.edge.v, event.edge.w, main, () => ({}), e)
-      break
-
-    case "label":
-      let node = main.node(`${event.node}`) || "subscription" in event.label && main.node(`${(event.label as EventLabel).subscription}`)
-      if (node && node.labels) { node.labels.push(event) }
-      let label = event.label
-      if (label.type === "subscription") {
-        subscriptions.setNode(label.id.toString(10), event.node)
-      }
-      break
-
-    default: break
-  }
-
-  ; (window as any).graph = graph
-
-  return { full: main.filterNodes(() => true), main, subscriptions }
 }
 
 export default class Visualizer {
@@ -178,39 +132,7 @@ export default class Visualizer {
 
   private filter(graphs: Graphs, viewState: ViewState): Graphs {
     return {
-      full: graphs.full,
-      main: graphs.main.filterNodes((id, node: GraphNode) => {
-        // if (id) { return true } // TODO remove dummy
-        let annotations = (node ? node.labels || [] : [])
-          .filter(ann => ann.label.type === "observable")
-        if (annotations.length === 0) {
-          return false
-        }
-        return annotations
-          .some(ann => !ann.groups.length || ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0))
-        // let groups = node.labels.flatMap(l => l.groups && l.groups.slice(-1) || [])
-        // if (groups && groups.length > 0) {
-        //   console.log("groups", groups, "testing", groups.slice(-1)
-        //     .find(g => viewState.openGroups.indexOf(`${g}`) >= 0))
-        // }
-        // return viewState.openGroupsAll ||
-        //   !groups ||
-        //   groups.length === 0 ||
-        //   (groups.find(g => viewState.openGroups.indexOf(`${g}`) >= 0) && true)
-      }).filterEdges((ids, edge) => {
-        // if (ids) { return true } // TODO remove dummy
-        return edge && edge.labels
-          .filter(ann => ann.edge.label.type === "observable link")
-          .some(ann => (
-            !ann.group ||
-            viewState.openGroups.indexOf(`${ann.group}`) === -1
-          ) && (
-              !ann.groups ||
-              !ann.groups.length ||
-              ann.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0)
-            )
-          )
-      }),
+      main: graphs.main,
       subscriptions: graphs.subscriptions,
     }
   }

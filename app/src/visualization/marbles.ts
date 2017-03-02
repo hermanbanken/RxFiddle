@@ -17,16 +17,16 @@ export class MarbleCoordinator {
   private max: number
 
   // Calc bounds
-  public add(edges: EventLabel[]): void {
-    let events = edges.map(_ => _.event)
+  public add(edges: (EventLabel | IEvent)[]): void {
+    let events = edges.map(_ => ((_ as EventLabel).event || _) as IEvent)
     let times = events.map(e => e.time)
     this.min = times.reduce((m, n) => typeof m !== "undefined" ? Math.min(m, n) : n, this.min)
     this.max = times.reduce((m, n) => typeof m !== "undefined" ? Math.max(m, n) : n, this.max)
   }
 
   // Rendering
-  public render(edges: EventLabel[], debug?: (...arg: any[]) => void): VNode {
-    let events = edges.map(_ => _.event)
+  public render(edges: (EventLabel | IEvent)[], debug?: (...arg: any[]) => void): VNode {
+    let events = edges.map(_ => ((_ as EventLabel).event || _) as IEvent)
 
     let marbles = events.map(e => h("svg", {
       attrs: { x: `${(isNaN(this.relTime(e.time)) ? 50 : this.relTime(e.time))}%`, y: "50%" },

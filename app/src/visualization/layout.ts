@@ -5,8 +5,8 @@ import { fixingSort, ordering } from "../layout/ordering"
 import { priorityLayout } from "../layout/priority"
 import "../object/extensions"
 import "../utils"
-import * as dagre from "dagre"
-import { Graph } from "graphlib"
+// import * as dagre from "dagre"
+// import { Graph } from "graphlib"
 
 export default function layout<V, E>(graph: TypedGraph<V, E>, focusNodes: string[] = []): {
   edges: { points: { x: number, y: number }[], v: string, w: string }[],

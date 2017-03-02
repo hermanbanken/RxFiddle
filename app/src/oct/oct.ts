@@ -45,23 +45,29 @@ export class ObservableTree implements IObservableTree {
   public calls?: MethodCall[]
   public sources?: IObservableTree[]
 
-  public logger: ITreeLogger
-  constructor(id: string, name: string, logger: ITreeLogger) {
+  public logger?: ITreeLogger
+  constructor(id: string, name?: string, logger?: ITreeLogger) {
     this.id = id
-    this.logger = logger
-    this.names = [name]
-    logger.addNode(id, "observable")
-    logger.addMeta(id, { names: name })
+    if (name) { this.names = [name] }
+    if (logger) {
+      this.logger = logger
+      logger.addNode(id, "observable")
+      logger.addMeta(id, { names: name })
+    }
   }
 
   public setSources(sources: IObservableTree[]): IObservableTree {
     this.sources = sources
-    sources.forEach(s => this.logger.addEdge(s.id, this.id, "addSource", { label: "source" }))
+    if (this.logger) {
+      sources.forEach(s => this.logger.addEdge(s.id, this.id, "addSource", { label: "source" }))
+    }
     return this
   }
 
   public addMeta(meta: any): IObservableTree {
-    this.logger.addMeta(this.id, meta)
+    if (this.logger) {
+      this.logger.addMeta(this.id, meta)
+    }
     return this
   }
 
@@ -80,13 +86,16 @@ export class ObserverTree implements IObserverTree {
   public inflow?: IObserverTree[]
   public events: IEvent[] = []
 
-  public logger: ITreeLogger
-  constructor(id: string, name: string, logger: ITreeLogger) {
+  public logger?: ITreeLogger
+  constructor(id: string, name?: string, logger?: ITreeLogger) {
     this.id = id
     this.logger = logger
-    this.names = [name]
-    logger.addNode(id, "observer")
-    logger.addMeta(id, { names: name })
+    if (name) { this.names = [name] }
+    if (logger) {
+      this.logger = logger
+      logger.addNode(id, "observer")
+      logger.addMeta(id, { names: name })
+    }
   }
 
   public setSink(sinks: IObserverTree[], name?: string): IObserverTree {
@@ -95,7 +104,9 @@ export class ObserverTree implements IObserverTree {
     }
     this.sink = sinks[0]
     sinks.forEach(s => s.addInflow(this))
-    sinks.forEach(s => this.logger.addEdge(this.id, s.id, "addObserverSink", { label: "sink" + name }))
+    if (this.logger) {
+      sinks.forEach(s => this.logger.addEdge(this.id, s.id, "addObserverSink", { label: "sink" + name }))
+    }
     return this
   }
   public addInflow(inflow: IObserverTree) {
@@ -114,12 +125,16 @@ export class ObserverTree implements IObserverTree {
       return this
     }
     this.observable = observable[0]
-    observable.forEach(o => this.logger.addEdge(o.id, this.id, "setObserverSource", { label: "observable" }))
+    if (this.logger) {
+      observable.forEach(o => this.logger.addEdge(o.id, this.id, "setObserverSource", { label: "observable" }))
+    }
     return this
   }
 
   public addEvent(event: IEvent): IObserverTree {
-    this.logger.addMeta(this.id, { events: event })
+    if (this.logger) {
+      this.logger.addMeta(this.id, { events: event })
+    }
     return this
   }
 
@@ -167,14 +182,18 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   public setSources: (sources: IObservableTree[]) => IObservableTree
   public addMeta: (meta: any) => this
   public addEvent: (event: IEvent) => IObserverTree
-  public logger: ITreeLogger
+  public logger?: ITreeLogger
 
-  constructor(id: string, name: string, logger: ITreeLogger) {
+  constructor(id: string, name?: string, logger?: ITreeLogger) {
     this.id = id
-    this.logger = logger
-    this.names = [name]
-    logger.addNode(id, "subject")
-    logger.addMeta(id, { names: name })
+    if (name) {
+      this.names = [name]
+    }
+    if (logger) {
+      this.logger = logger
+      logger.addNode(id, "subject")
+      logger.addMeta(id, { names: name })
+    }
   }
 
   public addSink(sinks: IObserverTree[], name?: string) {
