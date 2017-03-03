@@ -1,4 +1,4 @@
-import { Direction, edges, foreachTuple } from "./index"
+import { Direction, edges, foreachTuple, mapTuple } from "./index"
 import { Graph } from "graphlib"
 
 export type Layout = { y: number, x: number, id: string }[]
@@ -6,17 +6,28 @@ export function priorityLayout(
   ranks: string[][],
   g: Graph,
   focusNodes: string[] = [],
-  distance: (a: string, b: string) => number = () => 1
+  distance: (a: string, b: string) => number | undefined = () => undefined
 ): Layout {
 
-  let nodes = ranks.map((row, y) => row.map((n, x) => ({
-    y,
-    x,
-    barycenter: 0,
-    id: n,
-    isDummy: false,
-    priority: 0,
-  })))
+  let nodes = ranks.map((row, y) => {
+    // Initial spacing
+    let deltas = mapTuple("down", row, (a, b) => distance(a, b) || 1)
+    let xs: number[] = []
+    let x = 0
+    for (let i = 0; i < deltas.length; i++) {
+      xs.push(x)
+      x += deltas[i]
+    }
+    xs.push(x)
+    return row.map((n, i) => ({
+      barycenter: 0,
+      id: n,
+      isDummy: false,
+      priority: 0,
+      y,
+      x: xs[i],
+    }))
+  })
 
   for (let i = 0; i < 20; i++) {
     let direction: Direction = i % 2 === 0 ? "down" : "up"
@@ -100,7 +111,7 @@ export type PriorityLayoutItem = {
 }
 export function priorityLayoutAlign<Label>(
   items: PriorityLayoutItem[],
-  distance: (a: string, b: string) => number = () => 1
+  distance: (a: string, b: string) => number | undefined = () => undefined
 ): void {
   let move = (priority: number, index: number, requestedShift: number): number => {
     let subject = items[index]

@@ -65,11 +65,11 @@ function isIObserver(a: any): a is IObserverTree {
   return a && "observable" in a
 }
 
-function distance(a: IObservableTree | IObserverTree, b: IObservableTree | IObserverTree): number {
+function distance(a: IObservableTree | IObserverTree, b: IObservableTree | IObserverTree): number | undefined {
   if (isIObserver(a) && isIObserver(b)) {
     return a.observable.id === b.observable.id ? 0.2 : 1
   }
-  return 1
+  return undefined
 }
 
 export default class Visualizer {

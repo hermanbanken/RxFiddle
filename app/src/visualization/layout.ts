@@ -11,7 +11,7 @@ import "../utils"
 export default function layout<V, E>(
   graph: TypedGraph<V, E>,
   focusNodes: string[] = [],
-  distance: (a: string, b: string) => number = () => 1
+  distance: (a: string, b: string) => number | undefined = () => undefined
 ): {
   edges: { points: { x: number, y: number }[], v: string, w: string }[],
   nodes: { id: string, x: number, y: number }[],

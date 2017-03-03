@@ -18,8 +18,22 @@ export function foreachTuple<T>(direction: Direction, list: T[], f: (a: T, b: T,
   }
 }
 
+export function mapTuple<T, R>(direction: Direction, list: T[], f: (a: T, b: T, anr: number, bnr: number) => R): R[] {
+  let returns: R[] = []
+  if (direction === "down") {
+    for (let i = 1, ref = i - 1; i < list.length; i++ , ref++) {
+      returns.push(f(list[i], list[ref], i, ref))
+    }
+  } else {
+    for (let i = list.length - 2, ref = i + 1; i >= 0; i-- , ref--) {
+      returns.push(f(list[i], list[ref], i, ref))
+    }
+  }
+  return returns
+}
+
 export function flip(es: Edge[]): Edge[] {
-  return es.map(({ v, w}) => ({ v: w, w: v }))
+  return es.map(({ v, w }) => ({ v: w, w: v }))
 }
 
 export function edges(g: Graph, direction: Direction, nodes: string[]): Edge[] {
