@@ -111,6 +111,13 @@ export class TreeCollector implements RxCollector {
         break
       case "event":
         let event = Event.fromRecord(record)
+        if (event && event.type === "next" && isObservable(record.arguments[0])) {
+          let higher = record.arguments[0]
+          event.value = {
+            id: this.tag(higher).id,
+            type: higher.constructor.name,
+          } as any as string
+        }
         if (event && this.hasTag(record.subject)) {
           this.tagObserver(record.subject).forEach(_ => _.addEvent(event))
         }
