@@ -30,7 +30,7 @@ export class MarbleCoordinator {
 
     let timespan = [
       events.find(e => e.type === "subscribe"),
-      events.reverse().find(e => e.type === "dispose" || e.type === "complete"),
+      events.find(e => e.type === "dispose" || e.type === "complete"),
     ].map((_, i) => _ ? this.relTime(_.time) : (i === 0 ? 0 : 100))
 
     let marbles = events.filter(e => e.type !== "dispose").map(e => {
