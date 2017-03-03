@@ -28,14 +28,58 @@ export class MarbleCoordinator {
   public render(edges: (EventLabel | IEvent)[], debug?: (...arg: any[]) => void): VNode {
     let events = edges.map(_ => ((_ as EventLabel).event || _) as IEvent)
 
-    let marbles = events.map(e => h("svg", {
-      attrs: { x: `${(isNaN(this.relTime(e.time)) ? 50 : this.relTime(e.time))}%`, y: "50%" },
-    }, [h("path", {
-      attrs: { class: "arrow", d: "M 0 -50 L 0 48" },
-    }), h("circle", {
-      attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
-      on: { mouseover: () => debug ? debug(e) : true },
-    })]))
+    let timespan = [
+      events.find(e => e.type === "subscribe"),
+      events.reverse().find(e => e.type === "dispose" || e.type === "complete"),
+    ].map((_, i) => _ ? this.relTime(_.time) : (i === 0 ? 0 : 100))
+
+    let marbles = events.filter(e => e.type !== "dispose").map(e => {
+      let arrow = h("path", {
+        attrs: {
+          class: "arrow",
+          d: ["next", "complete", "error"].indexOf(e.type) >= 0 ?
+            "M 0 -30 L 0 28" :
+            "M 0 30 L 0 -28",
+        },
+      })
+      let circle = h("circle", {
+        attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
+        on: { mouseover: () => debug ? debug(e) : true },
+      })
+
+      let content: VNode[] = []
+
+      switch (e.type) {
+        case "error":
+          content = [h("path", {
+            attrs: { class: "error", d: "M 4 -10 L -4 10 M 4 10 L -4 -10" },
+            on: { mouseover: () => debug ? debug(e) : true },
+          })]
+          break
+        case "subscribe":
+          content = []
+          break
+        case "complete":
+          content = [h("path", {
+            attrs: { class: "complete", d: "M 0 -10 L 0 10" },
+            on: { mouseover: () => debug ? debug(e) : true },
+          })]
+          break
+        case "next":
+          if (typeof e.value === "object") {
+            content = [arrow, h("rect", {
+              attrs: { class: "higher next", x: -12, width: 32, y: -12, height: 24 },
+              on: { mouseover: () => debug ? debug(e) : true },
+            })]
+            break
+          }
+        default: content = [arrow, circle]
+      }
+
+      return h("svg", {
+        attrs: { x: `${(isNaN(this.relTime(e.time)) ? 50 : this.relTime(e.time))}%`, y: "50%" },
+      }, content)
+    })
 
     return h("svg", {
       attrs: {
@@ -43,6 +87,7 @@ export class MarbleCoordinator {
       },
     }, [
       h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
+      h("line", { attrs: { class: "active", x1: `${timespan[0]}%`, x2: `${timespan[1]}%`, y1: "50%", y2: "50%" } }),
     ].concat(marbles).concat(defs()))
   }
 

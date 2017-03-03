@@ -108,7 +108,6 @@ export class TreeCollector implements RxCollector {
       case "subscribe":
         this.tagObservable(record);
         [].filter.call(record.arguments, isDisposable).forEach((s: any) => this.tagObserver(s))
-        break
       case "event":
         let event = Event.fromRecord(record)
         if (event && event.type === "next" && isObservable(record.arguments[0])) {
@@ -118,8 +117,10 @@ export class TreeCollector implements RxCollector {
             type: higher.constructor.name,
           } as any as string
         }
-        if (event && this.hasTag(record.subject)) {
+        if (event && event.type !== "subscribe" && this.hasTag(record.subject)) {
           this.tagObserver(record.subject).forEach(_ => _.addEvent(event))
+        } else if (event && this.hasTag(record.arguments[0])) {
+          this.tagObserver(record.arguments[0]).forEach(_ => _.addEvent(event))
         }
         break
       case "setup":
@@ -150,7 +151,7 @@ export class TreeCollector implements RxCollector {
   }
 
   private hasTag(input: any): boolean {
-    return typeof (input as any)[this.hash] !== "undefined"
+    return typeof input === "object" && typeof (input as any)[this.hash] !== "undefined"
   }
 
   private tag(input: any): IObserverTree | IObservableTree | undefined {

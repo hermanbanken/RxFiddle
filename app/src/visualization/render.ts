@@ -18,11 +18,11 @@ export type Layout = {
   nodes: { id: string, x: number, y: number }[],
 }[]
 
-export type In = Rx.Observable<({ layout: Layout, viewState: ViewState, graphs: Graphs })>
-export type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string>, groupClicks: Rx.Observable<string> }
+export type In = Rx.Observable<({ _sequence: number, layout: Layout, viewState: ViewState, graphs: Graphs })>
+export type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string[]>, groupClicks: Rx.Observable<string> }
 export function graph$(inp: In): Out {
   let result = inp.map(data => {
-    return graph(data.layout, data.viewState, data.graphs)
+    return graph(data.layout, data.viewState, data.graphs, data._sequence)
   }).publish().refCount()
 
   return {
@@ -33,7 +33,8 @@ export function graph$(inp: In): Out {
 }
 
 const u = 100
-const mu = u / 2
+const mx = u / 2
+const my = u
 
 function filterLabels(labels: NodeLabel[], viewState: ViewState): NodeLabel[] {
   if (typeof labels === "undefined" || !labels.length) { return [] }
@@ -46,20 +47,6 @@ function filterLabels(labels: NodeLabel[], viewState: ViewState): NodeLabel[] {
         l.groups.slice(-1).some(g => viewState.openGroups.indexOf(`${g}`) >= 0)
       )
     )
-}
-
-// tslint:disable-next-line:no-unused-variable
-function spath(ps: { x: number, y: number }[]): string {
-  return "M" + ps.map(({ x, y }) => `${mu + mu * x} ${mu + mu * y}`).join(" L ")
-}
-
-function bpath(ps: { x: number, y: number }[]): string {
-  // simple:
-  // return "M" + [ps[0], ps[1]].map((p) => `${mu + mu * p.x} ${mu + mu * p.y}`).join(" L ")
-  let last = ps[ps.length - 1]
-  return "M " + mapTuples(ps, (a, b) =>
-    `${mu + mu * a.x} ${mu + mu * a.y} C ${mu * (1 + a.x)} ${mu * (1.5 + a.y)}, ${mu + mu * b.x} ${mu * (0.5 + b.y)}, `
-  ).join("") + ` ${mu + mu * last.x} ${mu + mu * last.y}`
 }
 
 export function mapTuples<T, R>(list: T[], f: (a: T, b: T, anr: number, bnr: number) => R): R[] {
@@ -107,8 +94,19 @@ function collectDown(graph: TypedGraph<IObserverTree, {}>, node: IObserverTree):
   return [node]
 }
 
-export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
-  svg: VNode, clicks: Rx.Observable<string>, groupClicks: Rx.Observable<string>,
+function getFlow(graph: TypedGraph<IObserverTree, {}>, ...ids: string[], ) {
+
+  // let id = graph.inEdges(ids[0])
+  let focussed = graph.node(ids[0])
+  return [
+    ...collectUp(graph, focussed).slice(1).reverse(),
+    focussed,
+    ...collectDown(graph, focussed).slice(1),
+  ]
+}
+
+export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequence: number): {
+  svg: VNode, clicks: Rx.Observable<string[]>, groupClicks: Rx.Observable<string>,
 } {
   if (typeof window === "object") {
     (window as any).graphs = graphs
@@ -116,32 +114,59 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   let graph = graphs.main
   console.log(layout)
 
+  // Calculate SVG bounds
+  let xmax = layout
+    .flatMap(level => level.nodes)
+    .reduce((p: number, n: { x: number }) => Math.max(p, n.x), 0) as number
+  let ymax = layout
+    .flatMap(level => level.nodes)
+    .reduce((p: number, n: { y: number }) => Math.max(p, n.y), 0) as number
+
+  let xPos = (x: number) => (2 + xmax) * mx - (mx + mx * x)
+  let yPos = (y: number) => (my / 2 + my * y)
+
+  // tslint:disable-next-line:no-unused-variable
+  function spath(ps: { x: number, y: number }[]): string {
+    return "M" + ps.map(({ x, y }) => `${xPos(x)} ${yPos(y)}`).join(" L ")
+  }
+
+  function bpath(ps: { x: number, y: number }[]): string {
+    // simple:
+    // return "M" + [ps[0], ps[1]].map((p) => `${mu + mu * p.x} ${mu + mu * p.y}`).join(" L ")
+    let last = ps[ps.length - 1]
+    return "M " + mapTuples(ps, (a, b) =>
+      `${xPos(a.x)} ${yPos(a.y)} C ${xPos(a.x)} ${yPos(.5 + a.y)}, ${xPos(b.x)} ${yPos(-0.5 + b.y)}, `
+    ).join("") + ` ${xPos(last.x)} ${yPos(last.y)}`
+  }
+
   // Collect clicks in Subject
-  let clicks = new Rx.Subject<string>()
+  let clicks = new Rx.Subject<string[]>()
   let groupClicks = new Rx.Subject<string>()
 
   // Determine shown subscription flow
-  let flow: IObserverTree[] = viewState.focusNodes
-    .filter(n => graphs.subscriptions.hasNode(n))
-    .slice(-1)
-    .flatMap(last => {
-      let focussed = graphs.subscriptions.node(last)
-      return [
-        ...collectUp(graphs.subscriptions, focussed).slice(1).reverse(),
-        focussed,
-        ...collectDown(graphs.subscriptions, focussed).slice(1),
-      ]
-    })
+  let flow: IObserverTree[] = []
+  if (
+    viewState.focusNodes.every(n => graphs.subscriptions.hasNode(n)) &&
+    mapTuples(viewState.focusNodes, (v, w) => graphs.subscriptions.hasEdge(v, w))
+  ) {
+    flow = viewState.focusNodes.map(n => graphs.subscriptions.node(n))
+  }
 
   let flowPathIds = flow.map(_ => _.id)
   console.log("flow", flow, flowPathIds)
+
+  let handleClick = (v: string, w: string) => clicks.onNext(flowPathIds.indexOf(v) >= 0 && flowPathIds.indexOf(w) >= 0 ?
+    [] :
+    getFlow(graphs.subscriptions, v, w).map(_ => _.id)
+  )
 
   // Render edges
   function edge(edge: { v: string, w: string, points: { x: number, y: number }[] }): VNode {
     let { v, w, points } = edge
     // let labels = (graph.edge(v, w) || { labels: [] }).labels || []
 
-    let isHigher = false;// labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
+    let isHigher = false;
+    // labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
 
     let isSelected = flowPathIds.indexOf(w) >= 0 && flowPathIds.indexOf(v) >= 0
     let alpha = isSelected ? 0.3 : 0.1
@@ -156,83 +181,138 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       },
       hook: { prepatch: MorphModule.prepare },
       key: `${v}/${w}`,
-      on: { mouseover: () => debug(v, w, graph.edge(v, w)) },
+      on: {
+        click: () => handleClick(v, w),
+        mouseover: () => debug(v, w, graph.edge(v, w)),
+      },
       style: {
         transition: "d 1s",
       },
     })
   }
 
+  type RenderNode = { id: string, x: number, y: number }
+
   // Render nodes
-  function circle(item: { id: string, x: number, y: number }): { svg: VNode[], html: VNode[] } {
-    let node = getObservable(item.id, graphs.main)
+  function circle(cluster: { node: IObservableTree, dots: RenderNode[] }): { svg: VNode[], html: VNode[] } {
+    let node = cluster.node
     let text = nodeLabel(node)
-    let isSelected = viewState.focusNodes.indexOf(item.id) >= 0
+    let isSelected = cluster.dots.some(item => flowPathIds.indexOf(item.id) >= 0)
 
     // tslint:disable-next-line:no-unused-variable
-    let shade = h("circle", {
+    // let shade = h("circle", {
+    //   attrs: {
+    //     cx: mu + mu * item.x,
+    //     cy: mu + mu * item.y + 1,
+    //     fill: "rgba(0,0,0,.3)",
+    //     r: 5,
+    //   },
+    //   key: `circle-shade-${item.id}`,
+    //   style: { transition: "all 1s" },
+    // })
+
+    let rect = h("path", {
       attrs: {
-        cx: mu + mu * item.x,
-        cy: mu + mu * item.y + 1,
-        fill: "rgba(0,0,0,.3)",
-        r: 5,
+        d: spath(cluster.dots),
+        id: `cluster-${node.id}`,
+        stroke: colorIndex(parseInt(node && node.id || cluster.dots[0].id, 10)),
+        "stroke-width": 10,
       },
-      key: `circle-shade-${item.id}`,
-      style: { transition: "all 1s" },
+      hook: { prepatch: MorphModule.prepare },
+      key: `cluster-${node.id}`,
+      style: {
+        transition: "d 1s",
+      },
     })
 
-    let circ = h("circle", {
+    let circ = cluster.dots.map(item => h("circle", {
       attrs: {
-        cx: mu + mu * item.x,
-        cy: mu + mu * item.y,
-        fill: colorIndex(parseInt(item.id, 10)),
-        id: `circle-${item.id}`,
+        cx: xPos(item.x),
+        cy: yPos(item.y),
+        fill: colorIndex(parseInt(node && node.id || item.id, 10)),
+        id: `cluster-${node.id}/circle-${item.id}`,
         r: 5,
         stroke: "black",
         "stroke-width": isSelected ? 1 : 0,
       },
-      key: `circle-${item.id}`,
+      key: `cluster-${node.id}/circle-${item.id}`,
       on: {
-        click: (e: any) => clicks.onNext(item.id),
+        click: (e: any) => clicks.onNext(getFlow(graphs.subscriptions, item.id).map(_ => _.id)),
         mouseover: (e: any) => debug(item.id, graph.node(item.id)),
       },
       style: { transition: "all 1s" },
-    })
+    }))
 
-    let svg = [/*shade, */circ]
+    let svg = [rect, /*shade, */...circ]
 
-    let html = h("div", {
+    let bounds = {
+      x1: cluster.dots[0].x,
+      x2: cluster.dots[cluster.dots.length - 1].x,
+      y: cluster.dots[0].y,
+    }
+
+    let html = [h("div", {
       attrs: { class: `graph-label ${isSelected ? "focus" : ""}` },
-      key: `overlay-${item.id}`,
+      key: `overlay-${cluster.node.id}`,
       on: {
-        click: (e: any) => clicks.onNext(item.id),
-        mouseover: (e: any) => debug(item.id, graph.node(item.id)),
+        // click: (e: any) => cluster.dots[0].reverse().forEach(item => clicks.onNext(item.id)),
+        mouseover: (e: any) => debug(cluster, cluster.node),
       },
       style: {
-        left: `${mu + mu * item.x}px`,
-        top: `${mu + mu * item.y}px`,
+        left: `${xPos(bounds.x1)}px`,
+        // "padding-left": `${mu * (bounds.x2 - bounds.x1)}px`,
+        top: `${yPos(bounds.y)}px`,
         transition: "all 1s",
       },
-    }, [h("span", text)])
 
-    return { html: [html], svg }
+    }, [h("span", text)])]
+
+    // let html = cluster.dots.map(item => h("div", {
+    //   attrs: { class: `graph-label ${isSelected ? "focus" : ""}` },
+    //   key: `overlay-${item.id}`,
+    //   on: {
+    //     click: (e: any) => clicks.onNext(item.id),
+    //     mouseover: (e: any) => debug(item.id, graph.node(item.id)),
+    //   },
+    //   style: {
+    //     left: `${mu + mu * item.x}px`,
+    //     top: `${mu + mu * item.y}px`,
+    //     transition: "all 1s",
+    //   },
+    // }, [h("span", text)]))
+
+    return { html: [...html], svg }
   }
 
-  let ns = layout[0].nodes.map(circle)
+  // Cluster layout nodes
+  let ns = layout[0].nodes.reduce(({ list, last }, n) => {
+    let obs = getObservable(n.id, graphs.main) || n
+    if (last === obs.id) {
+      list.slice(-1)[0].dots.push(n)
+    } else {
+      list.push({ dots: [n], node: obs })
+    }
+    return { list, last: obs.id }
+  }, {
+      last: null,
+      list: [] as { node: { id: string }, dots: RenderNode[] }[],
+    }).list.map(circle)
 
   let elements = [
     // h("g", gps),
-    h("g", layout.flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort)),
-    h("g", ns.flatMap(n => n.svg).sort(vnodeSort)),
+    h("g", layout.flatMap((level, levelIndex) => level.edges.map(edge)).sort(vnodeSort).filter(v => {
+      if (typeof v === "undefined") {
+        console.warn("emitting undefined as child vnode")
+      }
+      return typeof v !== "undefined"
+    })),
+    h("g", ns.flatMap(n => n.svg).sort(vnodeSort).filter(v => {
+      if (typeof v === "undefined") {
+        console.warn("emitting undefined as child vnode")
+      }
+      return typeof v !== "undefined"
+    })),
   ]
-
-  // Calculate SVG bounds
-  let xmax = layout
-    .flatMap(level => level.nodes)
-    .reduce((p: number, n: { x: number }) => Math.max(p, n.x), 0) as number
-  let ymax = layout
-    .flatMap(level => level.nodes)
-    .reduce((p: number, n: { y: number }) => Math.max(p, n.y), 0) as number
 
   let svg = h("svg", {
     attrs: {
@@ -241,11 +321,11 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       xmlns: "http://www.w3.org/2000/svg",
     },
     style: {
-      height: (ymax + 2) * mu,
+      height: (ymax + 1) * my,
       left: 0,
       position: "absolute",
       top: 0,
-      width: (xmax + 2) * mu,
+      width: (xmax + 2) * mx,
     },
   }, elements.concat(defs()))
 
@@ -254,9 +334,9 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
       id: "structure-mask",
     },
     style: {
-      height: `${(ymax + 2) * mu}px`,
+      height: `${(ymax + 1) * my + 60}px`,
       position: "relative",
-      width: `${(xmax + 2) * mu}px`,
+      width: `${(xmax + 2) * mx}px`,
     },
   }, [svg].concat(ns.flatMap(n => n.html)))
 
@@ -274,11 +354,12 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs): {
   if (flow.length) {
     diagram = renderMarbles(
       flow.flatMap(observer => [observer.observable, observer]),
-      viewState
+      viewState,
+      layout[0].nodes.filter(n => n.id === flow[0].id).slice(0, 1).map(n => yPos(n.y))[0]
     )
   }
 
-  let app = h("app", [
+  let app = h("app", { key: `app-${sequence}` }, [
     h("master", panel),
     h("detail", diagram),
   ])
@@ -341,16 +422,19 @@ function vnodeSort(vna: VNode, vnb: VNode): number {
   return vna.key.toString().localeCompare(vnb.key.toString())
 }
 
-function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: ViewState): VNode[] {
+function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: ViewState, offset: number = 0): VNode[] {
   let coordinator = new MarbleCoordinator()
   let allEvents: IEvent[] = nodes.flatMap((n: any) => n && "events" in n ? n.events as IEvent[] : [])
   coordinator.add(allEvents)
   console.log("All events", allEvents)
 
+  let heights = nodes.map(tree => (tree && "events" in tree) ? 60 : 40)
+  let height = heights.reduce((sum, h) => sum + h, 0)
+
   let root = h("div", {
     attrs: {
       id: "marbles",
-      style: `min-width: ${u * 2}px; height: ${u * (1.5 * nodes.length)}px`,
+      style: `min-width: ${u * 2}px; height: ${height}px; margin-top: ${(offset - heights[0] / 2)}px`,
     },
   }, nodes.flatMap((node, i) => {
     let clazz = "operator withoutStack"

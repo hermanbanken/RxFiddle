@@ -36,6 +36,7 @@ export type GraphEdge = {
 }
 
 export type Graphs = {
+  _sequence: number,
   main: TypedGraph<IObservableTree | IObserverTree, {}>,
   subscriptions: TypedGraph<IObserverTree, {}>,
 }
@@ -45,14 +46,15 @@ export class Grapher {
   public graph: Rx.Observable<Graphs>
 
   constructor(collector: DataSource) {
+    let sequence = 0
     this.graph = Rx.Observable.defer(() => collector.dataObs
       .scan(grapherNext, new TreeReader()).map(reader => ({
+        _sequence: sequence++,
         main: reader.treeGrapher.graph,
         subscriptions: reader.treeGrapher.graph
           .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
       }))
-    )
-      .repeat()
+    ).repeat()
   }
 }
 
@@ -67,7 +69,7 @@ function isIObserver(a: any): a is IObserverTree {
 
 function distance(a: IObservableTree | IObserverTree, b: IObservableTree | IObserverTree): number | undefined {
   if (isIObserver(a) && isIObserver(b)) {
-    return a.observable.id === b.observable.id ? 0.2 : 1
+    return a.observable.id === b.observable.id ? 0.21 : 1
   }
   return undefined
 }
@@ -87,7 +89,7 @@ export default class Visualizer {
     }))
   }
 
-  private clicks: Rx.Observable<string>
+  private clicks: Rx.Observable<string[]>
   private groupClicks: Rx.Observable<string>
   private grapher: Grapher
   private app: HTMLElement | VNode
@@ -101,6 +103,7 @@ export default class Visualizer {
       .combineLatest(this.viewState, (graphs, state) => {
         let filtered = this.filter(graphs, state)
         return ({
+          _sequence: graphs._sequence,
           graphs: filtered,
           layout: layoutf(
             filtered.subscriptions,
@@ -119,9 +122,24 @@ export default class Visualizer {
 
   public run() {
     this.DOM
-      .subscribe(d => this.app = patch(this.app, d))
+      .subscribe(d => {
+        let old = this.app
+        try {
+          checkChildrenDefined(d, "new")
+          this.app = patch(this.app, d)
+        } catch (e) {
+          (window as any).vnode = d
+          console.warn("Snabbdom patch error. VNode available in window.vnode.", e, d)
+          if (e.message.indexOf("of undefined") >= 0) {
+            if (!(old instanceof HTMLElement)) {
+              checkChildrenDefined(old, "old")
+            }
+            checkChildrenDefined(d)
+          }
+        }
+      })
     this.clicks
-      .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
+      .scan((prev, n) => prev.length === n.length && prev.every((p, i) => p === n[i]) ? [] : n, [])
       .startWith([])
       .subscribe(this.focusNodes)
     this.groupClicks
@@ -141,8 +159,23 @@ export default class Visualizer {
 
   private filter(graphs: Graphs, viewState: ViewState): Graphs {
     return {
+      _sequence: graphs._sequence,
       main: graphs.main,
       subscriptions: graphs.subscriptions,
     }
+  }
+}
+
+function checkChildrenDefined(node: VNode | string, parents: string = "", ...info: any[]): void {
+  if (typeof node === "string") {
+    return
+  }
+  if (typeof node === "undefined") {
+    console.warn("Undefined VNode child found at ", parents, ...info)
+  } else if (typeof node === "object" && "children" in node && Array.isArray(node.children)) {
+    node.children.forEach((c, i) => checkChildrenDefined(c, parents + "/" + node.sel + "[" + i + "]",
+      node.elm && (node.elm as HTMLElement).childNodes[i], node))
+  } else {
+    // console.warn("Uknown vnode", node, parents)
   }
 }
