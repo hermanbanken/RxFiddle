@@ -26,10 +26,12 @@ export function hsvToRgb(h: number, s: number, v: number): [number, number, numb
   return [~~(r * 265), ~~(g * 265), ~~(b * 265)]
 }
 
+const beautifullPallette = 0.8255226618882556
 const golden_ratio_conjugate = 0.618033988749895
 export function generateColors(count: number): [number, number, number][] {
   let cs = [] as [number, number, number][]
-  let h = Math.random()  // use random start value
+  let h = beautifullPallette // fixed pallette 
+  // let h = Math.random() // use random start value
 
   while (count--) {
     h += golden_ratio_conjugate
