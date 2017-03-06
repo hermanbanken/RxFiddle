@@ -60,6 +60,27 @@ export class TreeWriter implements ITreeLogger {
   }
 }
 
+export class TreeWindowPoster implements ITreeLogger {
+  private post: (message: any) => void
+  constructor() {
+    if (typeof window === "object" && window.parent) {
+      this.post = m => window.parent.postMessage(m, window.location.origin)
+    } else {
+      this.post = m => { /* intentionally left blank */ }
+      console.error("Using Window.postMessage logger in non-browser environment", new Error())
+    }
+  }
+  public addNode(id: string, type: NodeType): void {
+    this.post({ id, type })
+  }
+  public addMeta(id: string, meta: any): void {
+    this.post({ id, meta })
+  }
+  public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
+    this.post({ v, w, type, meta })
+  }
+}
+
 export class TreeReader {
   public treeGrapher: TreeGrapher = new TreeGrapher()
   public next(message: any) {

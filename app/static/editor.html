@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.24.2/codemirror.min.css" integrity="sha256-FBsaTuzI5K++V5i0gKntwDkmZ4pu71r75kBnYsspjNs="
+  crossorigin="anonymous" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.24.2/codemirror.min.js" integrity="sha256-7y2g0qb/MB5B20ham3zlwxJ+5lfuwj6LRnuiVSo2sLk="
+  crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.24.2/mode/javascript/javascript.min.js" integrity="sha256-6Vpit4CHkn6nN6wq9wIa63quB910zkoM5ZV2ulIWgZM="
+  crossorigin="anonymous"></script>
+<script>
+  function script(src) {
+    var s = document.createElement("script");
+    s.src = src;
+    s.async = false;
+    document.head.appendChild(s);
+  }
+  if (typeof require == 'undefined') {
+    script('../dist/editor.bundle.js');
+  } else {
+    script('../dist/editor.js')
+  }
+
+</script>
+<style>
+  html,
+  body,
+  body>#editor,
+  body>#editor>.CodeMirror {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+
+  button {
+    height: auto;
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    z-index: 100;
+    -webkit-appearance: none;
+    border: 0;
+    background: dodgerblue;
+    padding: 10px;
+    color: white;
+  }
+</style>
+
+<body>
+  <button id="run">Run</button>
+  <div id="editor"></div>
+</body>

@@ -12,6 +12,7 @@ export interface ICallStart {
   time: number
   parent?: ICallStart
   childs: (ICallRecord | ICallStart)[]
+  tick: number
 }
 
 export interface ICallEnd {

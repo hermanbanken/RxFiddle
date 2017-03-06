@@ -1,9 +1,9 @@
 import { ICallStart } from "./callrecord"
 import { formatArguments } from "./logger"
 
-export type IEventType = "next" | "error" | "complete" | "subscribe" | "dispose"
+export type IEventType = "next" | "error" | "complete" | "subscribe" | "dispose" | "connect"
 
-export type IEvent = Next<any> | Subscribe | Complete | Error | Dispose
+export type IEvent = Next<any> | Subscribe | Complete | Error | Dispose | Connect
 
 export class Event {
   public static fromRecord(record: ICallStart): IEvent | null {
@@ -13,40 +13,42 @@ export class Event {
       case "completed":
         return
       case "onNext":
-        return new Next(record.time, record.arguments[0])
+        return new Next(record.time, record.tick, record.arguments[0])
       case "onError":
       case "fail":
-        return new Error(record.time, record.arguments[0])
+        return new Error(record.time, record.tick, record.arguments[0])
       case "onCompleted":
-        return new Complete(record.time)
+        return new Complete(record.time, record.tick)
+      case "connect":
+        return new Connect(record.time, record.tick)
       case "subscribe":
       case "_subscribe":
       case "__subscribe":
-        return new Subscribe(record.time)
+        return new Subscribe(record.time, record.tick)
       case "dispose":
-        return new Dispose(record.time)
+        return new Dispose(record.time, record.tick)
       default: break
       // console.log("Unknown event", record)
     }
   }
   public static fromJson(input: any): IEvent | null {
     switch (input.type) {
-      case "next": return new Next(input.time, input.value)
-      case "error": return new Error(input.time, input.error)
-      case "complete": return new Complete(input.time)
-      case "subscribe": return new Subscribe(input.time)
-      case "dispose": return new Dispose(input.time)
+      case "next": return new Next(input.time, input.value, input.tick)
+      case "error": return new Error(input.time, input.error, input.tick)
+      case "complete": return new Complete(input.time, input.tick)
+      case "subscribe": return new Subscribe(input.time, input.tick)
+      case "dispose": return new Dispose(input.time, input.tick)
       default: return null
     }
   }
-  constructor(public type: IEventType, public time: number) { }
+  constructor(public type: IEventType, public time: number, public tick: number) { }
 }
 
 export class Next<T> extends Event {
   public value: string
   public type: "next"
-  constructor(time: number, value: T) {
-    super("next", time)
+  constructor(time: number, tick: number, value: T) {
+    super("next", time, tick)
     this.value = formatArguments([value])
   }
 }
@@ -54,23 +56,28 @@ export class Next<T> extends Event {
 export class Error extends Event {
   public error: Error
   public type: "error"
-  constructor(time: number, error: Error) {
-    super("error", time)
+  constructor(time: number, tick: number, error: Error) {
+    super("error", time, tick)
     this.error = error
   }
 }
 
 export class Complete extends Event {
   public type: "complete"
-  constructor(time: number) { super("complete", time) }
+  constructor(time: number, tick: number) { super("complete", time, tick) }
 }
 
 export class Subscribe extends Event {
   public type: "subscribe"
-  constructor(time: number) { super("subscribe", time) }
+  constructor(time: number, tick: number) { super("subscribe", time, tick) }
+}
+
+export class Connect extends Event {
+  public type: "connect"
+  constructor(time: number, tick: number) { super("connect", time, tick) }
 }
 
 export class Dispose extends Event {
   public type: "dispose"
-  constructor(time: number) { super("dispose", time) }
+  constructor(time: number, tick: number) { super("dispose", time, tick) }
 }

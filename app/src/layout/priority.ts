@@ -127,8 +127,12 @@ export function priorityLayoutAlign<Label>(
       return moved
     }
     let next = index + Math.sign(requestedShift)
-    let spacing = distance(subject.id, items[next].id) || 1
-    let slack = absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift) * spacing)
+    let dist = distance(subject.id, items[next].id)
+    let spacing = dist || 1
+    // Remove slack if distance is explicit
+    let slack = // typeof dist === "undefined" ?
+      absMin(requestedShift, items[next].x - subject.x - Math.sign(requestedShift) * spacing) // :
+    // 0
     // Bubble move
     let nextMoved = move(priority, next, requestedShift - slack)
     subject.x += slack + nextMoved

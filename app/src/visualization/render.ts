@@ -232,8 +232,6 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
         fill: colorIndex(parseInt(node && node.id || item.id, 10)),
         id: `cluster-${node.id}/circle-${item.id}`,
         r: 5,
-        stroke: "black",
-        "stroke-width": isSelected ? 1 : 0,
       },
       key: `cluster-${node.id}/circle-${item.id}`,
       on: {
@@ -460,9 +458,11 @@ function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: Vi
   return [root]
 }
 
+// tslint:disable:no-conditional-assignment
 function debug(...args: any[]) {
-  if (typeof document === "object") {
-    document.getElementById("debug").innerText = args.map(a => jsonify(a)).join("\n")
+  let panel: HTMLElement
+  if (typeof document === "object" && (panel = document.getElementById("debug"))) {
+    panel.innerText = args.map(a => jsonify(a)).join("\n")
   } else {
     console.log.apply(console, args)
   }

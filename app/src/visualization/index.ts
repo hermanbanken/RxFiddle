@@ -148,6 +148,24 @@ export default class Visualizer {
       .subscribe(this.openGroups)
   }
 
+  public stream(): Rx.Observable<VNode> {
+    return Rx.Observable.defer(() => Rx.Observable.create<VNode>(subscriber => {
+      let disposables = [] as Rx.Disposable[]
+      disposables.push(this.DOM.subscribe(subscriber))
+      disposables.push(this.clicks
+        .scan((prev, n) => prev.length === n.length && prev.every((p, i) => p === n[i]) ? [] : n, [])
+        .startWith([])
+        .subscribe(this.focusNodes))
+      disposables.push(this.groupClicks
+        .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
+        .startWith([])
+        .subscribe(this.openGroups))
+      return new Rx.Disposable(() => {
+        disposables.forEach(d => d.dispose())
+      })
+    }))
+  }
+
   public attach(node: HTMLElement) {
     this.app = node
     this.step()

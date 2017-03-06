@@ -86,6 +86,28 @@ function rxTweaks<T>(call: ICallStart): void {
   // Other tweaks here...
 }
 
+class Ticker {
+  private tick: number = 0
+  private timeout?: Rx.IDisposable
+  private next: () => void
+  constructor() {
+    this.next = this.nextTick.bind(this)
+  }
+  public get() {
+    if (!this.timeout) {
+      this.timeout = Rx.Scheduler.currentThread.schedule({}, () => { this.next(); return Rx.Disposable.empty })
+      // this.timeout = setTimeout(this.next, 0)
+    }
+    return this.tick
+  }
+  private nextTick() {
+    this.tick++
+    this.timeout = undefined
+  }
+}
+
+let ticker = new Ticker()
+
 let i = 0
 
 export default class Instrumentation {
@@ -128,9 +150,10 @@ export default class Instrumentation {
           childs: [],
           id: i++,
           method: extras["methodName"],
-          stack: self.stackTraces ? new Error().stack : undefined,
+          stack: self.stackTraces ? undefined : undefined,//new Error().stack : undefined,
           subject: thisArg,
           subjectName: extras["subjectName"],
+          tick: ticker.get(),
           time: now(),
         }
 

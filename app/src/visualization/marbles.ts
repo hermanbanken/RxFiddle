@@ -43,7 +43,7 @@ export class MarbleCoordinator {
         },
       })
       let circle = h("circle", {
-        attrs: { class: e.type, cx: 0, cy: 0, r: 8 },
+        attrs: { class: e.type, cx: 0, cy: 0, r: 7 },
         on: { mouseover: () => debug ? debug(e) : true },
       })
 

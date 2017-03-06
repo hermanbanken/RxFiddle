@@ -56,7 +56,7 @@ export class TreeCollectorTest {
 
   @test
   public gatherTreeB() {
-    let first = Rx.Observable.of(1, 2, 3)
+    let first = Rx.Observable.fromArray([1, 2, 3], Rx.Scheduler.currentThread)
     let obs = first
       .map(_ => _)
       .filter(_ => true)

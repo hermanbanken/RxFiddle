@@ -5,6 +5,11 @@ body {
   user-select: none;
 }
 
+* {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+}
+
 html {
   /* vscode windows */
   font-family: "Monaco", "Menlo", "Consolas", "Droid Sans Mono", "Inconsolata", "Courier New", monospace;
@@ -12,7 +17,135 @@ html {
   font-family: "Segoe WPC","Segoe UI",SFUIText-Light,HelveticaNeue-Light,sans-serif,"Droid Sans Fallback";
   font-size: 13px
 }
-    
+
+.splash {
+  background: #333;
+  color: white;
+}
+.welcome {
+  width: 500px;
+  margin: 0 auto;
+}
+.welcome h1 {
+  font-size: 72px;
+  font-family: "Signika",Helvetica,sans-serif;
+  margin-bottom: 30px;
+}
+.welcome h1 img {
+  width: 80px;
+  height: 80px;
+  margin-top: -10px;
+  margin-right: 15px;
+  vertical-align: middle;
+}
+.welcome h2 {
+    line-height: 1.3em;
+    margin-bottom: 50px;
+    font-size: 28px;
+    margin-top: 22px;
+    margin-bottom: 11px;
+    font-family: inherit;
+    font-weight: 500;
+}
+
+.inputbar {
+  background: #eee;
+}
+input[type=text] {
+    background: none;
+    width: 100%;
+    display: block;
+    border: 0;
+    font-size: inherit;
+    font-family: inherit;
+    padding: 10px;
+    outline-style: inset;
+    outline-width: 1px;
+    outline-offset: -1px;
+}
+
+.rel {
+  position: relative;
+}
+label input[type=file] {
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+}
+
+html, body { height: 100%; }
+.flexy {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.flexy > * {
+  flex: 1;
+}
+
+div.menufold {
+  z-index: 1000;
+  transition: all 0.2s;
+  line-height: 50px;
+  color: white;
+  font-size: 1.5em;
+}
+div.menufold img {
+  vertical-align: middle;
+  margin-top: -4px;
+  margin-right: 8px;
+  margin-left: 8px;
+}
+div.menufold a {
+  color: inherit;
+  text-decoration: none;
+}
+
+div#menufold-static {
+  position: static;
+  background: #333;
+  height: 50px;
+}
+
+div#menufold-fixed {
+  position: fixed;
+  flex: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  border-top: 5px solid #b7178c;
+  height: 15px;
+}
+.menufold + * {
+  height: calc(100% - 50px);
+}
+
+div.menufold:hover {
+  height: 50px;
+  border-top: 0px solid;
+  background: #b7178c;
+}
+
+.editor { overflow: hidden; }
+.editor iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.resizer {
+    width: 2px;
+    min-width: 2px;
+    background: #333;
+    flex: 0;
+    height: 100%;
+    cursor: ew-resize;
+}
+   
 svg,
 top,
 center,
@@ -62,11 +195,10 @@ top {
 }
 
 app {
-  flex: 1;
+  flex: 2 !important;
   display: flex;
   flex-direction: row;
   width: 100%;
-  min-height: 100%;
   overflow-y: auto;
 }
 
@@ -86,8 +218,8 @@ master > * {
 }
 
 .operator {
-  height: 50px;
-  line-height: 50px;
+  height: 40px;
+  line-height: 40px;
   padding: 0 10px;
   border: 1px solid #777;
   box-sizing: border-box;
@@ -113,7 +245,7 @@ master > * {
 }
 
 .operator:first-child {
-  margin-top: 50px;
+  margin-top: 30px;
 }
 
 .operator:last-child {
@@ -122,7 +254,7 @@ master > * {
 
 .marblediagram {
   width: 100%;
-  height: 100px;
+  height: 60px;
 }
 
 .marblediagram svg {
@@ -130,6 +262,11 @@ master > * {
 }
 
 .marblediagram line.time {
+  stroke: lightgray;
+  stroke-width: 2px;
+}
+
+.marblediagram line.active {
   stroke: black;
   stroke-width: 2px;
 }
@@ -140,7 +277,15 @@ master > * {
   stroke: none;
 }
 
-.marblediagram circle:hover {
+.marblediagram .next.higher {
+  fill: white;
+  stroke-width: 2px;
+  stroke: black;
+  rx: 12;
+  ry: 12;
+}
+
+.marblediagram circle:hover, .marblediagram .complete:hover, .marblediagram .error:hover {
   transform: scale(1.2);
 }
 
@@ -157,19 +302,24 @@ master > * {
     marker-end: url(#arrow);
 }
 
+.marblediagram .complete, .marblediagram .error  {
+  stroke-width: 2;
+  stroke: black;
+}
+
 master {
-  flex: 1;
+  /*flex: 1;*/
   /*display: flex;
   flex-direction: row;*/
-  stroke: black;
   max-width: 50%;
 }
 
 master path {
   fill: transparent;
+  cursor: pointer;
 }
 
-button {
+button, .btn {
   display: inline-block;
   box-sizing: border-box;
   -moz-appearance: none;
@@ -182,8 +332,9 @@ button {
   margin: 0;
   vertical-align: baseline;
   font-size: inherit;
+  text-decoration: none;
 }
-button:hover {
+button:hover, a.btn:hover {
   background: #0D61AD;
 }
 
@@ -225,6 +376,7 @@ g.circle:hover text, g.circle:hover rect {
   white-space: nowrap;
 }
 
-.graph-label:hover span, .graph-label.focus span {
+.graph-label:hover span
+/*, .graph-label.focus span*/ {
   display: block;
 }
