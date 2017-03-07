@@ -20,8 +20,6 @@
     "prepublish": "tsc -p ."
   },
   "dependencies": {
-    "@cycle/dom": "^12.2.5",
-    "@cycle/rx-run": "^7.0.1",
     "@types/dagre": "^0.7.33",
     "@types/electron": "^1.4.24",
     "@types/esprima": "^2.1.33",
@@ -36,7 +34,6 @@
     "immutable": "^3.8.1",
     "lodash": "4.17.2",
     "rx": "^4.1.0",
-    "rxmarbles": "file:../../rxmarbles",
     "snabbdom": "0.6.5",
     "svg-pan-zoom": "github:ariutta/svg-pan-zoom",
     "typescript": "2.2"
