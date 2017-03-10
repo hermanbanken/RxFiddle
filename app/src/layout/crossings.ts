@@ -1,4 +1,5 @@
 import { Edge, edges, flip, foreachTuple } from "./index"
+import { OrderingOptions } from "./ordering"
 import { Graph } from "graphlib"
 
 function sorting(a: { v: number, w: number }, b: { v: number, w: number }) {
@@ -40,12 +41,21 @@ export function crossings(vRow: string[], wRow: string[], edges: Edge[]) {
   return crossings
 }
 
-export function order_crossings(order: string[][], g: Graph): number {
-  let count = 0
+const weights = {
+  crossings: 1,
+  switches: 4,
+}
+
+export function order_penalty(order: string[][], g: Graph, options?: OrderingOptions): number {
+  let penalty = 0
+  order.forEach(row => {
+    penalty += weights.switches * (options && options.hierarchies || [])
+      .map(h => countSwitches(h, row)).reduce((p, n) => p + n, 0)
+  })
   foreachTuple("down", order, (row, ref) => {
     let es: { v: string, w: string }[] = flip(edges(g, "down", row))
     try {
-      count += crossings(row, ref, es)
+      penalty += crossings(row, ref, es) * weights.crossings
     } catch (e) {
       console.log("Error in down sweep of ordering:\n" + order.map(r => {
         let prefix = row === r && "row -> " || ref === r && "ref -> " || "       "
@@ -54,5 +64,9 @@ export function order_crossings(order: string[][], g: Graph): number {
       throw e
     }
   })
-  return count
+  return penalty
+}
+
+function countSwitches(hierarchy: (id: string) => string, row: string[]): number {
+  return row.map(hierarchy).reduce((p, n, i, list) => i === 0 ? p : p + (list[i - 1] === n ? 0 : 1), 0)
 }

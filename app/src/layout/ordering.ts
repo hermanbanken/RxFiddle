@@ -1,4 +1,4 @@
-import { order_crossings } from "./crossings"
+import { order_penalty } from "./crossings"
 import { ExternalSort } from "./index"
 import { wmedian } from "./median"
 import { transpose } from "./transpose"
@@ -34,7 +34,7 @@ export function ordering(order: string[][], g: Graph, options: OrderingOptions):
   let update = (next: string[][], i: number) => {
     try {
       // See if improved: store better results
-      let crossings = order_crossings(next, g)
+      let crossings = order_penalty(next, g, options)
       if (crossings < bestCrossings) {
         best = next.map(o => o.slice(0))
         bestCrossings = crossings

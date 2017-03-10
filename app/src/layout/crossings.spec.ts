@@ -1,4 +1,4 @@
-import { crossings, order_crossings } from "./crossings"
+import { crossings, order_penalty } from "./crossings"
 import { expect } from "chai"
 import { Graph } from "graphlib"
 import { suite, test } from "mocha-typescript"
@@ -11,7 +11,7 @@ function asGraph(es: { v: string, w: string }[]): Graph {
 
 function both(row: string[], ref: string[], edges: { v: string, w: string }[]): number {
   let c = crossings(row, ref, edges)
-  expect(order_crossings([row, ref], asGraph(edges))).to.eq(c)
+  expect(order_penalty([row, ref], asGraph(edges))).to.eq(c)
   return c
 }
 
