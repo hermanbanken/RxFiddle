@@ -27,7 +27,7 @@ export class TreeCollectorTest {
     let fs = require("fs")
     let reader = new TreeReader()
     this.writer.messages.forEach(m => reader.next(m))
-    fs.writeFileSync(`static/${name}.graph.txt`, reader.treeGrapher.graph.toDot(
+    fs.writeFileSync(`dist/${name}.graph.txt`, reader.treeGrapher.graph.toDot(
       n => ({
         color: n instanceof SubjectTree ? "purple" : (n instanceof ObserverTree ? "red" : "blue"),
         label: n && n.names[0] || n && n.id,
@@ -36,7 +36,7 @@ export class TreeCollectorTest {
       n => n instanceof ObserverTree ? "red" : "blue",
       () => ["rankdir=TB"]
     ))
-    fs.writeFileSync(`static/${name}.json`, jsonify(this.writer.messages))
+    fs.writeFileSync(`dist/${name}.json`, jsonify(this.writer.messages))
   }
 
   @test

@@ -48,6 +48,37 @@ html {
     font-weight: 500;
 }
 
+.launchOption {
+  display: flex;
+  margin-bottom: 0px;
+}
+.launchOption > span {
+  min-width: 150px;
+  vertical-align: middle;
+  line-height: 30px;
+}
+.launchOption + span.separator {
+  text-align: center;
+  width: 100%;
+  display: inline-block;
+  margin: 20px 0;
+  font-style: italic;
+}
+span.separator::before {
+    content: " ";
+    border-bottom: 1px solid white;
+    height: 0px;
+    width: 100%;
+    display: block;
+    margin-top: 9px;
+    margin-bottom: -9px;
+    z-index: -1;
+    opacity: 0.1;
+}
+.launchOption form { flex: 1; }
+.launchOption .inputbar { width: 100%; }
+
+
 .inputbar {
   background: #eee;
 }
@@ -212,8 +243,8 @@ path.branch:hover { stroke: darkslategray; }
 }
 
 master > * {
-  background: #eeeeee;
   min-height: 100%;
+  background: #eee;
   content: "";
 }
 
@@ -308,10 +339,7 @@ master > * {
 }
 
 master {
-  /*flex: 1;*/
-  /*display: flex;
-  flex-direction: row;*/
-  max-width: 50%;
+  background: #eeeeee;
 }
 
 master path {

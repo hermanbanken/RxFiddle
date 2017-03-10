@@ -14,7 +14,6 @@ import attrs_module from "snabbdom/modules/attributes"
 import class_module from "snabbdom/modules/class"
 import event_module from "snabbdom/modules/eventlisteners"
 import style_module from "snabbdom/modules/style"
-import toVNode from "snabbdom/toVNode"
 import { VNode } from "snabbdom/vnode"
 
 const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule])
@@ -84,7 +83,10 @@ function Resizer(target: VNode): VNode {
 }
 
 function errorHandler(e: Error): Rx.Observable<VNode> {
-  let next = Rx.Observable.create(sub => sub.onError(new Error("Continue"))).delay(500)
+  let next = Rx.Observable.create(sub => {
+    console.error(e);
+    setTimeout(() => sub.onError(new Error("Continue")), 1000)
+  })
   return Rx.Observable.just(h("div", "Krak!")).merge(next)
 }
 
@@ -112,26 +114,58 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMap(collector => {
 class Splash {
   public stream() {
     return Rx.Observable.create<VNode>(subscriber => {
+      let debugOptions: VNode[] = [
+        h("span.separator", "or"),
+        h("label.launchOption", [
+          h("span", "Static Demos"),
+          h("div", { attrs: { style: "display: flex" } }, [
+            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_a.json&type=demo" } }, "A"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_b.json&type=demo" } }, "B"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_c.json&type=demo" } }, "C"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_d.json&type=demo" } }, "D"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_e.json&type=demo" } }, "E"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_f.json&type=demo" } }, "F"), " ",
+          ] as Array<VNode>),
+        ]),
+      ]
+
       let vnode = h("div", { attrs: { class: "splash " } }, [h("div", { attrs: { class: "welcome" } }, [
         h("h1", [h("img", { attrs: { alt: "ReactiveX", src: "RxLogo.png" } }), "RxFiddle"]),
         h("h2", ["Visualize your Observables."]),
 
         h("p", ["Select an input:"]),
-        h("div", [h("a", { attrs: { class: "btn", href: "#type=editor" } }, "Live Editor")]),
-        h("div", ["Static Demos: ",
-          h("a", { attrs: { class: "btn", href: "#source=tree_a.json&type=demo" } }, "A"),
-          h("a", { attrs: { class: "btn", href: "#source=tree_b.json&type=demo" } }, "B"),
-          h("a", { attrs: { class: "btn", href: "#source=tree_c.json&type=demo" } }, "C"),
-          h("a", { attrs: { class: "btn", href: "#source=tree_d.json&type=demo" } }, "D"),
-          h("a", { attrs: { class: "btn", href: "#source=tree_e.json&type=demo" } }, "E"),
-          h("a", { attrs: { class: "btn", href: "#source=tree_f.json&type=demo" } }, "F"),
+
+        h("label.launchOption", [
+          h("span", "In-browser editor"),
+          h("a.btn", { attrs: { href: "#type=editor" } }, "Start Editor"),
         ]),
-        h("div", [h("div", { attrs: { class: "inputbar" } }, [
-          h("input", { attrs: { placeholder: "WebSocket debugger url, e.g. ws://localhost:1337", type: "text" } })]),
+
+        h("span.separator", "or"),
+
+        h("label.launchOption", [
+          h("span", "WebSocket debugger"),
+          h("form", { attrs: { method: "get", style: "display: flex" } }, [
+            h("div.inputbar", [
+              h("input", { attrs: { placeholder: "url, e.g. ws://localhost:1337", type: "text" } }),
+            ]),
+            h("button.btn", "Connect"),
+          ]),
         ]),
-        h("div", [h("label", { attrs: { class: "btn rel" } }, [
-          h("input", { attrs: { type: "file" } }), h("span", "Load a JSON log file")])
+
+        /* Not yet supported JSON load
+        h("span.separator", "or"),
+
+        h("label.launchOption", [
+          h("span", "Import"),
+          h("form", { attrs: { method: "get", style: "display: flex" } }, [
+            h("div", [h("label.btn.rel", [
+              h("input", { attrs: { type: "file" } }), h("span", "Load a JSON log file")]),
+            ]),
+          ]),
         ]),
+        */
+
+        ...debugOptions,
       ])])
       subscriber.onNext(vnode)
     })

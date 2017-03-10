@@ -33,14 +33,14 @@ export class OperatorTest extends InstrumentationTest {
     complexObs()
 
     let fs = require("fs")
-    fs.writeFileSync("static/G_newstyle.json", jsonify(this.newcollector.messages))
+    fs.writeFileSync("dist/G_newstyle.json", jsonify(this.newcollector.messages))
   }
 
   @test
   public "write .share()"() {
     Rx.Observable.of().share().subscribe()
     let fs = require("fs")
-    fs.writeFileSync("static/share_newstyle.json", jsonify(this.newcollector.messages))
+    fs.writeFileSync("dist/share_newstyle.json", jsonify(this.newcollector.messages))
   }
 
   @test
@@ -51,7 +51,7 @@ export class OperatorTest extends InstrumentationTest {
     obs.subscribe()
     obs.subscribe()
     let fs = require("fs")
-    fs.writeFileSync("static/map_newstyle.json", jsonify(this.newcollector.messages))
+    fs.writeFileSync("dist/map_newstyle.json", jsonify(this.newcollector.messages))
   }
 
   @test
@@ -64,7 +64,7 @@ export class OperatorTest extends InstrumentationTest {
       .flatMap(_ => blueprint)
     obs.subscribe()
     let fs = require("fs")
-    fs.writeFileSync("static/flatMap_newstyle.json", jsonify(this.newcollector.messages))
+    fs.writeFileSync("dist/flatMap_newstyle.json", jsonify(this.newcollector.messages))
   }
 
   @test
@@ -77,7 +77,7 @@ export class OperatorTest extends InstrumentationTest {
       .flatMap(_ => blueprint)
     obs.subscribe()
     let fs = require("fs")
-    fs.writeFileSync("static/flatMapSubscribed_newstyle.json", jsonify(this.newcollector.messages))
+    fs.writeFileSync("dist/flatMapSubscribed_newstyle.json", jsonify(this.newcollector.messages))
   }
 
   // // @test
