@@ -4,7 +4,7 @@ import {
 } from "../oct/oct"
 import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
 import { RxCollector, elvis, isDisposable, isObservable, isObserver } from "./collector"
-import { Event } from "./event"
+import { Event, IEvent } from "./event"
 import { formatArguments } from "./logger"
 import TypedGraph from "./typedgraph"
 import * as Rx from "rx"
@@ -108,6 +108,7 @@ export class TreeCollector implements RxCollector {
   public collectorId: number
   public nextId = 1
   public logger: ITreeLogger
+  public eventSequence = 0
 
   public constructor(logger: ITreeLogger) {
     this.collectorId = TreeCollector.collectorId++
@@ -147,9 +148,9 @@ export class TreeCollector implements RxCollector {
           } as any as string
         }
         if (event && event.type !== "subscribe" && this.hasTag(record.subject)) {
-          this.tagObserver(record.subject).forEach(_ => _.addEvent(event))
+          this.tagObserver(record.subject).forEach(_ => this.addEvent(_, event))
         } else if (event && this.hasTag(record.arguments[0])) {
-          this.tagObserver(record.arguments[0]).forEach(_ => _.addEvent(event))
+          this.tagObserver(record.arguments[0]).forEach(_ => this.addEvent(_, event))
         }
         break
       case "setup":
@@ -157,6 +158,14 @@ export class TreeCollector implements RxCollector {
       default: break
     }
     return this
+  }
+
+  public addEvent(observer: IObserverTree, event: IEvent) {
+    if (!observer.inflow || observer.inflow.length === 0) {
+      this.eventSequence++
+    }
+    event.tick = this.eventSequence
+    observer.addEvent(event)
   }
 
   public after(record: ICallRecord): void {

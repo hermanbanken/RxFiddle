@@ -1,25 +1,21 @@
 import { IEvent } from "../collector/event"
-import { EventLabel, NodeLabel } from "../collector/logger"
-import { GraphEdge } from "./index"
+import { EventLabel } from "../collector/logger"
 import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
-
-function isEvent(n: any): n is IEvent {
-
-  return "time" in n && "type" in n &&
-    n.type === "next" ||
-    n.type === "error" || n.type === "compnete" ||
-    n.type === "subscribe" || n.type === "dispose"
-}
 
 export class MarbleCoordinator {
   private min: number
   private max: number
+  private timeSelector: (e: IEvent) => number
+
+  constructor(timeSelector: (e: IEvent) => number = _ => _.tick) {
+    this.timeSelector = timeSelector
+  }
 
   // Calc bounds
   public add(edges: (EventLabel | IEvent)[]): void {
     let events = edges.map(_ => ((_ as EventLabel).event || _) as IEvent)
-    let times = events.map(e => e.time)
+    let times = events.map(this.timeSelector)
     this.min = times.reduce((m, n) => typeof m !== "undefined" ? Math.min(m, n) : n, this.min)
     this.max = times.reduce((m, n) => typeof m !== "undefined" ? Math.max(m, n) : n, this.max)
   }
@@ -31,7 +27,7 @@ export class MarbleCoordinator {
     let timespan = [
       events.find(e => e.type === "subscribe"),
       events.find(e => e.type === "dispose" || e.type === "complete"),
-    ].map((_, i) => _ ? this.relTime(_.time) : (i === 0 ? 0 : 100))
+    ].map((_, i) => _ ? this.relTime(_) : (i === 0 ? 0 : 100))
 
     let marbles = events.filter(e => e.type !== "dispose").map(e => {
       let arrow = h("path", {
@@ -77,7 +73,7 @@ export class MarbleCoordinator {
       }
 
       return h("svg", {
-        attrs: { x: `${(isNaN(this.relTime(e.time)) ? 50 : this.relTime(e.time))}%`, y: "50%" },
+        attrs: { x: `${(isNaN(this.relTime(e)) ? 50 : this.relTime(e))}%`, y: "50%" },
       }, content)
     })
 
@@ -91,7 +87,10 @@ export class MarbleCoordinator {
     ].concat(marbles).concat(defs()))
   }
 
-  private relTime(t: number): number {
+  private relTime(t: number | IEvent): number {
+    if (typeof t !== "number") {
+      t = this.timeSelector(t)
+    }
     return (t - this.min) / (this.max - this.min) * 95 + 2.5
   }
 
