@@ -74,6 +74,36 @@ function distance(a: IObservableTree | IObserverTree, b: IObservableTree | IObse
   return undefined
 }
 
+function blueprintObserver(tree: IObservableTree, sink?: IObserverTree): IObserverTree[] {
+  let subs: IObserverTree[] = []
+  let sub = new ObserverTree(tree.id + "-blueprint")
+  subs.push(sub)
+  sub.setObservable([tree])
+  if (sink) {
+    sub.setSink([sink])
+  }
+
+  if (tree.sources && tree.sources.length) {
+    tree.sources.forEach(source => {
+      subs.push(...blueprintObserver(source, sub))
+    })
+  }
+
+  return subs
+}
+
+function addBlueprints(
+  subscriptions: TypedGraph<IObserverTree, {}>,
+  full: TypedGraph<IObserverTree | IObservableTree, {}>
+): TypedGraph<IObserverTree, {}> {
+  let endpoints = full.sinks().map(n => full.node(n)).filter(n => !isIObserver(n)) as Array<IObservableTree>
+  let observers = endpoints.flatMap(observable => blueprintObserver(observable))
+  let copy = subscriptions.filterNodes(_ => true)
+  observers.forEach(s => copy.setNode(s.id, s))
+  observers.forEach(s => s.sink && copy.setEdge(s.id, s.sink.id))
+  return copy
+}
+
 export default class Visualizer {
 
   // TODO workaround for Rx.Subject's
@@ -176,10 +206,13 @@ export default class Visualizer {
   }
 
   private filter(graphs: Graphs, viewState: ViewState): Graphs {
+    let scope = window as any || {}
+    scope.filterGraphs = graphs
+    let subs = addBlueprints(graphs.subscriptions, graphs.main)
     return {
       _sequence: graphs._sequence,
       main: graphs.main,
-      subscriptions: graphs.subscriptions,
+      subscriptions: subs,
     }
   }
 }

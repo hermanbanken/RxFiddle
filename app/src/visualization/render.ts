@@ -70,13 +70,24 @@ function nodeLabel(node: IObservableTree | IObserverTree): string {
 
 function getObservable(
   observerNode: string,
-  lookupGraph: TypedGraph<IObservableTree | IObserverTree, {}>
+  ...lookupGraphs: TypedGraph<IObservableTree | IObserverTree, {}>[]
 ): IObservableTree | undefined {
-  let observable = lookupGraph
-    .inEdges(observerNode)
-    .map(e => lookupGraph.node(e.v))
-    .find(_ => !(_ instanceof ObserverTree))
-  return observable as IObservableTree
+  return lookupGraphs.filter(g => g.hasNode(observerNode)).map(g => {
+    // shortcut
+    if (g.hasNode(observerNode)) {
+      return (g.node(observerNode) as IObserverTree).observable
+    }
+    // long way round
+    let inEs = g
+      .inEdges(observerNode)
+    if (!inEs) {
+      console.warn("Observable for Observer(" + observerNode + ") not found")
+      return undefined
+    }
+    let observable = inEs.map(e => g.node(e.v))
+      .find(_ => !(_ instanceof ObserverTree))
+    return observable as IObservableTree
+  }).find(v => typeof v !== "undefined")
 }
 
 function collectUp(graph: TypedGraph<IObserverTree, {}>, node: IObserverTree): IObserverTree[] {
@@ -170,13 +181,14 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
 
     let isSelected = flowPathIds.indexOf(w) >= 0 && flowPathIds.indexOf(v) >= 0
     let alpha = isSelected ? 0.3 : 0.1
+    let isBlueprint = v.indexOf("-blueprint") >= 0
 
     return h("path", {
       attrs: {
         d: bpath(points),
         fill: "transparent",
         id: `${v}/${w}`,
-        stroke: isHigher ? `rgba(200,0,0,${alpha})` : `rgba(0,0,0,${alpha})`,
+        stroke: isBlueprint ? "rgba(0, 125, 214, 0.33)" : (isHigher ? `rgba(200,0,0,${alpha})` : `rgba(0,0,0,${alpha})`),
         "stroke-width": 10,
       },
       hook: { prepatch: MorphModule.prepare },
@@ -198,6 +210,14 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     let node = cluster.node
     let text = nodeLabel(node)
     let isSelected = cluster.dots.some(item => flowPathIds.indexOf(item.id) >= 0)
+    let isBlueprint = node.id.indexOf("-blueprint") >= 0
+    let colors = isBlueprint ? {
+      fill: "white",
+      stroke: "rgba(0, 125, 214, 1)",
+    } : {
+        fill: colorIndex(parseInt(node && node.id || cluster.dots[0].id, 10)),
+        stroke: undefined,
+      }
 
     // tslint:disable-next-line:no-unused-variable
     // let shade = h("circle", {
@@ -215,7 +235,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
       attrs: {
         d: spath(cluster.dots),
         id: `cluster-${node.id}`,
-        stroke: colorIndex(parseInt(node && node.id || cluster.dots[0].id, 10)),
+        stroke: colors.fill,
         "stroke-width": 10,
       },
       hook: { prepatch: MorphModule.prepare },
@@ -229,9 +249,10 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
       attrs: {
         cx: xPos(item.x),
         cy: yPos(item.y),
-        fill: colorIndex(parseInt(node && node.id || item.id, 10)),
+        fill: colors.fill,
         id: `cluster-${node.id}/circle-${item.id}`,
         r: 5,
+        stroke: colors.stroke,
       },
       key: `cluster-${node.id}/circle-${item.id}`,
       on: {
@@ -286,7 +307,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
 
   // Cluster layout nodes
   let ns = layout[0].nodes.reduce(({ list, last }, n) => {
-    let obs = getObservable(n.id, graphs.main) || n
+    let obs = getObservable(n.id, graphs.main, graphs.subscriptions) || n
     if (last === obs.id) {
       list.slice(-1)[0].dots.push(n)
     } else {
@@ -340,14 +361,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     },
   }, [svg].concat(ns.flatMap(n => n.html)))
 
-  let controls = h("div", [
-    // h("div", ["Groups: ", ...groups.flatMap(g => [h("span", {
-    //   on: { click: () => groupClicks.onNext(g.key) },
-    // }, g.key), ", "])]),
-    // h("div", ["Open groups: ", ...viewState.openGroups.flatMap(key => [h("span", key), ", "])]),
-  ])
-
-  let panel = h("div", [controls, mask])
+  let panel = h("div", [mask])
 
   // Optionally show flow
   let diagram = [h("div")]
@@ -359,7 +373,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     )
   }
 
-  let app = h("app", { key: `app-${sequence}` }, [
+  let app = h("app", { key: `app-${sequence}`, style: { width: `${((xmax + 2) * mx + 300)}px` } }, [
     h("master", panel),
     h("detail", diagram),
   ])
@@ -379,7 +393,7 @@ const colors = generateColors(40)
 function colorIndex(i: number, alpha: number = 1) {
   if (typeof i === "undefined" || isNaN(i)) { return "transparent" }
   let [r, g, b] = colors[i % colors.length]
-  return alpha === 1 ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`
+  return alpha === 1 ? `rgb(${r}, ${g}, ${b}) ` : `rgba(${r}, ${g}, ${b}, ${alpha}) `
 }
 (window as any).colors = colors
 
@@ -434,7 +448,7 @@ function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: Vi
   let root = h("div", {
     attrs: {
       id: "marbles",
-      style: `min-width: ${u * 2}px; height: ${height}px; margin-top: ${(offset - heights[0] / 2)}px`,
+      style: `min-width: ${u * 3}px; height: ${height}px; margin-top: ${(offset - heights[0] / 2)}px`,
     },
   }, nodes.flatMap((node, i) => {
     let clazz = "operator withoutStack"
@@ -450,7 +464,7 @@ function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: Vi
       let name = obs.names && obs.names[obs.names.length - 1]
       let call = obs.calls && obs.calls[obs.calls.length - 1]
       let box = h("div", { attrs: { class: clazz } }, [
-        h("div", [], call && call.method ? `${call.method}(${call.args})` : name),
+        h("div", [], call && call.method ? `${call.method} (${call.args})` : name),
         h("div", [], "stackFrame locationText"),
       ].filter((_, idx) => idx === 0))
 
