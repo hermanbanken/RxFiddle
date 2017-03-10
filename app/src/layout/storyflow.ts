@@ -87,7 +87,7 @@ export function minimiseCrossings<T>(
   while (improved) {
     improved = false
     // walk single rank by node tuples left-to-right
-    foreachTuple(direction, work, (b, a, j, i) => {
+    foreachTuple("down", work, (b, a, j, i) => {
       let es = edges.filter(e => e.v === a || e.v === b)
       if (crossings([a, b], ref, es) > crossings([b, a], ref, es)) {
         improved = true
