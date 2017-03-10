@@ -45,6 +45,9 @@ export class TreeGrapher implements ITreeLogger {
     }
     this.graph.setEdge(v, w, meta)
   }
+  public reset() {
+    this.graph.nodes().forEach(n => this.graph.removeNode(n))
+  }
 }
 
 export class TreeWriter implements ITreeLogger {
@@ -79,16 +82,21 @@ export class TreeWindowPoster implements ITreeLogger {
   public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
     this.post({ v, w, type, meta })
   }
+  public reset() {
+    this.post("reset")
+  }
 }
 
 export class TreeReader {
   public treeGrapher: TreeGrapher = new TreeGrapher()
   public next(message: any) {
-    if (typeof message.v !== "undefined" && typeof message.w !== "undefined") {
+    if (message === "reset") {
+      return this.treeGrapher.reset()
+    } else if (typeof message.v !== "undefined" && typeof message.w !== "undefined") {
       this.treeGrapher.addEdge(message.v, message.w, message.type, message.meta)
     } else if (typeof message.type !== "undefined") {
       this.treeGrapher.addNode(message.id, message.type)
-    } else {
+    } else if (message) {
       this.treeGrapher.addMeta(message.id, message.meta)
     }
   }

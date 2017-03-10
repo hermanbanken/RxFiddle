@@ -27,9 +27,11 @@ function run() {
     localStorage.setItem("code", code)
   }
 
-  let collector = new TreeCollector(new TreeWindowPoster())
+  let poster = new TreeWindowPoster()
+  let collector = new TreeCollector(poster)
   instrumentation = new Instrumentation(defaultSubjects, collector)
   instrumentation.setup()
+  poster.reset()
 
   // tslint:disable-next-line:no-eval
   eval(code)
