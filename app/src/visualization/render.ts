@@ -231,6 +231,12 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     //   style: { transition: "all 1s" },
     // })
 
+    let bounds = {
+      x1: Math.min(...cluster.dots.map(_ => xPos(_.x))),
+      x2: Math.max(...cluster.dots.map(_ => xPos(_.x))),
+      y: yPos(cluster.dots[0].y),
+    }
+
     let rect = h("path", {
       attrs: {
         d: spath(cluster.dots),
@@ -239,7 +245,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
         "stroke-width": 10,
       },
       hook: { prepatch: MorphModule.prepare },
-      key: `cluster-${node.id}`,
+      key: `cluster-${node.id}-${bounds.y}`,
       style: {
         transition: "d 1s",
       },
@@ -263,12 +269,6 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     }))
 
     let svg = [rect, /*shade, */...circ]
-
-    let bounds = {
-      x1: Math.min(...cluster.dots.map(_ => xPos(_.x))),
-      x2: Math.max(...cluster.dots.map(_ => xPos(_.x))),
-      y: yPos(cluster.dots[0].y),
-    }
 
     let html = [h("div", {
       attrs: { class: `graph-label ${isSelected ? "focus" : ""}` },
@@ -308,12 +308,12 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
   // Cluster layout nodes
   let ns = layout[0].nodes.reduce(({ list, last }, n) => {
     let obs = getObservable(n.id, graphs.main, graphs.subscriptions) || n
-    if (last === obs.id) {
+    if (last && last[0] === obs.id && last[1] === n.y) {
       list.slice(-1)[0].dots.push(n)
     } else {
       list.push({ dots: [n], node: obs })
     }
-    return { list, last: obs.id }
+    return { list, last: [obs.id, n.y] }
   }, {
       last: null,
       list: [] as { node: { id: string }, dots: RenderNode[] }[],
