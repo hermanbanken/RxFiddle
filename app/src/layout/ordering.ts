@@ -2,6 +2,7 @@ import { order_crossings } from "./crossings"
 import { ExternalSort } from "./index"
 import { wmedian } from "./median"
 import { transpose } from "./transpose"
+import { ordering as storyflowTranspose } from "./storyflow"
 import { Graph } from "graphlib"
 
 export type OrderingOptions = {
@@ -58,8 +59,8 @@ export function ordering(order: string[][], g: Graph, options: OrderingOptions):
 
   for (let i = 0; i < 40; i++) {
     wmedian(order, g, i % 2 === 0 ? "up" : "down", options)
-    transpose(order, g, "down", options)
-    transpose(order, g, "up", options)
+    storyflowTranspose(order, g, "down", options)
+    storyflowTranspose(order, g, "up", options)
     if (!update(order, i + 1)) {
       break
     }

@@ -138,7 +138,8 @@ export default class Visualizer {
           layout: layoutf(
             filtered.subscriptions,
             state.focusNodes,
-            (a, b) => distance(graphs.main.node(a), graphs.main.node(b))
+            (a, b) => distance(graphs.main.node(a), graphs.main.node(b)),
+            node => (graphs.main.node(node) as IObserverTree).observable.id
           ),
           viewState: state,
         })
