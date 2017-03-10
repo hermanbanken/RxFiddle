@@ -53,7 +53,6 @@ export default function layout<V, E>(
   )
 
   // Re-add single component nodes removed during ranking
-  console.log(graph.nodes())
   graph.nodes()
     .filter(n => !ranked.hasNode(n))
     .forEach(n => {

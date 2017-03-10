@@ -34,7 +34,8 @@ export class TreeCollectorTest {
     return this.graph().toDot(
       n => ({
         color: n instanceof SubjectTree ? "purple" : (n instanceof ObserverTree ? "red" : "blue"),
-        label: (n && n.names.join("\n") || n && n.id) + "\n" + (n instanceof ObservableTree ? n.calls.map(_ => _.method).join(",") : ""),
+        label: (n && n.names.join("\n") || n && n.id) +
+        "\\n" + (n instanceof ObservableTree && n.calls ? n.calls.map(_ => _.method).join(",") : ""),
       }),
       e => Object.assign(e, { minlen: (e as any).label === "source" ? 1 : 1 }),
       n => n instanceof ObserverTree ? "red" : "blue",
@@ -108,8 +109,8 @@ export class TreeCollectorTest {
 
     this.write("tree_d")
 
-    console.log("flowsThrough", this.flowsTrough(this.getSub(s)))
     if (!this.flowsFrom(this.getObs(first), this.getSub(s))) {
+      console.log("flowsThrough", this.flowsTrough(this.getSub(s)))
       throw new Error("No connected flow")
     }
   }
@@ -127,8 +128,8 @@ export class TreeCollectorTest {
 
     this.write("tree_e")
 
-    console.log("flowsThrough", this.flowsTrough(this.getSub(s1)))
     if (!this.flowsFrom(this.getObs(first), this.getSub(s1)) || !this.flowsFrom(this.getObs(first), this.getSub(s2))) {
+      console.log("flowsThrough", this.flowsTrough(this.getSub(s1)))
       throw new Error("No connected flow")
     }
   }
@@ -144,8 +145,8 @@ export class TreeCollectorTest {
 
     this.write("tree_f")
 
-    console.log(this.flowsTrough(this.getSub(s)))
     if (!this.flowsFrom(this.getObs(first), this.getSub(s)) || !this.flowsFrom(this.getObs(inner), this.getSub(s))) {
+      console.log(this.flowsTrough(this.getSub(s)))
       throw new Error("No connected flow")
     }
   }
@@ -157,9 +158,8 @@ export class TreeCollectorTest {
 
     let wrong = this.flowsTrough(this.getSub(s)).find(_ => _.indexOf("undefined") >= 0)
     if (wrong) {
-      throw new Error("ConcatObserver is preceded with unknown observer: " + wrong)
-    } else {
       console.log(this.flowsTrough(this.getSub(s)))
+      throw new Error("ConcatObserver is preceded with unknown observer: " + wrong)
     }
   }
 
@@ -175,9 +175,10 @@ export class TreeCollectorTest {
     let s1 = end1.subscribe()
 
     console.log(this.dot())
+    console.log("flowsThrough s1", this.flowsTrough(this.getSub(s1)))
+    console.log("flowsThrough s2", this.flowsTrough(this.getSub(s2)))
     throw new Error("TODO just like above")
 
-    // console.log("flowsThrough", this.flowsTrough(this.getSub(s1)))
     // if (!this.flowsFrom(this.getObs(first), this.getSub(s1)) || !this.flowsFrom(this.getObs(first), this.getSub(s2))) {
     //   throw new Error("No connected flow")
     // }
