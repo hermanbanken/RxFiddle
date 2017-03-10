@@ -44,7 +44,7 @@ export default function layout<V, E>(
       if (lastRank !== next.rank) { store.push([]) }
       store[store.length - 1].push(next.n)
       return { store, lastRank: next.rank }
-    }, { lastRank: -Infinity, store: [] as string[][] }).store
+    }, { lastRank: -Infinity, store: [] as string[][] }).store.map(row => row.reverse())
 
   // TODO verify neccessity of this step
   let rankedAndEdgeFixed = ranked.flatMap(
