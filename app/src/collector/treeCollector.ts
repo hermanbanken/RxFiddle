@@ -136,8 +136,11 @@ export class TreeCollector implements RxCollector {
   public before(record: ICallStart, parents?: ICallStart[]): this {
     switch (callRecordType(record)) {
       case "subscribe":
-        this.tagObservable(record);
-        [].filter.call(record.arguments, isDisposable).forEach((s: any) => this.tagObserver(s))
+        let obs = this.tagObservable(record.subject);
+        [].filter.call(record.arguments, isDisposable).forEach((s: any) => {
+          let sub = this.tagObserver(s)
+          sub.forEach(_ => _.setObservable(obs))
+        })
       case "event":
         let event = Event.fromRecord(record)
         if (event && event.type === "next" && isObservable(record.arguments[0])) {
@@ -214,20 +217,23 @@ export class TreeCollector implements RxCollector {
 
   private tagObserver(input: any): IObserverTree[] {
     if (isObserver(input)) {
-      let tree = this.tag(input) as IObserverTree
 
-      // Rx specific: Subjects get subscribed AutoDetachObserver's, unfold these
-      if (isObserver(input.observer) && input.constructor.name === "AutoDetachObserver") {
-        tree.setSink(([this.tag(input.observer) as IObserverTree]), " via upper ADO._o")
+      // Rx specific: unfold AutoDetachObserver's, 
+      while (input && input.constructor.name === "AutoDetachObserver" && input.observer) {
+        input = input.observer
       }
 
-      // Rx specific: InnerObservers have references to their sinks via a AutoDetachObserver
-      let list = elvis(input, ["o", "observer"]) // InnerObservers
-        .concat(elvis(input, ["_o", "observer"])) // InnerObservers
-        .concat(elvis(input, ["parent"])) // what was this again?
-        .concat(elvis(input, ["_s", "o"])) // ConcatObserver
-      // console.log(list)
-      list.slice(0, 1).forEach(sink => {
+      let tree = this.tag(input) as IObserverTree
+
+      // TODO verify never used
+      // Rx specific: Subjects get subscribed AutoDetachObserver's, unfold these
+      if (isObserver(input.observer) && input.constructor.name === "AutoDetachObserver") {
+        throw new Error("Invalid State Exception")
+        // tree.setSink(([this.tag(input.observer) as IObserverTree]), " via upper ADO._o")
+        // return [tree]
+      }
+
+      this.getSink(input).forEach(sink => {
         tree.setSink(this.tagObserver(sink), " via o.observer")
       })
 
@@ -236,21 +242,44 @@ export class TreeCollector implements RxCollector {
     return []
   }
 
-  private tagObservable(input: any, callRecord?: ICallRecord): IObservableTree[] {
-    if (isObservable(input)) {
-      let tree = this.tag(input) as IObservableTree
-      if (callRecord) {
-        tree.addMeta({
-          calls: {
-            args: formatArguments(callRecord.arguments),
-            method: callRecord.method,
-          },
-        })
+  private getSink<T>(input: Rx.Observer<T>): Rx.Observer<T>[] {
+    // Rx specific: InnerObservers have references to their sinks via a AutoDetachObserver
+    let list = elvis(input, ["o", "observer"]) // InnerObservers
+      .concat(elvis(input, ["_o", "observer"])) // InnerObservers
+      .concat(elvis(input, ["parent"])) // what was this again?
+      .concat(elvis(input, ["_s", "o"])) // ConcatObserver
+      .concat(elvis(input, ["observer"])) // ConcatObserver
+    // if (!this.hasTag(input)) {
+    //   console.log(input.constructor.name, list.map(l => l.constructor.name))
+    // }
+    return list.slice(0, 1).flatMap(sink => {
+      if (sink.constructor.name === "AutoDetachObserver") {
+        return this.getSink(sink)
+      } else {
+        return [sink]
       }
-      if (input.source) {
-        tree.setSources(this.tagObservable(input.source))
-      } else if ((input as any)._sources) {
-        tree.setSources((input as any)._sources.flatMap((s: any) => this.tagObservable(s)))
+    })
+  }
+
+  private tagObservable(input: any, callRecord?: ICallStart): IObservableTree[] {
+    if (isObservable(input)) {
+      let wasTagged = this.hasTag(input)
+      let tree = this.tag(input) as IObservableTree
+      if (!wasTagged) {
+        while (callRecord) {
+          tree.addMeta({
+            calls: {
+              args: formatArguments(callRecord.arguments),
+              method: callRecord.method,
+            },
+          })
+          callRecord = callRecord.parent
+        }
+        if (input.source) {
+          tree.setSources(this.tagObservable(input.source))
+        } else if ((input as any)._sources) {
+          tree.setSources((input as any)._sources.flatMap((s: any) => this.tagObservable(s)))
+        }
       }
       return [tree]
     }
