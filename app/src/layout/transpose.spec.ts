@@ -125,8 +125,8 @@ export default class TransposeSpec {
     ///   -b-c-a------
     let e = [["e", "d", "f", "g", "h"], ["b", "c", "a"]]
 
-    i = transpose(i, g, "down", fixingSort(["e", "b"]))
-    i = transpose(i, g, "up", fixingSort(["e", "b"]))
+    i = transpose(i, g, "down", { externalSort: fixingSort(["e", "b"]), hierarchies: [] })
+    i = transpose(i, g, "up", { externalSort: fixingSort(["e", "b"]), hierarchies: [] })
     expect(i).to.deep.eq(e)
   }
 

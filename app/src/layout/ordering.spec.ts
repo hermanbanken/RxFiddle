@@ -10,7 +10,7 @@ export default class OrderingSpec {
   public "test median n = 5"() {
     // TODO fill test
     // expect(median([1,2,3,4,5])).to.eq(3)
-    ordering([], new Graph())
+    ordering([], new Graph(), { hierarchies: [] })
   }
 
   @test

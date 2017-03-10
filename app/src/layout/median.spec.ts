@@ -171,8 +171,8 @@ export default class MedianSpec {
     ///   ---a-------c-b--
     let e = [["f", "g", "h", "d", "e"], ["a", "c", "b"]]
 
-    wmedian(i, g, "down", fixingSort(["f", "a"]))
-    wmedian(i, g, "up", fixingSort(["f", "a"]))
+    wmedian(i, g, "down", { externalSort: fixingSort(["f", "a"]), hierarchies: [] })
+    wmedian(i, g, "up", { externalSort: fixingSort(["f", "a"]), hierarchies: [] })
     expect(i).to.deep.eq(e)
   }
 

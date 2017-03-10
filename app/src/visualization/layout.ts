@@ -11,7 +11,8 @@ import "../utils"
 export default function layout<V, E>(
   graph: TypedGraph<V, E>,
   focusNodes: string[] = [],
-  distance: (a: string, b: string) => number | undefined = () => undefined
+  distance: (a: string, b: string) => number | undefined = () => undefined,
+  ...hierarchies: ((node: string) => string)[]
 ): {
   edges: { points: { x: number, y: number }[], v: string, w: string }[],
   nodes: { id: string, x: number, y: number }[],
@@ -60,7 +61,7 @@ export default function layout<V, E>(
       ranked.setNode(n, { rank: 0 })
     })
 
-  let ord = ordering(initialOrd, rankedAndEdgeFixed, fixingSort(focusNodes))
+  let ord = ordering(initialOrd, rankedAndEdgeFixed, { externalSort: fixingSort(focusNodes), hierarchies })
   let layout = priorityLayout(ord, ranked, focusNodes, distance)
   let byId = indexedBy(n => n.id, layout)
 

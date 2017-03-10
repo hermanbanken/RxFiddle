@@ -1,7 +1,8 @@
 import { Direction, ExternalSort, edges, foreachTuple } from "./index"
+import { OrderingOptions } from "./ordering"
 import { Graph } from "graphlib"
 
-export function wmedian(ranks: string[][], g: Graph, dir: Direction, externalSort?: ExternalSort): void {
+export function wmedian(ranks: string[][], g: Graph, dir: Direction, options: OrderingOptions = { hierarchies: [] }): void {
   foreachTuple(dir, ranks, (row, ref, rowIndex) => {
     // Gather position of connected nodes per edge
     let indices = edges(g, dir, row).reduce((store, e) => {
@@ -22,8 +23,8 @@ export function wmedian(ranks: string[][], g: Graph, dir: Direction, externalSor
       return a.median - b.median
     }).map(i => i.n)
     // Apply external sorting
-    if (typeof externalSort !== "undefined") {
-      ranks[rowIndex] = ranks[rowIndex].sort(externalSort)
+    if (typeof options.externalSort !== "undefined") {
+      ranks[rowIndex] = ranks[rowIndex].sort(options.externalSort)
     }
   })
 }

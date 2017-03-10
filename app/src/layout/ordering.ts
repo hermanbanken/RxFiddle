@@ -4,6 +4,11 @@ import { wmedian } from "./median"
 import { transpose } from "./transpose"
 import { Graph } from "graphlib"
 
+export type OrderingOptions = {
+  externalSort?: ExternalSort,
+  hierarchies: ((node: string) => string)[]
+}
+
 /*
  * @see http://www.graphviz.org/Documentation/TSE93.pdf page 14
  *
@@ -16,7 +21,7 @@ import { Graph } from "graphlib"
  * 7. return best
  *
  */
-export function ordering(order: string[][], g: Graph, externalSort?: ExternalSort): string[][] {
+export function ordering(order: string[][], g: Graph, options: OrderingOptions): string[][] {
 
   let best: string[][]
   let bestCrossings: number = Number.MAX_SAFE_INTEGER
@@ -49,12 +54,12 @@ export function ordering(order: string[][], g: Graph, externalSort?: ExternalSor
     return true
   }
 
-  if (!externalSort) { update(order, 0) }
+  if (!options.externalSort) { update(order, 0) }
 
   for (let i = 0; i < 40; i++) {
-    wmedian(order, g, i % 2 === 0 ? "up" : "down", externalSort)
-    transpose(order, g, "down", externalSort)
-    transpose(order, g, "up", externalSort)
+    wmedian(order, g, i % 2 === 0 ? "up" : "down", options)
+    transpose(order, g, "down", options)
+    transpose(order, g, "up", options)
     if (!update(order, i + 1)) {
       break
     }
