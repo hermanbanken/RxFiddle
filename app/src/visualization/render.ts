@@ -244,9 +244,9 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     let svg = [rect, /*shade, */...circ]
 
     let bounds = {
-      x1: cluster.dots[0].x,
-      x2: cluster.dots[cluster.dots.length - 1].x,
-      y: cluster.dots[0].y,
+      x1: Math.min(...cluster.dots.map(_ => xPos(_.x))),
+      x2: Math.max(...cluster.dots.map(_ => xPos(_.x))),
+      y: yPos(cluster.dots[0].y),
     }
 
     let html = [h("div", {
@@ -257,10 +257,12 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
         mouseover: (e: any) => debug(cluster, cluster.node),
       },
       style: {
-        left: `${xPos(bounds.x1)}px`,
+        left: `${bounds.x1}px`,
         // "padding-left": `${mu * (bounds.x2 - bounds.x1)}px`,
-        top: `${yPos(bounds.y)}px`,
+        top: `${bounds.y}px`,
+        "padding-left": `${bounds.x2 - bounds.x1}px`,
         transition: "all 1s",
+        "box-sizing": "content-box",
       },
 
     }, [h("span", text)])]
