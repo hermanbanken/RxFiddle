@@ -40,8 +40,6 @@ function sortWithHierarchies(
       w: hierarchy(w),
     }))
 
-  console.log("Sorting cluster", rowP.flatMap(_ => [_.id, ":", ..._.contents]), "@", row)
-
   let result = minimiseCrossings(direction, rowP, refP, _ => _.id, edges)
 
   return result.flatMap(cluster => sortWithHierarchies(cluster.contents, prev, g, direction, ...hierarchies.slice(1)))
