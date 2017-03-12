@@ -18,29 +18,44 @@ import { VNode } from "snabbdom/vnode"
 
 const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule])
 
+function formatHash(object: any): string {
+  let q = ""
+  for (let k in object) {
+    if (object.hasOwnProperty(k)) {
+      q += (q ? "&" : "") + k + "=" + object[k]
+    }
+  }
+  return q
+}
+
+const sameOriginWindowMessages = Rx.Observable.fromEvent(window, "message", (e: any) => {
+  // For Chrome, the origin property is in the event.originalEvent object.
+  let origin = e.origin || (e as any).originalEvent.origin
+  if (origin !== window.location.origin) {
+    return
+  }
+  return e.data
+})
+
+sameOriginWindowMessages
+  .map(_ => _.hash)
+  .filter(_ => typeof _ !== "undefined")
+  .subscribe(hash => {
+    window.location.hash = formatHash(hash)
+  })
+
 class CodeEditor {
   public dom: Rx.Observable<VNode>
-  constructor() {
-    let frame = document.createElement("iframe")
-    frame.src = "editor.html"
+  constructor(initialSource?: string) {
+    let src = initialSource ? "editor.html#blob=" + encodeURI(btoa(initialSource)) : "editor.html"
     this.dom = Rx.Observable.just(h("div.editor", [h("iframe", {
-      attrs: { src: "editor.html" },
+      attrs: { src },
     })]))
   }
 }
 
 class PostWindowCollector implements DataSource {
-  public dataObs: Rx.Observable<any>
-  constructor() {
-    this.dataObs = Rx.Observable.fromEvent(window, "message", (e: any) => {
-      // For Chrome, the origin property is in the event.originalEvent object.
-      let origin = e.origin || (e as any).originalEvent.origin
-      if (origin !== window.location.origin) {
-        return
-      }
-      return e.data
-    })
-  }
+  public dataObs: Rx.Observable<any> = sameOriginWindowMessages
 }
 
 const Query$ = Rx.Observable
@@ -69,7 +84,7 @@ const DataSource$: Rx.Observable<{ data: DataSource, vnode?: Rx.Observable<VNode
     collector.restart(q.url)
     return { data: collector }
   } else if (q.type === "editor") {
-    let editor = new CodeEditor()
+    let editor = new CodeEditor(q.code ? atob(decodeURI(q.code)) : undefined)
     return { data: new PostWindowCollector(), vnode: editor.dom }
   } else {
     return null

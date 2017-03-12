@@ -12,7 +12,10 @@ let editor = CodeMirror(document.querySelector("#editor"), {
   lineNumbers: true,
 })
 
-if (localStorage && localStorage.getItem("code")) {
+let hash = window.location.hash
+if (hash.indexOf("blob=") >= 0) {
+  editor.setValue(atob(decodeURI(hash.substr(hash.indexOf("blob=") + "blob=".length))))
+} else if (localStorage && localStorage.getItem("code")) {
   editor.setValue(localStorage.getItem("code"))
 }
 
@@ -26,6 +29,7 @@ function run() {
   if (localStorage) {
     localStorage.setItem("code", code)
   }
+  window.parent.postMessage({ hash: { type: "editor", code: encodeURI(btoa(code)) } }, location.origin)
 
   let poster = new TreeWindowPoster()
   let collector = new TreeCollector(poster)
