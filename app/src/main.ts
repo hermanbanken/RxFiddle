@@ -47,7 +47,7 @@ sameOriginWindowMessages
 class CodeEditor {
   public dom: Rx.Observable<VNode>
   constructor(initialSource?: string) {
-    let src = initialSource ? "static/editor.html#blob=" + encodeURI(btoa(initialSource)) : "static/editor.html"
+    let src = initialSource ? "editor.html#blob=" + encodeURI(btoa(initialSource)) : "editor.html"
     this.dom = Rx.Observable.just(h("div.editor", [h("iframe", {
       attrs: { src },
     })]))
@@ -115,7 +115,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMap(collector => {
       .retry()
       .combineLatest(collector.vnode || Rx.Observable.just(undefined), (render: VNode, input: VNode) => [
         h("div#menufold-static.menufold", [h("a", { attrs: { href: "#" } }, [
-          h("img", { attrs: { alt: "ReactiveX", src: "static/RxIconXs.png" } }),
+          h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
           "RxFiddle" as any as VNode,
         ])]),
         // h("div#menufold-fixed.menufold"),
@@ -134,18 +134,18 @@ class Splash {
         h("label.launchOption", [
           h("span", "Static Demos"),
           h("div", { attrs: { style: "display: flex" } }, [
-            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_a.json&type=demo" } }, "A"), " ",
-            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_b.json&type=demo" } }, "B"), " ",
-            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_c.json&type=demo" } }, "C"), " ",
-            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_d.json&type=demo" } }, "D"), " ",
-            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_e.json&type=demo" } }, "E"), " ",
-            h("a", { attrs: { class: "btn", href: "#source=/dist/tree_f.json&type=demo" } }, "F"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=../dist/tree_a.json&type=demo" } }, "A"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=../dist/tree_b.json&type=demo" } }, "B"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=../dist/tree_c.json&type=demo" } }, "C"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=../dist/tree_d.json&type=demo" } }, "D"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=../dist/tree_e.json&type=demo" } }, "E"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=../dist/tree_f.json&type=demo" } }, "F"), " ",
           ] as Array<VNode>),
         ]),
       ]
 
       let vnode = h("div", { attrs: { class: "splash " } }, [h("div", { attrs: { class: "welcome" } }, [
-        h("h1", [h("img", { attrs: { alt: "ReactiveX", src: "static/RxLogo.png" } }), "RxFiddle"]),
+        h("h1", [h("img", { attrs: { alt: "ReactiveX", src: "RxLogo.png" } }), "RxFiddle"]),
         h("h2", ["Visualize your Observables."]),
 
         h("p", ["Select an input:"]),

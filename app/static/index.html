@@ -4,9 +4,8 @@
 <head>
   <title>RxFiddle</title>
   <meta charset="utf8" />
-  <base href="../" />
-  <link rel="stylesheet" href="static/style.css" type="text/css">
-  <link rel="shortcut icon" href="static/favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
   <script>
     function script(src) {
       var s = document.createElement("script");
@@ -15,9 +14,9 @@
       document.head.appendChild(s);
     }
     if (typeof require == 'undefined') {
-      script('dist/main.bundle.js');
+      script('../dist/main.bundle.js');
     } else {
-      script('dist/main.js')
+      script('../dist/main.js')
     }
   </script>
 </head>
