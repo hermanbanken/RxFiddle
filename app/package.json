@@ -18,7 +18,7 @@
     "test": "tsc -p . && mocha --require source-map-support/register dist/test",
     "dev-test-watch": "mocha-typescript-watch",
     "prepublish": "tsc -p .",
-    "pages": "git stash && git checkout gh-pages; git reset master --hard && tsc -p . && yarn run bundle && git add -f dist && git commit -m 'Build' && git push -f origin gh-pages && git checkout master && git stash pop && tsc -p . && yarn run bundle"
+    "pages": "git stash && git checkout gh-pages; git reset master --hard && tsc -p . && yarn run bundle && yarn run test && git add -f dist && git commit -m 'Build' && git push -f origin gh-pages && git checkout master && git stash pop && tsc -p . && yarn run bundle"
   },
   "dependencies": {
     "@types/dagre": "^0.7.33",
