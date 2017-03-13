@@ -104,6 +104,17 @@ function addBlueprints(
   return copy
 }
 
+function getObservableId(input: IObservableTree | IObserverTree, node: string): string {
+  if (isIObserver(input)) {
+    return input.observable.id
+  } else if (input && input.id) {
+    return input.id
+  } else {
+    console.warn("getObservableId for undefined node", node, new Error())
+    return ""
+  }
+}
+
 export default class Visualizer {
 
   // TODO workaround for Rx.Subject's
@@ -139,7 +150,7 @@ export default class Visualizer {
             filtered.subscriptions,
             state.focusNodes,
             (a, b) => distance(graphs.main.node(a), graphs.main.node(b)),
-            node => (graphs.main.node(node) as IObserverTree).observable.id
+            node => getObservableId(graphs.main.node(node), node)
           ),
           viewState: state,
         })
