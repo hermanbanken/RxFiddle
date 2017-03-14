@@ -52,8 +52,8 @@ export class TreeGrapher implements ITreeLogger {
 
 export class TreeWriter implements ITreeLogger {
   public messages: any[] = []
-  public addNode(id: string, type: NodeType): void {
-    this.messages.push({ id, type })
+  public addNode(id: string, type: NodeType, tick?: number): void {
+    this.messages.push({ id, type, tick })
   }
   public addMeta(id: string, meta: any): void {
     this.messages.push({ id, meta })
@@ -204,15 +204,18 @@ export class TreeCollector implements RxCollector {
     }
 
     if (isObserver(input) && isObservable(input)) {
-      (input as any)[this.hash] = tree = new SubjectTree(`${this.nextId++}`, input.constructor.name, this.logger)
+      (input as any)[this.hash] = tree = new SubjectTree(`${this.nextId++}`,
+        input.constructor.name, this.logger, this.eventSequence)
       return tree
     }
     if (isObservable(input)) {
-      (input as any)[this.hash] = tree = new ObservableTree(`${this.nextId++}`, input.constructor.name, this.logger)
+      (input as any)[this.hash] = tree = new ObservableTree(`${this.nextId++}`,
+        input.constructor.name, this.logger, this.eventSequence)
       return tree
     }
     if (isObserver(input)) {
-      (input as any)[this.hash] = tree = new ObserverTree(`${this.nextId++}`, input.constructor.name, this.logger)
+      (input as any)[this.hash] = tree = new ObserverTree(`${this.nextId++}`,
+        input.constructor.name, this.logger, this.eventSequence)
       return tree
     }
   }

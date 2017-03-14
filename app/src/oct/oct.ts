@@ -34,7 +34,7 @@ export type EdgeType = "addSource" | "setObserverSource" | "addObserverSink"
 export type NodeType = "observable" | "subject" | "observer"
 
 export interface ITreeLogger {
-  addNode(id: Id, type: NodeType): void
+  addNode(id: Id, type: NodeType, tick?: number): void
   addMeta(id: Id, meta: any): void
   addEdge(v: Id, w: Id, type: EdgeType, meta?: any): void
 }
@@ -46,12 +46,12 @@ export class ObservableTree implements IObservableTree {
   public sources?: IObservableTree[]
 
   public logger?: ITreeLogger
-  constructor(id: string, name?: string, logger?: ITreeLogger) {
+  constructor(id: string, name?: string, logger?: ITreeLogger, tick?: number) {
     this.id = id
     if (name) { this.names = [name] }
     if (logger) {
       this.logger = logger
-      logger.addNode(id, "observable")
+      logger.addNode(id, "observable", tick)
       logger.addMeta(id, { names: name })
     }
   }
@@ -87,13 +87,13 @@ export class ObserverTree implements IObserverTree {
   public events: IEvent[] = []
 
   public logger?: ITreeLogger
-  constructor(id: string, name?: string, logger?: ITreeLogger) {
+  constructor(id: string, name?: string, logger?: ITreeLogger, tick?: number) {
     this.id = id
     this.logger = logger
     if (name) { this.names = [name] }
     if (logger) {
       this.logger = logger
-      logger.addNode(id, "observer")
+      logger.addNode(id, "observer", tick)
       logger.addMeta(id, { names: name })
     }
   }
@@ -191,14 +191,14 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   public addEvent: (event: IEvent) => IObserverTree
   public logger?: ITreeLogger
 
-  constructor(id: string, name?: string, logger?: ITreeLogger) {
+  constructor(id: string, name?: string, logger?: ITreeLogger, tick?: number) {
     this.id = id
     if (name) {
       this.names = [name]
     }
     if (logger) {
       this.logger = logger
-      logger.addNode(id, "subject")
+      logger.addNode(id, "subject", tick)
       logger.addMeta(id, { names: name })
     }
   }
