@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Webgraphviz</title>
+  <script src="viz-lite.js"></script>
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    textarea {
+      display: block;
+      min-height: 20px;
+    }
+    
+    div {
+      flex: 1
+    }
+    
+    textarea:hover {
+      flex: 1;
+      min-height: 70vh;
+    }
+  </style>
+</head>
+
+<body>
+  <textarea></textarea>
+  <div></div>
+  <script>
+    var data = atob(window.location.hash.substr(1))
+    document.querySelector("textarea").value = data
+    document.querySelector("div").innerHTML = Viz(data, "svg")
+  </script>
+</body>
+
+</html>

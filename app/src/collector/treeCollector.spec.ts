@@ -42,8 +42,8 @@ export class TreeCollectorTest {
   }
 
   public dot(): string {
-    return this.graph().toDot(
-      n => ({
+    let viz = this.graph().toDot(
+      (n: IObserverTree | IObservableTree) => ({
         color: n instanceof SubjectTree ? "purple" : (n instanceof ObserverTree ? "red" : "blue"),
         label: (n && n.names.join("\n") || n && n.id)
         // + "\\n" + (n instanceof ObservableTree && n.calls ? n.calls.map(_ => _.method).join(",") : "")
@@ -53,6 +53,7 @@ export class TreeCollectorTest {
       n => n instanceof ObserverTree ? "red" : "blue",
       () => ["rankdir=TB"]
     )
+    return "https://hermanbanken.github.io/RxFiddle/app/static/graphviz.html#" + btoa(viz)
   }
 
   public write(name: string) {
