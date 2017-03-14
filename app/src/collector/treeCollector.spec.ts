@@ -1,12 +1,18 @@
-import Instrumentation, { defaultSubjects } from "../src/collector/instrumentation"
-import { TreeCollector, TreeReader, TreeWriter } from "../src/collector/treeCollector"
-import TypedGraph from "../src/collector/typedgraph"
-import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../src/oct/oct"
-import { isIObserver } from "../src/visualization"
-import { jsonify } from "./utils"
+import { jsonify } from "../../test/utils"
+import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../oct/oct"
+import Instrumentation, { defaultSubjects } from "./instrumentation"
+import { TreeCollector, TreeReader, TreeWriter } from "./treeCollector"
+import TypedGraph from "./typedgraph"
 import { expect } from "chai"
 import { suite, test } from "mocha-typescript"
 import * as Rx from "rx"
+
+let btoa: Function
+if (typeof btoa !== "function") {
+  btoa = (str: string | Buffer) => {
+    return (str instanceof Buffer ? str : new Buffer(str.toString(), "binary")).toString("base64")
+  }
+}
 
 @suite
 export class TreeCollectorTest {
