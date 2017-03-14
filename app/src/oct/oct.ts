@@ -120,9 +120,13 @@ export class ObserverTree implements IObserverTree {
   public setObservable(observable: IObservableTree[]): IObserverTree {
     if (this.observable) {
       if (this.observable !== observable[0]) {
-        console.log("Adding second observable to ", this, "being", observable[0])
+        console.log("Adding second observable to ", this)
+        console.log("becoming", observable)
+        console.log("was", this.observable)
+        console.log("at", new Error().stack.split("\n").slice(0, 4).join("\n"))
+      } else {
+        return this
       }
-      return this
     }
     this.observable = observable[0]
     if (this.logger) {
@@ -139,6 +143,9 @@ export class ObserverTree implements IObserverTree {
   }
 
   public inspect(depth: number, opts: any) {
+    if (depth > 30) {
+      return "depth 30 reached"
+    }
     if (this.sink) {
       return `ObserverTree(${this.id}, ${this.names}, \n${pad(inspect(this.sink, depth + 1, opts), 1)}\n)`
     } else {
@@ -204,6 +211,9 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   }
 
   public inspect(depth: number, opts: any) {
+    if (depth > 30) {
+      return "Too deep"
+    }
     return `SubjectTree(${this.id}, ${this.names}, \n${pad(inspect(this.sink, depth + 2, opts), 2)}\n)`
   }
 }

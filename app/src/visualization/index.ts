@@ -43,14 +43,16 @@ export type Graphs = {
 
 export class Grapher {
 
+  public static sequence = 0
   public graph: Rx.Observable<Graphs>
 
   constructor(collector: DataSource) {
-    let sequence = 0
+    // let sequence = 0
     this.graph = Rx.Observable.defer(() => collector.dataObs
       .scan(grapherNext, new TreeReader()).map(reader => ({
-        _sequence: sequence++,
-        main: reader.treeGrapher.graph,
+        _sequence: Grapher.sequence++,
+        main: reader.treeGrapher.graph
+          .filterNodes(n => true),
         subscriptions: reader.treeGrapher.graph
           .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
       }))
@@ -63,7 +65,7 @@ export function grapherNext(reader: TreeReader, event: Message): TreeReader {
   return reader
 }
 
-function isIObserver(a: any): a is IObserverTree {
+export function isIObserver(a: any): a is IObserverTree {
   return a && "observable" in a
 }
 
@@ -96,21 +98,26 @@ function addBlueprints(
   subscriptions: TypedGraph<IObserverTree, {}>,
   full: TypedGraph<IObserverTree | IObservableTree, {}>
 ): TypedGraph<IObserverTree, {}> {
-  let endpoints = full.sinks().map(n => full.node(n)).filter(n => !isIObserver(n)) as Array<IObservableTree>
-  let observers = endpoints.flatMap(observable => blueprintObserver(observable))
-  let copy = subscriptions.filterNodes(_ => true)
-  observers.forEach(s => copy.setNode(s.id, s))
-  observers.forEach(s => s.sink && copy.setEdge(s.id, s.sink.id))
-  return copy
+  try {
+    let endpoints = full.sinks().map(n => full.node(n)).filter(n => !isIObserver(n)) as Array<IObservableTree>
+    let observers = endpoints.flatMap(observable => blueprintObserver(observable))
+    let copy = subscriptions.filterNodes(_ => true)
+    observers.forEach(s => copy.setNode(s.id, s))
+    observers.forEach(s => s.sink && copy.setEdge(s.id, s.sink.id))
+    return copy
+  } catch (e) {
+    console.warn("Failed adding blueprints :(", e)
+    return subscriptions
+  }
 }
 
 function getObservableId(input: IObservableTree | IObserverTree, node: string): string {
-  if (isIObserver(input)) {
+  if (isIObserver(input) && input.observable) {
     return input.observable.id
   } else if (input && input.id) {
     return input.id
   } else {
-    console.warn("getObservableId for undefined node", node, new Error())
+    console.warn("getObservableId for undefined node", node, input, new Error())
     return ""
   }
 }
@@ -150,7 +157,7 @@ export default class Visualizer {
             filtered.subscriptions,
             state.focusNodes,
             (a, b) => distance(graphs.main.node(a), graphs.main.node(b)),
-            node => getObservableId(graphs.main.node(node), node)
+            node => getObservableId(filtered.main.node(node) || filtered.subscriptions.node(node), node)
           ),
           viewState: state,
         })
@@ -224,7 +231,7 @@ export default class Visualizer {
     return {
       _sequence: graphs._sequence,
       main: graphs.main,
-      subscriptions: subs,
+      subscriptions: graphs.subscriptions, // subs
     }
   }
 }

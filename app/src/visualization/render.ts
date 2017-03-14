@@ -123,7 +123,6 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     (window as any).graphs = graphs
   }
   let graph = graphs.main
-  console.log(layout)
 
   // Calculate SVG bounds
   let xmax = layout
@@ -164,7 +163,6 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
   }
 
   let flowPathIds = flow.map(_ => _.id)
-  console.log("flow", flow, flowPathIds)
 
   let handleClick = (v: string, w: string) => clicks.onNext(flowPathIds.indexOf(v) >= 0 && flowPathIds.indexOf(w) >= 0 ?
     [] :
@@ -395,7 +393,10 @@ function colorIndex(i: number, alpha: number = 1) {
   let [r, g, b] = colors[i % colors.length]
   return alpha === 1 ? `rgb(${r}, ${g}, ${b}) ` : `rgba(${r}, ${g}, ${b}, ${alpha}) `
 }
-(window as any).colors = colors
+
+if (typeof window === "object") {
+  (window as any).colors = colors
+}
 
 const defs: () => VNode[] = () => [h("defs", [
   h("filter", {
@@ -440,7 +441,6 @@ function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: Vi
   let coordinator = new MarbleCoordinator()
   let allEvents: IEvent[] = nodes.flatMap((n: any) => n && "events" in n ? n.events as IEvent[] : [])
   coordinator.add(allEvents)
-  console.log("All events", allEvents)
 
   let heights = nodes.map(tree => (tree && "events" in tree) ? 60 : 40)
   let height = heights.reduce((sum, h) => sum + h, 0)

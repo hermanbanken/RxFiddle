@@ -106,7 +106,6 @@ function errorHandler(e: Error): Rx.Observable<VNode> {
 }
 
 const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMap(collector => {
-  console.log("Collector", collector)
   if (collector) {
     return new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
       .stream()

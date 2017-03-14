@@ -1,10 +1,11 @@
 import Instrumentation, { defaultSubjects } from "../src/collector/instrumentation"
 import { TreeCollector, TreeReader, TreeWriter } from "../src/collector/treeCollector"
-import { IObservableTree, IObserverTree, ObservableTree, ObserverTree, SubjectTree } from "../src/oct/oct"
 import TypedGraph from "../src/collector/typedgraph"
+import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../src/oct/oct"
+import { isIObserver } from "../src/visualization"
 import { jsonify } from "./utils"
-import { suite, test } from "mocha-typescript"
 import { expect } from "chai"
+import { suite, test } from "mocha-typescript"
 import * as Rx from "rx"
 
 @suite
@@ -13,6 +14,9 @@ export class TreeCollectorTest {
   protected instrumentation: Instrumentation
   protected collector: TreeCollector
   protected writer: TreeWriter
+  public testObserver(): Rx.Observer<any> {
+    return Rx.Observer.create<any>()
+  }
 
   public before() {
     this.writer = new TreeWriter()
@@ -57,7 +61,7 @@ export class TreeCollectorTest {
     let obs = first
       .map(_ => _)
       .filter(_ => true)
-    let s = obs.subscribe()
+    let s = obs.subscribe(this.testObserver())
 
     this.write("tree_a")
 
@@ -72,8 +76,8 @@ export class TreeCollectorTest {
     let obs = first
       .map(_ => _)
       .filter(_ => true)
-    obs.subscribe()
-    let s = obs.subscribe()
+    obs.subscribe(this.testObserver())
+    let s = obs.subscribe(this.testObserver())
 
     this.write("tree_b")
 
@@ -90,7 +94,7 @@ export class TreeCollectorTest {
       .reduce((a: number, b: number) => a + b)
       .skip(0)
       .filter(t => true)
-      .subscribe()
+      .subscribe(this.testObserver())
 
     this.write("tree_c")
 
@@ -104,9 +108,9 @@ export class TreeCollectorTest {
     let first = Rx.Observable.of(1, 2, 3).take(3)
     let shared = first.publish()
     let end = shared.reduce((a: number, b: number) => a + b).skip(0).filter(t => true)
-    let s = end.subscribe()
-    end.subscribe()
-    end.subscribe()
+    let s = end.subscribe(this.testObserver())
+    end.subscribe(this.testObserver())
+    end.subscribe(this.testObserver())
     shared.connect()
 
     this.write("tree_d")
@@ -126,8 +130,8 @@ export class TreeCollectorTest {
     let end1 = shared.filter(_ => true)
     let end2 = shared.reduce((a: number, b: number) => a + b)
 
-    let s2 = end2.subscribe()
-    let s1 = end1.subscribe()
+    let s2 = end2.subscribe(this.testObserver())
+    let s1 = end1.subscribe(this.testObserver())
 
     this.write("tree_e")
 
@@ -145,7 +149,7 @@ export class TreeCollectorTest {
     let s = first
       .flatMap(item => inner)
       .filter(_ => true)
-      .subscribe()
+      .subscribe(this.testObserver())
 
     this.write("tree_f")
 
@@ -158,7 +162,7 @@ export class TreeCollectorTest {
   @test
   public concatObserverTest() {
     let o = Rx.Observable.just("a").concat(Rx.Observable.just("b")).map(_ => _)
-    let s = o.subscribe()
+    let s = o.subscribe(this.testObserver())
 
     let wrong = this.flowsTrough(this.getSub(s)).find(_ => _.indexOf("undefined") >= 0)
     if (wrong) {
@@ -175,18 +179,22 @@ export class TreeCollectorTest {
     let end1 = shared.filter(_ => true)
     let end2 = shared.reduce((a: number, b: number) => a + b)
 
-    let s2 = end2.subscribe()
-    let s1 = end1.subscribe()
+    let s2 = end2.subscribe(this.testObserver())
+    let s1 = end1.subscribe(this.testObserver())
 
-    console.log(this.dot())
+    // console.log(this.dot())
     console.log("flowsThrough s1", this.flowsTrough(this.getSub(s1)))
     console.log("flowsThrough s2", this.flowsTrough(this.getSub(s2)))
     // throw new Error("TODO just like above")
     console.info("Fix this test!")
+    console.log(this.dot())
 
-    // if (!this.flowsFrom(this.getObs(first), this.getSub(s1)) || !this.flowsFrom(this.getObs(first), this.getSub(s2))) {
-    //   throw new Error("No connected flow")
-    // }
+    if (!this.flowsFrom(this.getObs(first), this.getSub(s1))) {
+      throw new Error("No connected flow s1")
+    }
+    if (!this.flowsFrom(this.getObs(first), this.getSub(s2))) {
+      throw new Error("No connected flow s2")
+    }
   }
 
   @test
@@ -204,38 +212,99 @@ export class TreeCollectorTest {
   @test
   public rangeTest(done: Function) {
     let o = Rx.Observable.range(0, 10)
-    let s = o.subscribe()
+    o.subscribe(this.testObserver())
 
     setTimeout(() => {
-      console.log(this.dot())
-      console.log("flowsThrough s", this.flowsTrough(this.getSub(s)))
-      // expect(this.getSub(s).events).to.have.length(10)
-      if (!this.flowsTrough(this.getSub(s))) {
-        // throw new Error("TODO just like above")
-      }
-      console.log("fix test")
+      let g = this.graph()
+      let events = (g.node(g.sinks()[0]) as IObserverTree).events
+      expect(events.filter(n => n.type === "subscribe")).length.to.be.at.least(1)
+      expect(events.filter(n => n.type === "next")).to.have.length(10)
+      expect(events.filter(n => n.type === "complete")).to.have.length(1)
       done()
-    }, 100)
+    }, 0)
   }
 
   @test
-  public bufferTest(done: Function) {
-    let o = Rx.Observable
-      .range(0, 10)
-      .bufferWithCount(2)
-      .concatMap((x) => Rx.Observable.fromPromise((() =>
-        new Promise((resolve, reject) => {
-          setTimeout(() => resolve("call" + x), 0)
-        })
-      ) as any as Promise<any>))
-    let s = o.subscribe()
+  public partitionTest(done: Function) {
+    let [a] = Rx.Observable.range(0, 10)
+      .partition(i => i % 2 === 0)
+    a.subscribe(this.testObserver())
 
     setTimeout(() => {
-      console.log(this.dot())
-      console.log("flowsThrough s", this.flowsTrough(this.getSub(s)))
-      // throw new Error("TODO just like above")
+      let g = this.graph()
+      let events = g.sinks().map(n => g.node(n) as IObserverTree).flatMap(n => n.events || [])
+      expect(events.filter(n => n.type === "subscribe")).length.to.be.at.least(1)
+      expect(events.filter(n => n.type === "next")).to.have.length(5)
+      expect(events.filter(n => n.type === "complete")).to.have.length(1)
       done()
-    })
+    }, 0)
+  }
+
+  @test
+  public testInstanceOperators(done: Function) {
+    let operators: any[][] = [
+      ["map", (_: any) => _],
+      ["filter", (_: any, i: number) => i % 2 === 0],
+      ["reduce", (p: number, n: number) => p + n, 0],
+      ["scan", (p: number, n: number) => p + n, 0],
+      ["average", (v: number) => v],
+      ["bufferWithCount", 2],
+      ["pluck", (_: any) => _],
+      // ["controlled", true],
+      ["count"],
+      ["debounce", 0],
+      ["defaultIfEmpty", 1],
+      // ["delay", (_: number) => Rx.Observable.timer(30)],
+      // ["delay", 0],
+      ["elementAt", 2],
+      ["every", (_: any, i: number) => i % 2 === 1],
+      ["manySelect", (_: Rx.Observable<number>) => _.first()],
+      ["flatMapWithMaxConcurrent", 2, (inp: number) => Rx.Observable.just(inp)],
+      ["forkJoin", Rx.Observable.just(1), (a: any, b: any) => a + b],
+      ["forkJoin", Rx.Observable.just(1), Rx.Observable.timer(10), Rx.Observable.timer(10), (a: any, b: any) => a + b],
+      // ["jortSort"],
+      // ["jortSortUntil", Rx.Observable.timer(10)],
+      ["last"],
+      ["let", (_: Rx.Observable<number>) => _.concat(_)],
+      ["max"],
+      ["pairwise"],
+      // ["repeat", 2],
+      ["sample", 10],
+      // ["sequenceEqual", Rx.Observable.of(1, 2, 3)],
+      // ["subscribeOn", Rx.Scheduler.async],
+      ["observeOn", Rx.Scheduler.async],
+      ["toMap", (_: any) => _, (_: any) => _],
+      // ["window", () => Rx.Observable.timer(1)],
+      ["zip", Rx.Observable.range(0, 3), Rx.Observable.range(3, 6), (a: number, b: number, c: number) => a + b + c],
+    ]
+
+    let self = this
+
+    function next() {
+      if (operators.length === 0) {
+        return done()
+      }
+
+      let [op, ...args] = operators.shift()
+      let inp = Rx.Observable.of(1, 2, 3, 4, 5)
+      let applied = ((inp as any)[op] as Function).apply(inp, args)
+      let sub = applied.subscribe()
+
+      Rx.Scheduler.currentThread.schedule(null, () => {
+        let flows = self.flowsFrom(self.getObs(inp), self.getSub(sub))
+        if (!flows) {
+          console.log(op, self.dot())
+          throw new Error("no link")
+        }
+        expect(flows, "testing " + op).to.be.true
+
+        self.after()
+        self.before()
+        next()
+        return Rx.Disposable.empty
+      })
+    }
+    next()
   }
 
   private flowsFrom(observable: IObservableTree, to: IObserverTree, remaining: number = 100): boolean {

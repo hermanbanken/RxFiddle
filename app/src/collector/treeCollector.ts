@@ -137,10 +137,19 @@ export class TreeCollector implements RxCollector {
     switch (callRecordType(record)) {
       case "subscribe":
         let obs = this.tagObservable(record.subject);
-        [].filter.call(record.arguments, isDisposable).forEach((s: any) => {
-          let sub = this.tagObserver(s)
-          sub.forEach(_ => _.setObservable(obs))
-        })
+        [].slice.call(record.arguments, 0, 1)
+          .filter(isObserver)
+          .filter((_: any) => _.constructor.name !== "AutoDetachObserver")
+          .flatMap((s: any) => this.tagObserver(s, record)).forEach((sub: any) => {
+            obs.forEach(observable => {
+              if (observable instanceof SubjectTree) {
+                // Special case for subjects
+                observable.addSink(([sub]), " subject")
+              } else if (observable instanceof ObservableTree) {
+                sub.setObservable([observable])
+              }
+            })
+          })
       case "event":
         let event = Event.fromRecord(record)
         if (event && event.type === "next" && isObservable(record.arguments[0])) {
@@ -174,16 +183,6 @@ export class TreeCollector implements RxCollector {
   public after(record: ICallRecord): void {
     switch (callRecordType(record)) {
       case "subscribe":
-        let observers = [].filter.call(record.arguments, isObserver).slice(0, 1)
-        observers.forEach((s: any) => this.tagObserver(s).forEach(observer => {
-          let observable = this.tag(record.subject)
-          if (observable instanceof SubjectTree) {
-            // Special case for subjects
-            observable.addSink(([observer]), " subject")
-          } else if (observable instanceof ObservableTree) {
-            observer.setObservable([observable])
-          }
-        }))
         break
       case "setup":
         this.tagObservable(record.returned, record)
@@ -197,6 +196,9 @@ export class TreeCollector implements RxCollector {
 
   private tag(input: any): IObserverTree | IObservableTree | undefined {
     let tree: IObserverTree | IObservableTree
+    if (typeof input === "undefined") {
+      return undefined
+    }
     if (typeof (input as any)[this.hash] !== "undefined") {
       return (input as any)[this.hash]
     }
@@ -215,7 +217,7 @@ export class TreeCollector implements RxCollector {
     }
   }
 
-  private tagObserver(input: any): IObserverTree[] {
+  private tagObserver(input: any, record?: ICallStart): IObserverTree[] {
     if (isObserver(input)) {
 
       // Rx specific: unfold AutoDetachObserver's, 
@@ -225,16 +227,10 @@ export class TreeCollector implements RxCollector {
 
       let tree = this.tag(input) as IObserverTree
 
-      // TODO verify never used
-      // Rx specific: Subjects get subscribed AutoDetachObserver's, unfold these
-      if (isObserver(input.observer) && input.constructor.name === "AutoDetachObserver") {
-        throw new Error("Invalid State Exception")
-        // tree.setSink(([this.tag(input.observer) as IObserverTree]), " via upper ADO._o")
-        // return [tree]
-      }
-
-      this.getSink(input).forEach(sink => {
-        tree.setSink(this.tagObserver(sink), " via o.observer")
+      // Find sink
+      let sinks = this.getSink(input, record)
+      sinks.forEach(([how, sink]) => {
+        tree.setSink([this.tag(sink) as IObserverTree], how)
       })
 
       return [tree]
@@ -242,21 +238,31 @@ export class TreeCollector implements RxCollector {
     return []
   }
 
-  private getSink<T>(input: Rx.Observer<T>): Rx.Observer<T>[] {
+  private getSink<T>(input: Rx.Observer<T>, record?: ICallStart): [string, Rx.Observer<T>][] {
     // Rx specific: InnerObservers have references to their sinks via a AutoDetachObserver
     let list = elvis(input, ["o", "observer"]) // InnerObservers
       .concat(elvis(input, ["_o", "observer"])) // InnerObservers
       .concat(elvis(input, ["parent"])) // what was this again?
       .concat(elvis(input, ["_s", "o"])) // ConcatObserver
       .concat(elvis(input, ["observer"])) // ConcatObserver
-    // if (!this.hasTag(input)) {
-    //   console.log(input.constructor.name, list.map(l => l.constructor.name))
-    // }
-    return list.slice(0, 1).flatMap(sink => {
+      .map(s => [" via o.observer", s])
+    // If no sinks could be found via object attributes, try to find it via the call stack
+    if (record && !list.length && callStackDepth(record) > 2 && !(isObservable(input) && isObserver(input))) {
+      list.push(...sequenceUnique(
+        _ => _.sub,
+        generate(record, _ => _.parent)
+          .map(rec => ({
+            sub: rec.arguments[0] as Rx.Observer<T>,
+          }))
+          .filter(_ => isObserver(_.sub) && _.sub !== input)
+      ).slice(1, 2).map(_ => [" via callstack", _.sub]))
+    }
+
+    return list.slice(0, 1).flatMap(([how, sink]: [string, Rx.Observer<T>]) => {
       if (sink.constructor.name === "AutoDetachObserver") {
         return this.getSink(sink)
       } else {
-        return [sink]
+        return [[how, sink] as [string, Rx.Observer<T>]]
       }
     })
   }
@@ -294,4 +300,48 @@ export class TreeCollector implements RxCollector {
       },
     })
   }
+
+  private findFirstObserverInCallStack(forObservable: IObservableTree, record?: ICallStart): IObserverTree | undefined {
+    let arg0 = record && record.arguments[0]
+    if (record && record.arguments.length > 0 && this.hasTag(arg0) && isObserver(arg0)) {
+      let tag = this.tag(arg0) as IObserverTree
+      console.log("names", tag.observable && tag.observable.names, forObservable.names)
+      if (tag.observable && tag.observable === forObservable) {
+        return tag
+      }
+    }
+    if (record) {
+      return this.findFirstObserverInCallStack(forObservable, record.parent)
+    }
+  }
+}
+
+function printStack(record?: ICallStart): string {
+  if (typeof record === "undefined") {
+    return ""
+  }
+  return "\n\t" + `${record.subject.constructor.name}.${record.method}(${formatArguments(record.arguments)})` +
+    (record.parent ? printStack(record.parent) : "")
+}
+
+function callStackDepth(record: ICallStart): number {
+  return typeof record.parent === "undefined" ? 1 : 1 + callStackDepth(record.parent)
+}
+
+function generate<T>(seed: T, next: (acc: T) => T | undefined | null): T[] {
+  if (typeof seed === "undefined" || seed === null) {
+    return []
+  } else {
+    return [seed, ...generate(next(seed), next)]
+  }
+}
+
+function sequenceUnique<T, K>(keySelector: (e: T) => K, list: T[]): T[] {
+  let filtered = [] as T[]
+  for (let v of list) {
+    if (filtered.length === 0 || keySelector(filtered[filtered.length - 1]) !== keySelector(v)) {
+      filtered.push(v)
+    }
+  }
+  return filtered
 }
