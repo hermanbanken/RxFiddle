@@ -26,7 +26,7 @@ export class MarbleCoordinator {
 
     let timespan = [
       events.find(e => e.type === "subscribe"),
-      events.find(e => e.type === "dispose" || e.type === "complete"),
+      events.find(e => e.type === "dispose" || e.type === "complete" || e.type === "error"),
     ].map((_, i) => _ ? this.relTime(_) : (i === 0 ? 0 : 100))
 
     let marbles = events.filter(e => e.type !== "dispose").map(e => {
@@ -48,7 +48,7 @@ export class MarbleCoordinator {
       switch (e.type) {
         case "error":
           content = [h("path", {
-            attrs: { class: "error", d: "M 4 -10 L -4 10 M 4 10 L -4 -10" },
+            attrs: { class: "error", d: "M 4 -8 L -4 8 M 4 8 L -4 -8" },
             on: { mouseover: () => debug ? debug(e) : true },
           })]
           break

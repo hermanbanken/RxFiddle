@@ -16,7 +16,7 @@ export class Event {
         return new Next(record.time, record.tick, record.arguments[0])
       case "onError":
       case "fail":
-        return new Error(record.time, record.tick, record.arguments[0])
+        return new Error(record.time, record.tick, new ErrorInstance(record.arguments[0]))
       case "onCompleted":
         return new Complete(record.time, record.tick)
       case "connect":
@@ -53,10 +53,21 @@ export class Next<T> extends Event {
   }
 }
 
+export class ErrorInstance {
+  public name: string
+  public message: string
+  public stack: string
+  public constructor(someError: SyntaxError) {
+    this.name = someError.name
+    this.message = someError.message
+    this.stack = someError.stack
+  }
+}
+
 export class Error extends Event {
-  public error: Error
+  public error: ErrorInstance
   public type: "error"
-  constructor(time: number, tick: number, error: Error) {
+  constructor(time: number, tick: number, error: ErrorInstance) {
     super("error", time, tick)
     this.error = error
   }

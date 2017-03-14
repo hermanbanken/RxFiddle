@@ -29,6 +29,8 @@ export function formatArguments(args: IArguments | any[]): string {
         return a.toString()
       case "string":
         return `"${a.substring(0, 512)}"`
+      case "boolean":
+        return a.toString()
       case "number":
         return a
       default: throw new TypeError(`Invalid type ${typeof a}`)
