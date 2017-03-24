@@ -1,7 +1,11 @@
 Abstract
 ========
 
-TBD
+Traditional software engineering tooling falls short for modern programming techniques such as asynchronous programming and reactive programming. Like the Async Debuggers that are created for asynchronous programming we can create special Reactive Debuggers specialized to debug the event flow through our programs.
+
+In this work we aim to create a software development tool specialized for Reactive Programming that both aids reactive program comprehension and supports debugging reactive programs. It does so by visualizing the structure of the data flow in a graph and giving insight in the state of the application through time in the form of so called Marble Diagrams.
+
+By performing a case study / semi-structured interviews we assess whether our tool improves program comprehension and debugability of reactive programs.
 
 Introduction
 ============
