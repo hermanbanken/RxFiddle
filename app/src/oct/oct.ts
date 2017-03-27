@@ -12,6 +12,7 @@ export interface IObservableTree {
   names?: string[]
   calls?: MethodCall[]
   sources?: IObservableTree[]
+  tick?: number
   setSources(sources: IObservableTree[]): IObservableTree
   addMeta(meta: any): IObservableTree
 }
@@ -23,6 +24,7 @@ export interface IObserverTree {
   sink?: IObserverTree
   inflow?: IObserverTree[]
   events: IEvent[]
+  tick?: number
   setSink(sinks: IObserverTree[], name?: string): IObserverTree
   addInflow(inflow: IObserverTree): IObserverTree
   setObservable(observable: IObservableTree[]): IObserverTree
@@ -35,7 +37,7 @@ export type NodeType = "observable" | "subject" | "observer"
 
 export interface ITreeLogger {
   addNode(id: Id, type: NodeType, tick?: number): void
-  addMeta(id: Id, meta: any): void
+  addMeta(id: Id, meta: any, tick?: number): void
   addEdge(v: Id, w: Id, type: EdgeType, meta?: any): void
 }
 
@@ -44,15 +46,17 @@ export class ObservableTree implements IObservableTree {
   public names?: string[]
   public calls?: MethodCall[]
   public sources?: IObservableTree[]
+  public tick?: number
 
   public logger?: ITreeLogger
   constructor(id: string, name?: string, logger?: ITreeLogger, tick?: number) {
     this.id = id
+    this.tick = tick
     if (name) { this.names = [name] }
     if (logger) {
       this.logger = logger
       logger.addNode(id, "observable", tick)
-      logger.addMeta(id, { names: name })
+      logger.addMeta(id, { names: name }, tick)
     }
   }
 
@@ -85,11 +89,12 @@ export class ObserverTree implements IObserverTree {
   public sink?: IObserverTree
   public inflow?: IObserverTree[]
   public events: IEvent[] = []
+  public tick?: number
 
   public logger?: ITreeLogger
   constructor(id: string, name?: string, logger?: ITreeLogger, tick?: number) {
     this.id = id
-    this.logger = logger
+    this.tick = tick
     if (name) { this.names = [name] }
     if (logger) {
       this.logger = logger
@@ -137,7 +142,7 @@ export class ObserverTree implements IObserverTree {
 
   public addEvent(event: IEvent): IObserverTree {
     if (this.logger) {
-      this.logger.addMeta(this.id, { events: event })
+      this.logger.addMeta(this.id, { events: event }, event.tick)
     }
     return this
   }
@@ -181,6 +186,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   public sink?: IObserverTree
   public sinks?: IObserverTree[]
   public events: IEvent[] = []
+  public tick?: number
 
   // Mixin Observable & Observer methods
   public setSink: (sinks: IObserverTree[], name?: string) => this
@@ -193,6 +199,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
 
   constructor(id: string, name?: string, logger?: ITreeLogger, tick?: number) {
     this.id = id
+    this.tick = tick
     if (name) {
       this.names = [name]
     }

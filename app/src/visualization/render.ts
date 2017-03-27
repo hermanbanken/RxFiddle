@@ -9,6 +9,7 @@ import "../utils"
 import { Graphs, ViewState } from "./index"
 import { MarbleCoordinator } from "./marbles"
 import MorphModule from "./morph"
+import slider from "./slider"
 import * as Rx from "rx"
 import { h } from "snabbdom"
 import { VNode } from "snabbdom/vnode"
@@ -19,7 +20,14 @@ export type Layout = {
 }[]
 
 export type In = Rx.Observable<({ _sequence: number, layout: Layout, viewState: ViewState, graphs: Graphs })>
-export type Out = { svg: Rx.Observable<VNode>, clicks: Rx.Observable<string[]>, groupClicks: Rx.Observable<string> }
+export type Out = {
+  svg: Rx.Observable<VNode>,
+  timeSlider: Rx.Observable<VNode>,
+  clicks: Rx.Observable<string[]>,
+  groupClicks: Rx.Observable<string>,
+  tickSelection: Rx.Observable<number>
+}
+
 export function graph$(inp: In): Out {
   let result = inp.map(data => {
     return graph(data.layout, data.viewState, data.graphs, data._sequence)
@@ -29,6 +37,8 @@ export function graph$(inp: In): Out {
     clicks: result.flatMap(_ => _.clicks),
     groupClicks: result.flatMap(_ => _.groupClicks),
     svg: result.map(_ => _.svg),
+    tickSelection: result.flatMap(_ => _.tickSelection),
+    timeSlider: result.map(_ => _.timeSlider),
   }
 }
 
@@ -74,7 +84,7 @@ function getObservable(
 ): IObservableTree | undefined {
   return lookupGraphs.filter(g => g.hasNode(observerNode)).map(g => {
     // shortcut
-    if (g.hasNode(observerNode)) {
+    if (g.hasNode(observerNode) && typeof g.node(observerNode) === "object") {
       return (g.node(observerNode) as IObserverTree).observable
     }
     // long way round
@@ -117,7 +127,7 @@ function getFlow(graph: TypedGraph<IObserverTree, {}>, ...ids: string[], ) {
 }
 
 export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequence: number): {
-  svg: VNode, clicks: Rx.Observable<string[]>, groupClicks: Rx.Observable<string>,
+  svg: VNode, timeSlider: VNode, clicks: Rx.Observable<string[]>, groupClicks: Rx.Observable<string>, tickSelection: Rx.Observable<number>,
 } {
   if (typeof window === "object") {
     (window as any).graphs = graphs
@@ -152,6 +162,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
   // Collect clicks in Subject
   let clicks = new Rx.Subject<string[]>()
   let groupClicks = new Rx.Subject<string>()
+  let tickSelection = new Rx.Subject<number>()
 
   // Determine shown subscription flow
   let flow: IObserverTree[] = []
@@ -362,7 +373,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
   let panel = h("div", [mask])
 
   // Optionally show flow
-  let diagram = [h("div")]
+  let diagram = [h("div.nomarbles", [h("p", "Select a flow in the structure to show it's marble diagram.")])]
   if (flow.length) {
     diagram = renderMarbles(
       flow.flatMap(observer => [observer.observable, observer]),
@@ -371,15 +382,20 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     )
   }
 
+  let currentTick = typeof viewState.tick === "number" ? viewState.tick : graphs.maxTick
   let app = h("app", { key: `app-${sequence}`, style: { width: `${((xmax + 2) * mx + 300)}px` } }, [
-    h("master", panel),
+    h("div.flexy.flexy-v.noflex", [h("master", panel)]),
     h("detail", diagram),
   ])
+
+  let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => tickSelection.onNext(v))
 
   return {
     svg: app,
     clicks,
     groupClicks,
+    tickSelection,
+    timeSlider,
   }
 }
 

@@ -42,4 +42,9 @@ function run() {
 }
 
 let button = document.querySelector("#run") as HTMLButtonElement
-button.onclick = run
+if (button) { button.onclick = run }
+window.addEventListener("message", (e) => {
+  if (e.data && e.data === "run") {
+    run()
+  }
+})

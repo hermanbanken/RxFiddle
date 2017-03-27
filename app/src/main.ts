@@ -46,11 +46,23 @@ sameOriginWindowMessages
 
 class CodeEditor {
   public dom: Rx.Observable<VNode>
+  private frameWindow: Window = null
+
   constructor(initialSource?: string) {
     let src = initialSource ? "editor.html#blob=" + encodeURI(btoa(initialSource)) : "editor.html"
     this.dom = Rx.Observable.just(h("div.editor", [h("iframe", {
       attrs: { src },
     })]))
+  }
+
+  public send(object: any) {
+    if (!this.frameWindow) {
+      let frame = document.querySelector("iframe")
+      this.frameWindow = frame && frame.contentWindow
+    }
+    if (this.frameWindow) {
+      this.frameWindow.postMessage(object, window.location.origin)
+    }
   }
 }
 
@@ -74,7 +86,11 @@ const Query$ = Rx.Observable
     }, {}) || {}
   })
 
-const DataSource$: Rx.Observable<{ data: DataSource, vnode?: Rx.Observable<VNode> }> = Query$.map(q => {
+const DataSource$: Rx.Observable<{
+  data: DataSource,
+  vnode?: Rx.Observable<VNode>,
+  run?: () => void
+}> = Query$.map(q => {
   if (q.type === "demo" && q.source) {
     let collector = new JsonCollector()
     collector.restart(q.source)
@@ -85,7 +101,11 @@ const DataSource$: Rx.Observable<{ data: DataSource, vnode?: Rx.Observable<VNode
     return { data: collector }
   } else if (q.type === "editor") {
     let editor = new CodeEditor(q.code ? atob(decodeURI(q.code)) : undefined)
-    return { data: new PostWindowCollector(), vnode: editor.dom }
+    return {
+      data: new PostWindowCollector(),
+      run: editor.send.bind(editor, "run"),
+      vnode: editor.dom,
+    }
   } else {
     return null
   }
@@ -97,28 +117,39 @@ function Resizer(target: VNode): VNode {
   })
 }
 
-function errorHandler(e: Error): Rx.Observable<VNode> {
+function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
   let next = Rx.Observable.create(sub => {
     console.error(e);
     setTimeout(() => sub.onError(new Error("Continue")), 1000)
   })
-  return Rx.Observable.just(h("div", "Krak!")).merge(next)
+  return Rx.Observable.just({ dom: h("div", "Krak!"), timeSlider: h("div") }).merge(next)
 }
 
-const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMap(collector => {
+function menu(time: VNode, run?: () => void): VNode {
+  return h("div.left.ml3.flex", [
+    ...(run ? [h("button.btn", { on: { click: () => run && run() } }, "Run")] : []),
+    time,
+  ])
+}
+
+const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
   if (collector) {
-    return new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
+    let vis = new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
+    return vis
       .stream()
-      .startWith(h("span", "Waiting for Rx activity..."))
+      .startWith({ dom: h("span", "Waiting for Rx activity..."), timeSlider: h("div") })
       .catch(errorHandler)
       .retry()
-      .combineLatest(collector.vnode || Rx.Observable.just(undefined), (render: VNode, input: VNode) => [
-        h("div#menufold-static.menufold", [h("a", { attrs: { href: "#" } }, [
-          h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
-          "RxFiddle" as any as VNode,
-        ])]),
+      .combineLatest(collector.vnode || Rx.Observable.just(undefined), (render, input) => [
+        h("div#menufold-static.menufold", [
+          h("a.brand.left", { attrs: { href: "#" } }, [
+            h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
+            "RxFiddle" as any as VNode,
+          ]),
+          menu(render.timeSlider, collector.run),
+        ]),
         // h("div#menufold-fixed.menufold"),
-        h("div.flexy", input ? [input, Resizer(input), render] : [render]),
+        h("div.flexy", input ? [input, Resizer(input), render.dom] : [render.dom]),
       ])
   } else {
     return new Splash().stream().map(n => [h("div.flexy", [n])])

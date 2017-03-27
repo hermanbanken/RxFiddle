@@ -11,13 +11,13 @@ import * as Rx from "rx"
 
 export class TreeGrapher implements ITreeLogger {
   public graph = new TypedGraph<ObservableTree | ObserverTree, {}>()
-  public addNode(id: string, type: NodeType): void {
+  public addNode(id: string, type: NodeType, tick: number): void {
     if (type === "observable") {
-      this.graph.setNode(id, new ObservableTree(id))
+      this.graph.setNode(id, new ObservableTree(id, undefined, undefined, tick))
     } else if (type === "subject") {
-      this.graph.setNode(id, new SubjectTree(id))
+      this.graph.setNode(id, new SubjectTree(id, undefined, undefined, tick))
     } else {
-      this.graph.setNode(id, new ObserverTree(id))
+      this.graph.setNode(id, new ObserverTree(id, undefined, undefined, tick))
     }
   }
   public addMeta(id: string, meta: any): void {
@@ -55,8 +55,8 @@ export class TreeWriter implements ITreeLogger {
   public addNode(id: string, type: NodeType, tick?: number): void {
     this.messages.push({ id, type, tick })
   }
-  public addMeta(id: string, meta: any): void {
-    this.messages.push({ id, meta })
+  public addMeta(id: string, meta: any, tick?: number): void {
+    this.messages.push({ id, meta, tick })
   }
   public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
     this.messages.push({ v, w, type, meta })
@@ -73,11 +73,11 @@ export class TreeWindowPoster implements ITreeLogger {
       console.error("Using Window.postMessage logger in non-browser environment", new Error())
     }
   }
-  public addNode(id: string, type: NodeType): void {
-    this.post({ id, type })
+  public addNode(id: string, type: NodeType, tick?: number): void {
+    this.post({ id, type, tick })
   }
-  public addMeta(id: string, meta: any): void {
-    this.post({ id, meta })
+  public addMeta(id: string, meta: any, tick?: number): void {
+    this.post({ id, meta, tick })
   }
   public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
     this.post({ v, w, type, meta })
@@ -89,13 +89,19 @@ export class TreeWindowPoster implements ITreeLogger {
 
 export class TreeReader {
   public treeGrapher: TreeGrapher = new TreeGrapher()
-  public next(message: any) {
+  public maxTick = -1
+  public next(message: any): void {
     if (message === "reset") {
+      this.maxTick = -1
       return this.treeGrapher.reset()
-    } else if (typeof message.v !== "undefined" && typeof message.w !== "undefined") {
+    }
+    if (typeof message === "object" && typeof message.tick === "number") {
+      this.maxTick = Math.max(this.maxTick, message.tick)
+    }
+    if (typeof message.v !== "undefined" && typeof message.w !== "undefined") {
       this.treeGrapher.addEdge(message.v, message.w, message.type, message.meta)
     } else if (typeof message.type !== "undefined") {
-      this.treeGrapher.addNode(message.id, message.type)
+      this.treeGrapher.addNode(message.id, message.type, message.tick)
     } else if (message) {
       this.treeGrapher.addMeta(message.id, message.meta)
     }

@@ -25,6 +25,7 @@ export type ViewState = {
   focusNodes: string[]
   openGroups: string[]
   openGroupsAll: boolean
+  tick?: number
 }
 
 export type GraphNode = {
@@ -36,6 +37,7 @@ export type GraphEdge = {
 }
 
 export type Graphs = {
+  maxTick: number,
   _sequence: number,
   main: TypedGraph<IObservableTree | IObserverTree, {}>,
   subscriptions: TypedGraph<IObserverTree, {}>,
@@ -53,6 +55,7 @@ export class Grapher {
         _sequence: Grapher.sequence++,
         main: reader.treeGrapher.graph
           .filterNodes(n => true),
+        maxTick: reader.maxTick,
         subscriptions: reader.treeGrapher.graph
           .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
       }))
@@ -127,18 +130,26 @@ export default class Visualizer {
   // TODO workaround for Rx.Subject's
   public focusNodes = new Rx.Subject<string[]>()
   public openGroups = new Rx.Subject<string[]>()
+  public tick = new Rx.Subject<number>()
 
+  public timeSlider: Rx.Observable<VNode>
   public DOM: Rx.Observable<VNode>
   public get viewState(): Rx.Observable<ViewState> {
-    return this.focusNodes.startWith([]).combineLatest(this.openGroups.startWith([]), (fn, og) => ({
-      focusNodes: fn,
-      openGroups: og,
-      openGroupsAll: false,
-    }))
+    return this.focusNodes.startWith([]).combineLatest(
+      this.openGroups.startWith([]),
+      this.tick.startWith(undefined),
+      (fn, og, t) => ({
+        focusNodes: fn,
+        openGroups: og,
+        openGroupsAll: false,
+        tick: t,
+      })
+    )
   }
 
   private clicks: Rx.Observable<string[]>
   private groupClicks: Rx.Observable<string>
+  private tickSelection: Rx.Observable<number>
   private grapher: Grapher
   private app: HTMLElement | VNode
 
@@ -162,11 +173,13 @@ export default class Visualizer {
           viewState: state,
         })
       })
-    let { svg, clicks, groupClicks } = graph$(inp)
+    let { svg, clicks, groupClicks, tickSelection, timeSlider } = graph$(inp)
 
+    this.timeSlider = timeSlider
     this.DOM = svg
     this.clicks = clicks
     this.groupClicks = groupClicks
+    this.tickSelection = tickSelection
   }
 
   public run() {
@@ -195,12 +208,16 @@ export default class Visualizer {
       .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
       .startWith([])
       .subscribe(this.openGroups)
+    this.tickSelection
+      .subscribe(this.tick)
   }
 
-  public stream(): Rx.Observable<VNode> {
-    return Rx.Observable.defer(() => Rx.Observable.create<VNode>(subscriber => {
+  public stream(): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
+    return Rx.Observable.defer(() => Rx.Observable.create<{ dom: VNode, timeSlider: VNode }>(subscriber => {
       let disposables = [] as Rx.Disposable[]
-      disposables.push(this.DOM.subscribe(subscriber))
+      disposables.push(this.DOM
+        .combineLatest(this.timeSlider, (d, t) => ({ dom: d, timeSlider: t }))
+        .subscribe(subscriber))
       disposables.push(this.clicks
         .scan((prev, n) => prev.length === n.length && prev.every((p, i) => p === n[i]) ? [] : n, [])
         .startWith([])
@@ -209,6 +226,8 @@ export default class Visualizer {
         .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
         .startWith([])
         .subscribe(this.openGroups))
+      disposables.push(this.tickSelection
+        .subscribe(this.tick))
       return new Rx.Disposable(() => {
         disposables.forEach(d => d.dispose())
       })
@@ -228,10 +247,21 @@ export default class Visualizer {
     let scope = window as any || {}
     scope.filterGraphs = graphs
     let subs = addBlueprints(graphs.subscriptions, graphs.main)
-    return {
-      _sequence: graphs._sequence,
-      main: graphs.main,
-      subscriptions: graphs.subscriptions, // subs
+    if (typeof viewState.tick === "number") {
+      console.log("filtering with tick", viewState.tick)
+      return {
+        _sequence: graphs._sequence,
+        main: graphs.main.filterNodes((n, o) => o.tick <= viewState.tick),
+        maxTick: graphs.maxTick,
+        subscriptions: graphs.subscriptions.filterNodes((n, o) => o.tick <= viewState.tick), // subs
+      }
+    } else {
+      return {
+        _sequence: graphs._sequence,
+        main: graphs.main,
+        maxTick: graphs.maxTick,
+        subscriptions: graphs.subscriptions, // subs
+      }
     }
   }
 }
