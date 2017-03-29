@@ -5,6 +5,46 @@ import { UIEvent } from "./render"
 import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
+function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void) {
+  switch (e.type) {
+    case "error":
+      return h("span", [
+        `${e.type}`,
+        h("br"),
+        h("pre", e.error.stack.toString() || e.error.toString()),
+      ])
+    case "next":
+      if (typeof e.value === "string") {
+        return h("span", [`${e.type}`, h("br"), h("pre", e.value)])
+      } else if (typeof e.value === "object") {
+        let val = e.value as any
+        if ("type" in val && "id" in val) {
+          let handlers = {
+            focus: () => uiEvents({ observable: val.id, tick: e.tick, type: "higherOrderClick" }),
+            mouseover: () => uiEvents({ observable: val.id, tick: e.tick, type: "higherOrderHoover" }),
+          }
+          return h("span", [
+            `${e.type}`,
+            h("br"),
+            h("a.type-ref", { attrs: { role: "button" }, on: handlers }, val.type),
+          ])
+        } else {
+          return h("span", [`${e.type}`, h("br"), JSON.stringify(val)])
+        }
+      }
+    case "complete":
+    case "dispose":
+    case "subscribe":
+      return h("span", `${e.type}`)
+    default:
+      return h("span", [
+        h("span", { style: { "white-space": "nowrap" } }, `${e.type} @ ${new Date(e.time)} / ${e.tick}`),
+        h("br"),
+        JSON.stringify(e),
+      ])
+  }
+}
+
 export class MarbleCoordinator {
   private min: number
   private max: number
@@ -92,7 +132,7 @@ export class MarbleCoordinator {
           on: handlers,
           style: { left: `${left}%` },
           tabIndex: { index: e.tick },
-        }, [h("span", JSON.stringify(e))]),
+        }, [tooltip(e, uiEvents)]),
         svg: h("svg", {
           attrs: { x: `${left}%`, y: "50%" },
         }, content),

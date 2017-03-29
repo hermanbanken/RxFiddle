@@ -36,6 +36,7 @@ function handle(vnode: VNode, keyEvent?: KeyboardEvent) {
       next = list[idx].children.slice(nextIdx, nextIdx + 1)
       break
     default:
+      return
   }
   next
     .map(c => c.vnode.elm)

@@ -481,7 +481,20 @@ export type DiagramOperatorClick = {
   type: "diagramOperatorClick"
   observable: string
 }
-export type UIEvent = MarbleClick | MarbleHoover | DiagramOperatorClick | DiagramOperatorHoover
+export type HigherOrderHoover = {
+  type: "higherOrderHoover"
+  observable: string
+  tick: number
+}
+export type HigherOrderClick = {
+  type: "higherOrderClick"
+  observable: string
+  tick: number
+}
+export type UIEvent =
+  MarbleClick | MarbleHoover |
+  DiagramOperatorClick | DiagramOperatorHoover |
+  HigherOrderHoover | HigherOrderClick
 
 function renderMarbles(
   nodes: (IObservableTree | IObserverTree)[],
