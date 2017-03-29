@@ -6,6 +6,7 @@ import "../object/extensions"
 import "../utils"
 import layoutf from "./layout"
 import MorphModule from "./morph"
+import TabIndexModule from "./tabIndexQuickDirty"
 import { graph, graph$ } from "./render"
 import * as Rx from "rx"
 import { init as snabbdom_init } from "snabbdom"
@@ -15,7 +16,7 @@ import event_module from "snabbdom/modules/eventlisteners"
 import style_module from "snabbdom/modules/style"
 import { VNode } from "snabbdom/vnode"
 
-const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule])
+const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule, TabIndexModule])
 
 export interface DataSource {
   dataObs: Rx.Observable<Message>

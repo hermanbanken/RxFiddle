@@ -522,3 +522,76 @@ g.circle:hover text, g.circle:hover rect {
 .ml3 {
   margin-left: 2em;
 }
+
+.layered {
+  position: relative;
+}
+
+.layered .bg, .layered .fg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+}
+.layered .fg { z-index: 10; }
+
+.marblediagram svg { height: 100%; width: 100%; }
+
+.marbleevent {
+    position: absolute;
+    width: 18px;
+    margin-left: -9px;
+    height: 100%;
+    outline: none;
+}
+
+ .marbleevent span {
+    display: none;
+    background: rgba(0,0,0,0.8);
+    width: auto;
+    overflow: visible;
+    border-radius: 3px;
+    padding: 5px;
+    margin-top: 43px;
+    color: white;
+    word-wrap: break-word;
+    direction: ltr;
+}
+
+.marbleevent.rtl {
+  direction: rtl;
+}
+
+.marbleevent:hover span, .marbleevent:active span, .marbleevent:focus span {
+    display: inline-block;
+}
+
+.marbleevent span:before {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 5px 6px 5px;
+  border-color: transparent transparent rgba(0,0,0,0.8) transparent;
+  content: "";
+  position: absolute;
+  top: 37px;
+  left: 4px;
+  -webkit-transform: rotate(360deg);
+}
+
+.marbleevent:hover span:after, .marbleevent:active span:after, .marbleevent:focus span:after {
+    content: "";
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    left: -1px;
+    top: 20px;
+    border-radius: 10px;
+    border: rgb(202, 46, 175) solid 3px;
+    box-sizing: border-box;
+    /*outline-color: rgb(59, 153, 252);
+    outline-style:auto;
+    outline-width:5px;*/
+}

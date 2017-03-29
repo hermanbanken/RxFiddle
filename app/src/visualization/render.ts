@@ -378,7 +378,17 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     diagram = renderMarbles(
       flow.flatMap(observer => [observer.observable, observer]),
       viewState,
-      layout[0].nodes.filter(n => n.id === flow[0].id).slice(0, 1).map(n => yPos(n.y))[0]
+      layout[0].nodes.filter(n => n.id === flow[0].id).slice(0, 1).map(n => yPos(n.y))[0],
+      sub => {
+        // Gather incoming higher order subscriptions
+        return graphs.main.inEdges(sub.id)
+          .map(e => graphs.main.node(e.v))
+          .filter(n =>
+            "observable" in n &&
+            (n as IObserverTree).observable.id !== sub.observable.sources[0].id
+          ) as IObserverTree[]
+      },
+      event => console.log("UI Event", event)
     )
   }
 
@@ -453,7 +463,33 @@ function vnodeSort(vna: VNode, vnb: VNode): number {
   return vna.key.toString().localeCompare(vnb.key.toString())
 }
 
-function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: ViewState, offset: number = 0): VNode[] {
+export type MarbleClick = {
+  type: "marbleClick"
+  tick: number
+  subscription: string
+}
+export type MarbleHoover = {
+  type: "marbleHoover"
+  tick: number
+  subscription: string
+}
+export type DiagramOperatorHoover = {
+  type: "diagramOperatorHoover"
+  observable: string
+}
+export type DiagramOperatorClick = {
+  type: "diagramOperatorClick"
+  observable: string
+}
+export type UIEvent = MarbleClick | MarbleHoover | DiagramOperatorClick | DiagramOperatorHoover
+
+function renderMarbles(
+  nodes: (IObservableTree | IObserverTree)[],
+  viewState: ViewState,
+  offset: number = 0,
+  incoming?: (target: IObserverTree) => IObserverTree[],
+  uiEvents?: (event: UIEvent) => void
+): VNode[] {
   let coordinator = new MarbleCoordinator()
   let allEvents: IEvent[] = nodes.flatMap((n: any) => n && "events" in n ? n.events as IEvent[] : [])
   coordinator.add(allEvents)
@@ -466,7 +502,7 @@ function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: Vi
       id: "marbles",
       style: `min-width: ${u * 3}px; height: ${height}px; margin-top: ${(offset - heights[0] / 2)}px`,
     },
-  }, nodes.flatMap((node, i) => {
+  }, nodes.flatMap((node, i, nodeList) => {
     let clazz = "operator withoutStack"
     if (!node) {
       return [h("div", { attrs: { class: clazz } }, "Unknown node")]
@@ -474,13 +510,18 @@ function renderMarbles(nodes: (IObservableTree | IObserverTree)[], viewState: Vi
 
     if (node && "events" in node) {
       let events: IEvent[] = (node as IObserverTree).events
-      return [coordinator.render(events, debug)]
+      return [coordinator.render(node as IObserverTree, events, uiEvents, debug)]
     } else {
       let obs = node as IObservableTree
       let name = obs.names && obs.names[obs.names.length - 1]
       let call = obs.calls && obs.calls[obs.calls.length - 1]
-      let box = h("div", { attrs: { class: clazz } }, [
+      let handlers = {
+        click: () => uiEvents({ observable: node.id, type: "diagramOperatorClick" }),
+        mouseover: () => uiEvents({ observable: node.id, type: "diagramOperatorHoover" }),
+      }
+      let box = h("div", { attrs: { class: clazz }, on: handlers }, [
         h("div", [], call && call.method ? `${call.method} (${call.args})` : name),
+        // h("div", [], incoming ? incoming(nodeList[i + 1] as IObserverTree).map(o => o.id).join(",") : "no subs"),
         h("div", [], "stackFrame locationText"),
       ].filter((_, idx) => idx === 0))
 

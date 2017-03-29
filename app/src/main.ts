@@ -2,6 +2,7 @@ import JsonCollector from "./collector/jsonCollector"
 // import Collector from "./collector/logger"
 import Visualizer, { DataSource, Grapher } from "./visualization"
 import MorphModule from "./visualization/morph"
+import TabIndexModule from "./visualization/tabIndexQuickDirty"
 // import { VNode, makeDOMDriver } from "@cycle/dom"
 // import { DOMSource } from "@cycle/dom/rx-typings"
 // import Cycle from "@cycle/rx-run"
@@ -16,7 +17,7 @@ import event_module from "snabbdom/modules/eventlisteners"
 import style_module from "snabbdom/modules/style"
 import { VNode } from "snabbdom/vnode"
 
-const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule])
+const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule, TabIndexModule])
 
 function formatHash(object: any): string {
   let q = ""
@@ -220,7 +221,7 @@ class Splash {
 let app = document.querySelector("body") as VNode | HTMLBodyElement
 VNodes$.subscribe(vnodes => {
   try {
-    app = patch(app, h("body#", vnodes))
+    app = patch(app, h("body#", { tabIndexRoot: true }, vnodes))
   } catch (e) {
     console.error("Error in snabbdom patching; restoring. Next patch will be handled clean.", e)
     app = document.querySelector("body")
