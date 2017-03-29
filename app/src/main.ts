@@ -1,6 +1,7 @@
 import JsonCollector from "./collector/jsonCollector"
 // import Collector from "./collector/logger"
-import Visualizer, { DataSource, Grapher } from "./visualization"
+import Visualizer, { DataSource } from "./visualization"
+import Grapher from "./visualization/grapher"
 import MorphModule from "./visualization/morph"
 import TabIndexModule from "./visualization/tabIndexQuickDirty"
 // import { VNode, makeDOMDriver } from "@cycle/dom"

@@ -1,13 +1,13 @@
-import { Edge as EdgeLabel, EventLabel, Message, NodeLabel } from "../collector/logger"
-import { TreeCollector, TreeReader, TreeWriter } from "../collector/treeCollector"
+import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger"
 import TypedGraph from "../collector/typedgraph"
-import { IObservableTree, IObserverTree, ObservableTree, ObserverTree, SubjectTree } from "../oct/oct"
 import "../object/extensions"
+import { IObservableTree, IObserverTree, ObserverTree } from "../oct/oct"
 import "../utils"
+import Grapher from "./grapher"
 import layoutf from "./layout"
 import MorphModule from "./morph"
+import { graph$ } from "./render"
 import TabIndexModule from "./tabIndexQuickDirty"
-import { graph, graph$ } from "./render"
 import * as Rx from "rx"
 import { init as snabbdom_init } from "snabbdom"
 import attrs_module from "snabbdom/modules/attributes"
@@ -42,31 +42,6 @@ export type Graphs = {
   _sequence: number,
   main: TypedGraph<IObservableTree | IObserverTree, {}>,
   subscriptions: TypedGraph<IObserverTree, {}>,
-}
-
-export class Grapher {
-
-  public static sequence = 0
-  public graph: Rx.Observable<Graphs>
-
-  constructor(collector: DataSource) {
-    // let sequence = 0
-    this.graph = Rx.Observable.defer(() => collector.dataObs
-      .scan(grapherNext, new TreeReader()).map(reader => ({
-        _sequence: Grapher.sequence++,
-        main: reader.treeGrapher.graph
-          .filterNodes(n => true),
-        maxTick: reader.maxTick,
-        subscriptions: reader.treeGrapher.graph
-          .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
-      }))
-    ).repeat()
-  }
-}
-
-export function grapherNext(reader: TreeReader, event: Message): TreeReader {
-  reader.next(event)
-  return reader
 }
 
 export function isIObserver(a: any): a is IObserverTree {

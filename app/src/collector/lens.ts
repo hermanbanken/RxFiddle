@@ -1,4 +1,4 @@
-import { GraphEdge, GraphNode, grapherNext } from "../visualization"
+import { GraphEdge, GraphNode } from "../visualization"
 import {
   Complete,
   Error,
