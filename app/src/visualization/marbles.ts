@@ -87,6 +87,7 @@ export class MarbleCoordinator {
       })
 
       let handlers = {
+        click: () => uiEvents({ subscription: observer.id, tick: e.tick, type: "marbleClick" }),
         focus: () => uiEvents({ subscription: observer.id, tick: e.tick, type: "marbleHoover" }),
         mouseover: () => uiEvents({ subscription: observer.id, tick: e.tick, type: "marbleHoover" }),
       }

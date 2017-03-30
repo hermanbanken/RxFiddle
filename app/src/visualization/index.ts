@@ -8,7 +8,7 @@ import layoutf from "./layout"
 import MorphModule from "./morph"
 import { graph$ } from "./render"
 import TabIndexModule from "./tabIndexQuickDirty"
-import { SelectionGraphEdge, SelectionGraphNode, SelectionGraphNone, UIEvent } from "./uievent"
+import { MarbleClick, SelectionGraphEdge, SelectionGraphNode, SelectionGraphNone, UIEvent } from "./uievent"
 import * as Rx from "rx"
 import { init as snabbdom_init } from "snabbdom"
 import attrs_module from "snabbdom/modules/attributes"
@@ -25,7 +25,7 @@ export interface DataSource {
 
 export type ViewState = {
   tick?: number
-  flowSelection?: SelectionGraphNode | SelectionGraphEdge
+  flowSelection?: SelectionGraphNode | SelectionGraphEdge | SelectionGraphNone | MarbleClick
 }
 
 export type GraphNode = {
@@ -119,6 +119,7 @@ export default class Visualizer {
         case "selectionGraphEdge":
         case "selectionGraphNode":
         case "selectionGraphNone":
+        case "marbleClick":
           return Object.assign({}, pstate, { flowSelection: event })
 
         default:
@@ -193,17 +194,24 @@ export default class Visualizer {
   }
 
   // tslint:disable-next-line:max-line-length
-  private focusNodes(graphs: Graphs, selection: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone): string[] {
+  private focusNodes(graphs: Graphs, selection: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick): string[] {
     switch (selection.type) {
-      case "selectionGraphEdge": return getFlow(graphs.subscriptions, selection.v, selection.w).map(_ => _.id)
+      case "selectionGraphEdge": return getFlow(graphs.subscriptions, undefined, selection.v, selection.w)
+        .map(_ => _.id)
       case "selectionGraphNode":
         let esIn = graphs.subscriptions.inEdges(selection.node) || []
         let esOut = graphs.subscriptions.outEdges(selection.node) || []
         if (esIn.length === 1) {
-          return getFlow(graphs.subscriptions, esIn[0].v, selection.node).map(_ => _.id)
+          return getFlow(graphs.subscriptions, undefined, esIn[0].v, selection.node).map(_ => _.id)
         } else {
-          return getFlow(graphs.subscriptions, selection.node, esOut[0] && esOut[0].w).map(_ => _.id)
+          return getFlow(graphs.subscriptions, undefined, selection.node, esOut[0] && esOut[0].w).map(_ => _.id)
         }
+      case "marbleClick":
+        return getFlow(
+          graphs.subscriptions,
+          (o, named) => o.events.some(e => e.tick === selection.tick),
+          selection.subscription
+        ).map(_ => _.id)
       default: return []
     }
   }
@@ -245,27 +253,52 @@ function checkChildrenDefined(node: VNode | string, parents: string = "", ...inf
   }
 }
 
-function collectUp(graph: TypedGraph<IObserverTree, {}>, node: IObserverTree): IObserverTree[] {
+function collectUp(
+  graph: TypedGraph<IObserverTree, {}>, node: IObserverTree,
+  hasPref?: (o: IObserverTree, n?: any) => boolean
+): IObserverTree[] {
   let inEdges = graph.inEdges(node.id)
   if (inEdges && inEdges.length >= 1) {
-    return [node].concat(collectUp(graph, graph.node(inEdges[0].v)))
+    let ups = inEdges.map(e => graph.node(e.v))
+    let oneUpHasPref = (n: string) => (graph.inEdges(n) || [])
+      .map(e => graph.node(e.v))
+      .some(oneup => hasPref(oneup, "oneup"))
+    let continuation = (hasPref && ups.find(hasPref)) ||
+      (hasPref && ups.find(n => oneUpHasPref(n.id))) ||
+      ups[0]
+    return [node].concat(collectUp(graph, continuation, hasPref))
   }
   return [node]
 }
-function collectDown(graph: TypedGraph<IObserverTree, {}>, node: IObserverTree): IObserverTree[] {
+function collectDown(
+  graph: TypedGraph<IObserverTree, {}>, node: IObserverTree,
+  hasPref?: (o: IObserverTree) => boolean
+): IObserverTree[] {
   let outEdges = graph.outEdges(node.id)
   if (outEdges && outEdges.length === 1) {
-    return [node].concat(collectDown(graph, graph.node(outEdges[0].w)))
+    let downs = outEdges.map(e => graph.node(e.w))
+    let oneDownHasPref = (n: string) => (graph.outEdges(n) || [])
+      .map(e => graph.node(e.w))
+      .some(onedown => hasPref(onedown))
+    let continuation = (hasPref && downs.find(hasPref)) ||
+      (hasPref && downs.find(n => oneDownHasPref(n.id))) ||
+      downs[0]
+    return [node].concat(collectDown(graph, continuation, hasPref))
   }
   return [node]
 }
 
-function getFlow(graph: TypedGraph<IObserverTree, {}>, ...ids: string[], ) {
+function getFlow(
+  graph: TypedGraph<IObserverTree, {}>,
+  hasPrefOpt: (o: IObserverTree, n?: any) => boolean | null,
+  ...ids: string[]
+) {
+  let hasPref = typeof hasPrefOpt === "function" ? hasPrefOpt : undefined
   // let id = graph.inEdges(ids[0])
   let focussed = graph.node(ids[0])
   return [
-    ...collectUp(graph, focussed).slice(1).reverse(),
+    ...collectUp(graph, focussed, hasPref).slice(1).reverse(),
     focussed,
-    ...collectDown(graph, focussed).slice(1),
+    ...collectDown(graph, focussed, hasPref).slice(1),
   ]
 }
