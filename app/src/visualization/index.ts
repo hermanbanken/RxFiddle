@@ -8,6 +8,7 @@ import layoutf from "./layout"
 import MorphModule from "./morph"
 import { graph$ } from "./render"
 import TabIndexModule from "./tabIndexQuickDirty"
+import { SelectionGraphEdge, SelectionGraphNode, SelectionGraphNone, UIEvent } from "./uievent"
 import * as Rx from "rx"
 import { init as snabbdom_init } from "snabbdom"
 import attrs_module from "snabbdom/modules/attributes"
@@ -23,10 +24,8 @@ export interface DataSource {
 }
 
 export type ViewState = {
-  focusNodes: string[]
-  openGroups: string[]
-  openGroupsAll: boolean
   tick?: number
+  flowSelection?: SelectionGraphNode | SelectionGraphEdge
 }
 
 export type GraphNode = {
@@ -104,88 +103,80 @@ function getObservableId(input: IObservableTree | IObserverTree, node: string): 
 export default class Visualizer {
 
   // TODO workaround for Rx.Subject's
-  public focusNodes = new Rx.Subject<string[]>()
   public openGroups = new Rx.Subject<string[]>()
   public tick = new Rx.Subject<number>()
 
   public timeSlider: Rx.Observable<VNode>
   public DOM: Rx.Observable<VNode>
+
   public get viewState(): Rx.Observable<ViewState> {
-    return this.focusNodes.startWith([]).combineLatest(
-      this.openGroups.startWith([]),
-      this.tick.startWith(undefined),
-      (fn, og, t) => ({
-        focusNodes: fn,
-        openGroups: og,
-        openGroupsAll: false,
-        tick: t,
+
+    function reduce(pstate: ViewState, event: UIEvent): ViewState {
+      switch (event.type) {
+        case "tickSelection":
+          return Object.assign({}, pstate, { tick: event.tick })
+
+        case "selectionGraphEdge":
+        case "selectionGraphNode":
+        case "selectionGraphNone":
+          return Object.assign({}, pstate, { flowSelection: event })
+
+        default:
+          console.warn("Unhandled UIEvent", event)
+          return pstate
+      }
+    }
+
+    return this.uiEventsInput
+      .do(e => console.log("fold input", e))
+      // kick-off
+      .startWith({ type: "selectionGraphNone" })
+      .scan<ViewState>(reduce, {
+        flowSelection: undefined,
+        tick: undefined,
       })
-    )
   }
 
   private clicks: Rx.Observable<string[]>
   private groupClicks: Rx.Observable<string>
   private tickSelection: Rx.Observable<number>
+  private uiEventsInput: Rx.Subject<UIEvent>
+  private uiEventsOutput: Rx.Observable<UIEvent>
   private grapher: Grapher
   private app: HTMLElement | VNode
 
   constructor(grapher: Grapher, dom?: HTMLElement, controls?: HTMLElement) {
     this.grapher = grapher
     this.app = dom
+    this.uiEventsInput = new Rx.Subject<UIEvent>()
 
     let inp = grapher.graph
       .debounce(10)
       .combineLatest(this.viewState, (graphs, state) => {
         let filtered = this.filter(graphs, state)
+        let focusNodes = this.focusNodes(graphs, state.flowSelection)
         return ({
           _sequence: graphs._sequence,
           graphs: filtered,
           layout: layoutf(
             filtered.subscriptions,
-            state.focusNodes,
+            focusNodes,
             (a, b) => distance(graphs.main.node(a), graphs.main.node(b)),
             node => getObservableId(filtered.main.node(node) || filtered.subscriptions.node(node), node)
           ),
           viewState: state,
+          focusNodes,
         })
       })
-    let { svg, clicks, groupClicks, tickSelection, timeSlider } = graph$(inp)
+
+    let { svg, clicks, groupClicks, tickSelection, timeSlider, uievents } = graph$(inp)
 
     this.timeSlider = timeSlider
     this.DOM = svg
     this.clicks = clicks
     this.groupClicks = groupClicks
     this.tickSelection = tickSelection
-  }
-
-  public run() {
-    this.DOM
-      .subscribe(d => {
-        let old = this.app
-        try {
-          checkChildrenDefined(d, "new")
-          this.app = patch(this.app, d)
-        } catch (e) {
-          (window as any).vnode = d
-          console.warn("Snabbdom patch error. VNode available in window.vnode.", e, d)
-          if (e.message.indexOf("of undefined") >= 0) {
-            if (!(old instanceof HTMLElement)) {
-              checkChildrenDefined(old, "old")
-            }
-            checkChildrenDefined(d)
-          }
-        }
-      })
-    this.clicks
-      .scan((prev, n) => prev.length === n.length && prev.every((p, i) => p === n[i]) ? [] : n, [])
-      .startWith([])
-      .subscribe(this.focusNodes)
-    this.groupClicks
-      .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
-      .startWith([])
-      .subscribe(this.openGroups)
-    this.tickSelection
-      .subscribe(this.tick)
+    this.uiEventsOutput = uievents
   }
 
   public stream(): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
@@ -194,29 +185,27 @@ export default class Visualizer {
       disposables.push(this.DOM
         .combineLatest(this.timeSlider, (d, t) => ({ dom: d, timeSlider: t }))
         .subscribe(subscriber))
-      disposables.push(this.clicks
-        .scan((prev, n) => prev.length === n.length && prev.every((p, i) => p === n[i]) ? [] : n, [])
-        .startWith([])
-        .subscribe(this.focusNodes))
-      disposables.push(this.groupClicks
-        .scan((list, n) => list.indexOf(n) >= 0 ? list.filter(i => i !== n) : list.concat([n]), [])
-        .startWith([])
-        .subscribe(this.openGroups))
-      disposables.push(this.tickSelection
-        .subscribe(this.tick))
+      disposables.push(this.uiEventsOutput.subscribe(this.uiEventsInput))
       return new Rx.Disposable(() => {
         disposables.forEach(d => d.dispose())
       })
     }))
   }
 
-  public attach(node: HTMLElement) {
-    this.app = node
-    this.step()
-  }
-
-  public step() {
-    this.run()
+  // tslint:disable-next-line:max-line-length
+  private focusNodes(graphs: Graphs, selection: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone): string[] {
+    switch (selection.type) {
+      case "selectionGraphEdge": return getFlow(graphs.subscriptions, selection.v, selection.w).map(_ => _.id)
+      case "selectionGraphNode":
+        let esIn = graphs.subscriptions.inEdges(selection.node) || []
+        let esOut = graphs.subscriptions.outEdges(selection.node) || []
+        if (esIn.length === 1) {
+          return getFlow(graphs.subscriptions, esIn[0].v, selection.node).map(_ => _.id)
+        } else {
+          return getFlow(graphs.subscriptions, selection.node, esOut[0] && esOut[0].w).map(_ => _.id)
+        }
+      default: return []
+    }
   }
 
   private filter(graphs: Graphs, viewState: ViewState): Graphs {
@@ -254,4 +243,29 @@ function checkChildrenDefined(node: VNode | string, parents: string = "", ...inf
   } else {
     // console.warn("Uknown vnode", node, parents)
   }
+}
+
+function collectUp(graph: TypedGraph<IObserverTree, {}>, node: IObserverTree): IObserverTree[] {
+  let inEdges = graph.inEdges(node.id)
+  if (inEdges && inEdges.length >= 1) {
+    return [node].concat(collectUp(graph, graph.node(inEdges[0].v)))
+  }
+  return [node]
+}
+function collectDown(graph: TypedGraph<IObserverTree, {}>, node: IObserverTree): IObserverTree[] {
+  let outEdges = graph.outEdges(node.id)
+  if (outEdges && outEdges.length === 1) {
+    return [node].concat(collectDown(graph, graph.node(outEdges[0].w)))
+  }
+  return [node]
+}
+
+function getFlow(graph: TypedGraph<IObserverTree, {}>, ...ids: string[], ) {
+  // let id = graph.inEdges(ids[0])
+  let focussed = graph.node(ids[0])
+  return [
+    ...collectUp(graph, focussed).slice(1).reverse(),
+    focussed,
+    ...collectDown(graph, focussed).slice(1),
+  ]
 }
