@@ -13,6 +13,7 @@ function handle(vnode: VNode, keyEvent?: KeyboardEvent) {
     n.children.flatMap((c, i) => c.vnode.elm === (document && document.activeElement) ? [c.index, i] : []) as number[]
   ) || [0, 0]
   let idx = list.findIndex(n => n.children.some(c => c.vnode.elm === (document && document.activeElement)))
+  if (idx < 0) { return }
   let siblings = list[idx].children.length
   let nextIdx: number
   let next: Navigatable[]
@@ -113,7 +114,14 @@ function updateEventListeners(oldVnode: VNode, vnode?: VNode): void {
   }
 
   if (elm) {
-    let listener = (vnode as any).tabIndexListener = handle.bind(null, vnode)
+    let listener = (vnode as any).tabIndexListener = (e: KeyboardEvent) => {
+      try {
+        return handle(vnode, e)
+      } catch (e) {
+        console.warn(e)
+        // ignore navigation errors
+      }
+    }
     elm.addEventListener("keyup", listener, false)
   }
 }
