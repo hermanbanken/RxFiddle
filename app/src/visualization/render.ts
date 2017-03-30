@@ -378,7 +378,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     h("detail", diagram),
   ])
 
-  let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => tickSelection.onNext(v))
+  let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => uievents.onNext({ type: "tickSelection", tick: v }))
 
   return {
     svg: app,
