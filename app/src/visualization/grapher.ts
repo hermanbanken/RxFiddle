@@ -4,6 +4,7 @@ import { TreeReaderAdvanced } from "../collector/treeReaderAdvanced"
 import TypedGraph from "../collector/typedgraph"
 import { IObserverTree, ObservableTree } from "../oct/oct"
 import { DataSource, Graphs } from "./index"
+import * as Rx from "rx"
 
 export default class Grapher {
 

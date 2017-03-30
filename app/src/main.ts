@@ -1,7 +1,8 @@
 import JsonCollector from "./collector/jsonCollector"
 // import Collector from "./collector/logger"
+import { LanguageCombination } from "./languages"
 import Visualizer, { DataSource } from "./visualization"
-import Grapher from "./visualization/grapher"
+import { GrapherAdvanced as Grapher } from "./visualization/grapher"
 import MorphModule from "./visualization/morph"
 import TabIndexModule from "./visualization/tabIndexQuickDirty"
 // import { VNode, makeDOMDriver } from "@cycle/dom"
@@ -119,6 +120,23 @@ function Resizer(target: VNode): VNode {
   })
 }
 
+class LanguageMenu {
+  public stream(): { dom: Rx.Observable<VNode>, language: Rx.Observable<LanguageCombination> } {
+    return {
+      dom: Rx.Observable.just(h("div.select", [
+        h("div.selected", "RxJS 4"),
+        h("div.options", [
+          h("div.option", "RxJS 4"),
+          h("div.option", h("a",
+            { attrs: { href: "https://github.com/hermanbanken/RxFiddle/pulls" } },
+            "issue Pull Request"
+          )),
+        ]),
+      ])), language: Rx.Observable.never<LanguageCombination>()
+    }
+  }
+}
+
 function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
   let next = Rx.Observable.create(sub => {
     console.error(e);
@@ -127,13 +145,16 @@ function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }
   return Rx.Observable.just({ dom: h("div", "Krak!"), timeSlider: h("div") }).merge(next)
 }
 
-function menu(time: VNode, run?: () => void): VNode {
-  return h("div.left.ml3.flex", [
+function menu(time: VNode, language: VNode, run?: () => void): VNode {
+  return h("div.left.ml3.flex", { attrs: { id: "menu" } }, [
     ...(run ? [h("button.btn", { on: { click: () => run && run() } }, "Run")] : []),
+    language,
+    h("div.menutext", "time:"),
     time,
   ])
 }
 
+const LanguageMenu$ = new LanguageMenu().stream()
 const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
   if (collector) {
     let vis = new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
@@ -142,13 +163,13 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
       .startWith({ dom: h("span", "Waiting for Rx activity..."), timeSlider: h("div") })
       .catch(errorHandler)
       .retry()
-      .combineLatest(collector.vnode || Rx.Observable.just(undefined), (render, input) => [
+      .combineLatest(collector.vnode || Rx.Observable.just(undefined), LanguageMenu$.dom, (render, input, langs) => [
         h("div#menufold-static.menufold", [
           h("a.brand.left", { attrs: { href: "#" } }, [
             h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
             "RxFiddle" as any as VNode,
           ]),
-          menu(render.timeSlider, collector.run),
+          menu(render.timeSlider, langs, collector.run),
         ]),
         // h("div#menufold-fixed.menufold"),
         h("div.flexy", input ? [input, Resizer(input), render.dom] : [render.dom]),

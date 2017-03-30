@@ -595,3 +595,56 @@ g.circle:hover text, g.circle:hover rect {
     outline-style:auto;
     outline-width:5px;*/
 }
+.menutext {
+    padding: 10px 0;
+    margin: 6px 6px 6px 12px;
+    color: white;
+}
+
+/** select box component **/
+.select {
+    position: relative;
+    margin: 7px;
+}
+
+.select > .selected, .select::after {
+  display: inline-block;
+  box-sizing: border-box;
+  background: #1678CA;
+  color: #ebecec;
+  padding: 10px;
+  margin: 0;
+  vertical-align: baseline;
+  font-size: inherit;
+  font-family: system-ui;
+  font-weight: normal;
+  cursor: pointer;
+} 
+.select::after {
+    content: "^";
+    margin-left: 1px;
+}
+
+.select > .options {
+  display: none;
+  position: absolute;
+  top: 100%;
+  background: #fff;
+  left: 0;
+  border: 1px solid #eee;
+  border-top: none;
+  z-index: 9999;
+}
+.select:hover > .options, .select:active > .options { 
+  display: block;
+}
+
+.select > .options > .option {
+  padding: 7px;
+  border-top: 1px solid #eee;
+}
+
+.select > .options > .option:hover {
+  background: #ddd;
+  cursor: pointer;
+}
