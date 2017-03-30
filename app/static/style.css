@@ -547,28 +547,33 @@ g.circle:hover text, g.circle:hover rect {
     outline: none;
 }
 
- .marbleevent span {
+ .marbleevent > span {
     display: none;
-    background: rgba(0,0,0,0.8);
+    max-width: 400px;
     width: auto;
-    overflow: visible;
+    overflow: auto;
+    background: rgba(0,0,0,0.8);
     border-radius: 3px;
     padding: 5px;
     margin-top: 43px;
     color: white;
     word-wrap: break-word;
     direction: ltr;
+    cursor: default;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    user-select: text;
 }
 
 .marbleevent.rtl {
   direction: rtl;
 }
 
-.marbleevent:hover span, .marbleevent:active span, .marbleevent:focus span {
+.marbleevent:hover > span, .marbleevent:active > span, .marbleevent:focus > span {
     display: inline-block;
 }
 
-.marbleevent span:before {
+.marbleevent > span:before {
   width: 0;
   height: 0;
   border-style: solid;
@@ -581,7 +586,9 @@ g.circle:hover text, g.circle:hover rect {
   -webkit-transform: rotate(360deg);
 }
 
-.marbleevent:hover span:after, .marbleevent:active span:after, .marbleevent:focus span:after {
+/*
+disable purple highlight border:
+.marbleevent:hover > span:after, .marbleevent:active > span:after, .marbleevent:focus > span:after {
     content: "";
     width: 20px;
     height: 20px;
@@ -593,8 +600,17 @@ g.circle:hover text, g.circle:hover rect {
     box-sizing: border-box;
     /*outline-color: rgb(59, 153, 252);
     outline-style:auto;
-    outline-width:5px;*/
+    outline-width:5px;* /
+} */
+
+.marbleevent a.type-ref {
+    background: #1678ca;
+    padding: 2px;
+    border: #98bfe0 1px solid;
+    border-radius: 3px;
+    display: inline-block;
 }
+
 .menutext {
     padding: 10px 0;
     margin: 6px 6px 6px 12px;
