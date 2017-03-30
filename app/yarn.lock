@@ -1092,6 +1092,10 @@ code-point-at@^1.0.0:
   dependencies:
     number-is-nan "^1.0.0"
 
+codemirror:
+  version "5.24.2"
+  resolved "https://registry.yarnpkg.com/codemirror/-/codemirror-5.24.2.tgz#b55ca950fa009709c37df68eb133310ed89cf2fe"
+
 colors@^1.1.2:
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/colors/-/colors-1.1.2.tgz#168a4701756b6a7f51a12ce0c97bfa28c084ed63"
@@ -2739,7 +2743,7 @@ slash@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/slash/-/slash-1.0.0.tgz#c41f2f6c39fc16d1cd17ad4b5d896114ae470d55"
 
-snabbdom@^0.6.5:
+snabbdom@0.6.5:
   version "0.6.5"
   resolved "https://registry.yarnpkg.com/snabbdom/-/snabbdom-0.6.5.tgz#01b0cba8d623eca19e570876630c12c057830066"
 
