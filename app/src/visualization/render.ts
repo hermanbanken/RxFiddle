@@ -350,11 +350,21 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     },
   }, [svg].concat(ns.flatMap(n => n.html)))
 
-  let panel = h("div", [mask])
+  let panel = h("div.flexy.flexy-v.noflex", [h("master", h("div", [mask]))])
+
+  if (layout.length === 0 || layout[0].nodes.length === 0) {
+    panel = h("div.flexy.flexy-v", [h("master",
+      h("div.nograph", [h("p", "No data collected. Hit Run in the menu, or start your collector.")])
+    )])
+  }
 
   // Optionally show flow
-  let diagram = [h("div.nomarbles", [h("p", "Select a flow in the structure to show it's marble diagram.")])]
-  if (flow.length) {
+  let diagram: VNode[]
+  if (!flow.length && layout.length > 0 && layout[0].nodes.length > 0) {
+    diagram = [h("div.nomarbles", [h("p", "Select a flow in the structure to show it's marble diagram.")])]
+  } else if (!flow.length) {
+    diagram = []
+  } else if (flow.length) {
     diagram = renderMarbles(
       flow.flatMap(observer => [observer.observable, observer]),
       viewState,
@@ -374,7 +384,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
 
   let currentTick = typeof viewState.tick === "number" ? viewState.tick : graphs.maxTick
   let app = h("app", { key: `app-${sequence}`, style: { width: `${((xmax + 2) * mx + 300)}px` } }, [
-    h("div.flexy.flexy-v.noflex", [h("master", panel)]),
+    panel,
     h("detail", diagram),
   ])
 

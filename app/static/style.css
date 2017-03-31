@@ -215,14 +215,14 @@ detail {
   flex: 1;
 }
 
-.nomarbles {
+.nograph, .nomarbles {
   height: 100%;
   display: flex;
   align-items: center;
   align-content: center;
   text-align: justify;
 }
-.nomarbles p {
+.nograph p, .nomarbles p {
   width: 100%;
   text-align: center;
 }
