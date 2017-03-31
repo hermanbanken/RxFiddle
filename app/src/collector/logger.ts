@@ -12,15 +12,34 @@ function numkeys<T>(obj: { [id: number]: T }): number[] {
     .filter(v => !isNaN(v)) as any as number[]
 }
 
-export function formatArguments(args: IArguments | any[]): string {
+function formatObject(o: any, levels: number = 2, depth: number = 0): string {
+  if (levels <= 0) { return "{...}" }
+  if (o === null) { return "null" }
+
+  let result = `${o.constructor.name !== "Object" ? `[${o.constructor.name}] ` : ""}{`
+  let i = 0
+  for (let key in o) {
+    if (o.hasOwnProperty(key) && key[0] !== "_") {
+      if (i > 0) { result += "," }
+      i++
+      let padding = ""
+      for (let p = 0; p < depth; p++) { padding += "  " }
+      result += `\n${padding}"${key}": ${_formatArguments([o[key]], levels - 1, depth + 1)}`
+    }
+  }
+  result += result[result.length - 1] === "{" ? "}" : "\n}"
+  return result
+}
+
+function _formatArguments(args: IArguments | any[], levels: number = 2, depth: number = 0): string {
   return [].map.call(args, (a: any) => {
     switch (typeof a) {
       case "undefined": return "undefined"
       case "object":
         if (Array.isArray(a)) {
-          return `[${formatArguments(a)}]`
+          return `[${_formatArguments(a, levels - 1, depth + 1)}]`
         } else {
-          return a.toString() === "[object Object]" ? `[object ${a.constructor.name}]` : a
+          return formatObject(a, levels - 1, depth + 1)
         }
       case "function":
         if (typeof a.__original === "function") {
@@ -36,6 +55,10 @@ export function formatArguments(args: IArguments | any[]): string {
       default: throw new TypeError(`Invalid type ${typeof a}`)
     }
   }).join(", ")
+}
+
+export function formatArguments(args: IArguments | any[]): string {
+  return _formatArguments(args)
 }
 
 export function instanceAddSubscription(input: any) {
