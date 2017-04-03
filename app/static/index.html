@@ -14,7 +14,10 @@
       document.head.appendChild(s);
     }
     if (typeof require == 'undefined') {
-      script('../dist/main.bundle.js');
+      script('../dist/rx/dist/rx.all.js')
+      script('../dist/graphlib/dist/graphlib.min.js')
+      script('../dist/lodash/lodash.min.js')
+      script('../dist/main.bundle.js')
     } else {
       script('../dist/main.js')
     }

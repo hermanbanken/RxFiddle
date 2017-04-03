@@ -4,7 +4,7 @@ import TypedGraph from "./typedgraph"
 import { Edge as GraphEdge, Graph, alg, json } from "graphlib"
 import * as _ from "lodash"
 
-const networkSimplex = require("dagre/lib/rank/network-simplex")
+const networkSimplex = require("ciena-dagre/lib/rank/network-simplex")
 
 const TRACE = false
 function trace(...args: any[]) {

@@ -1,5 +1,4 @@
 import Instrumentation, { defaultSubjects } from "./collector/instrumentation"
-import Collector from "./collector/logger"
 import { TreeCollector, TreeWindowPoster } from "./collector/treeCollector"
 import * as Rx from "rx"
 
