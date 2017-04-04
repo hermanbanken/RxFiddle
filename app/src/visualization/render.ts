@@ -388,7 +388,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     h("detail", diagram),
   ])
 
-  let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => console.log(v, graphs.maxTick, v === graphs.maxTick ? undefined : v) || uievents.onNext({
+  let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => uievents.onNext({
     type: "tickSelection",
     tick: v === graphs.maxTick ? undefined : v,
   }))
@@ -482,6 +482,7 @@ function renderMarbles(
   let root = h("div", {
     attrs: {
       id: "marbles",
+      key: "marbles",
       style: `min-width: ${u * 3}px; height: ${height}px; margin-top: ${(offset - heights[0] / 2)}px`,
     },
   }, nodes.flatMap((node, i, nodeList) => {

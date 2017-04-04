@@ -21,8 +21,14 @@ export default function slider(min: number, max: number, value: number, callback
         min,
         value,
       },
+      // Manually set value, since it is not updated by snabbdom after intialization
+      hook: {
+        update: (old, next) => { (next.elm as HTMLInputElement).value = next.data.attrs.value },
+      },
+      // Fire on both change and input events, to handle intermediate range changes too
       on: {
         change: (e: UIEvent) => callback(parseInt((e.target as HTMLInputElement).value, 10)),
+        input: (e: UIEvent) => callback(parseInt((e.target as HTMLInputElement).value, 10)),
         mousedown: (e: MouseEvent) => dragStart(e),
       },
     }),
