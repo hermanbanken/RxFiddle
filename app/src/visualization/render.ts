@@ -344,7 +344,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
       id: "structure-mask",
     },
     style: {
-      height: `${(ymax + 1) * my + 60}px`,
+      height: `${(ymax + 1) * my + 30}px`,
       position: "relative",
       width: `${(xmax + 2) * mx}px`,
     },
@@ -389,9 +389,9 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     h("detail.rel", diagram),
   ])
 
-  let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => uievents.onNext({
+  let timeSlider = slider(0, graphs.maxTick, currentTick, (v, final) => uievents.onNext({
     type: "tickSelection",
-    tick: v === graphs.maxTick ? undefined : v,
+    tick: v === graphs.maxTick && final ? undefined : v,
   }))
 
   return {

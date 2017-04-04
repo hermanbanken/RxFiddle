@@ -213,6 +213,7 @@ detail {
 
 detail {
   flex: 1;
+  margin-bottom: auto;
 }
 
 .nograph, .nomarbles {

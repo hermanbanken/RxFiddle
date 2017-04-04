@@ -12,7 +12,10 @@ function dragStart(e: MouseEvent): Rx.Observable<{ x: number, y: number }> {
     .map((me: MouseEvent) => ({ x: me.x, y: me.y }))
 }
 
-export default function slider(min: number, max: number, value: number, callback: (value: number) => void): VNode {
+export default function slider(
+  min: number, max: number, value: number,
+  callback: (value: number, final: boolean) => void
+): VNode {
   return h("div.slider", [
     h("input", {
       attrs: {
@@ -27,8 +30,9 @@ export default function slider(min: number, max: number, value: number, callback
       },
       // Fire on both change and input events, to handle intermediate range changes too
       on: {
-        change: (e: UIEvent) => callback(parseInt((e.target as HTMLInputElement).value, 10)),
-        input: (e: UIEvent) => callback(parseInt((e.target as HTMLInputElement).value, 10)),
+        blur: (e: UIEvent) => callback(parseInt((e.target as HTMLInputElement).value, 10), true),
+        change: (e: UIEvent) => callback(parseInt((e.target as HTMLInputElement).value, 10), true),
+        input: (e: UIEvent) => callback(parseInt((e.target as HTMLInputElement).value, 10), false),
         mousedown: (e: MouseEvent) => dragStart(e),
       },
     }),
