@@ -100,6 +100,48 @@ function getObservableId(input: IObservableTree | IObserverTree, node: string): 
   }
 }
 
+type EqualityInput = {
+  _sequence: number,
+  graphs: Graphs,
+  viewState: ViewState,
+  focusNodes: string[],
+}
+
+function listEqual<T>(a: T[], b: T[], comparator: (a: T, b: T) => boolean = (c, d) => c === d): boolean {
+  return a === b || a.length === b.length && a.every((ia, index) => comparator(ia, b[index]))
+}
+
+function graphEqual<N1, E1, N2, E2>(a: TypedGraph<N1, E1>, b: TypedGraph<N2, E2>): boolean {
+  return a.edgeCount() === b.edgeCount() && a.nodeCount() === b.nodeCount() &&
+    listEqual(a.nodes(), b.nodes()) &&
+    listEqual(a.edges(), b.edges(), (c, d) => c.v === d.v && c.w === d.w)
+}
+
+function flowSelectionEqual(
+  a: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick,
+  b: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick
+) {
+  if (typeof a === "undefined" && typeof b === "undefined") { return true }
+  return a.type === b.type && Object.keys(a).every(k => (a as any)[k] === (a as any)[k])
+}
+
+function viewStateEqual(a: ViewState, b: ViewState): boolean {
+  return a.tick === b.tick && flowSelectionEqual(a.flowSelection, b.flowSelection)
+}
+
+function equalData(a: EqualityInput, b: EqualityInput): boolean {
+  let r = true && // a._sequence === b._sequence &&
+    viewStateEqual(a.viewState, b.viewState) &&
+    graphEqual(a.graphs.main, b.graphs.main) && graphEqual(a.graphs.subscriptions, b.graphs.subscriptions)
+  if (!r) {
+    console.log(
+      viewStateEqual(a.viewState, b.viewState) &&
+      graphEqual(a.graphs.main, b.graphs.main) && graphEqual(a.graphs.subscriptions, b.graphs.subscriptions)
+    )
+  }
+  return r
+}
+
 export default class Visualizer {
 
   // TODO workaround for Rx.Subject's
@@ -114,7 +156,9 @@ export default class Visualizer {
     function reduce(pstate: ViewState, event: UIEvent): ViewState {
       switch (event.type) {
         case "tickSelection":
-          return Object.assign({}, pstate, { tick: event.tick })
+          let state = Object.assign({}, pstate)
+          state.tick = event.tick
+          return state
 
         case "selectionGraphEdge":
         case "selectionGraphNode":
@@ -159,16 +203,23 @@ export default class Visualizer {
         return ({
           _sequence: graphs._sequence,
           graphs: filtered,
-          layout: layoutf(
-            filtered.subscriptions,
-            focusNodes,
-            (a, b) => distance(graphs.main.node(a), graphs.main.node(b)),
-            node => getObservableId(filtered.main.node(node) || filtered.subscriptions.node(node), node)
-          ),
           viewState: state,
           focusNodes,
         })
       })
+      // Do not re-layout for equal graphs
+      .publish(obs => obs
+        .distinctUntilChanged(_ => _, equalData)
+        .map(data => Object.assign(data, {
+          layout: layoutf(
+            data.graphs.subscriptions,
+            data.focusNodes,
+            (a, b) => distance(data.graphs.main.node(a), data.graphs.main.node(b)),
+            node => getObservableId(data.graphs.main.node(node) || data.graphs.subscriptions.node(node), node)
+          ),
+        }))
+        .combineLatest(obs, (layoutData, fullData) => Object.assign(fullData, { layout: layoutData.layout }))
+      )
 
     let { svg, clicks, groupClicks, tickSelection, timeSlider, uievents } = graph$(inp)
 

@@ -388,7 +388,10 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     h("detail", diagram),
   ])
 
-  let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => uievents.onNext({ type: "tickSelection", tick: v }))
+  let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => console.log(v, graphs.maxTick, v === graphs.maxTick ? undefined : v) || uievents.onNext({
+    type: "tickSelection",
+    tick: v === graphs.maxTick ? undefined : v,
+  }))
 
   return {
     svg: app,
