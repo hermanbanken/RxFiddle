@@ -54,6 +54,11 @@ export class MarbleCoordinator {
     this.timeSelector = timeSelector
   }
 
+  public set(min: number, max: number) {
+    this.min = min
+    this.max = max
+  }
+
   // Calc bounds
   public add(edges: (EventLabel | IEvent)[]): void {
     let events = edges.map(_ => ((_ as EventLabel).event || _) as IEvent)
@@ -133,6 +138,7 @@ export class MarbleCoordinator {
           on: handlers,
           style: { left: `${left}%` },
           tabIndex: { index: e.tick },
+          key: `marble-${observer.id}-${e.type}@${e.tick}`,
         }, [tooltip(e, uiEvents)]),
         svg: h("svg", {
           attrs: { x: `${left}%`, y: "50%" },
@@ -151,7 +157,7 @@ export class MarbleCoordinator {
     ])
   }
 
-  private relTime(t: number | IEvent): number {
+  public relTime(t: number | IEvent): number {
     if (typeof t !== "number") {
       t = this.timeSelector(t)
     }

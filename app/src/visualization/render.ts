@@ -378,14 +378,15 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
             (n as IObserverTree).observable.id !== sub.observable.sources[0].id
           ) as IObserverTree[]
       },
-      event => uievents.onNext(event)
+      event => uievents.onNext(event),
+      graphs.maxTick,
     )
   }
 
   let currentTick = typeof viewState.tick === "number" ? viewState.tick : graphs.maxTick
   let app = h("app", { key: `app-${sequence}`, style: { width: `${((xmax + 2) * mx + 300)}px` } }, [
     panel,
-    h("detail", diagram),
+    h("detail.rel", diagram),
   ])
 
   let timeSlider = slider(0, graphs.maxTick, currentTick, (v) => uievents.onNext({
@@ -470,20 +471,41 @@ function renderMarbles(
   viewState: ViewState,
   offset: number = 0,
   incoming?: (target: IObserverTree) => IObserverTree[],
-  uiEvents?: (event: UIEvent) => void
+  uiEvents?: (event: UIEvent) => void,
+  maxTick?: number
 ): VNode[] {
   let coordinator = new MarbleCoordinator()
+  coordinator.set(0, maxTick)
   let allEvents: IEvent[] = nodes.flatMap((n: any) => n && "events" in n ? n.events as IEvent[] : [])
   coordinator.add(allEvents)
 
   let heights = nodes.map(tree => (tree && "events" in tree) ? 60 : 40)
   let height = heights.reduce((sum, h) => sum + h, 0)
 
-  let root = h("div", {
-    attrs: {
-      id: "marbles",
-      key: "marbles",
-      style: `min-width: ${u * 3}px; height: ${height}px; margin-top: ${(offset - heights[0] / 2)}px`,
+  let timeMax = typeof viewState.tick === "number" ? 100 - coordinator.relTime(viewState.tick) : undefined
+  let timeOverlays = typeof viewState.tick === "number" ? [h("div.timePadding", {
+    style: {
+      margin: "0 15px",
+      position: "absolute",
+      left: "0", right: "0",
+      top: "0", bottom: "0",
+    },
+  }, [h("div.timeOverlay", {
+    style: {
+      position: "absolute",
+      right: `calc(${timeMax}%)`, left: `-15px`,
+      top: "0px", bottom: "0px",
+      background: "rgba(33, 150, 243, 0.17)",
+      "border-right": "2px solid #2196F3",
+    },
+  })])] : []
+
+  let root = h("div#marbles", {
+    key: "marbles",
+    style: {
+      height: `${height}px`,
+      "margin-top": `${(offset - heights[0] / 2)}px`,
+      "min-width": `${u * 3}px`,
     },
   }, nodes.flatMap((node, i, nodeList) => {
     let clazz = "operator withoutStack"
@@ -511,7 +533,7 @@ function renderMarbles(
       return [box]
     }
   }))
-  return [root]
+  return [root, ...timeOverlays]
 }
 
 // tslint:disable:no-conditional-assignment
