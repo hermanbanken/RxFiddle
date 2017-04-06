@@ -126,6 +126,13 @@ export default class Instrumentation {
     Object.keys(subjects).slice(0, 1).forEach((s: string) => subjects[s][IGNORE] = true)
   }
 
+  public isInstrumented(fn: Function, by?: Instrumentation): boolean {
+    if (typeof by === "undefined") { by = this }
+    if ((fn as any).__instrumentedBy === by) { return true }
+    let orig = (fn as any).__originalFunction
+    return typeof orig === "function" && this.isInstrumented(orig, by)
+  }
+
   /* tslint:disable:only-arrow-functions */
   /* tslint:disable:no-string-literal */
   /* tslint:disable:no-string-literal */
@@ -142,7 +149,7 @@ export default class Instrumentation {
         // find more
         argumentsList
           .filter(hasRxPrototype)
-          .filter((v: any) => !v.hasOwnProperty("__instrumented"))
+          .filter((v: any) => !this.isInstrumented(v))
           .forEach((t: any) => this.setupPrototype(t))
 
         let call: ICallStart = {
@@ -186,7 +193,7 @@ export default class Instrumentation {
         // find more
         new Array(end.returned)
           .filter(hasRxPrototype)
-          .filter((v: any) => !v.hasOwnProperty("__instrumented"))
+          .filter((v: any) => !this.isInstrumented(v))
           .forEach((t: any) => this.setupPrototype(t))
 
         // Cleanup
@@ -197,8 +204,12 @@ export default class Instrumentation {
         console.warn("TODO, instrument constructor", target, args)
         return new target(...args)
       },
+      get: (target: any, property: PropertyKey): any => {
+        if (property === "__instrumentedBy") { return self }
+        if (property === "__originalFunction") { return fn }
+        return (target as any)[property]
+      },
     })
-    instrumented.__originalFunction = fn
     return instrumented
   }
 
