@@ -384,7 +384,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
   }
 
   let currentTick = typeof viewState.tick === "number" ? viewState.tick : graphs.maxTick
-  let app = h("app", { key: `app-${sequence}`, style: { "min-width": `${((xmax + 2) * mx + 300)}px` } }, [
+  let app = h("app", { key: `app`, style: { "min-width": `${((xmax + 2) * mx + 300)}px` } }, [
     h("div.flexy", [
       panel,
       h("detail.rel", diagram),

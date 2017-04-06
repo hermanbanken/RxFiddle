@@ -429,6 +429,7 @@ g.circle:hover text, g.circle:hover rect {
   -webkit-user-select: none;
   -moz-user-select: none;
   user-select: none;
+  z-index: 9999;
 }
 
 .graph-label span {
