@@ -28,6 +28,10 @@ export function isObservable<T>(v: any): v is Rx.Observable<T> {
   return typeof v === "object" && v !== null && typeof v.subscribe === "function"
 }
 
+export function isScheduler(v: any): v is Rx.IScheduler & any {
+  return typeof v === "object" && v !== null && typeof v.now === "function" && typeof v.schedule === "function"
+}
+
 export function elvis(item: any, path: string[]): any[] {
   let next = typeof item === "object" && path.length && path[0] in item ? item[path[0]] : undefined
   if (path.length > 1) {
@@ -63,9 +67,11 @@ export interface RxCollector {
   wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T
   before(record: ICallStart, parents?: ICallStart[]): this
   after(record: ICallRecord): void
+  schedule(scheduler: Rx.IScheduler, method: string, action: Function, state: any): void
 }
 
 export default class NewCollector implements RxCollector {
+
   public static collectorId = 0
   public static reset() {
     this.collectorId = 0
@@ -87,6 +93,10 @@ export default class NewCollector implements RxCollector {
   public observerToObs(observer: number | any) {
     let oid = typeof observer === "number" ? observer : this.id(observer).get()
     return this.observerStorage.observerToObservable[oid]
+  }
+
+  public schedule(scheduler: Rx.IScheduler, method: string, action: Function, state: any): void {
+    // throw new Error("Method not implemented.")
   }
 
   public before(record: ICallStart, parents?: ICallStart[]): this {
@@ -173,7 +183,7 @@ export default class NewCollector implements RxCollector {
             }
           })
 
-        let event = Event.fromRecord(record)
+        let event = Event.fromRecord(record, { clock: record.tick, tick: record.tick, scheduler: "" })
         if (event && event.type === "subscribe" || typeof event === "undefined") {
           break
         }

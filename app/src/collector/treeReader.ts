@@ -1,7 +1,8 @@
 import {
-  EdgeType, ITreeLogger,
+  EdgeType, ISchedulerInfo, ITreeLogger,
   NodeType, ObservableTree, ObserverTree, SubjectTree,
 } from "../oct/oct"
+import { Timing } from "./event"
 import TypedGraph from "./typedgraph"
 
 export class TreeReader {
@@ -12,41 +13,47 @@ export class TreeReader {
       this.maxTick = -1
       return this.treeGrapher.reset()
     }
-    if (typeof message === "object" && typeof message.tick === "number") {
-      this.maxTick = Math.max(this.maxTick, message.tick)
+    if (typeof message === "object" && typeof message.timing !== "undefined") {
+      this.maxTick = Math.max(this.maxTick, message.timing.tick)
     }
     if (typeof message.v !== "undefined" && typeof message.w !== "undefined") {
       this.treeGrapher.addEdge(message.v, message.w, message.type, message.meta)
     } else if (typeof message.type !== "undefined") {
-      this.treeGrapher.addNode(message.id, message.type, message.tick)
-    } else if (message) {
+      this.treeGrapher.addNode(message.id, message.type, message.timing)
+    } else if (message && message.meta) {
       this.treeGrapher.addMeta(message.id, message.meta)
+    } else if (typeof message.scheduler !== "undefined") {
+      this.treeGrapher.schedulers.push(message.scheduler)
     }
   }
 }
 
 export class TreeWriter implements ITreeLogger {
   public messages: any[] = []
-  public addNode(id: string, type: NodeType, tick?: number): void {
-    this.messages.push({ id, type, tick })
+  public addNode(id: string, type: NodeType, timing?: Timing): void {
+    this.messages.push({ id, type, timing })
   }
-  public addMeta(id: string, meta: any, tick?: number): void {
-    this.messages.push({ id, meta, tick })
+  public addMeta(id: string, meta: any, timing?: Timing): void {
+    this.messages.push({ id, meta, timing })
   }
   public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
     this.messages.push({ v, w, type, meta })
+  }
+  public addScheduler(id: string, scheduler: ISchedulerInfo): void {
+    this.messages.push({ id, scheduler })
   }
 }
 
 export class TreeGrapher implements ITreeLogger {
   public graph = new TypedGraph<ObservableTree | ObserverTree, {}>()
-  public addNode(id: string, type: NodeType, tick: number): void {
+  public schedulers: ISchedulerInfo[] = []
+  public addNode(id: string, type: NodeType, timing: Timing): void {
     if (type === "observable") {
-      this.graph.setNode(id, new ObservableTree(id, undefined, undefined, tick))
+      this.graph.setNode(id, new ObservableTree(id, undefined, undefined, timing))
     } else if (type === "subject") {
-      this.graph.setNode(id, new SubjectTree(id, undefined, undefined, tick))
+      this.graph.setNode(id, new SubjectTree(id, undefined, undefined, timing))
     } else {
-      this.graph.setNode(id, new ObserverTree(id, undefined, undefined, tick))
+      this.graph.setNode(id, new ObserverTree(id, undefined, undefined, timing))
     }
   }
   public addMeta(id: string, meta: any): void {
@@ -74,7 +81,11 @@ export class TreeGrapher implements ITreeLogger {
     }
     this.graph.setEdge(v, w, meta)
   }
+  public addScheduler(id: string, scheduler: ISchedulerInfo): void {
+    this.schedulers.push(scheduler)
+  }
   public reset() {
     this.graph.nodes().forEach(n => this.graph.removeNode(n))
+    this.schedulers = []
   }
 }

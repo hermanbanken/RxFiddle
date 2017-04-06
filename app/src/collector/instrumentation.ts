@@ -1,10 +1,9 @@
-import "../utils"
-import { ICallRecord, ICallStart, ICallEnd } from "./callrecord"
-import { ICollector } from "./logger"
 import { RxCollector } from "../collector/collector"
+import "../utils"
+import { ICallRecord, ICallStart } from "./callrecord"
 import * as Rx from "rx"
 
-const rxAny: any = <any>Rx
+const rxAny: any = Rx as any
 
 export let defaultSubjects = {
   Observable: Rx.Observable,
@@ -15,6 +14,14 @@ export let defaultSubjects = {
   "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
   "Subject.prototype": rxAny.Subject.prototype,
 }
+
+export let defaultSchedulerFactory: { [key: string]: any } = Object.keys(Rx.Scheduler)
+  .filter(name => typeof (Rx.Scheduler as any)[name] === "object")
+  .filter(name => (Rx.Scheduler as any)[name].__proto__.constructor.name.indexOf("Scheduler") >= 0)
+  .reduce((p, name) => {
+    p[name] = (Rx.Scheduler as any)[name].__proto__
+    return p
+  }, {} as any)
 
 export const HASH = "__hash"
 export const IGNORE = "__ignore"
@@ -45,7 +52,7 @@ function startsWith(input: string, matcher: string) {
 
 function detachedScopeProxy<T>(input: T): T {
   let hashes: { [id: string]: number } = {}
-  if ((<any>input).__detached === true) {
+  if ((input as any).__detached === true) {
     return input
   }
   return new Proxy(input, {
@@ -56,7 +63,7 @@ function detachedScopeProxy<T>(input: T): T {
       if (typeof property === "string" && startsWith(property, "__hash")) {
         return hashes[property]
       }
-      return (<any>target)[property]
+      return (target as any)[property]
     },
     set: (target, property, value): boolean => {
       if (typeof property === "string" && startsWith(property, "__hash")) {
@@ -86,27 +93,27 @@ function rxTweaks<T>(call: ICallStart): void {
   // Other tweaks here...
 }
 
-class Ticker {
-  private tick: number = 0
-  private timeout?: Rx.IDisposable
-  private next: () => void
-  constructor() {
-    this.next = this.nextTick.bind(this)
-  }
-  public get() {
-    if (!this.timeout) {
-      this.timeout = Rx.Scheduler.currentThread.schedule({}, () => { this.next(); return Rx.Disposable.empty })
-      // this.timeout = setTimeout(this.next, 0)
-    }
-    return this.tick
-  }
-  private nextTick() {
-    this.tick++
-    this.timeout = undefined
-  }
-}
+// class Ticker {
+//   private tick: number = 0
+//   private timeout?: Rx.IDisposable
+//   private next: () => void
+//   constructor() {
+//     this.next = this.nextTick.bind(this)
+//   }
+//   public get() {
+//     if (!this.timeout) {
+//       this.timeout = Rx.Scheduler.currentThread.schedule({}, () => { this.next(); return Rx.Disposable.empty })
+//       // this.timeout = setTimeout(this.next, 0)
+//     }
+//     return this.tick
+//   }
+//   private nextTick() {
+//     this.tick++
+//     this.timeout = undefined
+//   }
+// }
 
-let ticker = new Ticker()
+// let ticker = new Ticker()
 
 let i = 0
 
@@ -157,10 +164,10 @@ export default class Instrumentation {
           childs: [],
           id: i++,
           method: extras["methodName"],
-          stack: self.stackTraces ? undefined : undefined,//new Error().stack : undefined,
+          stack: self.stackTraces ? undefined : undefined, // new Error().stack : undefined,
           subject: thisArg,
           subjectName: extras["subjectName"],
-          tick: ticker.get(),
+          tick: 0, // ticker.get(),
           time: now(),
         }
 
@@ -226,6 +233,25 @@ export default class Instrumentation {
     rxAny.Subject = this.instrument(rxAny.Subject, {
       methodName: "new",
       subjectName: "Rx.Subject",
+    })
+    // Object.keys(defaultSchedulerFactory)
+    //   .forEach(name => this.setupScheduler(defaultSchedulerFactory[name], name))
+    // this.setupScheduler(Rx.TestScheduler.prototype, "TestScheduler.prototype")
+  }
+
+  public setupScheduler(schedulerPrototype: any, name?: string) {
+    let methods = Object.keys(schedulerPrototype)
+      .filter(key => typeof schedulerPrototype[key] === "function")
+    let instrumentation = this
+    methods.forEach(key => {
+      schedulerPrototype[key].__instrumented = true
+      let original = schedulerPrototype[key]
+      schedulerPrototype[key] = function (state: any, action: any) {
+        let s = this
+        // console.log(s, key, action, state, arguments)
+        instrumentation.logger.schedule(s, key, action, state)
+        return original.apply(s, arguments)
+      }
     })
   }
 

@@ -1,6 +1,6 @@
 import { StackFrame } from "../utils"
 import { ICallRecord, ICallStart } from "./callrecord"
-import Collector from "./collector"
+import Collector, { RxCollector } from "./collector"
 import { IEvent } from "./event"
 import * as Rx from "rx"
 
@@ -164,12 +164,6 @@ export class AddEvent {
   public kind: "event"
   public subscription: number
   public event: IEvent
-}
-
-export interface RxCollector {
-  before(record: ICallStart, parents?: ICallStart[]): this
-  after(record: ICallRecord): void
-  wrapHigherOrder<T>(subject: Rx.Observable<any>, fn: Function): (arg: T) => T
 }
 
 export type All = AddStackFrame | AddObservable | AddSubscription | AddEvent | AddStructureEntry

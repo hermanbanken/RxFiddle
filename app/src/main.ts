@@ -78,8 +78,11 @@ class CodeEditor {
   }
 }
 
+// For debug purposes
+let messages: any[] = (window as any).messages = []
+
 class PostWindowCollector implements DataSource {
-  public dataObs: Rx.Observable<any> = sameOriginWindowMessages
+  public dataObs: Rx.Observable<any> = sameOriginWindowMessages.do(m => messages.push(m))
 }
 
 const Query$ = Rx.Observable
@@ -164,12 +167,10 @@ function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }
   }).merge(next)
 }
 
-function menu(time: VNode, language: VNode, run?: () => void): VNode {
+function menu(language: VNode, run?: () => void): VNode {
   return h("div.left.ml3.flex", { attrs: { id: "menu" } }, [
     ...(run ? [h("button.btn", { on: { click: () => run && run() } }, "Run")] : []),
     language,
-    h("div.menutext", "time:"),
-    time,
   ])
 }
 
@@ -179,7 +180,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
     let vis = new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
     return vis
       .stream()
-      .startWith({ dom: h("span", "Waiting for Rx activity..."), timeSlider: h("div") })
+      .startWith({ dom: h("span.rxfiddle-waiting", "Waiting for Rx activity..."), timeSlider: h("div") })
       .catch(errorHandler)
       .retry()
       .combineLatest(collector.vnode || Rx.Observable.just(undefined), LanguageMenu$.dom, (render, input, langs) => [
@@ -188,15 +189,25 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
             h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
             "RxFiddle" as any as VNode,
           ]),
-          menu(render.timeSlider, langs, collector.run),
+          menu(langs, collector.run),
         ]),
         // h("div#menufold-fixed.menufold"),
-        h("div.flexy", input ? [input, Resizer(input), render.dom] : [render.dom]),
+        hbox(...(input ?
+          [input, Resizer(input), vbox(render.timeSlider, render.dom)] :
+          [vbox(render.timeSlider, render.dom)]
+        )),
       ])
   } else {
     return new Splash().stream().map(n => [h("div.flexy", [n])])
   }
 })
+
+function vbox(...nodes: VNode[]) {
+  return h("div.flexy.flexy-v", nodes)
+}
+function hbox(...nodes: VNode[]) {
+  return h("div.flexy", nodes)
+}
 
 class Splash {
   public stream() {

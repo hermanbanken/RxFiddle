@@ -1,16 +1,19 @@
 import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger"
 import TypedGraph from "../collector/typedgraph"
 import "../object/extensions"
-import { IObservableTree, IObserverTree, ObserverTree } from "../oct/oct"
+import { IObservableTree, IObserverTree, ISchedulerInfo, ObserverTree } from "../oct/oct"
 import "../utils"
 import Grapher from "./grapher"
 import layoutf from "./layout"
 import MorphModule from "./morph"
-import { graph$ } from "./render"
+import { time } from "./time"
+import { horizontalSlider } from "./timeGrid"
+import { In as RenderInput, graph$ } from "./render"
 import TabIndexModule from "./tabIndexQuickDirty"
 import { MarbleClick, SelectionGraphEdge, SelectionGraphNode, SelectionGraphNone, UIEvent } from "./uievent"
 import * as Rx from "rx"
 import { init as snabbdom_init } from "snabbdom"
+import h from "snabbdom/h"
 import attrs_module from "snabbdom/modules/attributes"
 import class_module from "snabbdom/modules/class"
 import event_module from "snabbdom/modules/eventlisteners"
@@ -40,6 +43,7 @@ export type Graphs = {
   maxTick: number,
   _sequence: number,
   main: TypedGraph<IObservableTree | IObserverTree, {}>,
+  schedulers: ISchedulerInfo[],
   subscriptions: TypedGraph<IObserverTree, {}>,
 }
 
@@ -142,6 +146,26 @@ function equalData(a: EqualityInput, b: EqualityInput): boolean {
   return r
 }
 
+/** Folding UIEvent's over ViewState's */
+function reduce(pstate: ViewState, event: UIEvent): ViewState {
+  switch (event.type) {
+    case "tickSelection":
+      let state = Object.assign({}, pstate)
+      state.tick = event.tick
+      return state
+
+    case "selectionGraphEdge":
+    case "selectionGraphNode":
+    case "selectionGraphNone":
+    case "marbleClick":
+      return Object.assign({}, pstate, { flowSelection: event })
+
+    default:
+      console.warn("Unhandled UIEvent", event)
+      return pstate
+  }
+}
+
 export default class Visualizer {
 
   // TODO workaround for Rx.Subject's
@@ -152,26 +176,6 @@ export default class Visualizer {
   public DOM: Rx.Observable<VNode>
 
   public get viewState(): Rx.Observable<ViewState> {
-
-    function reduce(pstate: ViewState, event: UIEvent): ViewState {
-      switch (event.type) {
-        case "tickSelection":
-          let state = Object.assign({}, pstate)
-          state.tick = event.tick
-          return state
-
-        case "selectionGraphEdge":
-        case "selectionGraphNode":
-        case "selectionGraphNone":
-        case "marbleClick":
-          return Object.assign({}, pstate, { flowSelection: event })
-
-        default:
-          console.warn("Unhandled UIEvent", event)
-          return pstate
-      }
-    }
-
     return this.uiEventsInput
       .do(e => console.log("fold input", e))
       // kick-off
@@ -195,9 +199,11 @@ export default class Visualizer {
     this.app = dom
     this.uiEventsInput = new Rx.Subject<UIEvent>()
 
-    let inp = grapher.graph
+    let viewState = this.viewState
+
+    let inp: RenderInput = grapher.graph
       .debounce(10)
-      .combineLatest(this.viewState, (graphs, state) => {
+      .combineLatest(viewState, (graphs, state) => {
         let filtered = this.filter(graphs, state)
         let focusNodes = this.focusNodes(graphs, state.flowSelection)
         return ({
@@ -220,15 +226,17 @@ export default class Visualizer {
         }))
         .combineLatest(obs, (layoutData, fullData) => Object.assign(fullData, { layout: layoutData.layout }))
       )
+      .shareReplay()
 
-    let { svg, clicks, groupClicks, tickSelection, timeSlider, uievents } = graph$(inp)
+    let timeComponent = time(inp)
+    let { svg, clicks, groupClicks, tickSelection, uievents } = graph$(inp)
 
-    this.timeSlider = timeSlider
+    this.timeSlider = timeComponent.vnode
     this.DOM = svg
     this.clicks = clicks
     this.groupClicks = groupClicks
     this.tickSelection = tickSelection
-    this.uiEventsOutput = uievents
+    this.uiEventsOutput = uievents.merge(timeComponent.uievent)
   }
 
   public stream(): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
@@ -260,7 +268,7 @@ export default class Visualizer {
       case "marbleClick":
         return getFlow(
           graphs.subscriptions,
-          (o, named) => o.events.some(e => e.tick === selection.tick),
+          (o, named) => o.events.some(e => e.timing.tick === selection.tick),
           selection.subscription
         ).map(_ => _.id)
       default: return []
@@ -275,15 +283,17 @@ export default class Visualizer {
       console.log("filtering with tick", viewState.tick)
       return {
         _sequence: graphs._sequence,
-        main: graphs.main.filterNodes((n, o) => o.tick <= viewState.tick),
+        main: graphs.main.filterNodes((n, o) => o.timing.tick <= viewState.tick),
         maxTick: graphs.maxTick,
-        subscriptions: graphs.subscriptions.filterNodes((n, o) => o.tick <= viewState.tick), // subs
+        schedulers: graphs.schedulers,
+        subscriptions: graphs.subscriptions.filterNodes((n, o) => o.timing.tick <= viewState.tick), // subs
       }
     } else {
       return {
         _sequence: graphs._sequence,
         main: graphs.main,
         maxTick: graphs.maxTick,
+        schedulers: graphs.schedulers,
         subscriptions: graphs.subscriptions, // subs
       }
     }

@@ -1,12 +1,30 @@
 import {
-  EdgeType, IObservableTree, IObserverTree, ITreeLogger,
-  NodeType, ObservableTree, ObserverTree, SubjectTree,
+  EdgeType, IObservableTree, IObserverTree, ISchedulerInfo, ITreeLogger,
+  NodeType, ObservableTree, ObserverTree, SchedulerInfo, SubjectTree,
 } from "../oct/oct"
 import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
-import { RxCollector, elvis, isDisposable, isObservable, isObserver } from "./collector"
-import { Event, IEvent } from "./event"
+import { RxCollector, elvis, isObservable, isObserver, isScheduler } from "./collector"
+import { Event, IEvent, Timing } from "./event"
 import { formatArguments } from "./logger"
 import * as Rx from "rx"
+
+function getScheduler<T>(obs: Rx.Observable<T>): Rx.IScheduler | undefined {
+  return (obs as any).scheduler || (obs as any)._scheduler
+}
+
+function schedulerInfo(s: Rx.IScheduler | ISchedulerInfo): ISchedulerInfo {
+  if (typeof (s as any).schedule === "function") {
+    let scheduler = s as Rx.ICurrentThreadScheduler
+    return {
+      clock: scheduler.now(),
+      id: ((scheduler as any).id ||
+        ((scheduler as any).id = new Date().getTime() + "") && (scheduler as any).id) as string,
+      name: (s as any).constructor.name,
+      type: "immediate",
+    }
+  }
+  return s as ISchedulerInfo
+}
 
 export class TreeWindowPoster implements ITreeLogger {
   private post: (message: any) => void
@@ -18,14 +36,17 @@ export class TreeWindowPoster implements ITreeLogger {
       console.error("Using Window.postMessage logger in non-browser environment", new Error())
     }
   }
-  public addNode(id: string, type: NodeType, tick?: number): void {
-    this.post({ id, type, tick })
+  public addNode(id: string, type: NodeType, timing?: Timing): void {
+    this.post({ id, type, timing })
   }
-  public addMeta(id: string, meta: any, tick?: number): void {
-    this.post({ id, meta, tick })
+  public addMeta(id: string, meta: any, timing?: Timing): void {
+    this.post({ id, meta, timing })
   }
   public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
     this.post({ v, w, type, meta })
+  }
+  public addScheduler(id: string, scheduler: ISchedulerInfo): void {
+    this.post({ id, scheduler })
   }
   public reset() {
     this.post("reset")
@@ -39,6 +60,8 @@ export class TreeCollector implements RxCollector {
   public nextId = 1
   public logger: ITreeLogger
   public eventSequence = 0
+
+  private schedulers: { scheduler: Rx.IScheduler, info: ISchedulerInfo }[] = []
 
   public constructor(logger: ITreeLogger) {
     this.collectorId = TreeCollector.collectorId++
@@ -63,6 +86,10 @@ export class TreeCollector implements RxCollector {
     return fn
   }
 
+  public schedule(scheduler: Rx.IScheduler, method: string, action: Function, state: any): void {
+    // throw new Error("Method not implemented.")
+  }
+
   public before(record: ICallStart, parents?: ICallStart[]): this {
     switch (callRecordType(record)) {
       case "subscribe":
@@ -81,7 +108,7 @@ export class TreeCollector implements RxCollector {
             })
           })
       case "event":
-        let event = Event.fromRecord(record)
+        let event = Event.fromRecord(record, this.getTiming(record.subject))
         if (event && event.type === "next" && isObservable(record.arguments[0])) {
           let higher = record.arguments[0]
           event.value = {
@@ -106,7 +133,14 @@ export class TreeCollector implements RxCollector {
     if (!observer.inflow || observer.inflow.length === 0) {
       this.eventSequence++
     }
-    event.tick = this.eventSequence
+    event.timing = this.getTiming(observer.timing.scheduler)
+
+    if (observer.observable && observer.observable.scheduler) {
+      console.log(observer.observable.constructor.name, schedulerInfo(observer.observable.scheduler))
+    }
+    // if (observer.observable && observer.observable.scheduler) {
+    //   console.log(observer.observable.constructor.name, schedulerInfo(observer.observable.scheduler))
+    // }
     observer.addEvent(event)
   }
 
@@ -124,7 +158,7 @@ export class TreeCollector implements RxCollector {
     return typeof input === "object" && typeof (input as any)[this.hash] !== "undefined"
   }
 
-  private tag(input: any): IObserverTree | IObservableTree | undefined {
+  private tag(input: any): IObserverTree | IObservableTree | ISchedulerInfo | undefined {
     let tree: IObserverTree | IObservableTree
     if (typeof input === "undefined") {
       return undefined
@@ -135,18 +169,49 @@ export class TreeCollector implements RxCollector {
 
     if (isObserver(input) && isObservable(input)) {
       (input as any)[this.hash] = tree = new SubjectTree(`${this.nextId++}`,
-        input.constructor.name, this.logger, this.eventSequence)
+        input.constructor.name, this.logger, this.getTiming(input))
       return tree
     }
     if (isObservable(input)) {
       (input as any)[this.hash] = tree = new ObservableTree(`${this.nextId++}`,
-        input.constructor.name, this.logger, this.eventSequence)
+        input.constructor.name, this.logger, this.getTiming(input))
       return tree
     }
     if (isObserver(input)) {
       (input as any)[this.hash] = tree = new ObserverTree(`${this.nextId++}`,
-        input.constructor.name, this.logger, this.eventSequence)
+        input.constructor.name, this.logger, this.getTiming(input))
       return tree
+    }
+    if (isScheduler(input)) {
+      let scheduler = input as Rx.IScheduler
+      let type: "virtual" = "virtual"
+      let clock = scheduler.now()
+      let info = new SchedulerInfo(`${this.nextId++}`, scheduler.constructor.name, type, clock, this.logger);
+      (input as any)[this.hash] = info
+      this.schedulers.push({ scheduler, info })
+      return info
+    }
+  }
+
+  private getTiming(scheduler: string | any): Timing {
+    if (typeof scheduler !== "string") {
+      if (isObservable(scheduler)) {
+        if (getScheduler(scheduler)) {
+          return this.getTiming((this.tag(getScheduler(scheduler)) as ISchedulerInfo).id)
+        } else {
+          return this.getTiming(scheduler.source)
+        }
+      }
+      if (isObserver(scheduler) && this.hasTag(scheduler)) {
+        return this.getTiming((this.tag(scheduler) as IObserverTree).timing.scheduler)
+      }
+    }
+
+    let found = this.schedulers.find(_ => _.info.id === scheduler)
+    if (found) {
+      return { clock: found.scheduler.now(), tick: this.eventSequence, scheduler: found.info.id }
+    } else {
+      return { clock: this.eventSequence, tick: this.eventSequence, scheduler: "" }
     }
   }
 
@@ -219,6 +284,9 @@ export class TreeCollector implements RxCollector {
         } else if ((input as any)._sources) {
           tree.setSources((input as any)._sources.flatMap((s: any) => this.tagObservable(s)))
         }
+      }
+      if (getScheduler(input)) {
+        this.tag(getScheduler(input))
       }
       return [tree]
     }

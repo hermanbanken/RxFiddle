@@ -1,5 +1,6 @@
+import { RxCollector } from "../src/collector/collector"
 import Instrumentation, { defaultSubjects } from "../src/collector/instrumentation"
-import Collector, { RxCollector } from "../src/collector/logger"
+import Collector from "../src/collector/logger"
 import { suite } from "mocha-typescript"
 
 @suite

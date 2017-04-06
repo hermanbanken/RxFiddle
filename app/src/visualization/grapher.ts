@@ -26,6 +26,7 @@ export default class Grapher {
         main: reader.treeGrapher.graph
           .filterNodes(n => true),
         maxTick: reader.maxTick,
+        schedulers: reader.treeGrapher.schedulers,
         subscriptions: reader.treeGrapher.graph
           .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
       }))

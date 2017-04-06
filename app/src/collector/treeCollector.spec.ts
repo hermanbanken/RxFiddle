@@ -15,6 +15,9 @@ if (typeof btoa !== "function") {
   }
 }
 
+const onNext = Rx.ReactiveTest.onNext
+const onCompleted = Rx.ReactiveTest.onCompleted
+
 @suite
 export class TreeCollectorTest {
 
@@ -313,6 +316,24 @@ export class TreeCollectorTest {
       })
     }
     next()
+  }
+
+  @test
+  public "write virtual time test"() {
+    let scheduler = new Rx.TestScheduler()
+
+    let input = scheduler.createColdObservable(
+      onNext(100, 1),
+      onNext(200, 2),
+      onNext(300, 3),
+      onCompleted(300)) as Rx.Observable<number>
+
+    let result = (scheduler as any).startScheduler(
+      () => input.map(i => String.fromCharCode("A".charCodeAt(0) + i)),
+      { created: 10, subscribed: 10, disposed: 500 }
+    )
+
+    this.write("tree_t")
   }
 
   private flowsFrom(observable: IObservableTree, to: IObserverTree, remaining: number = 100): boolean {

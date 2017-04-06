@@ -20,8 +20,8 @@ function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void) {
         let val = e.value as any
         if ("type" in val && "id" in val) {
           let handlers = {
-            focus: () => uiEvents({ observable: val.id, tick: e.tick, type: "higherOrderClick" }),
-            mouseover: () => uiEvents({ observable: val.id, tick: e.tick, type: "higherOrderHoover" }),
+            focus: () => uiEvents({ observable: val.id, tick: e.timing.tick, type: "higherOrderClick" }),
+            mouseover: () => uiEvents({ observable: val.id, tick: e.timing.tick, type: "higherOrderHoover" }),
           }
           return h("span", [
             `${e.type}`,
@@ -38,7 +38,7 @@ function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void) {
       return h("span", `${e.type}`)
     default:
       return h("span", [
-        h("span", { style: { "white-space": "nowrap" } }, `${e.type} @ ${new Date(e.time)} / ${e.tick}`),
+        h("span", { style: { "white-space": "nowrap" } }, `${e.type} @ ${new Date(e.timing.tick)} / ${e.timing.tick}`),
         h("br"),
         JSON.stringify(e),
       ])
@@ -50,7 +50,7 @@ export class MarbleCoordinator {
   private max: number
   private timeSelector: (e: IEvent) => number
 
-  constructor(timeSelector: (e: IEvent) => number = _ => _.tick) {
+  constructor(timeSelector: (e: IEvent) => number = _ => _.timing.tick) {
     this.timeSelector = timeSelector
   }
 
@@ -92,9 +92,9 @@ export class MarbleCoordinator {
       })
 
       let handlers = {
-        click: () => uiEvents({ subscription: observer.id, tick: e.tick, type: "marbleClick" }),
-        focus: () => uiEvents({ subscription: observer.id, tick: e.tick, type: "marbleHoover" }),
-        mouseover: () => uiEvents({ subscription: observer.id, tick: e.tick, type: "marbleHoover" }),
+        click: () => uiEvents({ subscription: observer.id, tick: e.timing.tick, type: "marbleClick" }),
+        focus: () => uiEvents({ subscription: observer.id, tick: e.timing.tick, type: "marbleHoover" }),
+        mouseover: () => uiEvents({ subscription: observer.id, tick: e.timing.tick, type: "marbleHoover" }),
       }
 
       let circle = h("circle", {
@@ -137,8 +137,8 @@ export class MarbleCoordinator {
           attrs: { href: "javascript:undefined", role: "button" },
           on: handlers,
           style: { left: `${left}%` },
-          tabIndex: { index: e.tick },
-          key: `marble-${observer.id}-${e.type}@${e.tick}`,
+          tabIndex: { index: e.timing.tick },
+          key: `marble-${observer.id}-${e.type}@${e.timing.tick}`,
         }, [tooltip(e, uiEvents)]),
         svg: h("svg", {
           attrs: { x: `${left}%`, y: "50%" },

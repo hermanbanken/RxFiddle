@@ -384,9 +384,11 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
   }
 
   let currentTick = typeof viewState.tick === "number" ? viewState.tick : graphs.maxTick
-  let app = h("app", { key: `app-${sequence}`, style: { width: `${((xmax + 2) * mx + 300)}px` } }, [
-    panel,
-    h("detail.rel", diagram),
+  let app = h("app", { key: `app-${sequence}`, style: { "min-width": `${((xmax + 2) * mx + 300)}px` } }, [
+    h("div.flexy", [
+      panel,
+      h("detail.rel", diagram),
+    ]),
   ])
 
   let timeSlider = slider(0, graphs.maxTick, currentTick, (v, final) => uievents.onNext({
