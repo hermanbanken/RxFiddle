@@ -2,6 +2,7 @@ import {
   EdgeType, ISchedulerInfo, ITreeLogger,
   NodeType, ObservableTree, ObserverTree, SubjectTree,
 } from "../oct/oct"
+import { elvis } from "./collector"
 import { Timing } from "./event"
 import TypedGraph from "./typedgraph"
 
@@ -13,9 +14,14 @@ export class TreeReader {
       this.maxTick = -1
       return this.treeGrapher.reset()
     }
-    if (typeof message === "object" && typeof message.timing !== "undefined") {
-      this.maxTick = Math.max(this.maxTick, message.timing.tick)
-    }
+
+    elvis(message, ["meta", "events", "timing"]).concat(elvis(message, ["timing"])).forEach(timing => {
+      this.maxTick = Math.max(this.maxTick, timing.tick)
+      if (isNaN(this.maxTick)) {
+        console.log("Corrupted by ", message)
+      }
+    })
+
     if (typeof message.v !== "undefined" && typeof message.w !== "undefined") {
       this.treeGrapher.addEdge(message.v, message.w, message.type, message.meta)
     } else if (typeof message.type !== "undefined") {
@@ -30,11 +36,11 @@ export class TreeReader {
 
 export class TreeWriter implements ITreeLogger {
   public messages: any[] = []
-  public addNode(id: string, type: NodeType, timing?: Timing): void {
-    this.messages.push({ id, type, timing })
+  public addNode(id: string, type: NodeType, scheduler?: ISchedulerInfo): void {
+    this.messages.push({ id, type, scheduler })
   }
-  public addMeta(id: string, meta: any, timing?: Timing): void {
-    this.messages.push({ id, meta, timing })
+  public addMeta(id: string, meta: any): void {
+    this.messages.push({ id, meta })
   }
   public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
     this.messages.push({ v, w, type, meta })
@@ -47,13 +53,13 @@ export class TreeWriter implements ITreeLogger {
 export class TreeGrapher implements ITreeLogger {
   public graph = new TypedGraph<ObservableTree | ObserverTree, {}>()
   public schedulers: ISchedulerInfo[] = []
-  public addNode(id: string, type: NodeType, timing: Timing): void {
+  public addNode(id: string, type: NodeType, scheduler: ISchedulerInfo): void {
     if (type === "observable") {
-      this.graph.setNode(id, new ObservableTree(id, undefined, undefined, timing))
+      this.graph.setNode(id, new ObservableTree(id, undefined, undefined, scheduler))
     } else if (type === "subject") {
-      this.graph.setNode(id, new SubjectTree(id, undefined, undefined, timing))
+      this.graph.setNode(id, new SubjectTree(id, undefined, undefined, scheduler))
     } else {
-      this.graph.setNode(id, new ObserverTree(id, undefined, undefined, timing))
+      this.graph.setNode(id, new ObserverTree(id, undefined, undefined))
     }
   }
   public addMeta(id: string, meta: any): void {

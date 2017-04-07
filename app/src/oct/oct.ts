@@ -13,7 +13,7 @@ export interface IObservableTree {
   calls?: MethodCall[]
   sources?: IObservableTree[]
   timing?: Timing
-  scheduler?: Rx.IScheduler | ISchedulerInfo
+  scheduler?: ISchedulerInfo
   setSources(sources: IObservableTree[]): IObservableTree
   addMeta(meta: any): IObservableTree
 }
@@ -25,7 +25,6 @@ export interface IObserverTree {
   sink?: IObserverTree
   inflow?: IObserverTree[]
   events: IEvent[]
-  timing?: Timing
   setSink(sinks: IObserverTree[], name?: string): IObserverTree
   addInflow(inflow: IObserverTree): IObserverTree
   setObservable(observable: IObservableTree[]): IObserverTree
@@ -37,8 +36,8 @@ export type EdgeType = "addSource" | "setObserverSource" | "addObserverSink"
 export type NodeType = "observable" | "subject" | "observer"
 
 export interface ITreeLogger {
-  addNode(id: Id, type: NodeType, timing?: Timing): void
-  addMeta(id: Id, meta: any, timing?: Timing): void
+  addNode(id: Id, type: NodeType, timing?: ISchedulerInfo): void
+  addMeta(id: Id, meta: any): void
   addEdge(v: Id, w: Id, type: EdgeType, meta?: any): void
   addScheduler(id: Id, scheduler: ISchedulerInfo): void
 }
@@ -48,16 +47,16 @@ export class ObservableTree implements IObservableTree {
   public names?: string[]
   public calls?: MethodCall[]
   public sources?: IObservableTree[]
-  public timing?: Timing
+  public scheduler?: ISchedulerInfo
 
   public logger?: ITreeLogger
-  constructor(id: string, name?: string, logger?: ITreeLogger, timing?: Timing) {
+  constructor(id: string, name?: string, logger?: ITreeLogger, scheduler?: ISchedulerInfo) {
     this.id = id
-    this.timing = timing
+    this.scheduler = scheduler
     if (name) { this.names = [name] }
     if (logger) {
       this.logger = logger
-      logger.addNode(id, "observable", Object.assign({}, timing))
+      logger.addNode(id, "observable", scheduler && Object.assign({}, scheduler))
       logger.addMeta(id, { names: name })
     }
   }
@@ -91,16 +90,15 @@ export class ObserverTree implements IObserverTree {
   public sink?: IObserverTree
   public inflow?: IObserverTree[]
   public events: IEvent[] = []
-  public timing?: Timing
+  public scheduler?: ISchedulerInfo
 
   public logger?: ITreeLogger
-  constructor(id: string, name?: string, logger?: ITreeLogger, timing?: Timing) {
+  constructor(id: string, name?: string, logger?: ITreeLogger) {
     this.id = id
-    this.timing = timing
     if (name) { this.names = [name] }
     if (logger) {
       this.logger = logger
-      logger.addNode(id, "observer", Object.assign({}, timing))
+      logger.addNode(id, "observer")
       logger.addMeta(id, { names: name })
     }
   }
@@ -144,7 +142,7 @@ export class ObserverTree implements IObserverTree {
 
   public addEvent(event: IEvent): IObserverTree {
     if (this.logger) {
-      this.logger.addMeta(this.id, { events: event }, Object.assign({}, event.timing))
+      this.logger.addMeta(this.id, { events: event })
     }
     return this
   }
@@ -188,7 +186,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   public sink?: IObserverTree
   public sinks?: IObserverTree[]
   public events: IEvent[] = []
-  public timing?: Timing
+  public scheduler?: ISchedulerInfo
 
   // Mixin Observable & Observer methods
   public setSink: (sinks: IObserverTree[], name?: string) => this
@@ -199,15 +197,15 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   public addEvent: (event: IEvent) => IObserverTree
   public logger?: ITreeLogger
 
-  constructor(id: string, name?: string, logger?: ITreeLogger, timing?: Timing) {
+  constructor(id: string, name?: string, logger?: ITreeLogger, scheduler?: ISchedulerInfo) {
     this.id = id
-    this.timing = timing
+    this.scheduler = scheduler
     if (name) {
       this.names = [name]
     }
     if (logger) {
       this.logger = logger
-      logger.addNode(id, "subject", Object.assign({}, timing))
+      logger.addNode(id, "subject", Object.assign({}, scheduler))
       logger.addMeta(id, { names: name })
     }
   }

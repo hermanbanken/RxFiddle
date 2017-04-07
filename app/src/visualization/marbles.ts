@@ -5,40 +5,54 @@ import { UIEvent } from "./render"
 import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
+function timeSelector(e: IEvent) {
+  return e.timing && e.timing.tick
+}
+function clockSelector(e: IEvent) {
+  return e.timing && e.timing.clock
+}
+
+function name(e: IEvent): string {
+  if (clockSelector(e) < 14e9) {
+    return `${e.type} @ ${clockSelector(e)}`
+  }
+  return `${e.type} @ ${new Date(clockSelector(e))} / ${timeSelector(e)}`
+}
+
 function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void) {
   switch (e.type) {
     case "error":
       return h("span", [
-        `${e.type}`,
+        name(e),
         h("br"),
         h("pre", e.error.stack.toString() || e.error.toString()),
       ])
     case "next":
       if (typeof e.value === "string") {
-        return h("span", [`${e.type}`, h("br"), h("pre", e.value)])
+        return h("span", [name(e), h("br"), h("pre", e.value)])
       } else if (typeof e.value === "object") {
         let val = e.value as any
         if ("type" in val && "id" in val) {
           let handlers = {
-            focus: () => uiEvents({ observable: val.id, tick: e.timing.tick, type: "higherOrderClick" }),
-            mouseover: () => uiEvents({ observable: val.id, tick: e.timing.tick, type: "higherOrderHoover" }),
+            focus: () => uiEvents({ observable: val.id, tick: timeSelector(e), type: "higherOrderClick" }),
+            mouseover: () => uiEvents({ observable: val.id, tick: timeSelector(e), type: "higherOrderHoover" }),
           }
           return h("span", [
-            `${e.type}`,
+            name(e),
             h("br"),
             h("a.type-ref", { attrs: { role: "button" }, on: handlers }, val.type),
           ])
         } else {
-          return h("span", [`${e.type}`, h("br"), JSON.stringify(val)])
+          return h("span", [name(e), h("br"), JSON.stringify(val)])
         }
       }
     case "complete":
     case "dispose":
     case "subscribe":
-      return h("span", `${e.type}`)
+      return h("span", name(e))
     default:
       return h("span", [
-        h("span", { style: { "white-space": "nowrap" } }, `${e.type} @ ${new Date(e.timing.tick)} / ${e.timing.tick}`),
+        h("span", { style: { "white-space": "nowrap" } }, name(e)),
         h("br"),
         JSON.stringify(e),
       ])
@@ -50,7 +64,7 @@ export class MarbleCoordinator {
   private max: number
   private timeSelector: (e: IEvent) => number
 
-  constructor(timeSelector: (e: IEvent) => number = _ => _.timing.tick) {
+  constructor(timeSelector: (e: IEvent) => number = _ => _.timing && _.timing.tick) {
     this.timeSelector = timeSelector
   }
 
@@ -92,9 +106,9 @@ export class MarbleCoordinator {
       })
 
       let handlers = {
-        click: () => uiEvents({ subscription: observer.id, tick: e.timing.tick, type: "marbleClick" }),
-        focus: () => uiEvents({ subscription: observer.id, tick: e.timing.tick, type: "marbleHoover" }),
-        mouseover: () => uiEvents({ subscription: observer.id, tick: e.timing.tick, type: "marbleHoover" }),
+        click: () => uiEvents({ subscription: observer.id, tick: this.timeSelector(e), type: "marbleClick" }),
+        focus: () => uiEvents({ subscription: observer.id, tick: this.timeSelector(e), type: "marbleHoover" }),
+        mouseover: () => uiEvents({ subscription: observer.id, tick: this.timeSelector(e), type: "marbleHoover" }),
       }
 
       let circle = h("circle", {
@@ -137,8 +151,8 @@ export class MarbleCoordinator {
           attrs: { href: "javascript:undefined", role: "button" },
           on: handlers,
           style: { left: `${left}%` },
-          tabIndex: { index: e.timing.tick },
-          key: `marble-${observer.id}-${e.type}@${e.timing.tick}`,
+          tabIndex: { index: this.timeSelector(e) },
+          key: `marble-${observer.id}-${e.type}@${this.timeSelector(e)}`,
         }, [tooltip(e, uiEvents)]),
         svg: h("svg", {
           attrs: { x: `${left}%`, y: "50%" },

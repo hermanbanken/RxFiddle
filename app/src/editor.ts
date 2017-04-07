@@ -70,10 +70,10 @@ function run() {
   window.parent.postMessage({ hash: { type: "editor", code: encodeURI(btoa(code)) } }, location.origin)
 
   let poster = new TreeWindowPoster()
+  poster.reset()
   let collector = new TreeCollector(poster)
   instrumentation = new Instrumentation(defaultSubjects, collector)
   instrumentation.setup()
-  poster.reset()
 
   // Execute user code
   let result = evalAndRepackageErrors(code)

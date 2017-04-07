@@ -19,7 +19,7 @@ export let defaultSchedulerFactory: { [key: string]: any } = Object.keys(Rx.Sche
   .filter(name => typeof (Rx.Scheduler as any)[name] === "object")
   .filter(name => (Rx.Scheduler as any)[name].__proto__.constructor.name.indexOf("Scheduler") >= 0)
   .reduce((p, name) => {
-    p[name] = (Rx.Scheduler as any)[name].__proto__
+    p[name] = (Rx.Scheduler as any)[name]
     return p
   }, {} as any)
 
@@ -115,6 +115,10 @@ function rxTweaks<T>(call: ICallStart): void {
 
 // let ticker = new Ticker()
 
+export function getPrototype(input: any): any {
+  return input.prototype || input.__proto__
+}
+
 let i = 0
 
 export default class Instrumentation {
@@ -134,7 +138,13 @@ export default class Instrumentation {
   }
 
   public isInstrumented(fn: Function, by?: Instrumentation): boolean {
-    if (typeof by === "undefined") { by = this }
+    if (typeof by === "undefined") {
+      return ((
+        typeof fn.__originalFunction === "function" ?
+          1 + (this.isInstrumented(fn.__originalFunction) as any) as number :
+          0)
+      ) as any as boolean
+    }
     if ((fn as any).__instrumentedBy === by) { return true }
     let orig = (fn as any).__originalFunction
     return typeof orig === "function" && this.isInstrumented(orig, by)
@@ -220,38 +230,87 @@ export default class Instrumentation {
     return instrumented
   }
 
-  public deinstrument(fn: Function) {
-    return fn.__originalFunction || fn
+  public deinstrument(fn: Function): Function {
+    return fn.__originalFunction && this.deinstrument(fn.__originalFunction) || fn
   }
   /* tslint:enable:only-arrow-functions */
   /* tslint:enable:no-string-literal */
   /* tslint:enable:no-string-literal */
 
   public setup(): void {
+    // Observables
     Object.keys(this.subjects)
       .forEach(name => this.setupPrototype(this.subjects[name], name))
+
+    // Subjects
     rxAny.Subject = this.instrument(rxAny.Subject, {
       methodName: "new",
       subjectName: "Rx.Subject",
     })
-    // Object.keys(defaultSchedulerFactory)
-    //   .forEach(name => this.setupScheduler(defaultSchedulerFactory[name], name))
-    // this.setupScheduler(Rx.TestScheduler.prototype, "TestScheduler.prototype")
+
+    // Schedulers
+    Object.keys(defaultSchedulerFactory)
+      .forEach(name => this.setupSchedulerMethods(defaultSchedulerFactory[name], name))
+    rxAny.TestScheduler = this.setupSchedulerPrototype(rxAny.TestScheduler, "TestScheduler")
+    this.prototypes.push(rxAny)
   }
 
-  public setupScheduler(schedulerPrototype: any, name?: string) {
-    let methods = Object.keys(schedulerPrototype)
-      .filter(key => typeof schedulerPrototype[key] === "function")
-    let instrumentation = this
-    methods.forEach(key => {
-      schedulerPrototype[key].__instrumented = true
-      let original = schedulerPrototype[key]
-      schedulerPrototype[key] = function (state: any, action: any) {
-        let s = this
-        // console.log(s, key, action, state, arguments)
-        instrumentation.logger.schedule(s, key, action, state)
-        return original.apply(s, arguments)
-      }
+  // Swap all methods
+  public setupSchedulerMethods(instance: any, name?: string) {
+    let self = this
+    this.prototypes.push(instance)
+    this.logger.schedule(instance, name, null, null)
+    let proto = getPrototype(instance)
+    this.prototypes.push(proto)
+    Object.keys(proto)
+      .filter(key => typeof instance[key] === "function")
+      .filter(key => !self.isInstrumented(instance[key], self))
+      .forEach(key => {
+        // if (self.isInstrumented(instance[key]) as any as number > 0) {
+        //   console.log("instrumented already", self.isInstrumented(instance[key]), "times")
+        // }
+        let original = instance[key]
+
+        // instance[key] = function (state: any, action: any, time: number) {
+        //   self.logger.schedule(instance, key, action, { state, time })
+        //   return original.apply(instance, arguments)
+        // }
+
+        instance[key] = function (state: any, action: any, time: number) {
+          let args = [].slice.call(arguments, 0)
+          if (key === "scheduleAbsolute") {
+            console.log("Absolute scheduling", args)
+            let newAction = self.logger.schedule(instance, key, args[2], { state: args[0], time: args[1] }) || action
+            if (typeof args[2] === "function" && typeof newAction === "function") { args[2] = newAction }
+            return original.apply(instance, args)
+          }
+          let newAction = self.logger.schedule(instance, key, action, { state, time }) || action
+          if (typeof action === "function" && typeof newAction === "function") { args[1] = newAction }
+          return original.apply(instance, args)
+        }
+
+        instance[key].__instrumentedBy = self
+        instance[key].__originalFunction = original
+      })
+  }
+
+  // Swap constructors
+  public setupSchedulerPrototype(schedulerPrototype: any, name?: string) {
+    let self = this
+    if (this.isInstrumented(schedulerPrototype, this)) {
+      return
+    }
+    return new Proxy(schedulerPrototype, {
+      construct: (target, argArray, newTarget) => {
+        let scheduler = new target(argArray)
+        self.setupSchedulerMethods(scheduler, name)
+        return scheduler
+      },
+      get: (target: any, property: PropertyKey): any => {
+        if (property === "__instrumentedBy") { return self }
+        if (property === "__originalFunction") { return schedulerPrototype }
+        return (target as any)[property]
+      },
     })
   }
 
@@ -266,7 +325,6 @@ export default class Instrumentation {
     this.prototypes.push(prototype)
 
     methods.forEach(key => {
-      prototype[key].__instrumented = true
       prototype[key] = this.instrument(prototype[key], {
         methodName: key,
         subjectName: name || prototype.constructor.name,
@@ -291,9 +349,20 @@ export default class Instrumentation {
     let methods = properties
       .filter(({ key, subject }) => typeof subject[key] === "function")
 
+    // let i = 0
     methods.forEach(({ key, subject }) => {
+      // i++
       subject[key] = this.deinstrument(subject[key])
-      delete subject.__instrumented
     })
+
+    // let fails = this.prototypes
+    //   .map(subject => Object.keys(subject).map(key => ({ key, subject })))
+    //   .reduce((prev, next) => prev.concat(next), [])
+    //   .filter(({ key, subject }) => typeof subject[key] === "function")
+    //   .filter(({ key, subject }) => typeof subject[key].__originalFunction === "function").length
+
+    // console.log("Tore down", i, "methods, failures: ", fails)
+
+    this.prototypes = []
   }
 }

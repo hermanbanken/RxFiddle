@@ -29,6 +29,7 @@ export interface DataSource {
 export type ViewState = {
   tick?: number
   flowSelection?: SelectionGraphNode | SelectionGraphEdge | SelectionGraphNone | MarbleClick
+  hoover?: string
 }
 
 export type GraphNode = {
@@ -160,6 +161,9 @@ function reduce(pstate: ViewState, event: UIEvent): ViewState {
     case "marbleClick":
       return Object.assign({}, pstate, { flowSelection: event })
 
+    case "diagramOperatorHoover":
+      return Object.assign({}, pstate, { hoover: event.observable })
+
     default:
       console.warn("Unhandled UIEvent", event)
       return pstate
@@ -283,10 +287,11 @@ export default class Visualizer {
       console.log("filtering with tick", viewState.tick)
       return {
         _sequence: graphs._sequence,
-        main: graphs.main.filterNodes((n, o) => o.timing.tick <= viewState.tick),
+        main: graphs.main.filterNodes((n, o) => isIObserver(o) ? true : o.scheduler.clock <= viewState.tick),
         maxTick: graphs.maxTick,
         schedulers: graphs.schedulers,
-        subscriptions: graphs.subscriptions.filterNodes((n, o) => o.timing.tick <= viewState.tick), // subs
+        subscriptions: graphs.subscriptions.filterNodes((n, o) => o.observable.scheduler.clock <= viewState.tick),
+        // subs
       }
     } else {
       return {

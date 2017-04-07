@@ -77,3 +77,7 @@ export function last<T>(list: T[]): T {
 export function head<T>(list: T[]): T {
   return list.length >= 1 ? list[0] : undefined
 }
+
+export function getPrototype(input: any): any {
+  return input.protoype || input.__proto__
+}
