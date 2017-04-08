@@ -2,8 +2,9 @@ import {
   EdgeType, ISchedulerInfo, ITreeLogger,
   NodeType, ObservableTree, ObserverTree, SubjectTree,
 } from "../oct/oct"
-import { elvis, isDisposable, isObservable, isObserver } from "./collector"
-import { Event, IEvent, Timing } from "./event"
+import { elvis } from "./collector"
+import { IEvent } from "./event"
+import TimeComposer from "./timeComposer"
 import TypedGraph from "./typedgraph"
 import * as Rx from "rx"
 
@@ -12,15 +13,12 @@ export class TreeReaderAdvanced {
   public maxTick = -1
   public next(message: any): void {
     if (message === "reset") {
-      this.maxTick = -1
       return this.treeGrapher.reset()
     }
 
-    elvis(message, ["meta", "events", "timing"]).concat(elvis(message, ["timing"])).forEach(timing => {
-      this.maxTick = Math.max(this.maxTick, timing.tick)
-      if (isNaN(this.maxTick)) {
-        console.log("Corrupted by ", message)
-      }
+    elvis(message, ["meta", "events"]).forEach(event => {
+      this.treeGrapher.events.push(event)
+      this.treeGrapher.time.reduce(event)
     })
 
     if (typeof message.v !== "undefined" && typeof message.w !== "undefined") {
@@ -38,6 +36,8 @@ export class TreeReaderAdvanced {
 export class TreeGrapherAdvanced implements ITreeLogger {
   public graph = new TypedGraph<ObservableTree | ObserverTree, {}>()
   public schedulers: ISchedulerInfo[] = []
+  public events: IEvent[] = []
+  public time: TimeComposer = new TimeComposer()
   public addNode(id: string, type: NodeType, scheduler: ISchedulerInfo): void {
     if (type === "observable") {
       this.graph.setNode(id, new ObservableTree(id, undefined, undefined, scheduler))
@@ -78,5 +78,6 @@ export class TreeGrapherAdvanced implements ITreeLogger {
   public reset() {
     this.graph.nodes().forEach(n => this.graph.removeNode(n))
     this.schedulers = []
+    this.time = new TimeComposer()
   }
 }

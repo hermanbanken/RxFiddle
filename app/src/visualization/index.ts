@@ -1,26 +1,17 @@
+import { IEvent } from "../collector/event"
 import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger"
+import TimeComposer from "../collector/timeComposer"
 import TypedGraph from "../collector/typedgraph"
 import "../object/extensions"
 import { IObservableTree, IObserverTree, ISchedulerInfo, ObserverTree } from "../oct/oct"
 import "../utils"
 import Grapher from "./grapher"
 import layoutf from "./layout"
-import MorphModule from "./morph"
-import { time } from "./time"
-import { horizontalSlider } from "./timeGrid"
 import { In as RenderInput, graph$ } from "./render"
-import TabIndexModule from "./tabIndexQuickDirty"
+import { time } from "./time"
 import { MarbleClick, SelectionGraphEdge, SelectionGraphNode, SelectionGraphNone, UIEvent } from "./uievent"
 import * as Rx from "rx"
-import { init as snabbdom_init } from "snabbdom"
-import h from "snabbdom/h"
-import attrs_module from "snabbdom/modules/attributes"
-import class_module from "snabbdom/modules/class"
-import event_module from "snabbdom/modules/eventlisteners"
-import style_module from "snabbdom/modules/style"
 import { VNode } from "snabbdom/vnode"
-
-const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule, TabIndexModule])
 
 export interface DataSource {
   dataObs: Rx.Observable<Message>
@@ -41,11 +32,12 @@ export type GraphEdge = {
 }
 
 export type Graphs = {
-  maxTick: number,
   _sequence: number,
+  events: IEvent[],
   main: TypedGraph<IObservableTree | IObserverTree, {}>,
   schedulers: ISchedulerInfo[],
   subscriptions: TypedGraph<IObserverTree, {}>,
+  time: TimeComposer
 }
 
 export function isIObserver(a: any): a is IObserverTree {
@@ -135,15 +127,8 @@ function viewStateEqual(a: ViewState, b: ViewState): boolean {
 }
 
 function equalData(a: EqualityInput, b: EqualityInput): boolean {
-  let r = true && // a._sequence === b._sequence &&
-    viewStateEqual(a.viewState, b.viewState) &&
+  let r = viewStateEqual(a.viewState, b.viewState) &&
     graphEqual(a.graphs.main, b.graphs.main) && graphEqual(a.graphs.subscriptions, b.graphs.subscriptions)
-  if (!r) {
-    console.log(
-      viewStateEqual(a.viewState, b.viewState) &&
-      graphEqual(a.graphs.main, b.graphs.main) && graphEqual(a.graphs.subscriptions, b.graphs.subscriptions)
-    )
-  }
   return r
 }
 
@@ -272,7 +257,7 @@ export default class Visualizer {
       case "marbleClick":
         return getFlow(
           graphs.subscriptions,
-          (o, named) => o.events.some(e => e.timing.tick === selection.tick),
+          (o, named) => o.events.some(e => e.timing.clocks.tick === selection.tick),
           selection.subscription
         ).map(_ => _.id)
       default: return []
@@ -287,19 +272,21 @@ export default class Visualizer {
       console.log("filtering with tick", viewState.tick)
       return {
         _sequence: graphs._sequence,
+        events: graphs.events,
         main: graphs.main.filterNodes((n, o) => isIObserver(o) ? true : o.scheduler.clock <= viewState.tick),
-        maxTick: graphs.maxTick,
         schedulers: graphs.schedulers,
         subscriptions: graphs.subscriptions.filterNodes((n, o) => o.observable.scheduler.clock <= viewState.tick),
+        time: graphs.time,
         // subs
       }
     } else {
       return {
         _sequence: graphs._sequence,
+        events: graphs.events,
         main: graphs.main,
-        maxTick: graphs.maxTick,
         schedulers: graphs.schedulers,
         subscriptions: graphs.subscriptions, // subs
+        time: graphs.time,
       }
     }
   }

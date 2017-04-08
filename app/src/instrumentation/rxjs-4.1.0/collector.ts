@@ -1,12 +1,12 @@
+import { ICallRecord, ICallStart, callRecordType } from "../../collector/callrecord"
+import { RxCollector, elvis, isObservable, isObserver, isScheduler } from "../../collector/collector"
+import { Event, IEvent, Timing } from "../../collector/event"
+import { formatArguments } from "../../collector/logger"
 import {
-  EdgeType, IObservableTree, IObserverTree, ISchedulerInfo, ITreeLogger,
-  NodeType, ObservableTree, ObserverTree, SchedulerInfo, SubjectTree,
-} from "../oct/oct"
-import { getPrototype } from "../utils"
-import { ICallRecord, ICallStart, callRecordType } from "./callrecord"
-import { RxCollector, elvis, isObservable, isObserver, isScheduler } from "./collector"
-import { Event, IEvent, Timing } from "./event"
-import { formatArguments } from "./logger"
+  IObservableTree, IObserverTree, ISchedulerInfo, ITreeLogger,
+  ObservableTree, ObserverTree, SchedulerInfo, SubjectTree,
+} from "../../oct/oct"
+import { getPrototype } from "../../utils"
 import * as Rx from "rx"
 
 function getScheduler<T>(obs: Rx.Observable<T>): Rx.IScheduler | undefined {
@@ -25,33 +25,6 @@ function schedulerInfo(s: Rx.IScheduler | ISchedulerInfo): ISchedulerInfo {
     }
   }
   return s as ISchedulerInfo
-}
-
-export class TreeWindowPoster implements ITreeLogger {
-  private post: (message: any) => void
-  constructor() {
-    if (typeof window === "object" && window.parent) {
-      this.post = m => window.parent.postMessage(m, window.location.origin)
-    } else {
-      this.post = m => { /* intentionally left blank */ }
-      console.error("Using Window.postMessage logger in non-browser environment", new Error())
-    }
-  }
-  public addNode(id: string, type: NodeType, scheduler?: ISchedulerInfo): void {
-    this.post({ id, type, scheduler })
-  }
-  public addMeta(id: string, meta: any): void {
-    this.post({ id, meta })
-  }
-  public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
-    this.post({ v, w, type, meta })
-  }
-  public addScheduler(id: string, scheduler: ISchedulerInfo): void {
-    this.post({ id, scheduler })
-  }
-  public reset() {
-    this.post("reset")
-  }
 }
 
 export class TreeCollector implements RxCollector {
@@ -234,17 +207,17 @@ export class TreeCollector implements RxCollector {
   }
 
   private getTiming(): Timing {
+    let clocks: { [id: string]: number } = { tick: this.eventSequence }
     if (this.scheduler) {
+      clocks[this.scheduler.info.id] = this.scheduler.scheduler.now()
       return Object.assign({
-        clock: this.scheduler.scheduler.now(),
         scheduler: this.scheduler.info.id,
-        tick: this.eventSequence,
+        clocks,
       })
     }
     return {
-      clock: this.eventSequence,
-      scheduler: "",
-      tick: this.eventSequence,
+      clocks,
+      scheduler: "tick",
     }
   }
 

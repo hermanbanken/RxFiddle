@@ -1,15 +1,10 @@
 import JsonCollector from "./collector/jsonCollector"
-// import Collector from "./collector/logger"
+import RxRunner, { RxRunnerState } from "./collector/runner"
 import { LanguageCombination } from "./languages"
 import Visualizer, { DataSource } from "./visualization"
 import { GrapherAdvanced as Grapher } from "./visualization/grapher"
 import MorphModule from "./visualization/morph"
 import TabIndexModule from "./visualization/tabIndexQuickDirty"
-// import { VNode, makeDOMDriver } from "@cycle/dom"
-// import { DOMSource } from "@cycle/dom/rx-typings"
-// import Cycle from "@cycle/rx-run"
-// import RxMarbles from "rxmarbles"
-// import * as Immutable from "immutable"
 import * as Rx from "rx"
 import { init as snabbdom_init } from "snabbdom"
 import h from "snabbdom/h"
@@ -61,20 +56,43 @@ class CodeEditor {
   private frameWindow: Window = null
 
   constructor(initialSource?: string) {
-    let src = initialSource ? "editor.html#blob=" + encodeURI(btoa(initialSource)) : "editor.html"
+    let src: string
+    if (typeof initialSource !== "string" && localStorage && localStorage.getItem("code")) {
+      initialSource = localStorage.getItem("code")
+    }
+    if (typeof initialSource === "string" && initialSource) {
+      src = "editor.html#blob=" + encodeURI(btoa(initialSource))
+    } else {
+      src = "editor.html"
+    }
     this.dom = Rx.Observable.just(h("div.editor", [h("iframe", {
       attrs: { src },
     })]))
   }
 
   public send(object: any) {
+    if (this.prepare()) {
+      this.frameWindow.postMessage(object, window.location.origin)
+    }
+  }
+
+  public withValue(cb: (code: string) => void) {
+    if (this.prepare()) {
+      sameOriginWindowMessages
+        .take(1)
+        .map(d => d.code)
+        .do(code => localStorage && localStorage.setItem("code", code))
+        .subscribe(cb)
+      this.frameWindow.postMessage("requestCode", window.location.origin)
+    }
+  }
+
+  private prepare(): boolean {
     if (!this.frameWindow) {
       let frame = document.querySelector("iframe")
       this.frameWindow = frame && frame.contentWindow
     }
-    if (this.frameWindow) {
-      this.frameWindow.postMessage(object, window.location.origin)
-    }
+    return this.frameWindow && true || false
   }
 }
 
@@ -104,7 +122,10 @@ const Query$ = Rx.Observable
 const DataSource$: Rx.Observable<{
   data: DataSource,
   vnode?: Rx.Observable<VNode>,
-  run?: () => void
+  runner?: RxRunner,
+  action?(): string,
+  run?: () => void,
+  state?: Rx.Observable<RxRunnerState>,
 }> = Query$.map(q => {
   if (q.type === "demo" && q.source) {
     let collector = new JsonCollector()
@@ -116,9 +137,12 @@ const DataSource$: Rx.Observable<{
     return { data: collector }
   } else if (q.type === "editor") {
     let editor = new CodeEditor(q.code ? atob(decodeURI(q.code)) : undefined)
+    let code = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
+    let runner = new RxRunner(code)
     return {
-      data: new PostWindowCollector(),
-      run: editor.send.bind(editor, "run"),
+      action: () => runner.action,
+      data: runner,
+      runner,
       vnode: editor.dom,
     }
   } else {
@@ -167,9 +191,9 @@ function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }
   }).merge(next)
 }
 
-function menu(language: VNode, run?: () => void): VNode {
+function menu(language: VNode, runButton?: string, run?: () => void): VNode {
   return h("div.left.ml3.flex", { attrs: { id: "menu" } }, [
-    ...(run ? [h("button.btn", { on: { click: () => run && run() } }, "Run")] : []),
+    ...(run && runButton ? [h("button.btn", { on: { click: () => run && run() } }, runButton)] : []),
     language,
   ])
 }
@@ -183,13 +207,20 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
       .startWith({ dom: h("span.rxfiddle-waiting", "Waiting for Rx activity..."), timeSlider: h("div") })
       .catch(errorHandler)
       .retry()
-      .combineLatest(collector.vnode || Rx.Observable.just(undefined), LanguageMenu$.dom, (render, input, langs) => [
+      .combineLatest(
+      collector.vnode || Rx.Observable.just(undefined),
+      LanguageMenu$.dom,
+      collector.runner && collector.runner.state || Rx.Observable.just(undefined),
+      (render, input, langs, state) => [
         h("div#menufold-static.menufold", [
           h("a.brand.left", { attrs: { href: "#" } }, [
             h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
             "RxFiddle" as any as VNode,
           ]),
-          menu(langs, collector.run),
+          menu(langs,
+            collector.runner && collector.runner.action,
+            () => collector.runner && collector.runner.trigger()
+          ),
         ]),
         // h("div#menufold-fixed.menufold"),
         hbox(...(input ?

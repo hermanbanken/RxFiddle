@@ -6,10 +6,10 @@ import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
 function timeSelector(e: IEvent) {
-  return e.timing && e.timing.tick
+  return e.timing && e.timing.clocks.tick
 }
 function clockSelector(e: IEvent) {
-  return e.timing && e.timing.clock
+  return e.timing && e.timing.clocks.tick
 }
 
 function name(e: IEvent): string {
@@ -64,7 +64,7 @@ export class MarbleCoordinator {
   private max: number
   private timeSelector: (e: IEvent) => number
 
-  constructor(timeSelector: (e: IEvent) => number = _ => _.timing && _.timing.tick) {
+  constructor(timeSelector: (e: IEvent) => number = _ => _.timing && _.timing.clocks.tick) {
     this.timeSelector = timeSelector
   }
 

@@ -23,12 +23,13 @@ export default class Grapher {
     return Rx.Observable.defer(() => this.collector.dataObs
       .scan(grapherNext, this.treeReader).debounce(10).map(reader => ({
         _sequence: Grapher.sequence++,
+        events: reader.treeGrapher.events,
         main: reader.treeGrapher.graph
           .filterNodes(n => true),
-        maxTick: reader.maxTick,
         schedulers: reader.treeGrapher.schedulers,
         subscriptions: reader.treeGrapher.graph
           .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
+        time: reader.treeGrapher.time,
       }))
     ).repeat()
   }

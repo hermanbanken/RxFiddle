@@ -1,4 +1,4 @@
-import { TreeCollectorTest } from "../src/collector/treeCollector.spec"
+import { TreeCollectorTest } from "../src/instrumentation/rxjs-4.1.0/collector.spec"
 import { IntegrationTest } from "./integration"
 import { OperatorTest } from "./operators"
 

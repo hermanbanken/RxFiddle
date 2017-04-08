@@ -379,11 +379,11 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
           ) as IObserverTree[]
       },
       event => uievents.onNext(event),
-      graphs.maxTick,
+      graphs.time.max(),
     )
   }
 
-  let currentTick = typeof viewState.tick === "number" ? viewState.tick : graphs.maxTick
+  let currentTick = typeof viewState.tick === "number" ? viewState.tick : graphs.time.max()
   let app = h("app", { key: `app`, style: { "min-width": `${((xmax + 2) * mx + 300)}px` } }, [
     h("div.flexy", [
       panel,
@@ -391,9 +391,9 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     ]),
   ])
 
-  let timeSlider = slider(0, graphs.maxTick, currentTick, (v, final) => uievents.onNext({
+  let timeSlider = slider(graphs.time.min(), graphs.time.max(), currentTick, (v, final) => uievents.onNext({
     type: "tickSelection",
-    tick: v === graphs.maxTick && final ? undefined : v,
+    tick: v === graphs.time.max() && final ? undefined : v,
   }))
 
   return {

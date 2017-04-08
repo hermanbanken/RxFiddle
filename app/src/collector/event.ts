@@ -7,9 +7,7 @@ export type IEvent = Next<any> | Subscribe | Complete | Error | Dispose | Connec
 
 export type Timing = {
   scheduler: string
-  clock: number
-  /* like a sequence number */
-  tick: number
+  clocks: { [id: string]: number }
 }
 
 export class Event {

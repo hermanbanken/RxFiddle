@@ -183,7 +183,7 @@ export default class NewCollector implements RxCollector {
             }
           })
 
-        let event = Event.fromRecord(record, { clock: record.tick, tick: record.tick, scheduler: "" })
+        let event = Event.fromRecord(record, { clocks: { tick: record.tick }, scheduler: "tick" })
         if (event && event.type === "subscribe" || typeof event === "undefined") {
           break
         }

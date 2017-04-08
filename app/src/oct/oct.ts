@@ -12,7 +12,6 @@ export interface IObservableTree {
   names?: string[]
   calls?: MethodCall[]
   sources?: IObservableTree[]
-  timing?: Timing
   scheduler?: ISchedulerInfo
   setSources(sources: IObservableTree[]): IObservableTree
   addMeta(meta: any): IObservableTree

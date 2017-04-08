@@ -1,6 +1,6 @@
-import { RxCollector } from "../collector/collector"
-import "../utils"
-import { ICallRecord, ICallStart } from "./callrecord"
+import { ICallRecord, ICallStart } from "../../collector/callrecord"
+import { RxCollector } from "../../collector/collector"
+import "../../utils"
 import * as Rx from "rx"
 
 const rxAny: any = Rx as any
