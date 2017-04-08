@@ -349,9 +349,9 @@ function getFlow(
   let hasPref = typeof hasPrefOpt === "function" ? hasPrefOpt : undefined
   // let id = graph.inEdges(ids[0])
   let focussed = graph.node(ids[0])
-  return [
+  return focussed ? [
     ...collectUp(graph, focussed, hasPref).slice(1).reverse(),
     focussed,
     ...collectDown(graph, focussed, hasPref).slice(1),
-  ]
+  ] : []
 }
