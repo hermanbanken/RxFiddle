@@ -544,6 +544,6 @@ function debug(...args: any[]) {
   if (typeof document === "object" && (panel = document.getElementById("debug"))) {
     panel.innerText = args.map(a => jsonify(a)).join("\n")
   } else {
-    console.log.apply(console, args)
+    // console.log.apply(console, args)
   }
 }

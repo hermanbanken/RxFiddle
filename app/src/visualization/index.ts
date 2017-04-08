@@ -150,7 +150,6 @@ function reduce(pstate: ViewState, event: UIEvent): ViewState {
       return Object.assign({}, pstate, { hoover: event.observable })
 
     default:
-      console.warn("Unhandled UIEvent", event)
       return pstate
   }
 }
@@ -166,7 +165,6 @@ export default class Visualizer {
 
   public get viewState(): Rx.Observable<ViewState> {
     return this.uiEventsInput
-      .do(e => console.log("fold input", e))
       // kick-off
       .startWith({ type: "selectionGraphNone" })
       .scan<ViewState>(reduce, {

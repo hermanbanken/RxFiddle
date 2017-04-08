@@ -3,7 +3,7 @@ declare const CodeMirror: Function
 let scope = window as any
 scope.Rx = Rx
 
-let editor = CodeMirror(document.querySelector("#editor"), {
+let editor = scope.editor = CodeMirror(document.querySelector("#editor"), {
   lineNumbers: true,
 })
 
@@ -20,78 +20,29 @@ window.addEventListener("message", (e) => {
   }
 })
 
-// import * as Rx from "rx"
-// function formatError(e: Error): any {
-//   return {
-//     message: e.message,
-//     name: e.name,
-//     original: typeof (e as any).original !== "undefined" ? formatError((e as any).original) : undefined,
-//     stack: e.stack.toString(),
-//   }
-// }
-// /** 
-//  * Have single location for evil eval,
-//  * so we can infer it's stackTrace beforehand 
-//  * and strip that from the errors coming from it 
-//  */
-// function scopedEval(code: string) {
-//   // tslint:disable-next-line:no-eval
-//   return eval(code)
-// }
+// Dynamic behaviour
+editor.on("change", () => {
+  localStorage.setItem("code", editor.getValue())
+  parent.postMessage({
+    desiredWidth: getWidth() * 8 + editor.getGutterElement().clientWidth + 15,
+  }, location.origin)
+})
+CodeMirror.signal(editor, "change")
 
-// function evalAndRepackageErrors(code: string): { type: "result", result: any } | { type: "error", error: any } {
-//   try {
-//     return { result: scopedEval(code), type: "result" }
-//   } catch (e) {
-//     // Infer eval location
-//     try {
-//       scopedEval("throw new Error('ERROR')")
-//     } catch (dummyError) {
-//       // clean up error stack trace
-//       let result = /\n\s+at scopedEval \((.*)\)/.exec(dummyError.stack)
-//       let stack: string = e.stack.toString()
-//       let index = stack.lastIndexOf(`at scopedEval (${result[1]})`)
-//       stack = stack.substring(0, index)
-//       stack = stack.split(`eval at scopedEval (${result[1]}), `).join("")
-//       e.stack = stack
-//     }
-//     return { error: formatError(e), type: "error" }
-//   }
-// }
+function getWidth(): number {
+  let tabSize = editor.getOption("tabSize")
+  let spaces = range(0, tabSize).map(_ => "_").join("")
+  let code = editor.getValue()
+  return code
+    .split("\n")
+    .map((line: string) => line.replace(/\t/g, spaces).length)
+    .sort((a: number, b: number) => b - a)[0] || 0
+}
 
-// let instrumentation: Instrumentation
-// function run() {
-//   if (instrumentation) {
-//     instrumentation.teardown()
-//   }
-
-//   let code = editor.getValue()
-//   if (localStorage) {
-//     localStorage.setItem("code", code)
-//   }
-//   window.parent.postMessage({ hash: { type: "editor", code: encodeURI(btoa(code)) } }, location.origin)
-
-//   let poster = new TreeWindowPoster()
-//   poster.reset()
-//   let collector = new TreeCollector(poster)
-//   instrumentation = new Instrumentation(defaultSubjects, collector)
-//   instrumentation.setup()
-
-//   // Execute user code
-//   let result = evalAndRepackageErrors(code)
-
-//   if (result.type === "error") {
-//     window.parent.postMessage({
-//       error: result.error,
-//       type: "error",
-//     }, location.origin)
-//   }
-// }
-
-// let button = document.querySelector("#run") as HTMLButtonElement
-// if (button) { button.onclick = run }
-// window.addEventListener("message", (e) => {
-//   if (e.data && e.data === "run") {
-//     run()
-//   }
-// })
+function range(start: number, end: number): number[] {
+  let r = []
+  for (let i = start; i < end; i++) {
+    r.push(i)
+  }
+  return r
+}

@@ -65,9 +65,19 @@ class CodeEditor {
     } else {
       src = "editor.html"
     }
-    this.dom = Rx.Observable.just(h("div.editor", [h("iframe", {
-      attrs: { src },
-    })]))
+    this.dom = sameOriginWindowMessages
+      .startWith({})
+      .scan((prev, message) => {
+        return Object.assign(prev, message)
+      }, {})
+      .map(state => h("div.editor", {
+        style: {
+          "max-width": `${Math.max(400, state.desiredWidth)}px`,
+          "min-width": `${Math.max(400, state.desiredWidth)}px`,
+        },
+      }, [h("iframe", {
+        attrs: { src },
+      })]))
   }
 
   public send(object: any) {
@@ -123,9 +133,7 @@ const DataSource$: Rx.Observable<{
   data: DataSource,
   vnode?: Rx.Observable<VNode>,
   runner?: RxRunner,
-  action?(): string,
-  run?: () => void,
-  state?: Rx.Observable<RxRunnerState>,
+  editor?: CodeEditor,
 }> = Query$.map(q => {
   if (q.type === "demo" && q.source) {
     let collector = new JsonCollector()
@@ -140,9 +148,9 @@ const DataSource$: Rx.Observable<{
     let code = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
     let runner = new RxRunner(code)
     return {
-      action: () => runner.action,
       data: runner,
       runner,
+      editor,
       vnode: editor.dom,
     }
   } else {
@@ -191,10 +199,31 @@ function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }
   }).merge(next)
 }
 
-function menu(language: VNode, runButton?: string, run?: () => void): VNode {
+function shareButton(editor: CodeEditor) {
+  return h("button.btn", {
+    on: {
+      click: (e: MouseEvent) => {
+        editor.withValue(v => {
+          window.location.hash = formatHash({ code: btoa(v), type: "editor" })
+          let original = (e.target as HTMLButtonElement).innerText;
+          (e.target as HTMLButtonElement).innerText = "Saved state in the url. Copy the url!"
+        })
+      },
+      mouseout: (e: MouseEvent) => {
+        (e.target as HTMLButtonElement).innerText = "Share"
+      },
+    },
+  }, "Share")
+}
+
+function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
+  //             collector.runner && collector.runner.action,
+  // () => collector.runner && collector.runner.trigger()
+
   return h("div.left.ml3.flex", { attrs: { id: "menu" } }, [
-    ...(run && runButton ? [h("button.btn", { on: { click: () => run && run() } }, runButton)] : []),
     language,
+    ...(runner ? [h("button.btn", { on: { click: () => runner.trigger() } }, runner.action)] : []),
+    ...(editor ? [shareButton(editor)] : []),
   ])
 }
 
@@ -217,10 +246,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
             h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
             "RxFiddle" as any as VNode,
           ]),
-          menu(langs,
-            collector.runner && collector.runner.action,
-            () => collector.runner && collector.runner.trigger()
-          ),
+          menu(langs, collector.runner, collector.editor),
         ]),
         // h("div#menufold-fixed.menufold"),
         hbox(...(input ?
