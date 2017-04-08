@@ -127,7 +127,7 @@ function flowSelectionEqual(
   b: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick
 ) {
   if (typeof a === "undefined" && typeof b === "undefined") { return true }
-  return a.type === b.type && Object.keys(a).every(k => (a as any)[k] === (a as any)[k])
+  return a.type === b.type && Object.keys(a).every(k => (a as any)[k] === (b as any)[k])
 }
 
 function viewStateEqual(a: ViewState, b: ViewState): boolean {
