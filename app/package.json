@@ -16,8 +16,9 @@
     "test": "tsc -p . && mocha --require source-map-support/register dist/test",
     "dev-test-watch": "mocha-typescript-watch",
     "prepublish": "tsc -p .",
-    "distlibs": "cp -R node_modules/codemirror dist/codemirror; cp -R node_modules/lodash dist/lodash; cp -R node_modules/dagre dist/dagre; cp -R node_modules/graphlib dist/graphlib; cp -R node_modules/snabbdom dist/snabbdom; cp -R node_modules/rx dist/rx",
-    "pages": "git stash && git checkout gh-pages; git reset master --hard && tsc -p . && yarn run bundle && yarn run test && yarn run distlibs && git add -f dist && git commit -m 'Build' && git push -f origin gh-pages && git checkout master && git stash pop && tsc -p . && yarn run bundle",
+    "cp-rx": "cp node_modules/rx/dist/rx.all.js src/instrumentation/rxjs-4.1.0/rx.all.js",
+    "distlibs": "cp -R node_modules/codemirror dist/codemirror; cp -R node_modules/lodash dist/lodash; cp -R node_modules/graphlib dist/graphlib; cp -R node_modules/rx dist/rx",
+    "pages": "git stash -u && git checkout gh-pages; git reset master --hard && tsc -p . && yarn run distlibs && yarn run cp-rx && yarn run build && git add -f dist && git commit -m 'Build' && git push -f origin gh-pages && git checkout master && git stash pop && tsc -p . && yarn run bundle",
     "start": "webpack --watch",
     "build": "webpack -p"
   },
@@ -42,6 +43,10 @@
   },
   "devDependencies": {
     "@types/chai": "^3.4.34",
+    "babel": "^6.23.0",
+    "babel-core": "^6.24.1",
+    "babel-loader": "^6.4.1",
+    "babel-preset-es2015": "^6.24.1",
     "chai": "^3.5.0",
     "electron": "^1.4.4",
     "mocha": "^3.1.2",
