@@ -477,7 +477,7 @@ function renderMarbles(
   uiEvents?: (event: UIEvent) => void,
   maxTick?: number
 ): VNode[] {
-  let coordinator = new MarbleCoordinator()
+  let coordinator = new MarbleCoordinator(e => e.timing.clocks[viewState.scheduler] || e.timing.clocks.tick)
   coordinator.set(0, maxTick)
   let allEvents: IEvent[] = nodes.flatMap((n: any) => n && "events" in n ? n.events as IEvent[] : [])
   coordinator.add(allEvents)

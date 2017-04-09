@@ -8,28 +8,21 @@ import { VNode } from "snabbdom/vnode"
 function timeSelector(e: IEvent) {
   return e.timing && e.timing.clocks.tick
 }
-function clockSelector(e: IEvent) {
-  return e.timing && e.timing.clocks.tick
+function name(e: IEvent, clockSelector: (e: IEvent) => number): string {
+  return `${e.type} @ ${clockSelector(e)}`
 }
 
-function name(e: IEvent): string {
-  if (clockSelector(e) < 14e9) {
-    return `${e.type} @ ${clockSelector(e)}`
-  }
-  return `${e.type} @ ${new Date(clockSelector(e))} / ${timeSelector(e)}`
-}
-
-function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void) {
+function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void, clockSelector: (e: IEvent) => number) {
   switch (e.type) {
     case "error":
       return h("span", [
-        name(e),
+        name(e, clockSelector),
         h("br"),
         h("pre", e.error.stack.toString() || e.error.toString()),
       ])
     case "next":
       if (typeof e.value === "string") {
-        return h("span", [name(e), h("br"), h("pre", e.value)])
+        return h("span", [name(e, clockSelector), h("br"), h("pre", e.value)])
       } else if (typeof e.value === "object") {
         let val = e.value as any
         if ("type" in val && "id" in val) {
@@ -38,21 +31,21 @@ function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void) {
             mouseover: () => uiEvents({ observable: val.id, tick: timeSelector(e), type: "higherOrderHoover" }),
           }
           return h("span", [
-            name(e),
+            name(e, clockSelector),
             h("br"),
             h("a.type-ref", { attrs: { role: "button" }, on: handlers }, val.type),
           ])
         } else {
-          return h("span", [name(e), h("br"), JSON.stringify(val)])
+          return h("span", [name(e, clockSelector), h("br"), JSON.stringify(val)])
         }
       }
     case "complete":
     case "dispose":
     case "subscribe":
-      return h("span", name(e))
+      return h("span", name(e, clockSelector))
     default:
       return h("span", [
-        h("span", { style: { "white-space": "nowrap" } }, name(e)),
+        h("span", { style: { "white-space": "nowrap" } }, name(e, clockSelector)),
         h("br"),
         JSON.stringify(e),
       ])
@@ -153,7 +146,7 @@ export class MarbleCoordinator {
           style: { left: `${left}%` },
           tabIndex: { index: this.timeSelector(e) },
           key: `marble-${observer.id}-${e.type}@${this.timeSelector(e)}`,
-        }, [tooltip(e, uiEvents)]),
+        }, [tooltip(e, uiEvents, this.timeSelector)]),
         svg: h("svg", {
           attrs: { x: `${left}%`, y: "50%" },
         }, content),
