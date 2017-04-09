@@ -26,7 +26,6 @@ export default class Grapher {
         events: reader.treeGrapher.events,
         main: reader.treeGrapher.graph
           .filterNodes(n => true),
-        schedulers: reader.treeGrapher.schedulers,
         subscriptions: reader.treeGrapher.graph
           .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
         time: reader.treeGrapher.time,

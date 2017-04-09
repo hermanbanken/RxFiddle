@@ -48,9 +48,22 @@ export type SelectionGraphNone = {
   type: "selectionGraphNone"
 }
 
+export type Scheduler = {
+  type: "scheduler"
+  id: string
+}
+
+export type SchedulerTimeRange = {
+  type: "timeRange"
+  scheduler: string
+  min: number
+  max: number
+}
+
 export type UIEvent =
   MarbleClick | MarbleHoover
   | DiagramOperatorClick | DiagramOperatorHoover
   | HigherOrderHoover | HigherOrderClick
   | TickSelection
   | SelectionGraphNode | SelectionGraphEdge | SelectionGraphNone
+  | Scheduler | SchedulerTimeRange

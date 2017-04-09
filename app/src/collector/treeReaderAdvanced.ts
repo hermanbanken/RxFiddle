@@ -28,14 +28,13 @@ export class TreeReaderAdvanced {
     } else if (message && message.meta) {
       this.treeGrapher.addMeta(message.id, message.meta)
     } else if (typeof message.scheduler !== "undefined") {
-      this.treeGrapher.schedulers.push(message.scheduler)
+      this.treeGrapher.time.schedulers.push(message.scheduler)
     }
   }
 }
 
 export class TreeGrapherAdvanced implements ITreeLogger {
   public graph = new TypedGraph<ObservableTree | ObserverTree, {}>()
-  public schedulers: ISchedulerInfo[] = []
   public events: IEvent[] = []
   public time: TimeComposer = new TimeComposer()
   public addNode(id: string, type: NodeType, scheduler: ISchedulerInfo): void {
@@ -73,11 +72,10 @@ export class TreeGrapherAdvanced implements ITreeLogger {
     this.graph.setEdge(v, w, meta)
   }
   public addScheduler(id: string, scheduler: ISchedulerInfo): void {
-    this.schedulers.push(scheduler)
+    this.time.schedulers.push(scheduler)
   }
   public reset() {
     this.graph.nodes().forEach(n => this.graph.removeNode(n))
-    this.schedulers = []
     this.time = new TimeComposer()
   }
 }

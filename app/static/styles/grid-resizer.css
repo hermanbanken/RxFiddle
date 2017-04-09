@@ -24,9 +24,9 @@
 .overview-grid-window-resizer {
     position: absolute;
     top: -1px;
-    height: 20px;
-    width: 6px;
-    margin-left: -3px;
+    height: 15px;
+    width: 4px;
+    margin-left: -2px;
     background-color: rgb(153, 153, 153);
     border: 1px solid white;
     z-index: 500;
@@ -37,7 +37,7 @@
     position: absolute;
     left: 0;
     right: 0;
-    top: 20px;
+    top: 0px;
     bottom: 0;
     z-index: 500;
     cursor: text;

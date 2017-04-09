@@ -1,6 +1,7 @@
 // tslint:disable:object-literal-sort-keys
 import { jsonify } from "../../test/utils"
 import { IEvent } from "../collector/event"
+import TimeComposer from "../collector/timeComposer"
 import TypedGraph from "../collector/typedgraph"
 import { generateColors } from "../color"
 import "../object/extensions"
@@ -27,7 +28,7 @@ export type Layout = {
 
 export type In = Rx.Observable<({
   _sequence: number, layout: Layout, viewState: ViewState,
-  graphs: Graphs, focusNodes: string[]
+  graphs: Graphs, focusNodes: string[], time: TimeComposer,
 })>
 export type Out = {
   svg: Rx.Observable<VNode>,

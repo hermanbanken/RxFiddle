@@ -21,6 +21,8 @@ export type ViewState = {
   tick?: number
   flowSelection?: SelectionGraphNode | SelectionGraphEdge | SelectionGraphNone | MarbleClick
   hoover?: string
+  scheduler?: string
+  timeRange?: { scheduler: string, min: number, max: number }
 }
 
 export type GraphNode = {
@@ -35,7 +37,6 @@ export type Graphs = {
   _sequence: number,
   events: IEvent[],
   main: TypedGraph<IObservableTree | IObserverTree, {}>,
-  schedulers: ISchedulerInfo[],
   subscriptions: TypedGraph<IObserverTree, {}>,
   time: TimeComposer
 }
@@ -149,6 +150,20 @@ function reduce(pstate: ViewState, event: UIEvent): ViewState {
     case "diagramOperatorHoover":
       return Object.assign({}, pstate, { hoover: event.observable })
 
+    case "scheduler":
+      return Object.assign({}, pstate, {
+        scheduler: event.id,
+        timeRange: pstate.scheduler === event.id ? pstate.timeRange : undefined
+      })
+
+    case "timeRange":
+      return Object.assign({}, pstate, {
+        timeRange: {
+          max: event.max, min: event.min,
+          scheduler: event.scheduler,
+        },
+      })
+
     default:
       return pstate
   }
@@ -196,6 +211,7 @@ export default class Visualizer {
         return ({
           _sequence: graphs._sequence,
           graphs: filtered,
+          time: graphs.time,
           viewState: state,
           focusNodes,
         })
@@ -272,7 +288,6 @@ export default class Visualizer {
         _sequence: graphs._sequence,
         events: graphs.events,
         main: graphs.main.filterNodes((n, o) => isIObserver(o) ? true : o.scheduler.clock <= viewState.tick),
-        schedulers: graphs.schedulers,
         subscriptions: graphs.subscriptions.filterNodes((n, o) => o.observable.scheduler.clock <= viewState.tick),
         time: graphs.time,
         // subs
@@ -282,7 +297,6 @@ export default class Visualizer {
         _sequence: graphs._sequence,
         events: graphs.events,
         main: graphs.main,
-        schedulers: graphs.schedulers,
         subscriptions: graphs.subscriptions, // subs
         time: graphs.time,
       }

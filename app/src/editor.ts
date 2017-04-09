@@ -1,4 +1,6 @@
-declare const CodeMirror: Function
+declare const CodeMirror: Function & {
+  signal: Function
+}
 
 let scope = window as any
 scope.Rx = Rx
