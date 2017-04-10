@@ -4,14 +4,40 @@ import * as Rx from "rx"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
-export function formatHash(object: any): string {
-  let q = ""
-  for (let k in object) {
-    if (object.hasOwnProperty(k)) {
-      q += (q ? "&" : "") + k + "=" + object[k]
+const QueryString = {
+  format: (object: any) => {
+    let q = ""
+    for (let k in object) {
+      if (object.hasOwnProperty(k)) {
+        q += (q ? "&" : "") + k + "=" + object[k]
+      }
     }
-  }
-  return q
+    return q
+  },
+  parse: (queryString: string) => {
+    return queryString.split("&").map(p => p.split("=")).reduce((p: any, n: string[]) => {
+      if (n[0].endsWith("[]")) {
+        let key = n[0].substr(0, n[0].length - 1)
+        p[key] = p[key] || []
+        p[key].push(n[1])
+      } else {
+        p[n[0]] = n[1]
+      }
+      return p
+    }, {}) || {}
+  },
+}
+
+export let Query = {
+  $: typeof window === "object" ? Rx.Observable
+    .fromEvent(window, "hashchange", () => window.location.hash.substr(1))
+    .startWith(window.location.hash.substr(1))
+    .map(str => QueryString.parse(str)) : Rx.Observable.never(),
+  set: (object: any) => {
+    if (typeof window === "object") {
+      window.location.hash = QueryString.format(object)
+    }
+  },
 }
 
 export const sameOriginWindowMessages = Rx.Observable
@@ -72,7 +98,7 @@ export function shareButton(editor: CodeEditor) {
     on: {
       click: (e: MouseEvent) => {
         editor.withValue(v => {
-          window.location.hash = formatHash({ code: btoa(v), type: "editor" });
+          Query.set({ code: btoa(v), type: "editor" });
           (e.target as HTMLButtonElement).innerText = "Saved state in the url. Copy the url!"
         })
       },

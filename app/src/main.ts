@@ -3,7 +3,7 @@ import RxRunner from "./collector/runner"
 import CodeEditor from "./ui/codeEditor"
 import { hbox, vbox } from "./ui/flex"
 import Resizer from "./ui/resizer"
-import { LanguageMenu, errorHandler, shareButton } from "./ui/shared"
+import { LanguageMenu, Query, errorHandler, shareButton } from "./ui/shared"
 import Splash from "./ui/splash"
 import Visualizer, { DataSource } from "./visualization"
 import { GrapherAdvanced as Grapher } from "./visualization/grapher"
@@ -20,28 +20,12 @@ import { VNode } from "snabbdom/vnode"
 
 const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule, TabIndexModule])
 
-const Query$ = Rx.Observable
-  .fromEvent(window, "hashchange", () => window.location.hash.substr(1))
-  .startWith(window.location.hash.substr(1))
-  .map(queryString => {
-    return queryString.split("&").map(p => p.split("=")).reduce((p: any, n: string[]) => {
-      if (n[0].endsWith("[]")) {
-        let key = n[0].substr(0, n[0].length - 1)
-        p[key] = p[key] || []
-        p[key].push(n[1])
-      } else {
-        p[n[0]] = n[1]
-      }
-      return p
-    }, {}) || {}
-  })
-
 const DataSource$: Rx.Observable<{
   data: DataSource,
   vnode?: Rx.Observable<VNode>,
   runner?: RxRunner,
   editor?: CodeEditor,
-}> = Query$.map(q => {
+}> = Query.$.map(q => {
   if (q.type === "demo" && q.source) {
     let collector = new JsonCollector()
     collector.restart(q.source)
