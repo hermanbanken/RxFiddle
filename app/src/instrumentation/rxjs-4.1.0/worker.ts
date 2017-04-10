@@ -35,6 +35,9 @@ function evalAndRepackageErrors(code: string): { type: "result", result: any } |
     } catch (dummyError) {
       // clean up error stack trace
       let result = /\n\s+at scopedEval \((.*)\)/.exec(dummyError.stack)
+      if (result === null) {
+        return { error: e.stack, type: "error" }
+      }
       let stack: string = e.stack.toString()
       let index = stack.lastIndexOf(`at scopedEval (${result[1]})`)
       stack = stack.substring(0, index)
