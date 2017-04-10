@@ -1,10 +1,5 @@
-import { init as snabbdom_init } from "snabbdom"
 import h from "snabbdom/h"
 import { Hooks } from "snabbdom/hooks"
-import attrs_module from "snabbdom/modules/attributes"
-import class_module from "snabbdom/modules/class"
-import event_module from "snabbdom/modules/eventlisteners"
-import style_module from "snabbdom/modules/style"
 import { VNode } from "snabbdom/vnode"
 
 class Resizer {
