@@ -115,7 +115,7 @@ label input[type=file] {
   left: 0;
 }
 
-html, body { height: 100%; }
+html, body {height: 100%;width: 100%;}
 .flex { display: flex; }
 .flexy {
   display: flex;
@@ -196,15 +196,6 @@ div.menufold:hover {
   width: 100%;
   height: 100%;
   border: none;
-}
-
-.resizer {
-    width: 2px;
-    min-width: 2px;
-    background: #333;
-    flex: 0;
-    height: 100%;
-    cursor: ew-resize;
 }
    
 svg,
@@ -703,10 +694,23 @@ disable purple highlight border:
 .resize-panel {
   position: relative;
 }
+.resize-panel > * {
+   /* Let Flexbox size freely */
+  width: 0;
+}
 .resize-panel > .dragsurface {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  width: 100%;
+}
+.resizer {
+    width: 2px;
+    min-width: 2px;
+    background: #333;
+    flex: 0;
+    height: 100%;
+    cursor: ew-resize;
 }
