@@ -686,3 +686,27 @@ disable purple highlight border:
 }
 
 .rxfiddle-waiting { text-align: center; }
+
+/** Schedulers in marbles **/
+.operator .scheduler {
+    display: inline-block;
+    padding: 1px 1px;
+    background: #1678ca;
+    border-radius: 4px;
+    line-height: 1.5em;
+    color: white;
+    font-size: 0;
+    vertical-align: text-bottom;
+}
+
+/** Resizers **/
+.resize-panel {
+  position: relative;
+}
+.resize-panel > .dragsurface {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}

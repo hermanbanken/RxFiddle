@@ -528,7 +528,10 @@ function renderMarbles(
         mouseover: () => uiEvents({ observable: node.id, type: "diagramOperatorHoover" }),
       }
       let box = h("div", { attrs: { class: clazz }, on: handlers }, [
-        h("div", [], call && call.method ? `${call.method} (${call.args})` : name),
+        h("div", [
+          call && call.method ? `${call.method} (${call.args})` : name,
+          h("span.scheduler", [h("i.glyphicons.glyphicons-stopwatch"), "TestScheduler"]),
+        ]),
         // h("div", [], incoming ? incoming(nodeList[i + 1] as IObserverTree).map(o => o.id).join(",") : "no subs"),
         h("div", [], "stackFrame locationText"),
       ].filter((_, idx) => idx === 0))

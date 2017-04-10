@@ -1,6 +1,8 @@
 import JsonCollector from "./collector/jsonCollector"
 import RxRunner, { RxRunnerState } from "./collector/runner"
 import { LanguageCombination } from "./languages"
+import { hbox, vbox } from "./ui/flex"
+import Resizer from "./ui/resizer"
 import Visualizer, { DataSource } from "./visualization"
 import { GrapherAdvanced as Grapher } from "./visualization/grapher"
 import MorphModule from "./visualization/morph"
@@ -158,12 +160,6 @@ const DataSource$: Rx.Observable<{
   }
 })
 
-function Resizer(target: VNode): VNode {
-  return h("div.resizer", {
-    on: (e: Event) => console.log("Start resize", e.target),
-  })
-}
-
 class LanguageMenu {
   public stream(): { dom: Rx.Observable<VNode>, language: Rx.Observable<LanguageCombination> } {
     return {
@@ -250,7 +246,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
         ]),
         // h("div#menufold-fixed.menufold"),
         hbox(...(input ?
-          [input, Resizer(input), vbox(render.timeSlider, render.dom)] :
+          [Resizer.h("rxfiddle/editor+rxfiddle/inspector", input, vbox(render.timeSlider, render.dom))] :
           [vbox(render.timeSlider, render.dom)]
         )),
       ])
@@ -258,13 +254,6 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
     return new Splash().stream().map(n => [h("div.flexy", [n])])
   }
 })
-
-function vbox(...nodes: VNode[]) {
-  return h("div.flexy.flexy-v", nodes)
-}
-function hbox(...nodes: VNode[]) {
-  return h("div.flexy", nodes)
-}
 
 class Splash {
   public stream() {
