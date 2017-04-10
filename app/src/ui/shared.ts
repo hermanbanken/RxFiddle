@@ -28,14 +28,18 @@ const QueryString = {
   },
 }
 
+let setting = false
 export let Query = {
   $: typeof window === "object" ? Rx.Observable
     .fromEvent(window, "hashchange", () => window.location.hash.substr(1))
     .startWith(window.location.hash.substr(1))
-    .map(str => QueryString.parse(str)) : Rx.Observable.never(),
+    .map(str => QueryString.parse(str))
+    .filter(_ => !setting) : Rx.Observable.never(),
   set: (object: any) => {
     if (typeof window === "object") {
+      setting = true
       window.location.hash = QueryString.format(object)
+      setTimeout(() => setting = false)
     }
   },
 }

@@ -50,9 +50,15 @@ const DataSource$: Rx.Observable<{
 })
 
 function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
+  let clickHandler = () => {
+    editor.withValue(v => {
+      Query.set({ code: btoa(v), type: "editor" })
+      runner.trigger()
+    })
+  }
   return h("div.left.ml3.flex", { attrs: { id: "menu" } }, [
     language,
-    ...(runner ? [h("button.btn", { on: { click: () => runner.trigger() } }, runner.action)] : []),
+    ...(runner ? [h("button.btn", { on: { click: clickHandler } }, runner.action)] : []),
     ...(editor ? [shareButton(editor)] : []),
   ])
 }
