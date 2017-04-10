@@ -22,7 +22,7 @@ export default class CodeEditor {
       .scan((prev, message) => {
         return Object.assign(prev, message)
       }, {})
-      .map(state => h("div.editor", {
+      .map(state => h("div.editor.flexy.flexy-v", {
         style: {
           "max-width": `${Math.max(400, state.desiredWidth)}px`,
           "min-width": `${Math.max(400, state.desiredWidth)}px`,

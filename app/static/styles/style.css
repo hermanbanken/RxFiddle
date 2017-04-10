@@ -15,7 +15,12 @@ html {
   font-family: "Monaco", "Menlo", "Consolas", "Droid Sans Mono", "Inconsolata", "Courier New", monospace;
   /* vscode mac */
   font-family: "Segoe WPC","Segoe UI",SFUIText-Light,HelveticaNeue-Light,sans-serif,"Droid Sans Fallback";
-  font-size: 13px
+  font-size: 13px;
+
+  font-family: /*sytem-ui, -apple-system, BlinkMacSystemFont, */
+    "Segoe WPC","Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", 
+    "Fira Sans", "Droid Sans", "Helvetica Neue", 
+    sans-serif;
 }
 
 .splash {
@@ -216,18 +221,6 @@ detail {
   margin-bottom: auto;
 }
 
-.nograph, .nomarbles {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  align-content: center;
-  text-align: justify;
-}
-.nograph p, .nomarbles p {
-  width: 100%;
-  text-align: center;
-}
-
 #app {
   background: white;
   display: flex;
@@ -262,12 +255,16 @@ top {
     height: 90vh !important;
 }
 
-app {
-  flex: 2 !important;
-  display: flex;
-  flex-direction: row;
-  width: 100%;
+.app {
   overflow-y: auto;
+}
+
+.center {
+  text-align: center;
+  justify-content: center;
+  flex-direction: column;
+  display: flex;
+  margin-bottom: inherit;
 }
 
 path.branch { stroke: gray; }
@@ -280,7 +277,6 @@ path.branch:hover { stroke: darkslategray; }
 }
 
 master > * {
-  min-height: 100%;
   background: #eee;
   content: "";
 }
@@ -397,7 +393,9 @@ button, .btn {
   margin: 0;
   vertical-align: baseline;
   font-size: inherit;
-  font-family: system-ui;
+  font-family: "Segoe WPC", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", 
+    "Fira Sans", "Droid Sans", "Helvetica Neue", 
+    sans-serif;
   font-weight: normal;
   text-decoration: none;
 }
@@ -634,7 +632,9 @@ disable purple highlight border:
   margin: 0;
   vertical-align: baseline;
   font-size: inherit;
-  font-family: system-ui;
+  font-family: "Segoe WPC", "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", 
+    "Fira Sans", "Droid Sans", "Helvetica Neue", 
+    sans-serif;
   font-weight: normal;
   cursor: pointer;
 } 

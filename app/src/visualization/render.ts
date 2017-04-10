@@ -354,8 +354,8 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
   let panel = h("div.flexy.flexy-v.noflex", [h("master", h("div", [mask]))])
 
   if (layout.length === 0 || layout[0].nodes.length === 0) {
-    panel = h("div.flexy.flexy-v", [h("master",
-      h("div.nograph", [h("p", "No data collected. Hit Run in the menu, or start your collector.")])
+    panel = h("div.flexy.flexy-v", [h("master.center",
+      h("div.nograph.center", [h("p", "No data collected. Hit Run in the menu, or start your collector.")])
     )])
   }
 
@@ -385,12 +385,13 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
   }
 
   let currentTick = typeof viewState.tick === "number" ? viewState.tick : graphs.time.max()
-  let app = h("app", { key: `app`, style: { "min-width": `${((xmax + 2) * mx + 300)}px` } }, [
-    h("div.flexy", [
+  let app =
+    h("div.app.flexy", { key: "app" }, [
       panel,
-      h("detail.rel", diagram),
-    ]),
-  ])
+      layout.length === 0 || layout[0].nodes.length === 0 ?
+        undefined :
+        h(`detail.rel${!flow.length ? ".center" : ""}`, diagram),
+    ])
 
   let timeSlider = slider(graphs.time.min(), graphs.time.max(), currentTick, (v, final) => uievents.onNext({
     type: "tickSelection",
