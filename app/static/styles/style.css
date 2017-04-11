@@ -686,8 +686,30 @@ disable purple highlight border:
     border-radius: 4px;
     line-height: 1.5em;
     color: white;
-    font-size: 0;
     vertical-align: text-bottom;
+    text-indent: -9999px;
+    margin: 0 0 0 3px;
+}
+.operator .scheduler:hover {
+    text-indent: 4px;
+    padding-right: 4px;
+}
+.scheduler-icon {
+  width: 16px;
+  height: 16px;
+  mask-image: url("../scheduler-default.svg");
+  -webkit-mask-image: url("../scheduler-default.svg");
+  mask-size: contain;
+  -webkit-mask-size: contain;
+  background: white;
+  display: inline-block;
+  float: left;
+  padding: 0px;
+  margin: 1px;
+}
+.scheduler-icon.virtual { 
+  mask-image: url("../scheduler-virtual.svg");
+  -webkit-mask-image: url("../scheduler-virtual.svg");
 }
 
 /** Resizers **/

@@ -5,7 +5,7 @@ import TimeComposer from "../collector/timeComposer"
 import TypedGraph from "../collector/typedgraph"
 import { generateColors } from "../color"
 import "../object/extensions"
-import { IObservableTree, IObserverTree, ObservableTree, ObserverTree } from "../oct/oct"
+import { IObservableTree, IObserverTree, ISchedulerInfo, ObservableTree, ObserverTree } from "../oct/oct"
 import "../utils"
 import { Graphs, ViewState } from "./index"
 import { MarbleCoordinator } from "./marbles"
@@ -530,8 +530,8 @@ function renderMarbles(
       }
       let box = h("div", { attrs: { class: clazz }, on: handlers }, [
         h("div", [
-          call && call.method ? `${call.method} (${call.args})` : name,
-          h("span.scheduler", [h("i.glyphicons.glyphicons-stopwatch"), "TestScheduler"]),
+          ...(call && call.method ? [call.method, " (", ...interactiveArgs(call.args), ")"] : [name]),
+          schedulerIcon(obs.scheduler),
         ]),
         // h("div", [], incoming ? incoming(nodeList[i + 1] as IObserverTree).map(o => o.id).join(",") : "no subs"),
         h("div", [], "stackFrame locationText"),
@@ -541,6 +541,27 @@ function renderMarbles(
     }
   }))
   return [root, ...timeOverlays]
+}
+
+function interactiveArgs(args: string | IArguments): (VNode | string)[] {
+  if (typeof args === "string") {
+    return [args.substr(0, 97) + (args.length > 97 ? "..." : "")]
+  } else {
+    return []
+  }
+}
+
+function schedulerIcon(scheduler: ISchedulerInfo): VNode {
+  if (!scheduler) {
+    return undefined
+  }
+  switch (scheduler.type) {
+    case "virtual":
+      return h("span.scheduler", [h("i.scheduler-icon.virtual"), scheduler.name])
+    default:
+      return h("span.scheduler", [h("i.scheduler-icon"), scheduler.name])
+
+  }
 }
 
 // tslint:disable:no-conditional-assignment
