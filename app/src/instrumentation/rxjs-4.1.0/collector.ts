@@ -27,13 +27,29 @@ function schedulerInfo(s: Rx.IScheduler | ISchedulerInfo): ISchedulerInfo {
   return s as ISchedulerInfo
 }
 
+class SequenceTicker {
+  public last = 0
+  public used = false
+
+  public next(): void {
+    if (this.used) {
+      this.used = false
+      this.last++
+    }
+  }
+  public get(): number {
+    this.used = true
+    return this.last
+  }
+}
+
 export class TreeCollector implements RxCollector {
   public static collectorId = 0
   public hash: string
   public collectorId: number
   public nextId = 1
   public logger: ITreeLogger
-  public eventSequence = 0
+  private eventSequencer = new SequenceTicker()
 
   private schedulers: { scheduler: Rx.IScheduler, info: ISchedulerInfo }[] = []
   private scheduler?: { scheduler: Rx.IScheduler, info: ISchedulerInfo }
@@ -67,7 +83,7 @@ export class TreeCollector implements RxCollector {
     if (method.startsWith("schedule") && method !== "scheduleRequired") {
       return function () {
         let justAssigned = self.scheduler = { scheduler, info: info as ISchedulerInfo }
-        self.eventSequence++
+        self.eventSequencer.next()
         let result = action.apply(this, arguments)
         if (self.scheduler === justAssigned) {
           self.scheduler = undefined
@@ -123,7 +139,7 @@ export class TreeCollector implements RxCollector {
     }
 
     if (!observer.inflow || observer.inflow.length === 0) {
-      this.eventSequence++
+      this.eventSequencer.next()
     }
 
     event.timing = this.getTiming()
@@ -200,14 +216,14 @@ export class TreeCollector implements RxCollector {
     }
   }
 
-  private getScheduler(input: Rx.Observable<any>): ISchedulerInfo {
-    if (isObservable(input) && getScheduler(input)) {
-      return this.tag(getScheduler(input)) as ISchedulerInfo
+  private getScheduler(input: Rx.Observable<any>, record?: ICallStart): ISchedulerInfo {
+    if (isObservable(input) && getScheduler(input, record)) {
+      return this.tag(getScheduler(input, record)) as ISchedulerInfo
     }
   }
 
   private getTiming(): Timing {
-    let clocks: { [id: string]: number } = { tick: this.eventSequence }
+    let clocks: { [id: string]: number } = { tick: this.eventSequencer.get() }
     if (this.scheduler) {
       clocks[this.scheduler.info.id] = this.scheduler.scheduler.now()
       return Object.assign({

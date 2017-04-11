@@ -143,6 +143,7 @@ export class ObserverTree implements IObserverTree {
     if (this.logger) {
       this.logger.addMeta(this.id, { events: event })
     }
+    this.events.push(event)
     return this
   }
 
