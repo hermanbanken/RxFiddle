@@ -9,8 +9,10 @@ import {
 import { getPrototype } from "../../utils"
 import * as Rx from "rx"
 
-function getScheduler<T>(obs: Rx.Observable<T>): Rx.IScheduler | undefined {
-  return (obs as any).scheduler || (obs as any)._scheduler
+function getScheduler<T>(obs: Rx.Observable<T>, record?: ICallStart): Rx.IScheduler | undefined {
+  return (obs as any).scheduler ||
+    (obs as any)._scheduler ||
+    record && [].slice.call(record.arguments, -1).filter(isScheduler)[0]
 }
 
 function schedulerInfo(s: Rx.IScheduler | ISchedulerInfo): ISchedulerInfo {
@@ -160,7 +162,7 @@ export class TreeCollector implements RxCollector {
     return typeof input === "object" && typeof (input as any)[this.hash] !== "undefined"
   }
 
-  private tag(input: any): IObserverTree | IObservableTree | ISchedulerInfo | undefined {
+  private tag(input: any, record?: ICallStart): IObserverTree | IObservableTree | ISchedulerInfo | undefined {
     let tree: IObserverTree | IObservableTree
     if (typeof input === "undefined") {
       return undefined
@@ -176,7 +178,8 @@ export class TreeCollector implements RxCollector {
     }
     if (isObservable(input)) {
       (input as any)[this.hash] = tree = new ObservableTree(`${this.nextId++}`,
-        input.constructor.name, this.logger, this.getScheduler(input))
+        input.constructor.name, this.logger, this.getScheduler(input, record)
+      )
       return tree
     }
     if (isObserver(input)) {
@@ -290,7 +293,7 @@ export class TreeCollector implements RxCollector {
   private tagObservable(input: any, callRecord?: ICallStart): IObservableTree[] {
     if (isObservable(input)) {
       let wasTagged = this.hasTag(input)
-      let tree = this.tag(input) as IObservableTree
+      let tree = this.tag(input, callRecord) as IObservableTree
       if (!wasTagged) {
         while (callRecord) {
           tree.addMeta({
