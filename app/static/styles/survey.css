@@ -1,0 +1,128 @@
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.survey {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.width {
+  max-width: 40em;
+  margin: 0 auto;
+  font-size: 1.2em;
+}
+
+.mobile-only { display: none; }
+.mobile .mobile-only { display: inherit; }
+
+.page {
+  min-height: 80vh;
+}
+
+.hoptions {
+  display: flex;
+  padding: 0;
+  flex-direction: row;
+}
+.hoptions li {
+  flex: 1;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+  display: flex;
+  margin: 5px;
+}
+.hoptions li label {
+  display: block;
+  background: #eee;
+  border: #ccc 1px solid;
+  border-radius: 5px;
+  width: 100%;
+  padding: 3px;
+}
+
+input[type="range"], .question input[type="range"] {
+  -webkit-appearance: none;
+  background: #ccc;
+  border-radius: 6px;
+  padding: 3px 5px;
+  margin-bottom: 20px;
+  margin-left: -12px;
+  margin-right: -12px;
+  width: calc(100% + 14px);
+  border: 1px solid #9a9a9a;
+  margin-top: 8px;
+}
+
+.hoptions li label input[type="radio"] {
+  display: block;
+  margin: 5px auto 3px;
+}
+
+.question { margin-bottom: 2em; }
+.question .labels {
+  display: flex;
+}
+.question input {
+  width: 100%;
+  z-index: 1;
+  padding: 10px 0;
+  margin: 0;
+}
+.question .labels .label {
+  padding-top: 0;
+  flex: 1;
+  text-align: center;
+  position: relative; 
+}
+.question .labels .label:first-child { flex: 0.5; text-align: left; }
+.question .labels .label:last-child { flex: 0.5; text-align: right; }
+
+.question .labels .label:before {
+  z-index: -1;
+  position: absolute; 
+  left: 50%;
+  top: -22px; 
+  margin-left: -1px;
+  width: 2px;
+  height: 15px;
+  background: black;
+  content: "";
+}
+.question .labels .label:first-child:before { left: 0; right: auto; }
+.question .labels .label:last-child:before { left: auto; right: 0; }
+
+.nav {
+  background: #efefef;
+  border-bottom: #ccc 2px solid;
+  padding: 0;
+  box-shadow: 0 0 5px rgba(0,0,0,.2);
+}
+.nav ol { 
+  font-size: 1.2em;
+  max-width: 40em;
+  display: flex;
+  margin: 0 auto;
+  padding: 0;
+}
+.nav ol li:first-child {
+  margin-left: -1em;
+}
+.nav ol li {
+  list-style: none;
+  margin: 0;
+  flex: 1;
+  flex-grow: 0;
+  white-space: nowrap;
+}
+
+.nav ol li a {
+  display: block;
+  padding: 1em;
+  text-decoration: none;
+  color: inherit;
+}
+.nav ol li a:hover { background: #ddd; border-bottom: 2px solid #ccc; margin-bottom: -2px; }
+.nav ol li a:active, .nav ol li a:focus { border-bottom: 2px solid blue; margin-bottom: -2px; }

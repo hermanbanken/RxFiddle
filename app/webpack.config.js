@@ -4,6 +4,7 @@ module.exports = {
   entry: {
     "main": "./src/main.ts",
     "editor": "./src/editor.ts",
+    "experiment": "./src/experiment.ts",
     "worker-rx-4.1.0": "./src/instrumentation/rxjs-4.1.0/worker.ts",
   },
   devtool: "source-map",
