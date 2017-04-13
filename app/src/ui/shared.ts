@@ -80,21 +80,31 @@ export class LanguageMenu {
 }
 
 export function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
-  let next = Rx.Observable.create(sub => {
-    setTimeout(() => sub.onError(new Error("Continue")), 5000)
-  })
   return Rx.Observable.just({
-    dom: h("div", [
-      h("p", `Krak!`),
-      h("p", `Global error handling (anything not Rx onError's ) is not yet done. 
-      Also, please make sure to handle errors in your subscribe calls, otherwise they bubble into global errors!`),
-      h("a.btn", { attrs: { href: "javascript:window.location.reload()" } }, "Reload"),
-      h("textarea",
-        { style: { height: "50vh", overflow: "auto", width: "50vw" } },
+    dom: h("div.error", [
+      h("p", [
+        `An error occurred `,
+        h("a.btn.btn-small", { attrs: { href: "javascript:window.location.reload()" } }, "Reload"),
+      ]),
+      h("pre.user-select",
+        { style: { width: "100%" } },
         e.stack || JSON.stringify(e, null, 2)
       ),
+      h("p", [
+        `Please note that global error handling is not implemented.
+         Anything not captured in Rx onError's is thrown here.`, h("br"),
+        `Make sure to handle errors in your subscribe calls by providing a function to the onError argument like so:`]),
+      h("pre.user-select",
+        { style: { width: "100%" } },
+        `Rx.Observable
+  .create(o => o.onError(new Error()))
+  .subscribe(
+    next => {}, 
+    error => { /* this callback is needed */ }
+  )`
+      ),
     ]), timeSlider: h("div"),
-  }).merge(next)
+  })
 }
 
 export function shareButton(editor: CodeEditor) {
