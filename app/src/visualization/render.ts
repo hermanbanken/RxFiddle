@@ -390,7 +390,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
       panel,
       layout.length === 0 || layout[0].nodes.length === 0 ?
         undefined :
-        h(`detail.rel${!flow.length ? ".center" : ""}`, diagram),
+        h(`detail.flexy.rel${!flow.length ? ".center" : ""}`, diagram),
     ])
 
   let timeSlider = slider(graphs.time.min(), graphs.time.max(), currentTick, (v, final) => uievents.onNext({
@@ -509,7 +509,7 @@ function renderMarbles(
     style: {
       height: `${height}px`,
       "margin-top": `${(offset - heights[0] / 2)}px`,
-      "min-width": `${u * 3}px`,
+      width: "0",
     },
   }, nodes.flatMap((node, i, nodeList) => {
     let clazz = "operator withoutStack"
@@ -557,9 +557,9 @@ function schedulerIcon(scheduler: ISchedulerInfo): VNode {
   }
   switch (scheduler.type) {
     case "virtual":
-      return h("span.scheduler", [h("i.scheduler-icon.virtual"), scheduler.name])
+      return h("div.right", h("span.scheduler", [h("i.scheduler-icon.virtual"), scheduler.name]))
     default:
-      return h("span.scheduler", [h("i.scheduler-icon"), scheduler.name])
+      return h("div.right", h("span.scheduler", [h("i.scheduler-icon"), scheduler.name]))
 
   }
 }

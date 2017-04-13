@@ -10,8 +10,9 @@ body {
 
 .width {
   max-width: 40em;
-  margin: 0 auto;
   font-size: 1.2em;
+  margin: 0 auto;
+  padding: 1em;
 }
 
 .mobile-only { display: none; }
@@ -49,8 +50,8 @@ input[type="range"], .question input[type="range"] {
   border-radius: 6px;
   padding: 3px 5px;
   margin-bottom: 20px;
-  margin-left: -12px;
-  margin-right: -12px;
+  margin-left: -14px;
+  margin-right: -14px;
   width: calc(100% + 14px);
   border: 1px solid #9a9a9a;
   margin-top: 8px;
@@ -106,9 +107,7 @@ input[type="range"], .question input[type="range"] {
   display: flex;
   margin: 0 auto;
   padding: 0;
-}
-.nav ol li:first-child {
-  margin-left: -1em;
+  overflow-x: auto;
 }
 .nav ol li {
   list-style: none;
@@ -126,3 +125,57 @@ input[type="range"], .question input[type="range"] {
 }
 .nav ol li a:hover { background: #ddd; border-bottom: 2px solid #ccc; margin-bottom: -2px; }
 .nav ol li a:active, .nav ol li a:focus { border-bottom: 2px solid blue; margin-bottom: -2px; }
+
+@media (pointer:coarse) {
+  input[type="range"] {
+    min-height: 50px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    border: 1px solid #000000;
+    height: 36px;
+    width: 16px;
+    border-radius: 3px;
+    background: #ffffff;
+    cursor: pointer;
+    margin-top: -14px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+  }
+}
+
+.mobile input[type="range"] {
+  min-height: 50px;
+}
+.mobile input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: 1px solid #000000;
+  height: 36px;
+  width: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -7px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+}
+
+.tool {
+  border: 1px solid #333333;
+}
+.survey .tool .app {
+  /* Don't scroll in RxFiddle in survey */
+  overflow-y: visible;
+}
+
+.fullwidth {
+  margin-left: calc(-50vw + 19em);
+  width: 100vw;
+  margin-top: 0;
+  margin-bottom: 0;
+  border-right-width: 0;
+  border-left-width: 0;
+}
+
+.bg-blue {
+  background: #1678ca;
+  color: white;
+}

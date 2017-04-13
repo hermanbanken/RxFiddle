@@ -5,7 +5,7 @@ body {
   user-select: none;
 }
 
-.user-select { user-select: auto }
+.user-select {user-select: initial;}
 
 t {
     box-sizing: border-box;
@@ -24,6 +24,8 @@ html {
     "Fira Sans", "Droid Sans", "Helvetica Neue", 
     sans-serif;
 }
+
+* { box-sizing: border-box; }
 
 .splash {
   background: #333;
@@ -55,8 +57,10 @@ html {
     font-weight: 500;
 }
 
-.right { float: right; }
+.right {float: right;}
 .left { float: left; }
+
+.flex.right {margin-left: auto;}
 
 .launchOption {
   display: flex;
@@ -171,7 +175,10 @@ div.menufold .slider {
 div#menufold-static {
   position: static;
   background: #333;
-  height: 50px;
+  min-height: 50px;
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
 }
 
 div#menufold-fixed {
@@ -188,12 +195,12 @@ div#menufold-fixed {
 }
 
 div.menufold:hover {
-  height: 50px;
+  min-height: 50px;
   border-top: 0px solid;
   background: #b7178c;
 }
 
-.editor { overflow: hidden; }
+.editor {overflow: hidden;flex: 1 1 auto;height: auto;}
 .editor iframe {
   width: 100%;
   height: 100%;
@@ -250,6 +257,13 @@ top {
 
 .app {
   overflow-y: auto;
+  min-width: 320px;
+}
+
+.viewer-panel {
+  flex: 999 0 320px;
+  height: auto;
+  /* to put the scheduler toolbar at the bottom use: flex-direction: column-reverse; */
 }
 
 .viewer-panel > .error {
@@ -276,18 +290,19 @@ path.branch:hover { stroke: darkslategray; }
 }
 
 master > * {
-  background: #eee;
+  /* background: #eee; */
   content: "";
 }
 
 .operator {
   height: 40px;
-  line-height: 40px;
+  line-height: 38px;
   padding: 0 10px;
   border: 1px solid #777;
   box-sizing: border-box;
   background: white;
   text-align: center;
+  position: relative;
 }
 
 .operator.withStack {
@@ -308,7 +323,8 @@ master > * {
 }
 
 .operator:first-child {
-  margin-top: 30px;
+  /* margin-top: 30px; */
+  /* This is now handled explicitly to align marble diagram with graph */
 }
 
 .operator:last-child {
@@ -372,6 +388,7 @@ master > * {
 
 master {
   background: #eeeeee;
+  border-right: 1px solid #c1c1c1;
 }
 
 master path {
@@ -521,7 +538,7 @@ g.circle:hover text, g.circle:hover rect {
 }
 
 .ml3 {
-  margin-left: 2em;
+  /* margin-left: 2em; */
 }
 
 .layered {
@@ -572,6 +589,7 @@ g.circle:hover text, g.circle:hover rect {
 
 .marbleevent:hover > span, .marbleevent:active > span, .marbleevent:focus > span {
     display: inline-block;
+    white-space: nowrap;
 }
 
 .marbleevent > span:before {
@@ -614,7 +632,7 @@ disable purple highlight border:
 
 .menutext {
     padding: 10px 0;
-    margin: 6px 6px 6px 12px;
+    margin: 7px 7px 7px 12px;
     color: white;
 }
 
@@ -622,6 +640,7 @@ disable purple highlight border:
 .select {
     position: relative;
     margin: 7px;
+    white-space: nowrap;
 }
 
 .select > .selected, .select::after {
@@ -668,10 +687,11 @@ disable purple highlight border:
   cursor: pointer;
 }
 
-.toolbar { background: #F0F0F0; border-bottom: 1px solid #C1C1C1; }
+.toolbar:not(:empty) {background: #F0F0F0;border: solid #C1C1C1;border-width: 0px 0 1px 0;}
 .toolbar > .toolbar-pill { padding: 8px; display: inline-block; }
 .toolbar > .toolbar-pill:hover { background: #DFDFDF; }
 .toolbar > .toolbar-pill.active { border-bottom: #2D65F9 1.5px solid; }
+.toolbar:not(:first-child) {border-top-width: 1px;}
 
 #overview-grid {
   width: 100%;
@@ -690,32 +710,36 @@ disable purple highlight border:
 
 /** Schedulers in marbles **/
 .operator .scheduler {
-    display: inline-block;
-    padding: 1px 1px;
-    background: #1678ca;
-    border-radius: 4px;
-    line-height: 1.5em;
-    color: white;
-    vertical-align: text-bottom;
-    text-indent: -9999px;
-    margin: 0 0 0 3px;
+  display: inline-block;
+  padding: 3px;
+  background: #1678ca;
+  border-radius: 4px;
+  line-height: 24px;
+  color: white;
+  vertical-align: baseline;
+  text-indent: -9999px;
 }
 .operator .scheduler:hover {
-    text-indent: 4px;
-    padding-right: 4px;
+  text-indent: 4px;
+  padding-right: 8px;
 }
+.operator .right {
+  position: absolute;
+  right: 5px;
+  top: 0;
+}
+
 .scheduler-icon {
   width: 16px;
   height: 16px;
-  mask-image: url("../scheduler-default.svg");
-  -webkit-mask-image: url("../scheduler-default.svg");
+  mask-image: url(../scheduler-default.svg);
+  -webkit-mask-image: url(../scheduler-default.svg);
   mask-size: contain;
   -webkit-mask-size: contain;
   background: white;
   display: inline-block;
   float: left;
-  padding: 0px;
-  margin: 1px;
+  margin: 4px 4px;
 }
 .scheduler-icon.virtual { 
   mask-image: url("../scheduler-virtual.svg");
@@ -725,10 +749,12 @@ disable purple highlight border:
 /** Resizers **/
 .resize-panel {
   position: relative;
+  flex-wrap: wrap;
+  align-content: stretch;
 }
 .resize-panel > * {
    /* Let Flexbox size freely */
-  width: 0;
+   width: 0;
 }
 .resize-panel > .dragsurface {
   position: absolute;
@@ -739,10 +765,19 @@ disable purple highlight border:
   width: 100%;
 }
 .resizer {
-    width: 2px;
-    min-width: 2px;
-    background: #333;
+    width: 1px;
+    min-width: 1px;
+    background: #c1c1c1;
     flex: 0;
-    height: 100%;
+    height: auto;
     cursor: ew-resize;
+    position: relative;
+}
+.resizer:after {
+  /* Increase click area of 1px wide element */
+    content:'';
+    position:absolute;
+    top:0px; bottom:0px; 
+    left:-4px; right:-4px; 
+    z-index: 100;
 }

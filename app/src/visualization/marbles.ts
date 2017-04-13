@@ -18,11 +18,11 @@ function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void, clockSelector: (e: I
       return h("span", [
         name(e, clockSelector),
         h("br"),
-        h("pre", e.error.stack.toString() || e.error.toString()),
+        h("pre.user-select", e.error.stack.toString() || e.error.toString()),
       ])
     case "next":
       if (typeof e.value === "string") {
-        return h("span", [name(e, clockSelector), h("br"), h("pre", e.value)])
+        return h("span", [name(e, clockSelector), h("br"), h("pre.user-select", e.value)])
       } else if (typeof e.value === "object") {
         let val = e.value as any
         if ("type" in val && "id" in val) {

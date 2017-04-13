@@ -41,6 +41,7 @@
     bottom: 0;
     z-index: 500;
     cursor: text;
+    overflow: hidden;
 }
 
 .overview-grid-cursor-position {

@@ -1,7 +1,7 @@
 import JsonCollector from "./collector/jsonCollector"
 import RxRunner from "./collector/runner"
 import CodeEditor from "./ui/codeEditor"
-import { hbox, vbox } from "./ui/flex"
+import { hbox, vbox, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
 import { LanguageMenu, Query, errorHandler, shareButton } from "./ui/shared"
 import Splash from "./ui/splash"
@@ -66,12 +66,14 @@ function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
 const LanguageMenu$ = new LanguageMenu().stream()
 const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
   if (collector) {
-    let vis = new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
-    return vis
-      .stream()
-      .startWith({ dom: h("span.rxfiddle-waiting", "Waiting for Rx activity..."), timeSlider: h("div") })
+    return Rx.Observable.of(0)
+      .flatMap(_ => {
+        let vis = new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
+        return vis.stream()
+      })
       .catch(errorHandler)
       .retry()
+      .startWith({ dom: h("span.rxfiddle-waiting", "Waiting for Rx activity..."), timeSlider: h("div") })
       .combineLatest(
       collector.vnode || Rx.Observable.just(undefined),
       LanguageMenu$.dom,
@@ -86,7 +88,11 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
         ]),
         // h("div#menufold-fixed.menufold"),
         hbox(...(input ?
-          [Resizer.h("rxfiddle/editor+rxfiddle/inspector", input, vbox(render.timeSlider, render.dom))] :
+          [Resizer.h(
+            "rxfiddle/editor+rxfiddle/inspector",
+            input,
+            vboxo({ class: "viewer-panel" }, render.timeSlider, render.dom)
+          )] :
           [vbox(render.timeSlider, render.dom)]
         )),
       ])

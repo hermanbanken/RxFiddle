@@ -29,6 +29,7 @@ function evalAndRepackageErrors(code: string): { type: "result", result: any } |
   try {
     return { result: scopedEval(code), type: "result" }
   } catch (e) {
+    console.error(e)
     // Infer eval location
     try {
       scopedEval("throw new Error('ERROR')")

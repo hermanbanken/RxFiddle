@@ -204,7 +204,6 @@ export default class Visualizer {
     let viewState = this.viewState
 
     let inp: RenderInput = grapher.graph
-      .debounce(10)
       .combineLatest(viewState, (graphs, state) => {
         let filtered = this.filter(graphs, state)
         let focusNodes = this.focusNodes(graphs, state.flowSelection)

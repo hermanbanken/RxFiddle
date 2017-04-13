@@ -171,6 +171,14 @@ export class TreeCollectorTest {
   }
 
   @test
+  public gatherSingleSubscription() {
+    Rx.Observable.create(o => o.onError(new Error)).subscribe(() => { /* */ }, e => { /* */ })
+    this.write("tree_single")
+    expect(this.graph().nodeCount()).to.be.greaterThan(1)
+    expect(this.graph().edgeCount()).to.be.greaterThan(0)
+  }
+
+  @test
   public concatObserverTest() {
     let o = Rx.Observable.just("a").concat(Rx.Observable.just("b")).map(_ => _)
     let s = o.subscribe(this.testObserver())

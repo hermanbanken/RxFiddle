@@ -205,10 +205,10 @@ export default class Instrumentation {
         // Nicen up Rx performance tweaks
         rxTweaks(end)
 
-        instanceLogger.after(end)
+        instanceLogger.after(end);
 
         // find more
-        new Array(end.returned)
+        ([end.returned])
           .filter(hasRxPrototype)
           .filter((v: any) => !this.isInstrumented(v))
           .forEach((t: any) => this.setupPrototype(t))

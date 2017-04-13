@@ -24,11 +24,15 @@ export default class RxRunner implements DataSource {
     this.code = code
     this.dataObs = Rx.Observable
       .fromEventPattern<any>(h => {
+        console.log("RxRunner Subscribed")
         this.handler = (m) => h(m.data)
         this.stateSubject.onNext("ready")
-      }, h => this.stop())
-      .publish().refCount()
+      }, h => {
+        console.log("RxRunner Disposed")
+        this.stop()
+      })
       .flatMap(throwErrors)
+      .delay(0, Rx.Scheduler.async)
       .takeUntil(this.stateSubject.filter(s => s === "stopped"))
     this.stateSubject.onNext("ready")
     this.state = this.stateSubject

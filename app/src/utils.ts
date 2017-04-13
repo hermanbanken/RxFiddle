@@ -2,19 +2,21 @@
 /* tslint:disable:interface-name */
 
 /* Extension of Rx */
-declare module "rx" {
-  export interface Observable<T> { }
-  export interface Observer<T> {
-    source?: Observable<any>
-    o?: Observer<any>
+declare global {
+  namespace Rx {
+    interface Observable<T> { }
+    interface Observer<T> {
+      source?: Observable<any>
+      o?: Observer<any>
+    }
+    interface ObservableStatic {
+      prototype: any
+    }
+    interface IScheduler { }
+    interface Subscription { }
   }
 }
 
-declare module "rx" {
-  interface ObservableStatic {
-    prototype: any
-  }
-}
 interface ObservableStatic {
   prototype: any
 }

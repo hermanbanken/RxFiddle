@@ -41,7 +41,7 @@ class Resizer {
   public resize(i: number, width: number): void {
     let index = i * 2 - 1
     let el = this.element.childNodes[index] as HTMLDivElement;
-    (el.style as any)["min-width"] = (el.style as any)["max-width"] = el.style.width = width + "px"
+    el.style.width = width + "px"
   }
 }
 

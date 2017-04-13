@@ -21,7 +21,10 @@ export default class Grapher {
 
   protected makeGraphObservable(): Rx.Observable<Graphs> {
     return Rx.Observable.defer(() => this.collector.dataObs
-      .scan(grapherNext, this.treeReader).debounce(10).map(reader => ({
+      .scan(grapherNext, this.treeReader)
+      .debounce(10)
+      .startWith(this.treeReader)
+      .map(reader => ({
         _sequence: Grapher.sequence++,
         events: reader.treeGrapher.events,
         main: reader.treeGrapher.graph

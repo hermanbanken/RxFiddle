@@ -24,8 +24,8 @@ export default class CodeEditor {
       }, {})
       .map(state => h("div.editor.flexy.flexy-v", {
         style: {
-          "max-width": `${Math.max(400, state.desiredWidth)}px`,
-          "min-width": `${Math.max(400, state.desiredWidth)}px`,
+          "width": `${Math.max(320, state.desiredWidth)}px`,
+          // "min-width": `${Math.max(320, state.desiredWidth)}px`,
         },
       }, [h("iframe", {
         attrs: { src },

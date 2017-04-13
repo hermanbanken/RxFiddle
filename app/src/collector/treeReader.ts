@@ -11,6 +11,7 @@ export class TreeReader {
   public treeGrapher: TreeGrapher = new TreeGrapher()
   public maxTick = -1
   public next(message: any): void {
+    if (message === null) { return }
     if (message === "reset") {
       return this.treeGrapher.reset()
     }

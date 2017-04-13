@@ -26,7 +26,7 @@ window.addEventListener("message", (e) => {
 editor.on("change", () => {
   localStorage.setItem("code", editor.getValue())
   parent.postMessage({
-    desiredWidth: getWidth() * 8 + editor.getGutterElement().clientWidth + 15,
+    desiredWidth: getWidth() * editor.defaultCharWidth() + editor.getGutterElement().clientWidth + 15,
   }, location.origin)
 })
 CodeMirror.signal(editor, "change")

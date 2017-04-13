@@ -79,31 +79,43 @@ export class LanguageMenu {
   }
 }
 
-export function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
-  return Rx.Observable.just({
-    dom: h("div.error", [
-      h("p", [
-        `An error occurred `,
-        h("a.btn.btn-small", { attrs: { href: "javascript:window.location.reload()" } }, "Reload"),
-      ]),
-      h("pre.user-select",
-        { style: { width: "100%" } },
-        e.stack || JSON.stringify(e, null, 2)
-      ),
-      h("p", [
-        `Please note that global error handling is not implemented.
+const rxErrorHelp = [
+  h("p", [
+    `Please note that global error handling is not implemented.
          Anything not captured in Rx onError's is thrown here.`, h("br"),
-        `Make sure to handle errors in your subscribe calls by providing a function to the onError argument like so:`]),
-      h("pre.user-select",
-        { style: { width: "100%" } },
-        `Rx.Observable
+    `Make sure to handle errors in your subscribe calls by providing a function to the onError argument like so:`]),
+  h("pre.user-select",
+    { style: { width: "100%" } },
+    `Rx.Observable
   .create(o => o.onError(new Error()))
   .subscribe(
     next => {}, 
     error => { /* this callback is needed */ }
   )`
-      ),
-    ]), timeSlider: h("div"),
+  )]
+
+export function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
+  return Rx.Observable.create<{ dom: VNode, timeSlider: VNode }>(observer => {
+    observer.onNext({
+      dom: h("div.error", [
+        h("p", [
+          `An error occurred `,
+          h("a.btn.btn-small", {
+            on: {
+              click: () => {
+                observer.onError(new Error("This error is catched and the stream is retry'd."))
+                return false
+              },
+            },
+          }, "Reload"),
+        ]),
+        h("pre.user-select",
+          { style: { width: "100%" } },
+          e.stack || `${e.name}: ${e.message}`
+        ),
+        ...(e.name !== "SyntaxError" ? rxErrorHelp : []),
+      ]), timeSlider: undefined,
+    })
   })
 }
 
