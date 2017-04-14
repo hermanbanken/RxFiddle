@@ -83,9 +83,9 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
           [Resizer.h(
             "rxfiddle/editor+rxfiddle/inspector",
             input,
-            vboxo({ class: "viewer-panel" }, render.timeSlider, render.dom)
+            vboxo({ class: "viewer-panel" }, /*render.timeSlider,*/ render.dom)
           )] :
-          [vbox(render.timeSlider, render.dom)]
+          [vbox(/*render.timeSlider,*/ render.dom)]
         )),
       ])
   } else {
