@@ -32,8 +32,11 @@ export default class CodeEditor {
         attrs: { src },
         hook: {
           update: (prev, next) => {
-            this.frameWindow = (next.elm as HTMLIFrameElement).contentWindow
-            this.send({ code: initialSource })
+            this.frameWindow = (next.elm as HTMLIFrameElement).contentWindow;
+            if ((this.frameWindow as any).lastCode !== initialSource) {
+              this.send({ code: initialSource })
+            }
+            (this.frameWindow as any).lastCode = initialSource
           },
         },
       })]))
