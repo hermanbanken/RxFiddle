@@ -1,14 +1,48 @@
-let samples: { code: string, question: string, checker: Function }[] = [
-  {
+import h from "snabbdom/h"
+import { VNode } from "snabbdom/vnode"
+import * as Rx from "rx"
+
+export type Sample = {
+  code: string,
+  question: string,
+  timeout: number,
+  renderQuestion: Rx.Observable<VNode>
+}
+
+export type SampleData<T> = {
+  code: string, question: string,
+  checker: (answers: T) => boolean,
+  timeout: number,
+  answers?: T
+}
+
+class DefaultSample<T> implements Sample {
+  public get code() { return this.data.code }
+  public get question() { return this.data.question }
+  public get timeout() { return this.data.timeout }
+  private data: SampleData<T>
+  constructor(data: SampleData<T>) {
+    this.data = data
+  }
+  public get renderQuestion(): Rx.Observable<VNode> {
+    return Rx.Observable.just(h("div.q", this.question))
+  }
+}
+
+let samples: Sample[] = [
+  new DefaultSample({
+    answers: [],
+    checker: () => { return true },
     code: `
 var weight = Rx.Observable.of(70, 72, 76, 79, 75);
 var height = Rx.Observable.of(1.76, 1.77, 1.78);
 var bmi = weight.combineLatest(height, (w, h) => w / (h * h));
 bmi.subscribe(x => console.log('BMI is ' + x));`,
-    question: ``,
-    checker: () => { /**/ },
-  },
-  {
+    question: `How many BMI values are logged? What is the last value logged?`,
+    timeout: 600,
+  }),
+  new DefaultSample({
+    checker: () => { return true },
     code: `
 // Inputs
 var queries = /* Rx.Observable containing search string's */
@@ -28,9 +62,10 @@ queries
     The user types a query and expects a list of movies to be returned.
     However, the results he receives are not what he expects.
     Please find and fix the bug.`,
-    checker: () => { /**/ },
-  },
-  {
+    timeout: 600,
+  }),
+  new DefaultSample({
+    checker: () => { return true },
     code: `
 Rx.Observable.generate(
     2, 
@@ -41,8 +76,8 @@ Rx.Observable.generate(
   .subscribe(x => test(x))
 `,
     question: `What are the last 2 values arriving at the \`test\` function?`,
-    checker: () => { /**/ },
-  },
+    timeout: 600,
+  }),
 ]
 
 export default samples

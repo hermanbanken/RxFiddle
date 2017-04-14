@@ -1,5 +1,6 @@
 import JsonCollector from "./collector/jsonCollector"
 import RxRunner from "./collector/runner"
+import patch from "./patch"
 import CodeEditor from "./ui/codeEditor"
 import { hbox, vbox, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
@@ -7,18 +8,9 @@ import { LanguageMenu, Query, errorHandler, shareButton } from "./ui/shared"
 import Splash from "./ui/splash"
 import Visualizer, { DataSource } from "./visualization"
 import { GrapherAdvanced as Grapher } from "./visualization/grapher"
-import MorphModule from "./visualization/morph"
-import TabIndexModule from "./visualization/tabIndexQuickDirty"
 import * as Rx from "rx"
-import { init as snabbdom_init } from "snabbdom"
 import h from "snabbdom/h"
-import attrs_module from "snabbdom/modules/attributes"
-import class_module from "snabbdom/modules/class"
-import event_module from "snabbdom/modules/eventlisteners"
-import style_module from "snabbdom/modules/style"
 import { VNode } from "snabbdom/vnode"
-
-const patch = snabbdom_init([class_module, attrs_module, style_module, event_module, MorphModule, TabIndexModule])
 
 const DataSource$: Rx.Observable<{
   data: DataSource,

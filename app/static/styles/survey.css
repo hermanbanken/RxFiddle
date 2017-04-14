@@ -13,6 +13,7 @@ body {
   font-size: 1.2em;
   margin: 0 auto;
   padding: 1em;
+  flex: 1;
 }
 
 .mobile-only { display: none; }
@@ -52,7 +53,7 @@ input[type="range"], .question input[type="range"] {
   margin-bottom: 20px;
   margin-left: -14px;
   margin-right: -14px;
-  width: calc(100% + 14px);
+  width: calc(100% + 28px);
   border: 1px solid #9a9a9a;
   margin-top: 8px;
 }
@@ -178,4 +179,60 @@ input[type="range"], .question input[type="range"] {
 .bg-blue {
   background: #1678ca;
   color: white;
+}
+
+.question-bar {
+  background: #1678ca;
+  color: white;
+  padding: 1em 0.5em;  
+}
+
+.menufold + div {
+  height: auto;
+}
+#screens {
+  flex: 1;
+  display: flex;
+  position: relative;
+}
+#screens > .tool {
+  flex: 1;
+  display: flex;
+}
+#screens .question-bar, #screens .menufold {flex: 0;}
+
+.scrolly { overflow-y: scroll }
+
+.countdown {
+  font-size: 2em;
+  line-height: 0.7;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: rgba(0,0,0,.2);
+  z-index: 1000;
+}
+
+button.btn .overlay, button.btn + .overlay { display: none; }
+button.btn:hover .overlay, button.btn:active .overlay { display: block; }
+button.btn:hover + .overlay, button.btn:active + .overlay { display: block; }
+
+.help svg path {
+  fill: none;
+  stroke: white;
+  stroke-width: 6px;
+}
+
+.help svg text {
+  fill: white;
+  font-size: larger;
+}
+.helpbutton {
+  position: relative;
+  z-index: 1001;
 }

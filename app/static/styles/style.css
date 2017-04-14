@@ -178,7 +178,7 @@ div#menufold-static {
   min-height: 50px;
   display: flex;
   flex-wrap: wrap;
-  width: 100%;
+  width: auto;
 }
 
 div#menufold-fixed {

@@ -43,6 +43,17 @@ function getName() {
 }
 (<any>Object.prototype).getName = getName
 
+export function UUID() {
+  /** UUID generator: http://stackoverflow.com/a/2117523/552203 */
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    // tslint:disable:no-bitwise
+    let r = Math.random() * 16 | 0
+    let v = c === "x" ? r : (r & 0x3 | 0x8)
+    return v.toString(16)
+    // tslint:enable:no-bitwise
+  })
+}
+
 declare module "graphlib" {
   interface Graph {
     // new (options: { compound?: boolean, multigraph?: boolean }): Graph

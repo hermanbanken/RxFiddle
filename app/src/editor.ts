@@ -20,7 +20,13 @@ window.addEventListener("message", (e) => {
   if (e.data && e.data === "requestCode") {
     parent.postMessage({ code: editor.getValue() }, location.origin)
   }
+  if (e.data && e.data && typeof e.data.code === "string") {
+    if (editor.getValue() !== e.data.code) {
+      editor.setValue(e.data.code)
+    }
+  }
 })
+
 
 // Dynamic behaviour
 editor.on("change", () => {

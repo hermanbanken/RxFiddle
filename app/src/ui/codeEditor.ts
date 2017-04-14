@@ -17,18 +17,25 @@ export default class CodeEditor {
     } else {
       src = "editor.html"
     }
+
     this.dom = sameOriginWindowMessages
       .startWith({})
       .scan((prev, message) => {
-        return Object.assign(prev, message)
+        return Object.assign({}, prev, message)
       }, {})
+      .distinctUntilChanged()
       .map(state => h("div.editor.flexy.flexy-v", {
         style: {
-          "width": `${Math.max(320, state.desiredWidth)}px`,
-          // "min-width": `${Math.max(320, state.desiredWidth)}px`,
+          width: `${Math.max(320, state.desiredWidth)}px`,
         },
       }, [h("iframe", {
         attrs: { src },
+        hook: {
+          update: (prev, next) => {
+            this.frameWindow = (next.elm as HTMLIFrameElement).contentWindow
+            this.send({ code: initialSource })
+          },
+        },
       })]))
   }
 
