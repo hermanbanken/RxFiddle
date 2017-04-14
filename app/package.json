@@ -29,6 +29,7 @@
     "@types/graphlib": "^2.1.2",
     "@types/lodash": "^4.14.39",
     "@types/node": "^6.0.45",
+    "browserify": "^14.3.0",
     "chai-shallow-deep-equal": "^1.4.4",
     "ciena-dagre": "^1.0.1",
     "codemirror": "^5.24.2",
@@ -39,7 +40,8 @@
     "lodash": "^4.11.1",
     "rx": "^4.1.0",
     "snabbdom": "0.6.5",
-    "typescript": "2.2"
+    "typescript": "2.2",
+    "typings": "^2.1.1"
   },
   "devDependencies": {
     "@types/chai": "^3.4.34",

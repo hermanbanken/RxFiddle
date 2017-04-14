@@ -1,0 +1,36 @@
+{
+  "name": "RxFiddle",
+  "version": "1.0.0",
+  "description": "RxFiddle DevTool to visualize the Rx dataflow",
+  "devtools_page": "launcher.html",
+  "icons": {
+    "128": "128.png"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "contentScript.js",
+        "contentScript-instrument.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+  "minimum_chrome_version": "22.0",
+  "permissions": [
+    "tabs",
+    "contextMenus",
+    "<all_urls>"
+  ],
+  "manifest_version": 2
+}
