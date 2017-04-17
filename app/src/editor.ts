@@ -2,19 +2,9 @@ declare const CodeMirror: Function & {
   signal: Function
 }
 
-let scope = window as any
-scope.Rx = Rx
-
-let editor = scope.editor = CodeMirror(document.querySelector("#editor"), {
+let editor = CodeMirror(document.querySelector("#editor"), {
   lineNumbers: true,
 })
-
-let hash = window.location.hash
-if (hash.indexOf("blob=") >= 0) {
-  editor.setValue(atob(decodeURI(hash.substr(hash.indexOf("blob=") + "blob=".length))))
-} else if (localStorage && localStorage.getItem("code")) {
-  editor.setValue(localStorage.getItem("code"))
-}
 
 window.addEventListener("message", (e) => {
   if (e.data && e.data === "requestCode") {
@@ -30,7 +20,6 @@ window.addEventListener("message", (e) => {
 
 // Dynamic behaviour
 editor.on("change", () => {
-  localStorage.setItem("code", editor.getValue())
   parent.postMessage({
     desiredWidth: getWidth() * editor.defaultCharWidth() + editor.getGutterElement().clientWidth + 15,
   }, location.origin)
