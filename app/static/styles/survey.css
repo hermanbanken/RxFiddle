@@ -160,7 +160,7 @@ input[type="range"], .question input[type="range"] {
 }
 
 .tool {
-  border: 1px solid #333333;
+  /* border: 1px solid #333333; */
 }
 .survey .tool .app {
   /* Don't scroll in RxFiddle in survey */
@@ -181,12 +181,6 @@ input[type="range"], .question input[type="range"] {
   color: white;
 }
 
-.question-bar {
-  background: #1678ca;
-  color: white;
-  padding: 1em 0.5em;  
-}
-
 .menufold + div {
   height: auto;
 }
@@ -199,7 +193,7 @@ input[type="range"], .question input[type="range"] {
   flex: 1;
   display: flex;
 }
-#screens .question-bar, #screens .menufold {flex: 0;}
+#screens .question-bar, #screens .menufold {flex: 0;transition: margin 1s;}
 
 .scrolly { overflow-y: scroll }
 
@@ -235,4 +229,49 @@ button.btn:hover + .overlay, button.btn:active + .overlay { display: block; }
 .helpbutton {
   position: relative;
   z-index: 1001;
+}
+
+.q {
+  /*background: white;
+  display: inline-block;*/
+}
+
+.question-bar h1 {
+  margin-top: 0;
+}
+
+form { 
+  display: table;
+}
+form .control {
+  display: table-row;
+}
+
+form .control label, form .control input {
+  display: table-cell;
+}
+
+form .control input {
+  box-sizing: content-box;
+  font-size: 1.2em;
+  border: none;
+  padding: 4px;
+  margin: 2px;
+}
+
+.mb {
+  margin-bottom: 0.5em;
+}
+.gray { color: gray; }
+
+
+
+.question-bar {
+  background: #1678ca;
+  color: white;
+}
+.question-bar .question-wrapper {
+   padding: 1em 0.5em;
+   transition: margin-top 0.5s;
+   margin-top: 0%;
 }

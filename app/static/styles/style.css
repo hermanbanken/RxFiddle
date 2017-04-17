@@ -25,7 +25,7 @@ html {
     sans-serif;
 }
 
-* { box-sizing: border-box; }
+* {box-sizing: border-box;}
 
 .splash {
   background: #333;
@@ -179,6 +179,7 @@ div#menufold-static {
   display: flex;
   flex-wrap: wrap;
   width: auto;
+  /*filter: blur(5px);*/
 }
 
 div#menufold-fixed {
@@ -258,6 +259,7 @@ top {
 .app {
   overflow-y: auto;
   min-width: 320px;
+  background: #eee;
 }
 
 .viewer-panel {
@@ -303,6 +305,7 @@ master > * {
   background: white;
   text-align: center;
   position: relative;
+  margin-left: 20px;
 }
 
 .operator.withStack {
@@ -387,8 +390,10 @@ master > * {
 }
 
 master {
-  background: #eeeeee;
-  border-right: 1px solid #c1c1c1;
+  /* background: #eeeeee; */
+  /* border-right: 1px solid #c1c1c1; */
+  margin-right: -60px;
+  z-index: 1000;
 }
 
 master path {
@@ -396,7 +401,7 @@ master path {
   cursor: pointer;
 }
 
-button, .btn {
+button, .btn, input[type="button"], input[type="submit"] {
   display: inline-block;
   box-sizing: border-box;
   -moz-appearance: none;
@@ -414,12 +419,17 @@ button, .btn {
     sans-serif;
   font-weight: normal;
   text-decoration: none;
+  cursor: pointer;
 }
 .btn-small { padding: 5px; }
 
 button:hover, a.btn:hover {
   background: #0D61AD;
 }
+
+.btn.inverse {background: #ffffff;color: #1678CA;}
+.btn.inverse:hover { background: #eee; }
+.btn.inverse:active { background: #ccc; }
 
 bar {
   background: #0F6FC8;
@@ -751,6 +761,7 @@ disable purple highlight border:
   position: relative;
   flex-wrap: wrap;
   align-content: stretch;
+  /*filter: blur(5px);*/
 }
 .resize-panel > * {
    /* Let Flexbox size freely */

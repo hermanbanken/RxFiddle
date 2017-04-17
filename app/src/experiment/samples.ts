@@ -1,12 +1,13 @@
+import { TestEvent } from "./screens"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 import * as Rx from "rx"
 
 export type Sample = {
   code: string,
-  question: string,
+  question: VNode | string,
   timeout: number,
-  renderQuestion: Rx.Observable<VNode>
+  renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode>
 }
 
 export type SampleData<T> = {
@@ -24,13 +25,62 @@ class DefaultSample<T> implements Sample {
   constructor(data: SampleData<T>) {
     this.data = data
   }
-  public get renderQuestion(): Rx.Observable<VNode> {
+  public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
     return Rx.Observable.just(h("div.q", this.question))
   }
 }
 
+class BmiSample<T> implements Sample {
+  public get code() { return this.data.code }
+  public get question() { return this.data.question }
+  public get timeout() { return this.data.timeout }
+  private data: SampleData<T>
+
+  constructor(data: SampleData<T>) {
+    this.data = data
+  }
+
+  public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+    return Rx.Observable.just(h("form.q", {
+      on: {
+        submit: (e: any) => {
+          dispatcher({
+            path: ["sample.bmi"],
+            surveyId: undefined,
+            type: "answer",
+            value: {
+              count: parseInt(e.target.elements.count.value, 10),
+              last: parseInt(e.target.elements.last.value, 10),
+            },
+          })
+          e.preventDefault()
+          return false
+        },
+      },
+    }, [
+        h("div.control", [
+          h("label", `How many BMI values are logged?`),
+          h("input", {
+            attrs: { name: "count", placeholder: "enter a number", type: "number" },
+          }),
+        ]),
+        h("div.control", [
+          h("label", `What is the last value logged?`),
+          h("input", {
+            attrs: {
+              name: "last",
+              placeholder: "enter nearest integer BMI value",
+              step: "any", type: "number",
+            }
+          }),
+        ]),
+        h("input.btn.inverse", { attrs: { type: "submit" } }, "Submit"),
+      ]))
+  }
+}
+
 let samples: Sample[] = [
-  new DefaultSample({
+  new BmiSample({
     answers: [],
     checker: () => { return true },
     code: `
@@ -41,6 +91,7 @@ bmi.subscribe(x => console.log('BMI is ' + x));`,
     question: `How many BMI values are logged? What is the last value logged?`,
     timeout: 600,
   }),
+
   new DefaultSample({
     checker: () => { return true },
     code: `
@@ -64,6 +115,7 @@ queries
     Please find and fix the bug.`,
     timeout: 600,
   }),
+
   new DefaultSample({
     checker: () => { return true },
     code: `
