@@ -1,10 +1,8 @@
 import { StackFrame } from "../utils"
 import { ICallRecord, ICallStart } from "./callrecord"
-import Collector, { RxCollector } from "./collector"
+import { RxCollector } from "./collector"
 import { IEvent } from "./event"
 import * as Rx from "rx"
-
-export default Collector
 
 function numkeys<T>(obj: { [id: number]: T }): number[] {
   return Object.keys(obj)

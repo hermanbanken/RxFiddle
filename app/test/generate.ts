@@ -23,7 +23,7 @@ export class GenerateTest extends InstrumentationTest {
       .mergeAll()
       .subscribe()
 
-    fs.writeFileSync("static/F.json", jsonify(this.newcollector.messages))
+    fs.writeFileSync("static/F.json", jsonify(this.logger.messages))
   }
 
   @test
@@ -35,6 +35,6 @@ export class GenerateTest extends InstrumentationTest {
       .filter(_ => true)
       .subscribe()
 
-    fs.writeFileSync("static/G.json", jsonify(this.newcollector.messages))
+    fs.writeFileSync("static/G.json", jsonify(this.logger.messages))
   }
 }
