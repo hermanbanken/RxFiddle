@@ -377,6 +377,8 @@ master > * {
 .marblediagram circle.complete { fill: dodgerblue; }
 .marblediagram circle.dispose { fill: gray; }
 
+.marblediagram .hoover-other circle.next { opacity: 0.5; transform: scale(0.7); }
+
 .marblediagram .arrow {
     stroke-width: 1px;
     stroke: gray;
@@ -389,6 +391,10 @@ master > * {
   stroke: black;
 }
 
+.marblediagram svg *, .marblediagram svg {
+  transition: 0.5s all, 0.5s x;
+}
+
 master {
   /* background: #eeeeee; */
   /* border-right: 1px solid #c1c1c1; */
@@ -399,6 +405,7 @@ master {
 master path {
   fill: transparent;
   cursor: pointer;
+  transition: 0.5s all;
 }
 
 button, .btn, input[type="button"], input[type="submit"] {
@@ -438,7 +445,7 @@ bar {
 g.circle text, g.circle rect {
   display: none;
   opacity: 0;
-  transition: opacity 1s;
+  transition: opacity 0.5s;
 }
 
 g.circle:hover text, g.circle:hover rect {
@@ -565,7 +572,12 @@ g.circle:hover text, g.circle:hover rect {
 }
 .layered .fg { z-index: 10; }
 
-.marblediagram svg { height: 100%; width: 100%; }
+.marblediagram svg {
+  height: 100%;
+  width: 100%;
+  z-index: 5;
+  position: absolute;
+}
 
 .marbleevent {
     position: absolute;
@@ -613,6 +625,13 @@ g.circle:hover text, g.circle:hover rect {
   top: 37px;
   left: 4px;
   -webkit-transform: rotate(360deg);
+}
+
+.marblediagram .source-timing {
+    position: absolute;
+    background: rgba(0,0,0,.05);
+    height: 100%;
+    z-index: 0;
 }
 
 /*

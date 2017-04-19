@@ -1,7 +1,9 @@
 import { IEvent } from "../collector/event"
 import { EventLabel } from "../collector/logger"
 import { IObserverTree } from "../oct/oct"
+import { ViewState } from "./index"
 import { UIEvent } from "./render"
+import { groupBy } from "lodash"
 import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -79,14 +81,34 @@ export class MarbleCoordinator {
     observer: IObserverTree,
     edges: (EventLabel | IEvent)[],
     uiEvents: (e: UIEvent) => void,
-    debug?: (...arg: any[]) => void
+    debug?: (...arg: any[]) => void,
+    findSubscription?: (id: string) => IObserverTree,
+    viewState?: ViewState,
   ): VNode {
     let events = edges.map(_ => ((_ as EventLabel).event || _) as IEvent)
 
-    let timespan = [
-      events.find(e => e.type === "subscribe"),
-      events.find(e => e.type === "dispose" || e.type === "complete" || e.type === "error"),
-    ].map((_, i) => _ ? this.relTime(_) : (i === 0 ? 0 : 100))
+    let timespan = makeTimespan.call(this, events)
+
+    // Background denoting other input subscription (like flatMap source)
+    let bySource = groupBy(events
+      .filter(e => e.type !== "subscribe" && e.type !== "dispose"),
+      (i) => i.source
+    )
+    let bgs = Object.keys(bySource).map(key => bySource[key]).map(es => {
+      let source = findSubscription(es[0].source)
+      let sourceBounds = source && source.sink &&
+        source.sink.id !== observer.id &&
+        makeTimespan.call(this, source.events)
+      let bg = sourceBounds && sourceBounds.length === 2 && h("div.source-timing", {
+        style: {
+          left: `${sourceBounds[0]}%`,
+          right: `${100 - sourceBounds[1]}%`,
+        },
+      })
+      return bg
+    }).filter(bg => typeof bg === "object" && bg.data)
+
+    let someHoover = events.some(e => hasHooverSource(viewState, e))
 
     let marbles = events.filter(e => e.type !== "dispose").map((e, index) => {
       let arrow = h("path", {
@@ -99,13 +121,17 @@ export class MarbleCoordinator {
       })
 
       let handlers = {
-        click: () => uiEvents({ subscription: observer.id, tick: this.timeSelector(e), type: "marbleClick" }),
-        focus: () => uiEvents({ subscription: observer.id, tick: this.timeSelector(e), type: "marbleHoover" }),
-        mouseover: () => uiEvents({ subscription: observer.id, tick: this.timeSelector(e), type: "marbleHoover" }),
+        click: () => uiEvents({ marble: e, subscription: observer.id, type: "marbleClick" }),
+        focus: () => uiEvents({ marble: e, subscription: observer.id, type: "marbleHoover" }),
+        mouseout: () => uiEvents({ type: "marbleHooverEnd" }),
+        mouseover: () => uiEvents({ marble: e, subscription: observer.id, type: "marbleHoover" }),
       }
 
-      let circle = h("circle", {
-        attrs: { class: e.type, cx: 0, cy: 0, r: 7 },
+      let circle = h(`circle`, {
+        attrs: {
+          class: `${e.type} source-${e.source}`,
+          cx: 0, cy: 0, r: 7,
+        },
       })
 
       let content: VNode[] = []
@@ -139,27 +165,32 @@ export class MarbleCoordinator {
 
       let left = isNaN(this.relTime(e)) ? 50 : this.relTime(e)
 
+      let eHooverClass = someHoover ? hooverClass(viewState, e) : ""
+
       return {
-        html: h(`a.marbleevent.${left > 50 ? "rtl" : "ltr"}`, {
+        html: h(`a.marbleevent.${left > 50 ? "rtl" : "ltr"}.${eHooverClass}`, {
           attrs: { href: "javascript:undefined", role: "button" },
+          key: `marble-${observer.id}-${e.type}@${this.timeSelector(e)}`,
           on: handlers,
           style: { left: `${left}%` },
           tabIndex: { index: this.timeSelector(e) },
-          key: `marble-${observer.id}-${e.type}@${this.timeSelector(e)}`,
         }, [tooltip(e, uiEvents, this.timeSelector)]),
         svg: h("svg", {
-          attrs: { x: `${left}%`, y: "50%" },
+          attrs: { class: eHooverClass, x: `${left}%`, y: "50%" },
         }, content),
       }
     })
 
     return h("div.marblediagram.layered", { tabIndex: { group: "row" } }, [
-      h("div.bg", [h("svg", [
-        h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
-        h("line", { attrs: { class: "active", x1: `${timespan[0]}%`, x2: `${timespan[1]}%`, y1: "50%", y2: "50%" } }),
-        ...marbles.map(_ => _.svg),
-        ...defs(),
-      ])]),
+      h("div.bg", [
+        ...bgs,
+        h("svg", [
+          h("line", { attrs: { class: "time", x1: "0", x2: "100%", y1: "50%", y2: "50%" } }),
+          h("line", { attrs: { class: "active", x1: `${timespan[0]}%`, x2: `${timespan[1]}%`, y1: "50%", y2: "50%" } }),
+          ...marbles.map(_ => _.svg),
+          ...defs(),
+        ]),
+      ]),
       h("div.fg", marbles.map(_ => _.html)),
     ])
   }
@@ -197,3 +228,50 @@ const defs: () => VNode[] = () => [h("defs", [
     },
   }, [h("path", { attrs: { d: "M0,0 L4,2 L4,-2 z", fill: "blue" } })]),
 ])]
+
+function unique<T>(list: T[]): T[] {
+  let got = [] as T[]
+  list.forEach(i => {
+    if (got.indexOf(i) < 0) {
+      got.push(i)
+    }
+  })
+  return got
+}
+
+function hooverClass(viewState: ViewState, e: IEvent) {
+  if (hasHooverSource(viewState, e)) {
+    return "hoover-source"
+  } else {
+    return "hoover-other"
+  }
+}
+
+function hasHooverSource(viewState: ViewState, e: IEvent): boolean {
+  if (typeof viewState === "undefined" || typeof viewState.hooverSelection === "undefined") {
+    return false
+  }
+  let h = viewState.hooverSelection
+  switch (h.type) {
+    case "marbleHoover":
+      if (h.marble.source === e.source) {
+        return true
+      }
+    default:
+      return false
+  }
+}
+
+function endEvent(e: IEvent) {
+  return e.type === "error" || e.type === "complete" || e.type === "dispose"
+}
+function subscriptionLevelEvent(e: IEvent) {
+  return e.type === "subscribe" || e.type === "dispose"
+}
+
+function makeTimespan(this: MarbleCoordinator, events: IEvent[]) {
+  return [
+    events.find(e => e.type === "subscribe"),
+    events.find(e => e.type === "dispose" || e.type === "complete" || e.type === "error"),
+  ].map((_, i) => _ ? this.relTime(_) : (i === 0 ? 0 : 100))
+}

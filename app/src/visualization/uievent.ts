@@ -1,13 +1,17 @@
+import { IEvent } from "../collector/event"
 
 export type MarbleClick = {
   type: "marbleClick"
-  tick: number
+  marble: IEvent
   subscription: string
 }
 export type MarbleHoover = {
   type: "marbleHoover"
-  tick: number
+  marble: IEvent
   subscription: string
+}
+export type MarbleHooverEnd = {
+  type: "marbleHooverEnd"
 }
 export type DiagramOperatorHoover = {
   type: "diagramOperatorHoover"
@@ -61,7 +65,7 @@ export type SchedulerTimeRange = {
 }
 
 export type UIEvent =
-  MarbleClick | MarbleHoover
+  MarbleClick | MarbleHoover | MarbleHooverEnd
   | DiagramOperatorClick | DiagramOperatorHoover
   | HigherOrderHoover | HigherOrderClick
   | TickSelection

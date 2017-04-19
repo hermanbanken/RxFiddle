@@ -62,19 +62,33 @@ export class TreeCollector implements RxCollector {
     this.logger = logger
   }
 
-  public wrapHigherOrder(subject: Rx.Observable<any>, fn: Function | any): Function | any {
+  /**
+   * Used to wrap arguments of higher order functions. Consider:
+   *   
+   *   let a = Rx.Observable.just(1)
+   *   a.flatMap((nr) => Rx.Observable.of(nr, nr * 2, nr * 3))
+   * 
+   * now wrapHigherOrder is called like this:
+   * 
+   *   wrapHigherOrder(a, (nr) => Rx.Observable.of(nr, nr * 2, nr * 3))
+   * 
+   * so we can inject a custom function which can link the result of the lambda to `a`.
+   * 
+   * @param subject observable to link to
+   * @param fn function (or any other argument) to wrap
+   */
+  public wrapHigherOrder(call: ICallRecord, fn: Function | any): Function | any {
     let self = this
-    if (typeof fn === "function") {
-      // tslint:disable-next-line:only-arrow-functions
-      let wrap = function wrapper(val: any, id: any, subjectSuspect: Rx.Observable<any>) {
+    if (typeof fn === "function" && isObservable(call.subject)) {
+      function replacementLambda() {
         let result = fn.apply(this, arguments)
-        if (typeof result === "object" && isObservable(result) && subjectSuspect) {
-          return self.proxy(result)
+        if (typeof result === "object" && isObservable(result)) {
+          return self.relateSubscriptions(result, call.subject, () => call.returned)
         }
         return result
-      };
-      (wrap as any).__original = fn
-      return wrap
+      }
+      (replacementLambda as any).__original = fn
+      return replacementLambda
     }
     return fn
   }
@@ -83,6 +97,7 @@ export class TreeCollector implements RxCollector {
     let info = this.tag(scheduler)
     let self = this
     if (method.startsWith("schedule") && method !== "scheduleRequired") {
+      // tslint:disable-next-line:only-arrow-functions
       return function () {
         let justAssigned = self.scheduler = { scheduler, info: info as ISchedulerInfo }
         self.eventSequencer.next()
@@ -113,7 +128,7 @@ export class TreeCollector implements RxCollector {
             })
           })
       case "event":
-        let event = Event.fromRecord(record, this.getTiming())
+        let event = Event.fromRecord(record, this.getTiming(), this.getEventReason(record))
         if (event && event.type === "next" && isObservable(record.arguments[0])) {
           let higher = record.arguments[0]
           event.value = {
@@ -132,6 +147,15 @@ export class TreeCollector implements RxCollector {
       default: break
     }
     return this
+  }
+
+  public getEventReason(record: ICallStart): string | undefined {
+    return [record.parent, record.parent && record.parent.parent]
+      .filter(r => r && isObserver(r.subject) && this.hasTag(r.subject))
+      .map(r => this.tag(r.subject).id)[0]
+    // return record.parent && isObserver(record.parent.subject) ?
+    //   this.tag(record.parent.subject).id :
+    //   undefined
   }
 
   public addEvent(observer: IObserverTree, event: IEvent) {
@@ -159,7 +183,7 @@ export class TreeCollector implements RxCollector {
   }
 
   private hasTag(input: any): boolean {
-    return typeof input === "object" && typeof (input as any)[this.hash] !== "undefined"
+    return typeof input === "object" && input !== null && typeof (input as any)[this.hash] !== "undefined"
   }
 
   private tag(input: any, record?: ICallStart): IObserverTree | IObservableTree | ISchedulerInfo | undefined {
@@ -298,11 +322,17 @@ export class TreeCollector implements RxCollector {
         while (callRecord) {
           tree.addMeta({
             calls: {
+              subject: `callRecord.subjectName ${this.hasTag(callRecord.subject) && this.tag(callRecord.subject).id}`,
               args: formatArguments(callRecord.arguments),
               method: callRecord.method,
             },
           })
-          callRecord = callRecord.parent
+
+          if (typeof callRecord.parent !== "undefined" && isObservable(callRecord.parent.subject)) {
+            callRecord = callRecord.parent
+          } else {
+            callRecord = undefined
+          }
         }
         if (input.source) {
           tree.setSources(this.tagObservable(input.source))
@@ -318,10 +348,20 @@ export class TreeCollector implements RxCollector {
     return []
   }
 
-  private proxy<T>(target: T): T {
+  private relateSubscriptions<T, R>(target: T, context: Rx.Observable<R>, outerContext: () => Rx.Observable<R>): T {
+    function wrappedSubscribe() {
+      console.log("Wrap this higher order subscribe method\n",
+        target.constructor.name,
+        context.constructor.name,
+        outerContext().constructor.name)
+      return (target as any).subscribe.apply(target, arguments)
+    }
     return new Proxy(target, {
       get: (obj: any, name: string) => {
         if (name === "isScoped") { return true }
+        if (name === "subscribe" && "subscribe" in target) {
+          return wrappedSubscribe
+        }
         return obj[name]
       },
     })

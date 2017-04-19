@@ -9,7 +9,11 @@ import Grapher from "./grapher"
 import layoutf from "./layout"
 import { In as RenderInput, graph$ } from "./render"
 import { time } from "./time"
-import { MarbleClick, SelectionGraphEdge, SelectionGraphNode, SelectionGraphNone, UIEvent } from "./uievent"
+import {
+  MarbleClick, MarbleHoover,
+  SelectionGraphEdge, SelectionGraphNode, SelectionGraphNone,
+  UIEvent,
+} from "./uievent"
 import * as Rx from "rx"
 import { VNode } from "snabbdom/vnode"
 
@@ -20,6 +24,7 @@ export interface DataSource {
 export type ViewState = {
   tick?: number
   flowSelection?: SelectionGraphNode | SelectionGraphEdge | SelectionGraphNone | MarbleClick
+  hooverSelection?: SelectionGraphNone | MarbleHoover
   hoover?: string
   scheduler?: string
   timeRange?: { scheduler: string, min: number, max: number }
@@ -116,10 +121,11 @@ function graphEqual<N1, E1, N2, E2>(a: TypedGraph<N1, E1>, b: TypedGraph<N2, E2>
 }
 
 function flowSelectionEqual(
-  a: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick,
-  b: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick
+  a: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleHoover | MarbleClick,
+  b: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleHoover | MarbleClick
 ) {
   if (typeof a === "undefined" && typeof b === "undefined") { return true }
+  if (typeof a === "undefined" || typeof b === "undefined") { return false }
   return a.type === b.type && Object.keys(a).every(k => (a as any)[k] === (b as any)[k])
 }
 
@@ -141,6 +147,10 @@ function reduce(pstate: ViewState, event: UIEvent): ViewState {
       state.tick = event.tick
       return state
 
+    case "marbleHooverEnd":
+    case "marbleHoover":
+      return Object.assign({}, pstate, { hooverSelection: event })
+
     case "selectionGraphEdge":
     case "selectionGraphNode":
     case "selectionGraphNone":
@@ -153,7 +163,7 @@ function reduce(pstate: ViewState, event: UIEvent): ViewState {
     case "scheduler":
       return Object.assign({}, pstate, {
         scheduler: event.id,
-        timeRange: pstate.scheduler === event.id ? pstate.timeRange : undefined
+        timeRange: pstate.scheduler === event.id ? pstate.timeRange : undefined,
       })
 
     case "timeRange":
@@ -207,12 +217,14 @@ export default class Visualizer {
       .combineLatest(viewState, (graphs, state) => {
         let filtered = this.filter(graphs, state)
         let focusNodes = this.focusNodes(graphs, state.flowSelection)
+        let hooverNodes = this.focusNodes(graphs, state.hooverSelection)
         return ({
           _sequence: graphs._sequence,
           graphs: filtered,
           time: graphs.time,
           viewState: state,
           focusNodes,
+          hooverNodes,
         })
       })
       // Do not re-layout for equal graphs
@@ -255,7 +267,8 @@ export default class Visualizer {
   }
 
   // tslint:disable-next-line:max-line-length
-  private focusNodes(graphs: Graphs, selection: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick): string[] {
+  private focusNodes(graphs: Graphs, selection: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick | MarbleHoover): string[] {
+    if (!selection) { return [] }
     switch (selection.type) {
       case "selectionGraphEdge": return getFlow(graphs.subscriptions, undefined, selection.v, selection.w)
         .map(_ => _.id)
@@ -267,10 +280,11 @@ export default class Visualizer {
         } else {
           return getFlow(graphs.subscriptions, undefined, selection.node, esOut[0] && esOut[0].w).map(_ => _.id)
         }
+      case "marbleHoover":
       case "marbleClick":
         return getFlow(
           graphs.subscriptions,
-          (o, named) => o.events.some(e => e.timing.clocks.tick === selection.tick),
+          (o, named) => o.events.some(e => e.timing.clocks.tick === selection.marble.timing.clocks.tick),
           selection.subscription
         ).map(_ => _.id)
       default: return []
@@ -280,7 +294,7 @@ export default class Visualizer {
   private filter(graphs: Graphs, viewState: ViewState): Graphs {
     let scope = window as any || {}
     scope.filterGraphs = graphs
-    let subs = addBlueprints(graphs.subscriptions, graphs.main)
+    // let subs = addBlueprints(graphs.subscriptions, graphs.main)
     if (typeof viewState.tick === "number") {
       console.log("filtering with tick", viewState.tick)
       return {

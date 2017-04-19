@@ -179,6 +179,30 @@ export class TreeCollectorTest {
   }
 
   @test
+  public preventSubscribeAsNameInLambdaFlow() {
+    let queries = Rx.Observable.just("string")
+    let searchService = {
+      search: (query: string) => Rx.Observable.just("result"),
+    }
+    let render = () => { }
+
+    // Sample Program
+    queries
+      .debounce(100)
+      .flatMap(query => searchService.search(query))
+      .subscribe(render)
+
+    // The call inside the flatmap resulted in a inner-
+    // observable named "subscribe(() => { })"
+    this.write("tree_preventSubscribeAsNameInLambdaFlow")
+    console.log("Weird", this.dot(), this.graph().node("12").names)
+    let innerNode = this.graph().node("12") as IObservableTree
+    expect(innerNode.calls && innerNode.calls.map(_ => _.method)).not.to.contain("subscribe")
+    expect(this.graph().nodeCount()).to.be.greaterThan(1)
+    expect(this.graph().edgeCount()).to.be.greaterThan(0)
+  }
+
+  @test
   public concatObserverTest() {
     let o = Rx.Observable.just("a").concat(Rx.Observable.just("b")).map(_ => _)
     let s = o.subscribe(this.testObserver())

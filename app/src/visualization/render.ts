@@ -28,7 +28,8 @@ export type Layout = {
 
 export type In = Rx.Observable<({
   _sequence: number, layout: Layout, viewState: ViewState,
-  graphs: Graphs, focusNodes: string[], time: TimeComposer,
+  graphs: Graphs, focusNodes: string[], hooverNodes: string[],
+  time: TimeComposer,
 })>
 export type Out = {
   svg: Rx.Observable<VNode>,
@@ -41,7 +42,7 @@ export type Out = {
 
 export function graph$(inp: In): Out {
   let result = inp.map(data => {
-    return graph(data.layout, data.viewState, data.graphs, data._sequence, data.focusNodes)
+    return graph(data.layout, data.viewState, data.graphs, data._sequence, data.focusNodes, data.hooverNodes)
   }).publish().refCount()
 
   return {
@@ -99,11 +100,17 @@ function getObservable(
   }).find(v => typeof v !== "undefined")
 }
 
-export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequence: number, focusNodes: string[]): {
-  svg: VNode, timeSlider: VNode,
-  clicks: Rx.Observable<string[]>, groupClicks: Rx.Observable<string>, tickSelection: Rx.Observable<number>,
-  uievents: Rx.Observable<UIEvent>
-} {
+export function graph(
+  layout: Layout, viewState: ViewState,
+  graphs: Graphs, sequence: number,
+  focusNodes: string[], hooverNodes: string[]
+): {
+    svg: VNode, timeSlider: VNode,
+    clicks: Rx.Observable<string[]>,
+    groupClicks: Rx.Observable<string>,
+    tickSelection: Rx.Observable<number>,
+    uievents: Rx.Observable<UIEvent>
+  } {
   if (typeof window === "object") {
     (window as any).graphs = graphs
   }
@@ -164,11 +171,13 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
     let { v, w, points } = edge
     // let labels = (graph.edge(v, w) || { labels: [] }).labels || []
 
-    let isHigher = false;
+    let isHigher = false
     // labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
 
-    let isSelected = flowPathIds.indexOf(w) >= 0 && flowPathIds.indexOf(v) >= 0
-    let alpha = isSelected ? 0.3 : 0.1
+    let isSelected = flowPathIds.indexOf(v) >= 0 && flowPathIds.indexOf(w) >= 0
+    let isHoovered = hooverNodes.indexOf(v) >= 0 && hooverNodes.indexOf(w) >= 0
+
+    let alpha = isHoovered ? (isSelected ? 0.4 : 0.3) : (isSelected ? 0.3 : 0.1)
     let isBlueprint = v.indexOf("-blueprint") >= 0
 
     return h("path", {
@@ -188,7 +197,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
         mouseover: () => debug(v, w, graph.edge(v, w)),
       },
       style: {
-        transition: "d 1s",
+        transition: "d 0.5s, stroke 0.5s",
       },
     })
   }
@@ -252,7 +261,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
       },
       key: `cluster-${node.id}/circle-${item.id}`,
       on: { click: handlers.click(item), mouseover: handlers.mouseover(item) },
-      style: { transition: "all 1s" },
+      style: { transition: "all 0.5s" },
     }))
 
     let svg = [rect, /*shade, */...circ]
@@ -271,7 +280,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
         // "padding-left": `${mu * (bounds.x2 - bounds.x1)}px`,
         top: `${bounds.y}px`,
         "padding-left": `${bounds.x2 - bounds.x1}px`,
-        transition: "all 1s",
+        transition: "all 0.5s",
         "box-sizing": "content-box",
       },
 
@@ -381,6 +390,7 @@ export function graph(layout: Layout, viewState: ViewState, graphs: Graphs, sequ
       },
       event => uievents.onNext(event),
       graphs.time.max(),
+      id => graphs.subscriptions.node(id)
     )
   }
 
@@ -476,7 +486,8 @@ function renderMarbles(
   offset: number = 0,
   incoming?: (target: IObserverTree) => IObserverTree[],
   uiEvents?: (event: UIEvent) => void,
-  maxTick?: number
+  maxTick?: number,
+  findSubscription?: (id: string) => IObserverTree,
 ): VNode[] {
   let coordinator = new MarbleCoordinator(e => e.timing.clocks[viewState.scheduler] || e.timing.clocks.tick)
   coordinator.set(0, maxTick)
@@ -512,14 +523,14 @@ function renderMarbles(
       width: "0",
     },
   }, nodes.flatMap((node, i, nodeList) => {
-    let clazz = "operator withoutStack"
+    let clazz = `operator withoutStack operator-${node.id} above-${nodeList[i + 1] && nodeList[i + 1].id}`
     if (!node) {
       return [h("div", { attrs: { class: clazz } }, "Unknown node")]
     }
 
     if (node && "events" in node) {
       let events: IEvent[] = (node as IObserverTree).events
-      return [coordinator.render(node as IObserverTree, events, uiEvents, debug)]
+      return [coordinator.render(node as IObserverTree, events, uiEvents, debug, findSubscription, viewState)]
     } else {
       let obs = node as IObservableTree
       let name = obs.names && obs.names[obs.names.length - 1]

@@ -196,7 +196,7 @@ export default class Instrumentation {
         let instanceLogger = logger.before(call, open.slice(0, -1))
         let returned = target.apply(call.subject, [].map.call(
           argumentsList,
-          instanceLogger.wrapHigherOrder.bind(instanceLogger, call.subject))
+          instanceLogger.wrapHigherOrder.bind(instanceLogger, call))
         )
 
         let end: ICallRecord = call as ICallRecord
