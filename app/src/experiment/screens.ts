@@ -105,7 +105,7 @@ function mkq(name: string, text: string, opts: QuestionTypeOptions, state: TestS
   }
 
   return {
-    dom: h("div.question", [text, ...nodes]),
+    dom: h("div.question", { key: name }, [text, ...nodes] as VNode[]),
   }
 }
 

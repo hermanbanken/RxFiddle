@@ -1,27 +1,41 @@
+import { LineClasses, Ranges } from "../ui/codeEditor"
 import { TestEvent } from "./screens"
+import * as Rx from "rx"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
-import * as Rx from "rx"
 
 export type Sample = {
   code: string,
   question: VNode | string,
   timeout: number,
   renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode>
+  renderCode?(input?: string): { chunks: string[] }
+  codeRanges?(): Ranges
+  lineClasses?(): LineClasses
 }
 
+export type CodeChunk = { run: string, visual: string } | string
+export type Code = string | CodeChunk[]
+
 export type SampleData<T> = {
-  code: string, question: string,
+  code: Code,
+  question: string,
   checker: (answers: T) => boolean,
   timeout: number,
   answers?: T
 }
 
 class DefaultSample<T> implements Sample {
-  public get code() { return this.data.code }
+  public get code() {
+    return typeof this.data.code === "string" ?
+      this.data.code :
+      this.data.code
+        .map(_ => typeof _ === "object" ? _.visual : _)
+        .join("\n")
+  }
   public get question() { return this.data.question }
   public get timeout() { return this.data.timeout }
-  private data: SampleData<T>
+  protected data: SampleData<T>
   constructor(data: SampleData<T>) {
     this.data = data
   }
@@ -30,14 +44,9 @@ class DefaultSample<T> implements Sample {
   }
 }
 
-class BmiSample<T> implements Sample {
-  public get code() { return this.data.code }
-  public get question() { return this.data.question }
-  public get timeout() { return this.data.timeout }
-  private data: SampleData<T>
-
+class BmiSample<T> extends DefaultSample<T> {
   constructor(data: SampleData<T>) {
-    this.data = data
+    super(data)
   }
 
   public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
@@ -50,7 +59,7 @@ class BmiSample<T> implements Sample {
             type: "answer",
             value: {
               count: parseInt(e.target.elements.count.value, 10),
-              last: parseInt(e.target.elements.last.value, 10),
+              last: parseFloat(e.target.elements.last.value),
             },
           })
           e.preventDefault()
@@ -79,6 +88,116 @@ class BmiSample<T> implements Sample {
   }
 }
 
+class AdvancedSample<T> extends DefaultSample<T> {
+  public get code() {
+    if (typeof this.data.code === "string") {
+      return this.data.code
+    }
+    return this.data.code.map(chunk =>
+      typeof chunk === "string" ?
+        chunk :
+        chunk.visual
+    ).join("\n")
+  }
+  public get question() { return this.data.question }
+  public get timeout() { return this.data.timeout }
+  constructor(data: SampleData<T>) {
+    super(data)
+    if (typeof this.data.code === "string") {
+      this.data.code = trim(this.data.code, 1)
+    } else {
+      this.data.code = this.data.code.map(chunk => {
+        if (typeof chunk === "string") {
+          return trim(chunk, 1)
+        } else {
+          return { run: trim(chunk.run, 1), visual: trim(chunk.visual, 1) }
+        }
+      })
+    }
+  }
+  public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+    return Rx.Observable.just(h("div.q", this.question))
+  }
+
+  public normalize(input?: string): { run: string, visual: string }[] {
+    if (typeof this.data.code === "string") {
+      if (typeof input === "undefined") {
+        return [{ run: this.data.code, visual: this.data.code }]
+      } else {
+        return [{ run: input, visual: input }]
+      }
+    }
+    if (typeof input === "undefined") {
+      return this.data.code.map(c => typeof c === "string" ? { run: c, visual: c } : c)
+    }
+    let chunks = this.data.code.reduce((code, chunk) => {
+      if (typeof chunk === "string" || !code[code.length - 1]) {
+        return code
+      } else {
+        let last = code[code.length - 1]
+        let [pre, post] = last.split(chunk.visual, 2)
+        return [...code.slice(0, code.length - 2), pre, chunk as any as string, post]
+      }
+    }, [input])
+    console.log("Normalized", chunks)
+    return chunks.map(c => typeof c === "string" ? { run: c, visual: c } : c)
+  }
+
+  public codeRanges(): Ranges {
+    if (typeof this.data.code === "string") { return [] }
+    let options = this.data.code.map(chunk => typeof chunk === "string" ? undefined : {
+      atomic: true,
+      className: "readonly",
+      inclusiveLeft: true,
+      inclusiveRight: true,
+      readOnly: true,
+    })
+    return this.data.code.reduce((start, chunk, index) => {
+      let lines = (typeof chunk === "string" ? chunk : chunk.visual).split("\n")
+      return {
+        line: start.line + lines.length, ranges: [...start.ranges, {
+          from: { ch: 0, line: start.line },
+          options: options[index],
+          to: { ch: 0, line: start.line + lines.length },
+        }],
+      }
+    }, { line: 0, ranges: [] }).ranges
+  }
+
+  public lineClasses(): LineClasses {
+    console.log(this.normalize())
+    return this.normalize().filter(v => v).reduce((start, chunk) => {
+      let lines = (chunk.visual || chunk.run).split("\n")
+      return {
+        data: [...start.data, ...(chunk.visual === chunk.run ? [] : lines.map((_, index) => ({
+          class: "rxfiddle-input",
+          line: start.line + index,
+          where: "wrap" as "wrap",
+        })))],
+        line: start.line + lines.length,
+      }
+    }, { data: [], line: 0 }).data
+  }
+
+  public renderCode(input: string): { chunks: string[] } {
+    return { chunks: this.normalize(input).map(c => c.run) }
+    // if (typeof this.data.code === "string") {
+    //   return { chunks: [this.data.code] }
+    // }
+
+    // let chunks = this.data.code.reduce((code, chunk) => {
+    //   if (typeof chunk === "string") {
+    //     return code
+    //   } else {
+    //     let last = code[code.length - 1]
+    //     let [pre, post] = last.split(chunk.visual, 2)
+    //     return [...code.slice(0, code.length - 2), pre, chunk.run, post]
+    //   }
+    // }, [input])
+    // return { chunks }
+  }
+}
+
 let samples: Sample[] = [
   new BmiSample({
     answers: [],
@@ -92,22 +211,30 @@ bmi.subscribe(x => console.log('BMI is ' + x));`,
     timeout: 600,
   }),
 
-  new DefaultSample({
+  new AdvancedSample({
     checker: () => { return true },
-    code: `
+    code: [{
+      run: `
+this.queries = Rx.Observable.just("string")
+this.searchService = {
+  search: (query) => Rx.Observable.just("result")
+}
+this.render = () => {}
+`, visual: `
 // Inputs
 var queries = /* Rx.Observable containing search string's */
 var searchService = {
   search: function (query) { /* */ }
 }
 function render(results) { /* */ }
+` }, `
 
 // Sample Program
-queries
+this.queries
   .debounce(100)
-  .flatMap(query => searchService.search(query))
-  .subscribe(render)
-`,
+  .flatMap(query => this.searchService.search(query))
+  .subscribe(this.render)
+`],
     question: `
     This sample represents a movie search engine. 
     The user types a query and expects a list of movies to be returned.
@@ -122,7 +249,8 @@ queries
 Rx.Observable.generate(
     2, 
     x => true, 
-    x => x + (x - 1)
+    x => x + (x - 1),
+    x => x
   )
   .take(10)
   .subscribe(x => test(x))
@@ -167,7 +295,8 @@ What are the last 2 values arriving at the `test` function?
 Rx.Observable.generate(
     2, 
     x => true, 
-    x => x + (x - 1)
+    x => x + (x - 1),
+    x => x
   )
   .take(10)
   .subscribe(x => test(x))
@@ -215,3 +344,15 @@ clock
   }, initialState)
 
 */
+
+function trim(input: string, limit: number = -1): string {
+  if (limit < 0) { return input.trim() }
+  if (limit === 0) { return input }
+  if (input[input.length - 1] === "\n") {
+    input = input.substr(0, input.length - 1)
+  }
+  if (input[0] === "\n") {
+    input = input.substr(1)
+  }
+  return limit > 1 ? trim(input, limit - 1) : input
+}

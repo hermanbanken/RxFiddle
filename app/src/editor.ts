@@ -2,11 +2,16 @@ declare const CodeMirror: Function & {
   signal: Function
 }
 
-let editor = CodeMirror(document.querySelector("#editor"), {
+type Pos = { line: number, ch: number }
+
+let scope = window as any
+scope.Rx = Rx
+
+let editor = scope.editor = CodeMirror(document.querySelector("#editor"), {
   lineNumbers: true,
 })
 
-window.addEventListener("message", (e) => {
+function handleMessage(e: any) {
   if (e.data && e.data === "requestCode") {
     parent.postMessage({ code: editor.getValue() }, location.origin)
   }
@@ -15,7 +20,29 @@ window.addEventListener("message", (e) => {
       editor.setValue(e.data.code)
     }
   }
-})
+  if (typeof e.data.ranges === "object") {
+    console.log("Marking Text ranges", e.data.ranges)
+    e.data.ranges.forEach(({ from, to, options }: { from: Pos, to: Pos, options: any }) =>
+      editor.markText(from, to, options)
+    )
+  }
+  if (typeof e.data.lineClasses === "object") {
+    console.log("Marking line classes", e.data.lineClasses)
+    e.data.lineClasses.forEach(({ line, where, class: clasz }: { line: number, where: string, class: string }) =>
+      editor.addLineClass(line, where, clasz)
+    )
+  }
+}
+
+window.addEventListener("message", handleMessage)
+
+let hash = window.location.hash
+if (hash.indexOf("blob=") >= 0) {
+  let json = atob(decodeURI(hash.substr(hash.indexOf("blob=") + "blob=".length)))
+  JSON.parse(json).forEach((data: any) => handleMessage({ data }))
+} else if (localStorage && localStorage.getItem("code")) {
+  editor.setValue(localStorage.getItem("code"))
+}
 
 
 // Dynamic behaviour

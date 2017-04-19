@@ -3,19 +3,46 @@ import * as Rx from "rx"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
+export type DynamicSource = {
+  ranges: {
+    code: string
+    executionCode?: string
+    readonly?: boolean
+  }[]
+}
+export type CMMarkOptions = {
+  className?: string
+  atomic?: boolean
+  readOnly?: boolean
+}
+export type Pos = { line: number, ch: number }
+export type Ranges = { from: Pos, to: Pos, options: CMMarkOptions }[]
+export type LineClasses = { line: number, where: "text" | "background" | "gutter" | "wrap", class: string }[]
+export type Source = string | DynamicSource
+
 export default class CodeEditor {
   public dom: Rx.Observable<VNode>
   private frameWindow: Window = null
 
-  constructor(initialSource?: string) {
+  constructor(initialSource?: string, ranges?: Ranges, lineClasses?: LineClasses) {
     let src: string
-    if (typeof initialSource !== "string" && localStorage && localStorage.getItem("code")) {
-      initialSource = localStorage.getItem("code")
+    if (typeof initialSource === "undefined" && localStorage && localStorage.getItem("code")) {
+      initialSource = js.r(localStorage.getItem("code"))
     }
+
     if (typeof initialSource === "string" && initialSource) {
-      src = "editor.html#blob=" + encodeURI(btoa(initialSource))
+      let data = JSON.stringify([{ code: initialSource, ranges, lineClasses }])
+      src = "editor.html#blob=" + encodeURI(btoa(data))
     } else {
       src = "editor.html"
+    }
+
+    let hook = (next: VNode) => {
+      this.frameWindow = (next.elm as HTMLIFrameElement).contentWindow
+      if ((this.frameWindow as any).lastCode !== initialSource) {
+        this.send({ code: initialSource, ranges, lineClasses })
+      }
+      (this.frameWindow as any).lastCode = initialSource
     }
 
     this.dom = sameOriginWindowMessages
@@ -31,13 +58,8 @@ export default class CodeEditor {
       }, [h("iframe", {
         attrs: { src },
         hook: {
-          update: (prev, next) => {
-            this.frameWindow = (next.elm as HTMLIFrameElement).contentWindow;
-            if ((this.frameWindow as any).lastCode !== initialSource) {
-              this.send({ code: initialSource })
-            }
-            (this.frameWindow as any).lastCode = initialSource
-          },
+          insert: (next) => hook(next),
+          update: (prev, next) => hook(next),
         },
       })]))
   }
@@ -53,7 +75,7 @@ export default class CodeEditor {
       sameOriginWindowMessages
         .take(1)
         .map(d => d.code)
-        .do(code => localStorage && localStorage.setItem("code", code))
+        .do(code => localStorage && localStorage.setItem("code", js.w(code)))
         .subscribe(cb)
       this.frameWindow.postMessage("requestCode", window.location.origin)
     }
@@ -66,4 +88,9 @@ export default class CodeEditor {
     }
     return this.frameWindow && true || false
   }
+}
+
+const js = {
+  r: (str: string) => str[0] === '"' || str[0] === "{" ? JSON.parse(str) : str,
+  w: (obj: any) => JSON.stringify(obj),
 }

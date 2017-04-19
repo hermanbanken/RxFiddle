@@ -7,7 +7,7 @@ import { Screen, States, TestEvent, TestState, general, generalLangs, generalRpE
 import { formatSeconds } from "./experiment/utils"
 import patch from "./patch"
 import CodeEditor from "./ui/codeEditor"
-import { hbox, vbox, vboxo } from "./ui/flex"
+import { hboxo, vbox, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
 import { Query, errorHandler } from "./ui/shared"
 import { UUID } from "./utils"
@@ -190,13 +190,11 @@ let testScreen = (scheduler: Rx.IScheduler): Screen => ({
     dom: Rx.Observable.defer(() => {
       let index = samples.findIndex((s, index) => !state.data[index] || !(state.data[index].passed || state.data[index].completed))
       let sample = samples[index]
-      let collector = DataSource(sample.code)
+      let collector = DataSource(sample)
 
-      let next = Rx.Observable.create<VNode>(observer => {
-        observer.onNext(h("button", { on: { click: () => observer.onCompleted() } }, "Continue with next question"))
-      }).shareReplay(1)
-
-      let question = Rx.Observable.interval(1000, scheduler).startWith(0).take(sample.timeout)
+      let question = Rx.Observable.interval(1000, scheduler)
+        .startWith(0)
+        .take(sample.timeout)
         .let(time => formatQuestion(sample, time, dispatcher))
 
       let active = Rx.Observable
@@ -211,32 +209,33 @@ let testScreen = (scheduler: Rx.IScheduler): Screen => ({
         collector.vnode.do(vn => console.log("vnode")),
         collector.runner.state.do(vn => console.log("runner.state")),
         (visualizer, questiondom, input) => [
-          h("div#menufold-static.menufold", [
-            h("a.brand.left", { attrs: { href: "#" } }, [
-              h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
-            ]),
-            menu(collector.runner, collector.editor),
-            h("div", { style: { flex: "1" } }),
-            h("div.right", [
-              ...testMenu(state, dispatcher, index),
-              h("button.btn", "JavaScript cheatsheet"),
-              h("button.btn", "RxJS docs"),
-              h("button.btn.helpbutton", "Help"),
-              overlay(),
-            ]),
-          ]),
           questiondom,
-          hbox(Resizer.h(
-            "rxfiddle/editor+rxfiddle/inspector",
-            input,
-            vboxo({ class: "viewer-panel" }, visualizer.dom)
-          )),
+          vboxo({ class: "rel" },
+            h("div#menufold-static.menufold.belowquestion", [
+              h("a.brand.left", { attrs: { href: "#" } }, [
+                h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
+              ]),
+              menu(collector.runner, collector.editor),
+              h("div", { style: { flex: "1" } }),
+              h("div.right", [
+                ...testMenu(state, dispatcher, index),
+                h("button.btn", "JavaScript cheatsheet"),
+                h("button.btn", "RxJS docs"),
+                h("button.btn.helpbutton", "Help"),
+                overlay(),
+              ]),
+            ]),
+            hboxo({ class: "editor-visualizer" }, Resizer.h(
+              "rxfiddle/editor+rxfiddle/inspector",
+              input,
+              vboxo({ class: "viewer-panel" }, visualizer.dom)
+            )),
+          ),
         ])
 
       let outOfTime: Rx.Observable<VNode[]> = Rx.Observable.just(sample.timeout)
         .let(time => formatQuestion(sample, time, dispatcher))
-        .takeUntil(next)
-        .combineLatest(next, (render, nextButton) => [
+        .map((render) => [
           render,
           h("div.center", h("div", { style: { padding: "3em" } }, [
             h("h2", "time's up"),
@@ -256,10 +255,10 @@ let testScreen = (scheduler: Rx.IScheduler): Screen => ({
   }),
 })
 
-function DataSource(code: string) {
-  let editor = new CodeEditor(code.trim())
+function DataSource(sample: Sample) {
+  let editor = new CodeEditor(sample.code.trim(), sample.codeRanges && sample.codeRanges(), sample.lineClasses && sample.lineClasses())
   let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
-  let runner = new RxRunner(editedCode)
+  let runner = new RxRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c))
   return {
     data: runner,
     runner,

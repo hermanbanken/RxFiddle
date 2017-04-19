@@ -15,14 +15,19 @@ function formatError(e: Error): any {
   }
 }
 
+let scope = {}
+
 /** 
  * Have single location for evil eval,
  * so we can infer it's stackTrace beforehand 
  * and strip that from the errors coming from it 
  */
 function scopedEval(code: string) {
-  // tslint:disable-next-line:no-eval
-  return eval(code)
+  // tslint:disable-next-line:only-arrow-functions
+  (function () {
+    // tslint:disable-next-line:no-eval
+    return eval(code)
+  }).call(scope)
 }
 
 function evalAndRepackageErrors(code: string): { type: "result", result: any } | { type: "error", error: any } {

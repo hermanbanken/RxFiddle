@@ -275,3 +275,15 @@ form .control input {
    transition: margin-top 0.5s;
    margin-top: 0%;
 }
+
+.CodeMirror .readonly {
+  background: red;
+}
+
+.editor-visualizer {
+  order: 3;
+}
+
+.menufold.belowquestion {
+  order: 2;
+}
