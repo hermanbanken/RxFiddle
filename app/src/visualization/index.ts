@@ -103,6 +103,16 @@ function getObservableId(input: IObservableTree | IObserverTree, node: string): 
   }
 }
 
+function getLayoutObservableId(graph: TypedGraph<IObservableTree | IObserverTree, any>, node: string): string {
+  // TODO: this workaround is needed since layout hierarchies are computed 
+  // for intermediate layout nodes too, but the layout engine should do this conversion itself
+  if (node.indexOf("dummy-") === 0) {
+    return getObservableId(graph.node(node.split("-")[1]), node)
+  } else {
+    return getObservableId(graph.node(node), node)
+  }
+}
+
 type EqualityInput = {
   _sequence: number,
   graphs: Graphs,
@@ -235,7 +245,7 @@ export default class Visualizer {
             data.graphs.subscriptions.filterNodes(() => true),
             data.focusNodes,
             (a, b) => distance(data.graphs.main.node(a), data.graphs.main.node(b)),
-            node => getObservableId(data.graphs.main.node(node) || data.graphs.subscriptions.node(node), node)
+            node => getLayoutObservableId(data.graphs.main, node)
           ),
         }))
         .combineLatest(obs, (layoutData, fullData) => Object.assign(fullData, { layout: layoutData.layout }))
@@ -372,11 +382,22 @@ function getFlow(
   ...ids: string[]
 ) {
   let hasPref = typeof hasPrefOpt === "function" ? hasPrefOpt : undefined
-  // let id = graph.inEdges(ids[0])
-  let focussed = graph.node(ids[0])
-  return focussed ? [
-    ...collectUp(graph, focussed, hasPref).slice(1).reverse(),
-    focussed,
-    ...collectDown(graph, focussed, hasPref).slice(1),
-  ] : []
+  if (ids.length === 2) {
+    let focussed1 = graph.node(ids[0])
+    let focussed2 = graph.node(ids[1])
+    return focussed1 && focussed2 ? [
+      ...collectUp(graph, focussed1, hasPref).slice(1).reverse(),
+      focussed1,
+      focussed2,
+      ...collectDown(graph, focussed2, hasPref).slice(1),
+    ] : []
+  } else {
+    let focussed = graph.node(ids[0])
+    return focussed ? [
+      ...collectUp(graph, focussed, hasPref).slice(1).reverse(),
+      focussed,
+      ...collectDown(graph, focussed, hasPref).slice(1),
+    ] : []
+  }
+
 }

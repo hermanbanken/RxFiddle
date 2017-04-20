@@ -132,13 +132,21 @@ export function graph(
     return "M" + ps.map(({ x, y }) => `${xPos(x)} ${yPos(y)}`).join(" L ")
   }
 
-  function bpath(ps: { x: number, y: number }[]): string {
+  function bpath(ps: { x: number, y: number }[], higher: boolean = false): string {
     // simple:
     // return "M" + [ps[0], ps[1]].map((p) => `${mu + mu * p.x} ${mu + mu * p.y}`).join(" L ")
     let last = ps[ps.length - 1]
-    return "M " + mapTuples(ps, (a, b) =>
-      `${xPos(a.x)} ${yPos(a.y)} C ${xPos(a.x)} ${yPos(.5 + a.y)}, ${xPos(b.x)} ${yPos(-0.5 + b.y)}, `
-    ).join("") + ` ${xPos(last.x)} ${yPos(last.y)}`
+    if (higher) {
+      return "M " + mapTuples(ps, (a, b, anr, bnr) =>
+        ps.length - 1 !== bnr ?
+          `${xPos(a.x)} ${yPos(a.y)} C ${xPos(a.x)} ${yPos(.5 + a.y)}, ${xPos(b.x)} ${yPos(-0.5 + b.y)}, ` :
+          `${xPos(a.x)} ${yPos(a.y)} C ${xPos(a.x)} ${yPos(.5 + a.y)}, ${xPos(1 + b.x)} ${yPos(b.y)}, `
+      ).join("") + ` ${xPos(last.x)} ${yPos(last.y)}`
+    } else {
+      return "M " + mapTuples(ps, (a, b) =>
+        `${xPos(a.x)} ${yPos(a.y)} C ${xPos(a.x)} ${yPos(.5 + a.y)}, ${xPos(b.x)} ${yPos(-0.5 + b.y)}, `
+      ).join("") + ` ${xPos(last.x)} ${yPos(last.y)}`
+    }
   }
 
   // Collect clicks in Subject
@@ -171,8 +179,20 @@ export function graph(
     let { v, w, points } = edge
     // let labels = (graph.edge(v, w) || { labels: [] }).labels || []
 
+    // Determine is normal subscription or higher order
     let isHigher = false
-    // labels.map(_ => _.edge.label).map((_: any) => _.type).indexOf("higherOrderSubscription sink") >= 0
+    let vSub = graphs.subscriptions.node(v)
+    let vObs = vSub && vSub.observable
+    let wSub = graphs.subscriptions.node(w)
+    let wObs = wSub && wSub.observable
+    if (vObs && wObs && wObs.sources && wObs.sources.some(s => s.id === vObs.id)) {
+      isHigher = false
+    } else {
+      isHigher = true
+    }
+
+    // disable higher order distinction for now
+    isHigher = false
 
     let isSelected = flowPathIds.indexOf(v) >= 0 && flowPathIds.indexOf(w) >= 0
     let isHoovered = hooverNodes.indexOf(v) >= 0 && hooverNodes.indexOf(w) >= 0
@@ -182,7 +202,7 @@ export function graph(
 
     return h("path", {
       attrs: {
-        d: bpath(points),
+        d: bpath(points, false && isHigher),
         fill: "transparent",
         id: `${v}/${w}`,
         stroke: isBlueprint ?
@@ -377,8 +397,14 @@ export function graph(
   } else if (flow.length) {
     diagram = renderMarbles(
       flow.flatMap(observer => [
-        { type: "observable" as "observable", value: observer.observable },
-        { type: "observer" as "observer", value: observer },
+        {
+          type: "observable" as "observable", value: observer.observable,
+          y: layout[0].nodes.filter(n => n.id === observer.id).map(n => yPos(n.y))[0],
+        },
+        {
+          type: "observer" as "observer", value: observer,
+          y: layout[0].nodes.filter(n => n.id === observer.id).map(n => yPos(n.y))[0],
+        },
       ]),
       viewState,
       layout[0].nodes.filter(n => n.id === flow[0].id).slice(0, 1).map(n => yPos(n.y))[0],
@@ -484,7 +510,10 @@ export type HigherOrderClick = HigherOrderClick
 export type UIEvent = UIEvent
 
 function renderMarbles(
-  nodes: ({ type: "observable", value: IObservableTree } | { type: "observer", value: IObserverTree })[],
+  nodes: (
+    { type: "observable", value: IObservableTree, y: number } |
+    { type: "observer", value: IObserverTree, y: number }
+  )[],
   viewState: ViewState,
   offset: number = 0,
   incoming?: (target: IObserverTree) => IObserverTree[],
@@ -492,13 +521,17 @@ function renderMarbles(
   maxTick?: number,
   findSubscription?: (id: string) => IObserverTree,
 ): VNode[] {
+  nodes = nodes.filter(n => typeof n !== "undefined")
   let coordinator = new MarbleCoordinator(e => e.timing.clocks[viewState.scheduler] || e.timing.clocks.tick)
   coordinator.set(0, maxTick)
-  let allEvents: IEvent[] = nodes.flatMap((n: any) => n && "events" in n ? n.events as IEvent[] : [])
+  let allEvents: IEvent[] = nodes.flatMap((n: any) => n.type === "observer" ? n.value.events as IEvent[] : [])
   coordinator.add(allEvents)
 
-  let heights = nodes.map(tree => (tree && "events" in tree) ? 60 : 40)
+  let heights = nodes.map(tree => tree.type === "observer" ? 60 : 40)
   let height = heights.reduce((sum, h) => sum + h, 0)
+  let offsets = nodes.map((n, i, list) =>
+    n.y - (i > 1 ? list[i - 2].y + (heights[i - 1] + heights[i - 2]) : (heights[0] / 2))
+  )
 
   let timeMax = typeof viewState.tick === "number" ? 100 - coordinator.relTime(viewState.tick) : undefined
   let timeOverlays = typeof viewState.tick === "number" ? [h("div.timePadding", {
@@ -522,7 +555,7 @@ function renderMarbles(
     key: "marbles",
     style: {
       height: `${height}px`,
-      "margin-top": `${(offset - heights[0] / 2)}px`,
+      // "margin-top": `${(offset - heights[0] / 2)}px`,
       width: "0",
     },
   }, nodes.flatMap((node, i, nodeList) => {
@@ -544,7 +577,7 @@ function renderMarbles(
         click: () => uiEvents({ observable: node.value.id, type: "diagramOperatorClick" }),
         mouseover: () => uiEvents({ observable: node.value.id, type: "diagramOperatorHoover" }),
       }
-      let box = h("div", { attrs: { class: clazz }, on: handlers }, [
+      let box = h("div", { attrs: { class: clazz }, style: { "margin-top": `${offsets[i]}px` }, on: handlers }, [
         h("div", [
           ...(call && call.method ? [call.method, " (", ...interactiveArgs(call.args), ")"] : [name]),
           schedulerIcon(obs.scheduler),
