@@ -235,7 +235,7 @@ export function graph(
       hook: { prepatch: MorphModule.prepare },
       key: `cluster-${node.id}-${bounds.y}`,
       style: {
-        transition: "d 1s",
+        transition: "d 0.5s",
       },
     })
 
@@ -523,7 +523,7 @@ function renderMarbles(
       width: "0",
     },
   }, nodes.flatMap((node, i, nodeList) => {
-    let clazz = `operator withoutStack operator-${node.id} above-${nodeList[i + 1] && nodeList[i + 1].id}`
+    let clazz = `operator withoutStack operator-${node && node.id} above-${nodeList[i + 1] && nodeList[i + 1].id}`
     if (!node) {
       return [h("div", { attrs: { class: clazz } }, "Unknown node")]
     }

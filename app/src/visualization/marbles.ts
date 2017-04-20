@@ -110,7 +110,7 @@ export class MarbleCoordinator {
 
     let someHoover = events.some(e => hasHooverSource(viewState, e))
 
-    let marbles = events.filter(e => e.type !== "dispose").map((e, index) => {
+    let marbles = events.map((e, index) => {
       let arrow = h("path", {
         attrs: {
           class: "arrow",
@@ -143,6 +143,7 @@ export class MarbleCoordinator {
             on: { mouseover: () => debug ? debug(e) : true },
           })]
           break
+        case "dispose":
         case "subscribe":
           content = []
           break
@@ -170,7 +171,7 @@ export class MarbleCoordinator {
       return {
         html: h(`a.marbleevent.${left > 50 ? "rtl" : "ltr"}.${eHooverClass}`, {
           attrs: { href: "javascript:undefined", role: "button" },
-          key: `marble-${observer.id}-${e.type}@${this.timeSelector(e)}`,
+          key: `marble-${observer.id}-${e.type}@${this.timeSelector(e)}-${index}`,
           on: handlers,
           style: { left: `${left}%` },
           tabIndex: { index: this.timeSelector(e) },
@@ -191,7 +192,7 @@ export class MarbleCoordinator {
           ...defs(),
         ]),
       ]),
-      h("div.fg", marbles.map(_ => _.html)),
+      h("div.fg", marbles.map(_ => _.html).filter(_ => typeof _ !== "undefined")),
     ])
   }
 
@@ -273,5 +274,7 @@ function makeTimespan(this: MarbleCoordinator, events: IEvent[]) {
   return [
     events.find(e => e.type === "subscribe"),
     events.find(e => e.type === "dispose" || e.type === "complete" || e.type === "error"),
-  ].map((_, i) => _ ? this.relTime(_) : (i === 0 ? 0 : 100))
+  ]
+    .map((_, i) => _ ? this.relTime(_) : (i === 0 ? 0 : 100))
+    .map((_, i) => isNaN(_) ? (i === 0 ? 0 : 100) : _)
 }
