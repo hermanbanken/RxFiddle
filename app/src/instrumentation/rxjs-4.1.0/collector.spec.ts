@@ -267,19 +267,51 @@ export class TreeCollectorTest {
     let s2 = end2.subscribe(this.testObserver())
     let s1 = end1.subscribe(this.testObserver())
 
-    // console.log(this.dot())
-    console.log("flowsThrough s1", this.flowsTrough(this.getSub(s1)))
-    console.log("flowsThrough s2", this.flowsTrough(this.getSub(s2)))
-    // throw new Error("TODO just like above")
-    console.info("Fix this test!")
-    console.log(this.dot())
-
     if (!this.flowsFrom(this.getObs(first), this.getSub(s1))) {
-      // throw new Error("No connected flow s1")
+      console.log("flowsThrough s1", this.flowsTrough(this.getSub(s1)))
+      throw new Error("No connected flow s1")
     }
     if (!this.flowsFrom(this.getObs(first), this.getSub(s2))) {
-      // throw new Error("No connected flow s2")
+      console.log("flowsThrough s2", this.flowsTrough(this.getSub(s2)))
+      throw new Error("No connected flow s2")
     }
+  }
+
+  @test
+  public publishDiamondTest() {
+    let searchService = {
+      search: (i: any) => Rx.Observable.just("result"),
+    }
+    let input = Rx.Observable.just("string")
+    let output = input
+      // create diamond
+      .publish(obs => obs.take(1).merge(obs.take(2)).take(3))
+      .debounce(100)
+      .flatMap(query => searchService.search(query))
+
+    let sub = output.subscribe(this.testObserver())
+
+    this.write("tree_diamond")
+    if (!this.flowsFrom(this.getObs(input), this.getSub(sub))) {
+      console.log("flowsThrough sub", this.flowsTrough(this.getSub(sub)))
+      throw new Error("No connected sub")
+    }
+  }
+
+  @test
+  public rawSubjectsTest() {
+    let subject = new Rx.Subject<number>()
+
+    subject
+      .map(x => x * 2)
+      .subscribe()
+
+    subject.onNext(1)
+    subject.onNext(2)
+    subject.onNext(3)
+    subject.onCompleted()
+
+    this.write("tree_rawSubject")
   }
 
   @test
@@ -335,31 +367,31 @@ export class TreeCollectorTest {
       ["average", (v: number) => v],
       ["bufferWithCount", 2],
       ["pluck", (_: any) => _],
-      // ["controlled", true],
+      ["controlled", true],
       ["count"],
       ["debounce", 0],
       ["defaultIfEmpty", 1],
-      // ["delay", (_: number) => Rx.Observable.timer(30)],
-      // ["delay", 0],
+      ["delay", (_: number) => Rx.Observable.timer(30)],
+      ["delay", 0],
       ["elementAt", 2],
       ["every", (_: any, i: number) => i % 2 === 1],
       ["manySelect", (_: Rx.Observable<number>) => _.first()],
       ["flatMapWithMaxConcurrent", 2, (inp: number) => Rx.Observable.just(inp)],
       ["forkJoin", Rx.Observable.just(1), (a: any, b: any) => a + b],
       ["forkJoin", Rx.Observable.just(1), Rx.Observable.timer(10), Rx.Observable.timer(10), (a: any, b: any) => a + b],
-      // ["jortSort"],
-      // ["jortSortUntil", Rx.Observable.timer(10)],
+      ["jortSort"],
+      ["jortSortUntil", Rx.Observable.timer(10)],
       ["last"],
       ["let", (_: Rx.Observable<number>) => _.concat(_)],
       ["max"],
       ["pairwise"],
       // ["repeat", 2],
       ["sample", 10],
-      // ["sequenceEqual", Rx.Observable.of(1, 2, 3)],
+      ["sequenceEqual", Rx.Observable.of(1, 2, 3)],
       // ["subscribeOn", Rx.Scheduler.async],
       ["observeOn", Rx.Scheduler.async],
       ["toMap", (_: any) => _, (_: any) => _],
-      // ["window", () => Rx.Observable.timer(1)],
+      ["window", () => Rx.Observable.timer(1)],
       ["zip", Rx.Observable.range(0, 3), Rx.Observable.range(3, 6), (a: number, b: number, c: number) => a + b + c],
     ]
 
