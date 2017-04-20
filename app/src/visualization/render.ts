@@ -376,7 +376,10 @@ export function graph(
     diagram = []
   } else if (flow.length) {
     diagram = renderMarbles(
-      flow.flatMap(observer => [observer.observable, observer]),
+      flow.flatMap(observer => [
+        { type: "observable" as "observable", value: observer.observable },
+        { type: "observer" as "observer", value: observer },
+      ]),
       viewState,
       layout[0].nodes.filter(n => n.id === flow[0].id).slice(0, 1).map(n => yPos(n.y))[0],
       sub => {
@@ -481,7 +484,7 @@ export type HigherOrderClick = HigherOrderClick
 export type UIEvent = UIEvent
 
 function renderMarbles(
-  nodes: (IObservableTree | IObserverTree)[],
+  nodes: ({ type: "observable", value: IObservableTree } | { type: "observer", value: IObserverTree })[],
   viewState: ViewState,
   offset: number = 0,
   incoming?: (target: IObserverTree) => IObserverTree[],
@@ -523,21 +526,23 @@ function renderMarbles(
       width: "0",
     },
   }, nodes.flatMap((node, i, nodeList) => {
-    let clazz = `operator withoutStack operator-${node && node.id} above-${nodeList[i + 1] && nodeList[i + 1].id}`
-    if (!node) {
+    let clazz = `operator withoutStack 
+      operator-${node.value && node.value.id} 
+      above-${nodeList[i + 1] && nodeList[i + 1].value && nodeList[i + 1].value.id}`
+    if (!node.value) {
       return [h("div", { attrs: { class: clazz } }, "Unknown node")]
     }
 
-    if (node && "events" in node) {
-      let events: IEvent[] = (node as IObserverTree).events
-      return [coordinator.render(node as IObserverTree, events, uiEvents, debug, findSubscription, viewState)]
+    if (node.type === "observer") {
+      let events: IEvent[] = node.value.events
+      return [coordinator.render(node.value, events, uiEvents, debug, findSubscription, viewState)]
     } else {
-      let obs = node as IObservableTree
+      let obs = node.value
       let name = obs.names && obs.names[obs.names.length - 1]
       let call = obs.calls && obs.calls[obs.calls.length - 1]
       let handlers = {
-        click: () => uiEvents({ observable: node.id, type: "diagramOperatorClick" }),
-        mouseover: () => uiEvents({ observable: node.id, type: "diagramOperatorHoover" }),
+        click: () => uiEvents({ observable: node.value.id, type: "diagramOperatorClick" }),
+        mouseover: () => uiEvents({ observable: node.value.id, type: "diagramOperatorHoover" }),
       }
       let box = h("div", { attrs: { class: clazz }, on: handlers }, [
         h("div", [

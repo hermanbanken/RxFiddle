@@ -6,7 +6,7 @@ import "../object/extensions"
 import { IObservableTree, IObserverTree, ISchedulerInfo, ObserverTree } from "../oct/oct"
 import "../utils"
 import Grapher from "./grapher"
-import layoutf from "./layout"
+import layoutf, { LayoutType } from "./layout"
 import { In as RenderInput, graph$ } from "./render"
 import { time } from "./time"
 import {
@@ -232,7 +232,7 @@ export default class Visualizer {
         .distinctUntilChanged(_ => _, equalData)
         .map(data => Object.assign(data, {
           layout: layoutf(
-            data.graphs.subscriptions,
+            data.graphs.subscriptions.filterNodes(() => true),
             data.focusNodes,
             (a, b) => distance(data.graphs.main.node(a), data.graphs.main.node(b)),
             node => getObservableId(data.graphs.main.node(node) || data.graphs.subscriptions.node(node), node)
@@ -335,7 +335,7 @@ function collectUp(
   graph: TypedGraph<IObserverTree, {}>, node: IObserverTree,
   hasPref?: (o: IObserverTree, n?: any) => boolean
 ): IObserverTree[] {
-  let inEdges = graph.inEdges(node.id)
+  let inEdges = node && graph.inEdges(node.id)
   if (inEdges && inEdges.length >= 1) {
     let ups = inEdges.map(e => graph.node(e.v))
     let oneUpHasPref = (n: string) => (graph.inEdges(n) || [])
@@ -352,7 +352,7 @@ function collectDown(
   graph: TypedGraph<IObserverTree, {}>, node: IObserverTree,
   hasPref?: (o: IObserverTree) => boolean
 ): IObserverTree[] {
-  let outEdges = graph.outEdges(node.id)
+  let outEdges = node && graph.outEdges(node.id)
   if (outEdges && outEdges.length === 1) {
     let downs = outEdges.map(e => graph.node(e.w))
     let oneDownHasPref = (n: string) => (graph.outEdges(n) || [])

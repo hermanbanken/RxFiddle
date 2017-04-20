@@ -127,7 +127,7 @@ export class ObserverTree implements IObserverTree {
         console.log("Adding second observable to ", this)
         console.log("becoming", observable)
         console.log("was", this.observable)
-        console.log("at", new Error().stack.split("\n").slice(0, 4).join("\n"))
+        console.log("at", new Error().stack.split("\n").slice(1, 4).join("\n"))
       } else {
         return this
       }
@@ -208,6 +208,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
       logger.addNode(id, "subject", Object.assign({}, scheduler))
       logger.addMeta(id, { names: name })
     }
+    this.observable = this
   }
 
   public addSink(sinks: IObserverTree[], name?: string) {

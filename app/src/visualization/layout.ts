@@ -7,16 +7,16 @@ import "../object/extensions"
 import "../utils"
 // import * as dagre from "dagre"
 // import { Graph } from "graphlib"
-
+export type LayoutType = {
+  edges: { points: { x: number, y: number }[], v: string, w: string }[],
+  nodes: { id: string, x: number, y: number }[],
+}[]
 export default function layout<V, E>(
   graph: TypedGraph<V, E>,
   focusNodes: string[] = [],
   distance: (a: string, b: string) => number | undefined = () => undefined,
   ...hierarchies: ((node: string) => string)[]
-): {
-  edges: { points: { x: number, y: number }[], v: string, w: string }[],
-  nodes: { id: string, x: number, y: number }[],
-}[] {
+): LayoutType {
 
   // // Use Dagre:
   // graph.setGraph({ width: undefined })

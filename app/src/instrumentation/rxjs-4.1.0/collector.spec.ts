@@ -285,7 +285,12 @@ export class TreeCollectorTest {
     let input = Rx.Observable.just("string")
     let output = input
       // create diamond
-      .publish(obs => obs.take(1).merge(obs.take(2)).take(3))
+      .publish(obs => Rx.Observable.merge(
+        obs.delay(10).take(2),
+        obs.take(3)
+      )
+        .take(6)
+      )
       .debounce(100)
       .flatMap(query => searchService.search(query))
 
@@ -404,6 +409,7 @@ export class TreeCollectorTest {
 
       let [op, ...args] = operators.shift()
       let inp = Rx.Observable.of(1, 2, 3, 4, 5)
+      console.log("Testing", op)
       let applied = ((inp as any)[op] as Function).apply(inp, args)
       let sub = applied.subscribe()
 

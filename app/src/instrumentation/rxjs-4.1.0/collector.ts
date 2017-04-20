@@ -116,7 +116,6 @@ export class TreeCollector implements RxCollector {
         let obs = this.tagObservable(record.subject);
         [].slice.call(record.arguments, 0, 1)
           .filter(isObserver)
-          // .filter((_: any) => _.constructor.name !== "AutoDetachObserver")
           .map((s: Rx.Observer<any>) => {
             record.arguments[0] = this.subscriptionWrapper(record.arguments[0], this.tagObserver(s, record)[0])
             return s
@@ -126,6 +125,7 @@ export class TreeCollector implements RxCollector {
               if (observable instanceof SubjectTree) {
                 // Special case for subjects
                 observable.addSink(([sub]), " subject")
+                sub.setObservable([observable])
               } else if (observable instanceof ObservableTree) {
                 sub.setObservable([observable])
               }
@@ -143,9 +143,6 @@ export class TreeCollector implements RxCollector {
     return [record.parent, record.parent && record.parent.parent]
       .filter(r => r && isObserver(r.subject) && this.hasTag(r.subject))
       .map(r => this.tag(r.subject).id)[0]
-    // return record.parent && isObserver(record.parent.subject) ?
-    //   this.tag(record.parent.subject).id :
-    //   undefined
   }
 
   public addEvent(observer: IObserverTree, event: IEvent, value?: any) {
@@ -322,20 +319,23 @@ export class TreeCollector implements RxCollector {
       let wasTagged = this.hasTag(input)
       let tree = this.tag(input, callRecord) as IObservableTree
       if (!wasTagged) {
-        while (callRecord) {
-          tree.addMeta({
-            calls: {
-              subject: `callRecord.subjectName ${this.hasTag(callRecord.subject) && this.tag(callRecord.subject).id}`,
-              args: formatArguments(callRecord.arguments),
-              method: callRecord.method,
-            },
-          })
+        /* TODO find other way: this is a shortcut to prevent MulticastObservable._fn1 to show up */
+        if (callRecord && callRecord.method[0] !== "_") {
+          while (callRecord && isObservable((callRecord as ICallRecord).returned) && callRecord.method[0] !== "_") {
+            tree.addMeta({
+              calls: {
+                subject: `callRecord.subjectName ${this.hasTag(callRecord.subject) && this.tag(callRecord.subject).id}`,
+                args: formatArguments(callRecord.arguments),
+                method: callRecord.method,
+              },
+            })
 
-          // if (typeof callRecord.parent !== "undefined" && isObservable(callRecord.parent.subject)) {
-          //   callRecord = callRecord.parent
-          // } else {
-          callRecord = undefined
-          // }
+            // if (typeof callRecord.parent !== "undefined" && isObservable(callRecord.parent.subject)) {
+            callRecord = callRecord.parent
+            // } else {
+            //   callRecord = undefined
+            // }
+          }
         }
         if (input.source) {
           tree.setSources(this.tagObservable(input.source))
@@ -375,10 +375,14 @@ export class TreeCollector implements RxCollector {
     if ((target as any).__isSubscriptionWrapper) {
       return target
     }
+    // Ensure only one single Proxy is attached to the IObserverTree
+    if ((tree as any).proxy) {
+      return target
+    }
     let collector = this
     let events = ["onNext", "onError", "onCompleted", "dispose"]
     tree.addEvent(Event.fromCall("subscribe", undefined, this.getTiming()))
-    return new Proxy(target, {
+    let proxy = new Proxy(target, {
       get: (obj: any, name: string) => {
         let original = obj[name]
         if (name === "__isSubscriptionWrapper") { return true }
@@ -391,7 +395,9 @@ export class TreeCollector implements RxCollector {
         }
         return original
       },
-    })
+    });
+    (tree as any).proxy = proxy
+    return proxy
   }
 
   // Wrap this around a Disposable to log dispose calls onto the supplied observer

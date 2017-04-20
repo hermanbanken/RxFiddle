@@ -1,3 +1,4 @@
+// tslint:disable:max-line-length
 import { IEvent } from "../collector/event"
 import { EventLabel } from "../collector/logger"
 import { IObserverTree } from "../oct/oct"
@@ -14,44 +15,46 @@ function name(e: IEvent, clockSelector: (e: IEvent) => number): string {
   return `${e.type} @ ${clockSelector(e)}`
 }
 
-function tooltip(e: IEvent, uiEvents: (e: UIEvent) => void, clockSelector: (e: IEvent) => number) {
-  switch (e.type) {
-    case "error":
-      return h("span", [
-        name(e, clockSelector),
-        h("br"),
-        h("pre.user-select", e.error.stack.toString() || e.error.toString()),
-      ])
-    case "next":
-      if (typeof e.value === "string") {
-        return h("span", [name(e, clockSelector), h("br"), h("pre.user-select", e.value)])
-      } else if (typeof e.value === "object") {
-        let val = e.value as any
-        if ("type" in val && "id" in val) {
-          let handlers = {
-            focus: () => uiEvents({ observable: val.id, tick: timeSelector(e), type: "higherOrderClick" }),
-            mouseover: () => uiEvents({ observable: val.id, tick: timeSelector(e), type: "higherOrderHoover" }),
+function tooltip(event: IEvent, uiEvents: (e: UIEvent) => void, clockSelector: (e: IEvent) => number, simultaneous: IEvent[]) {
+  return h("span", (simultaneous || [event]).map((e: IEvent) => {
+    switch (e.type) {
+      case "error":
+        return h("div", [
+          name(e, clockSelector),
+          h("br"),
+          h("pre.user-select", e.error.stack.toString() || e.error.toString()),
+        ])
+      case "next":
+        if (typeof e.value === "string") {
+          return h("div", [name(e, clockSelector), h("br"), h("pre.user-select", e.value)])
+        } else if (typeof e.value === "object") {
+          let val = e.value as any
+          if ("type" in val && "id" in val) {
+            let handlers = {
+              focus: () => uiEvents({ observable: val.id, tick: timeSelector(e), type: "higherOrderClick" }),
+              mouseover: () => uiEvents({ observable: val.id, tick: timeSelector(e), type: "higherOrderHoover" }),
+            }
+            return h("div", [
+              name(e, clockSelector),
+              h("br"),
+              h("a.type-ref", { attrs: { role: "button" }, on: handlers }, val.type),
+            ])
+          } else {
+            return h("div", [name(e, clockSelector), h("br"), JSON.stringify(val)])
           }
-          return h("span", [
-            name(e, clockSelector),
-            h("br"),
-            h("a.type-ref", { attrs: { role: "button" }, on: handlers }, val.type),
-          ])
-        } else {
-          return h("span", [name(e, clockSelector), h("br"), JSON.stringify(val)])
         }
-      }
-    case "complete":
-    case "dispose":
-    case "subscribe":
-      return h("span", name(e, clockSelector))
-    default:
-      return h("span", [
-        h("span", { style: { "white-space": "nowrap" } }, name(e, clockSelector)),
-        h("br"),
-        JSON.stringify(e),
-      ])
-  }
+      case "complete":
+      case "dispose":
+      case "subscribe":
+        return h("div", name(e, clockSelector))
+      default:
+        return h("div", [
+          h("span", { style: { "white-space": "nowrap" } }, name(e, clockSelector)),
+          h("br"),
+          JSON.stringify(e),
+        ])
+    }
+  }))
 }
 
 export class MarbleCoordinator {
@@ -110,15 +113,9 @@ export class MarbleCoordinator {
 
     let someHoover = events.some(e => hasHooverSource(viewState, e))
 
+    let simultaneous: { [id: string]: IEvent[] } = groupBy(events, e => timeSelector(e))
+
     let marbles = events.map((e, index) => {
-      let arrow = h("path", {
-        attrs: {
-          class: "arrow",
-          d: ["next", "complete", "error"].indexOf(e.type) >= 0 ?
-            "M 0 -30 L 0 30" :
-            "M 0 30 L 0 -30",
-        },
-      })
 
       let handlers = {
         click: () => uiEvents({ marble: e, subscription: observer.id, type: "marbleClick" }),
@@ -127,42 +124,7 @@ export class MarbleCoordinator {
         mouseover: () => uiEvents({ marble: e, subscription: observer.id, type: "marbleHoover" }),
       }
 
-      let circle = h(`circle`, {
-        attrs: {
-          class: `${e.type} source-${e.source}`,
-          cx: 0, cy: 0, r: 7,
-        },
-      })
-
-      let content: VNode[] = []
-
-      switch (e.type) {
-        case "error":
-          content = [h("path", {
-            attrs: { class: "error", d: "M 4 -8 L -4 8 M 4 8 L -4 -8" },
-            on: { mouseover: () => debug ? debug(e) : true },
-          })]
-          break
-        case "dispose":
-        case "subscribe":
-          content = []
-          break
-        case "complete":
-          content = [h("path", {
-            attrs: { class: "complete", d: "M 0 -10 L 0 10" },
-            on: { mouseover: () => debug ? debug(e) : true },
-          })]
-          break
-        case "next":
-          if (typeof e.value === "object") {
-            content = [arrow, h("rect", {
-              attrs: { class: "higher next", height: 24, width: 32, x: -12, y: -12 },
-              on: { mouseover: () => debug ? debug(e) : true },
-            })]
-            break
-          }
-        default: content = [arrow, circle]
-      }
+      let content: VNode[] = eventBody(e)
 
       let left = isNaN(this.relTime(e)) ? 50 : this.relTime(e)
 
@@ -175,7 +137,7 @@ export class MarbleCoordinator {
           on: handlers,
           style: { left: `${left}%` },
           tabIndex: { index: this.timeSelector(e) },
-        }, [tooltip(e, uiEvents, this.timeSelector)]),
+        }, [tooltip(e, uiEvents, this.timeSelector, simultaneous[this.timeSelector(e).toString(10)])]),
         svg: h("svg", {
           attrs: { class: eHooverClass, x: `${left}%`, y: "50%" },
         }, content),
@@ -277,4 +239,51 @@ function makeTimespan(this: MarbleCoordinator, events: IEvent[]) {
   ]
     .map((_, i) => _ ? this.relTime(_) : (i === 0 ? 0 : 100))
     .map((_, i) => isNaN(_) ? (i === 0 ? 0 : 100) : _)
+}
+
+function eventBody(e: IEvent) {
+  let arrow = h("path", {
+    attrs: {
+      class: "arrow",
+      d: ["next", "complete", "error"].indexOf(e.type) >= 0 ?
+        "M 0 -30 L 0 30" :
+        "M 0 30 L 0 -30",
+    },
+  })
+
+  let circle = h(`circle`, {
+    attrs: {
+      class: `${e.type} source-${e.source}`,
+      cx: 0, cy: 0, r: 7,
+    },
+  })
+
+  let content: VNode[] = []
+
+  switch (e.type) {
+    case "error":
+      content = [h("path", {
+        attrs: { class: "error", d: "M 4 -8 L -4 8 M 4 8 L -4 -8" },
+      })]
+      break
+    case "dispose":
+    case "subscribe":
+      content = []
+      break
+    case "complete":
+      content = [h("path", {
+        attrs: { class: "complete", d: "M 0 -10 L 0 10" },
+      })]
+      break
+    case "next":
+      if (typeof e.value === "object") {
+        content = [arrow, h("rect", {
+          attrs: { class: "higher next", height: 24, width: 32, x: -12, y: -12 },
+        })]
+        break
+      }
+    default: content = [arrow, circle]
+  }
+
+  return content
 }
