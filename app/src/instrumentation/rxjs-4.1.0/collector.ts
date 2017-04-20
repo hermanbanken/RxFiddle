@@ -9,6 +9,8 @@ import {
 import { getPrototype } from "../../utils"
 import * as Rx from "rx"
 
+let debug = false
+
 function getScheduler<T>(obs: Rx.Observable<T>, record?: ICallStart): Rx.IScheduler | undefined {
   return (obs as any).scheduler ||
     (obs as any)._scheduler ||
@@ -83,7 +85,7 @@ export class TreeCollector implements RxCollector {
       function replacementLambda() {
         let result = fn.apply(this, arguments)
         if (typeof result === "object" && isObservable(result)) {
-          return self.relateSubscriptions(result, call.subject, () => call.returned)
+          return self.observableWrapper(result, call.subject, () => call.returned)
         }
         return result
       }
@@ -228,7 +230,7 @@ export class TreeCollector implements RxCollector {
           type = "virtual"
           break
         default:
-          console.log("unknown scheduler type", getPrototype(scheduler).constructor.name)
+          if (debug) { console.debug("unknown scheduler type", getPrototype(scheduler).constructor.name) }
           type = "virtual"
           break
       }
@@ -351,19 +353,22 @@ export class TreeCollector implements RxCollector {
     return []
   }
 
-  private relateSubscriptions<T, R>(target: T, context: Rx.Observable<R>, outerContext: () => Rx.Observable<R>): T {
-    function wrappedSubscribe() {
-      console.log("Wrap this higher order subscribe method\n",
-        target.constructor.name,
-        context.constructor.name,
-        outerContext().constructor.name)
-      return (target as any).subscribe.apply(target, arguments)
+  private observableWrapper<T, R>(target: T, context: Rx.Observable<R>, outerContext: () => Rx.Observable<R>): T {
+    function subscribe() {
+      if (debug) {
+        console.debug("Wrap this higher order subscribe method\n",
+          target.constructor.name,
+          context.constructor.name,
+          outerContext().constructor.name)
+      }
+      let result = (target as any).subscribe.apply(target, arguments)
+      return result
     }
     return new Proxy(target, {
       get: (obj: any, name: string) => {
         if (name === "isScoped") { return true }
         if (name === "subscribe" && "subscribe" in target) {
-          return wrappedSubscribe
+          return subscribe
         }
         return obj[name]
       },
@@ -427,7 +432,7 @@ export class TreeCollector implements RxCollector {
     let arg0 = record && record.arguments[0]
     if (record && record.arguments.length > 0 && this.hasTag(arg0) && isObserver(arg0)) {
       let tag = this.tag(arg0) as IObserverTree
-      console.log("names", tag.observable && tag.observable.names, forObservable.names)
+      if (debug) { console.debug("names", tag.observable && tag.observable.names, forObservable.names) }
       if (tag.observable && tag.observable === forObservable) {
         return tag
       }
