@@ -10,8 +10,8 @@ export let defaultSubjects = {
   "Observable.prototype": rxAny.Observable.prototype,
   "ConnectableObservable.prototype": rxAny.ConnectableObservable.prototype,
   "ObservableBase.prototype": rxAny.ObservableBase.prototype,
-  "AbstractObserver.prototype": rxAny.internals.AbstractObserver.prototype,
-  "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
+  // "AbstractObserver.prototype": rxAny.internals.AbstractObserver.prototype,
+  // "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
   "Subject.prototype": rxAny.Subject.prototype,
 }
 
@@ -37,11 +37,8 @@ export interface Function {
   apply(subject: any, args: any[] | IArguments): any
 }
 
-function hasRxPrototype(input: any): boolean {
-  return typeof input === "object" && (
-    rxAny.Observable.prototype.isPrototypeOf(input) ||
-    rxAny.internals.AbstractObserver.prototype.isPrototypeOf(input)
-  )
+function hasRxObservablePrototype(input: any): boolean {
+  return typeof input === "object" && rxAny.Observable.prototype.isPrototypeOf(input)
 }
 
 function startsWith(input: string, matcher: string) {
@@ -165,7 +162,7 @@ export default class Instrumentation {
 
         // find more
         argumentsList
-          .filter(hasRxPrototype)
+          .filter(hasRxObservablePrototype)
           .filter((v: any) => !this.isInstrumented(v))
           .forEach((t: any) => this.setupPrototype(t))
 
@@ -195,7 +192,7 @@ export default class Instrumentation {
         // Actual method
         let instanceLogger = logger.before(call, open.slice(0, -1))
         let returned = target.apply(call.subject, [].map.call(
-          argumentsList,
+          call.arguments,
           instanceLogger.wrapHigherOrder.bind(instanceLogger, call))
         )
 
@@ -209,7 +206,7 @@ export default class Instrumentation {
 
         // find more
         ([end.returned])
-          .filter(hasRxPrototype)
+          .filter(hasRxObservablePrototype)
           .filter((v: any) => !this.isInstrumented(v))
           .forEach((t: any) => this.setupPrototype(t))
 

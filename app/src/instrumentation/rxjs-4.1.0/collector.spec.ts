@@ -172,7 +172,9 @@ export class TreeCollectorTest {
 
   @test
   public gatherSingleSubscription() {
-    Rx.Observable.create(o => o.onError(new Error)).subscribe(() => { /* */ }, e => { /* */ })
+    Rx.Observable
+      .create(o => o.onError(new Error))
+      .subscribe(() => { /* */ }, e => { /* */ })
     this.write("tree_single")
     expect(this.graph().nodeCount()).to.be.greaterThan(1)
     expect(this.graph().edgeCount()).to.be.greaterThan(0)
@@ -195,11 +197,51 @@ export class TreeCollectorTest {
     // The call inside the flatmap resulted in a inner-
     // observable named "subscribe(() => { })"
     this.write("tree_preventSubscribeAsNameInLambdaFlow")
-    console.log("Weird", this.dot(), this.graph().node("12").names)
+    // console.log("Weird", this.dot(), this.graph().node("12").names)
     let innerNode = this.graph().node("12") as IObservableTree
-    expect(innerNode.calls && innerNode.calls.map(_ => _.method)).not.to.contain("subscribe")
+    expect(innerNode.calls && innerNode.calls.map(_ => _.method).join(", ")).not.to.contain("subscribe")
     expect(this.graph().nodeCount()).to.be.greaterThan(1)
     expect(this.graph().edgeCount()).to.be.greaterThan(0)
+  }
+
+  @test
+  public disposeFiredOnCorrectObserver() {
+    let obs = Rx.Observable.timer(1000)
+      .map(x => x)
+    let sub = obs.subscribe()
+    sub.dispose()
+
+    let g = this.graph()
+    let observers = g.nodes().map(n => g.node(n))
+      .filter(o => "events" in o)
+      .map((o: any) => o.events)
+    expect(observers).to.have.lengthOf(2)
+    observers.forEach(o => {
+      expect(o).to.have.lengthOf(2)
+      expect(o[0].type).to.eq("subscribe")
+      expect(o[1].type).to.eq("dispose")
+    })
+  }
+
+  @test
+  public disposeFiredWithSwitchObserver() {
+    let a = Rx.Observable.of(1, 2, 3)
+    let b = Rx.Observable.of(4, 5, 6)
+    let obs = Rx.Observable.of(a, b).switch()
+    let sub = obs.subscribe()
+    sub.dispose()
+
+    let g = this.graph()
+    let observers = g.nodes().map(n => g.node(n))
+      .filter(o => "events" in o)
+      .map((o: any) => o.events)
+    console.log(observers)
+    expect(observers).to.have.lengthOf(4)
+    observers.forEach(o => {
+      expect(o).to.have.length.above(1)
+      expect(o[0].type).to.eq("subscribe")
+      expect(o[o.length - 1].type).to.eq("dispose")
+    })
   }
 
   @test

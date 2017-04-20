@@ -13,16 +13,19 @@ export type Timing = {
 
 export class Event {
   public static fromRecord(record: ICallStart, timing: Timing, source?: string): IEvent | null {
-    switch (record.method) {
+    return Event.fromCall(record.method, record.arguments, timing, source)
+  }
+  public static fromCall(method: string, args: IArguments, timing: Timing, source?: string): IEvent {
+    switch (method) {
       case "next":
       case "error":
       case "completed":
         return
       case "onNext":
-        return new Next(timing, record.arguments[0], source)
+        return new Next(timing, args[0], source)
       case "onError":
       case "fail":
-        return new Error(timing, new ErrorInstance(record.arguments[0]), source)
+        return new Error(timing, new ErrorInstance(args[0]), source)
       case "onCompleted":
         return new Complete(timing, source)
       case "connect":

@@ -1,5 +1,5 @@
 import { ICallRecord, ICallStart, callRecordType } from "../../collector/callrecord"
-import { RxCollector, elvis, isObservable, isObserver, isScheduler } from "../../collector/collector"
+import { RxCollector, elvis, isDisposable, isObservable, isObserver, isScheduler } from "../../collector/collector"
 import { Event, IEvent, Timing } from "../../collector/event"
 import { formatArguments } from "../../collector/logger"
 import {
@@ -116,7 +116,11 @@ export class TreeCollector implements RxCollector {
         let obs = this.tagObservable(record.subject);
         [].slice.call(record.arguments, 0, 1)
           .filter(isObserver)
-          .filter((_: any) => _.constructor.name !== "AutoDetachObserver")
+          // .filter((_: any) => _.constructor.name !== "AutoDetachObserver")
+          .map((s: Rx.Observer<any>) => {
+            record.arguments[0] = this.subscriptionWrapper(record.arguments[0], this.tagObserver(s, record)[0])
+            return s
+          })
           .flatMap((s: any) => this.tagObserver(s, record)).forEach((sub: any) => {
             obs.forEach(observable => {
               if (observable instanceof SubjectTree) {
@@ -127,20 +131,6 @@ export class TreeCollector implements RxCollector {
               }
             })
           })
-      case "event":
-        let event = Event.fromRecord(record, this.getTiming(), this.getEventReason(record))
-        if (event && event.type === "next" && isObservable(record.arguments[0])) {
-          let higher = record.arguments[0]
-          event.value = {
-            id: this.tag(higher).id,
-            type: higher.constructor.name,
-          } as any as string
-        }
-        if (event && event.type !== "subscribe" && this.hasTag(record.subject)) {
-          this.tagObserver(record.subject).forEach(_ => this.addEvent(_, event))
-        } else if (event && this.hasTag(record.arguments[0])) {
-          this.tagObserver(record.arguments[0]).forEach(_ => this.addEvent(_, event))
-        }
         break
       case "setup":
         this.tagObservable(record.subject)
@@ -158,7 +148,17 @@ export class TreeCollector implements RxCollector {
     //   undefined
   }
 
-  public addEvent(observer: IObserverTree, event: IEvent) {
+  public addEvent(observer: IObserverTree, event: IEvent, value?: any) {
+    if (typeof event === "undefined") { return }
+
+    // Enrich higher order events
+    if (event.type === "next" && isObservable(value)) {
+      event.value = {
+        id: this.tag(value).id,
+        type: value.constructor.name,
+      } as any as string
+    }
+
     // Ignore 2nd subscribe (subscribe & _subscribe are instrumented both)
     if (observer.events.length === 1 && observer.events[0].type === "subscribe" && event.type === "subscribe") {
       return
@@ -175,6 +175,9 @@ export class TreeCollector implements RxCollector {
   public after(record: ICallRecord): void {
     switch (callRecordType(record)) {
       case "subscribe":
+        if (isDisposable(record.returned)) {
+          record.returned = this.disposableWrapper(record.returned, record.arguments[0])
+        }
         break
       case "setup":
         this.tagObservable(record.returned, record)
@@ -264,11 +267,11 @@ export class TreeCollector implements RxCollector {
     }
   }
 
-  private tagObserver(input: any, record?: ICallStart): IObserverTree[] {
+  private tagObserver(input: any, record?: ICallStart, traverse: boolean = true): IObserverTree[] {
     if (isObserver(input)) {
 
       // Rx specific: unfold AutoDetachObserver's, 
-      while (input && input.constructor.name === "AutoDetachObserver" && input.observer) {
+      while (traverse && input && input.constructor.name === "AutoDetachObserver" && input.observer) {
         input = input.observer
       }
 
@@ -328,11 +331,11 @@ export class TreeCollector implements RxCollector {
             },
           })
 
-          if (typeof callRecord.parent !== "undefined" && isObservable(callRecord.parent.subject)) {
-            callRecord = callRecord.parent
-          } else {
-            callRecord = undefined
-          }
+          // if (typeof callRecord.parent !== "undefined" && isObservable(callRecord.parent.subject)) {
+          //   callRecord = callRecord.parent
+          // } else {
+          callRecord = undefined
+          // }
         }
         if (input.source) {
           tree.setSources(this.tagObservable(input.source))
@@ -363,6 +366,53 @@ export class TreeCollector implements RxCollector {
           return wrappedSubscribe
         }
         return obj[name]
+      },
+    })
+  }
+
+  // Wrap this around a Subscription to log onNext, onError, onComplete, dispose calls
+  private subscriptionWrapper<T>(target: Rx.Observer<T>, tree: IObserverTree) {
+    if ((target as any).__isSubscriptionWrapper) {
+      return target
+    }
+    let collector = this
+    let events = ["onNext", "onError", "onCompleted", "dispose"]
+    tree.addEvent(Event.fromCall("subscribe", undefined, this.getTiming()))
+    return new Proxy(target, {
+      get: (obj: any, name: string) => {
+        let original = obj[name]
+        if (name === "__isSubscriptionWrapper") { return true }
+        if (typeof original === "function" && events.indexOf(name) >= 0) {
+          function proxy() {
+            collector.addEvent(tree, Event.fromCall(name, arguments, undefined), arguments[0])
+            return original.apply(this, arguments)
+          }
+          return proxy
+        }
+        return original
+      },
+    })
+  }
+
+  // Wrap this around a Disposable to log dispose calls onto the supplied observer
+  private disposableWrapper<T>(target: Rx.Disposable, observer?: any) {
+    if ((target as any).__isDisposableWrapper) {
+      return target
+    }
+    let tree: IObserverTree[] = isObserver(observer) ? this.tagObserver(observer) : []
+    let collector = this
+    return new Proxy(target, {
+      get: (obj: any, name: string) => {
+        let original = obj[name]
+        if (name === "__isDisposableWrapper") { return true }
+        if (typeof original === "function" && name === "dispose") {
+          function proxy() {
+            collector.addEvent(tree[0], Event.fromCall(name, arguments, undefined))
+            return original.apply(this, arguments)
+          }
+          return proxy
+        }
+        return original
       },
     })
   }
@@ -410,4 +460,8 @@ function sequenceUnique<T, K>(keySelector: (e: T) => K, list: T[]): T[] {
     }
   }
   return filtered
+}
+
+function eventUpwards(e: IEvent) {
+  return e.type === "subscribe" || e.type === "dispose"
 }
