@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<link rel="stylesheet" href="../dist/codemirror/lib/codemirror.css" />
-<script src="../dist/codemirror/lib/codemirror.js"></script>
-<script src="../dist/codemirror/mode/javascript/javascript.js"></script>
+<link rel="stylesheet" href="dist/codemirror/lib/codemirror.css" />
+<script src="dist/codemirror/lib/codemirror.js"></script>
+<script src="dist/codemirror/mode/javascript/javascript.js"></script>
 <script>
   function script(src) {
     var s = document.createElement("script");
@@ -10,12 +10,12 @@
     document.head.appendChild(s);
   }
   if (typeof require == 'undefined') {
-    script('../dist/rx/dist/rx.all.js')
-    script('../dist/graphlib/dist/graphlib.min.js')
-    script('../dist/lodash/lodash.min.js')
-    script('../dist/editor.bundle.js')
+    script('dist/rx/dist/rx.all.js')
+    script('dist/graphlib/dist/graphlib.min.js')
+    script('dist/lodash/lodash.min.js')
+    script('dist/editor.bundle.js')
   } else {
-    script('../dist/editor.js')
+    script('dist/editor.js')
   }
 
 </script>
@@ -46,10 +46,6 @@
     font-size: 16px;
   }
   
-  .CodeMirror .readonly {
-    /*background: red;*/
-  }
-  
   .CodeMirror .rxfiddle-input {
     background: repeating-linear-gradient( 45deg, #d8d8d8, #d8d8d8 9px, #afafaf 9px, #afafaf 10px);
   }
@@ -66,7 +62,5 @@
       document.body.className += " mobile"
     }
   </script>
-  <!--Moved to parent window-->
-  <!--<button id="run">Run</button>-->
   <div id="editor"></div>
 </body>
