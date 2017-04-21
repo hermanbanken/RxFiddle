@@ -159,8 +159,8 @@ input[type="range"], .question input[type="range"] {
   box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
 }
 
-.tool {
-  /* border: 1px solid #333333; */
+.tool, .resize-panel {
+  height: auto;
 }
 .survey .tool .app {
   /* Don't scroll in RxFiddle in survey */
