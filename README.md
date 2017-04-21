@@ -3,7 +3,8 @@
 RxFiddle is a debugger for Reactive Extensions (Rx). 
 
 ## Features
-- [ ] visualises construction of and data flow through Observable sequences in Marble Diagrams,
+- [x] visualises structure of Observables in graph diagram,
+- [x] visualises construction of and data flow through Observable sequences in Marble Diagrams,
 - [ ] supports live fiddling with input streams,
 - [ ] generates tests for Observable sequences.
 
@@ -17,8 +18,8 @@ syntax and instrument (compiled) code to collect the lifecycle of Observables:
 
 Existing collectors:
 
-- [x] [JVM](rxfiddle-jvm-collector) for RxJava, RxKotlin and RxScala
-- [ ] [JavaScript](rxfiddle-js-collector) for RxJS
+- [x] [JavaScript](rxfiddle-js-collector) for RxJS
+- [ ] [JVM](rxfiddle-jvm-collector) for RxJava, RxKotlin and RxScala
 - [ ] [Dalvik](rxfiddle-android-collector) for Rx on Android
 - [ ] [Swift](rxfiddle-swift-collector) for RxSwift
 

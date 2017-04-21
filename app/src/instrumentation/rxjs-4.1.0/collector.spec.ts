@@ -57,7 +57,7 @@ export class TreeCollectorTest {
       n => n instanceof ObserverTree ? "red" : "blue",
       () => ["rankdir=TB"]
     )
-    return "https://hermanbanken.github.io/RxFiddle/app/static/graphviz.html#" + btoa(viz)
+    return "https://rxfiddle.net/graphviz.html#" + btoa(viz)
   }
 
   public write(name: string) {
