@@ -6,6 +6,7 @@ module.exports = {
     "editor": "./src/editor.ts",
     "experiment": "./src/experiment.ts",
     "worker-rx-4.1.0": "./src/instrumentation/rxjs-4.1.0/worker.ts",
+    "worker-console-experiment": "./src/instrumentation/console-experiment/worker.ts",
   },
   devtool: "source-map",
   output: {

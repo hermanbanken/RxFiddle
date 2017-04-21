@@ -16,7 +16,16 @@ export type DynamicCode = {
 }
 export type Code = string | DynamicCode
 
-export default class RxRunner implements DataSource {
+export interface Runner {
+  action: string
+  dataObs: Rx.Observable<any>
+  state: Rx.Observable<RxRunnerState>
+  run(code: Code): void
+  stop(): void
+  trigger(): void
+}
+
+export default class RxRunner implements DataSource, Runner {
   public dataObs: Rx.Observable<any>
   public state: Rx.Observable<RxRunnerState>
 

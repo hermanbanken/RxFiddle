@@ -287,3 +287,59 @@ form .control input {
 .menufold.belowquestion {
   order: 2;
 }
+
+.console-messages {
+  height: auto;
+  overflow-y: auto;
+}
+.console-messages > * {
+    padding: 3px;
+    border-bottom: 1px solid #ECECEC;
+}
+.console-messages > *:before {
+    content: "";
+    min-width: 0.2em;
+    display: inline-block;
+}
+.console-messages .reset {
+    color: blue;
+}
+
+.console-messages > *.level-error {
+  margin-top: -1px;
+  border-top: 1px solid hsl(0, 100%, 92%);
+  border-bottom: 1px solid hsl(0, 100%, 92%);
+  background: hsl(0, 100%, 97%);
+  color: red;
+}
+.console-messages > *.level-warn {
+  margin-top: -1px;
+  border-top: 1px solid #FFF5B2;
+  border-bottom: 1px solid #FFF5B2;
+  background: #FFFBDF;
+  color: #513502;
+}
+.console-messages > *:before {
+  background-image: url("../smallIcons_2x.png");
+  background-image: -webkit-image-set(url(../smallIcons.png) 1x, url(../smallIcons_2x.png) 2x);
+  background-size: 190px 30px;
+  margin-right: 12px;
+}
+
+.console-messages > *.level-info:before, 
+.console-messages > *.level-warn:before, 
+.console-messages > *.level-error:before {
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+}
+.console-messages > *.level-info:before { -webkit-mask-position: -80px 0px; background-position: -80px 0px; }
+.console-messages > *.level-warn:before { -webkit-mask-position: -60px 0px; background-position: -60px 0px; }
+.console-messages > *.level-error:before { -webkit-mask-position: -20px 0px; background-position: -20px 0px; }
+
+/*.message-level-icon, .command-result-icon {
+    position: absolute;
+    left: -17px;
+    top: 5px;
+    -webkit-user-select: none;
+}*/

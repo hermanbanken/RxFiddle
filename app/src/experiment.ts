@@ -1,6 +1,8 @@
 // tslint:disable:object-literal-sort-keys
 // tslint:disable:max-line-length
-import RxRunner from "./collector/runner"
+import RxRunner, { Runner } from "./collector/runner"
+import ConsoleRunner from "./experiment/console-runner"
+import ConsoleVisualizer from "./experiment/console-visualizer"
 import overlay from "./experiment/overlay"
 import samples, { Sample } from "./experiment/samples"
 import { Screen, States, TestEvent, TestState, general, generalLangs, generalRpExperience, introScreen } from "./experiment/screens"
@@ -11,7 +13,7 @@ import { hboxo, vbox, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
 import { Query, errorHandler } from "./ui/shared"
 import { UUID } from "./utils"
-import Visualizer from "./visualization"
+import RxFiddleVisualizer from "./visualization"
 import { GrapherAdvanced as Grapher } from "./visualization/grapher"
 import * as Rx from "rx"
 import h from "snabbdom/h"
@@ -129,7 +131,7 @@ h("div#menufold-static.menufold.noflex", [
 
 
 
-function menu(runner?: RxRunner, editor?: CodeEditor): VNode {
+function menu(runner?: Runner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
     editor.withValue(v => {
       Query.set({ code: btoa(v), type: "editor" })
@@ -181,6 +183,8 @@ let doneScreen: Screen = {
   }),
 }
 
+let useRxFiddle = false
+
 /* Screen containing RxFiddle */
 let testScreen = (scheduler: Rx.IScheduler): Screen => ({
   isActive: (state) => state.active[0] === "test" && samples.some((s, index) => !state.data[index] || !(state.data[index].passed || state.data[index].completed)),
@@ -199,8 +203,13 @@ let testScreen = (scheduler: Rx.IScheduler): Screen => ({
 
       let active = Rx.Observable
         .defer(() => {
-          let vis = new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
-          return vis.stream()
+          if (useRxFiddle) {
+            let vis = new RxFiddleVisualizer(new Grapher(collector.data))
+            return vis.stream()
+          } else {
+            let vis = new ConsoleVisualizer(collector.data)
+            return vis.dom.map(dom => ({ dom, timeSlider: h("div") }))
+          }
         })
         .catch(errorHandler)
         .retry()
@@ -258,7 +267,12 @@ let testScreen = (scheduler: Rx.IScheduler): Screen => ({
 function DataSource(sample: Sample) {
   let editor = new CodeEditor(sample.code.trim(), sample.codeRanges && sample.codeRanges(), sample.lineClasses && sample.lineClasses())
   let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
-  let runner = new RxRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c))
+  let runner: Runner
+  if (useRxFiddle) {
+    runner = new RxRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c))
+  } else {
+    runner = new ConsoleRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c))
+  }
   return {
     data: runner,
     runner,

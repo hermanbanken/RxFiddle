@@ -214,11 +214,9 @@ export default class Visualizer {
   private uiEventsInput: Rx.Subject<UIEvent>
   private uiEventsOutput: Rx.Observable<UIEvent>
   private grapher: Grapher
-  private app: HTMLElement | VNode
 
-  constructor(grapher: Grapher, dom?: HTMLElement, controls?: HTMLElement) {
+  constructor(grapher: Grapher) {
     this.grapher = grapher
-    this.app = dom
     this.uiEventsInput = new Rx.Subject<UIEvent>()
 
     let viewState = this.viewState
