@@ -20,7 +20,7 @@ function defs() {
 export default function overlay(): VNode {
   return h("div.overlay.help", [h("svg", {
     attrs: { viewPort: "0 0 800 270" },
-    style: { width: "800", height: "270", left: "80px", top: "15px", position: "relative" },
+    style: { width: "800", height: "270", left: "160px", top: "15px", position: "relative" },
   }, [
       defs(),
       h("path", {

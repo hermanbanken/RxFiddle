@@ -60,7 +60,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
   if (collector) {
     return Rx.Observable.of(0)
       .flatMap(_ => {
-        let vis = new Visualizer(new Grapher(collector.data), document.querySelector("app") as HTMLElement)
+        let vis = new Visualizer(new Grapher(collector.data))
         return vis.stream()
       })
       .catch(errorHandler)
@@ -73,7 +73,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
       (render, input, langs, state) => [
         h("div#menufold-static.menufold", [
           h("a.brand.left", { attrs: { href: "#" } }, [
-            h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
+            h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
             "RxFiddle" as any as VNode,
           ]),
           menu(langs, collector.runner, collector.editor),
@@ -83,9 +83,9 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
           [Resizer.h(
             "rxfiddle/editor+rxfiddle/inspector",
             input,
-            vboxo({ class: "viewer-panel" }, render.timeSlider, render.dom)
+            vboxo({ class: "viewer-panel" }, /*render.timeSlider,*/ render.dom)
           )] :
-          [vbox(render.timeSlider, render.dom)]
+          [vbox(/*render.timeSlider,*/ render.dom)]
         )),
       ])
   } else {

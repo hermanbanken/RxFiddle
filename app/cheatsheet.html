@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>RxFiddle</title>
+  <meta charset="utf8" />
+  <link rel="stylesheet" href="styles/style.css" type="text/css">
+  <link rel="stylesheet" href="styles/survey.css" type="text/css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="dist/codemirror/lib/codemirror.css" />
+  <script src="dist/codemirror/lib/codemirror.js"></script>
+  <script src="dist/codemirror/mode/javascript/javascript.js"></script>
+</head>
+
+<body>
+  <div id="screens">
+    <div class="tool flexy flexy-v rel">
+      <div id="menufold-static" class="menufold">
+        <a class="brand left" href="#"><img alt="ReactiveX" src="images/RxIconXs.png"></a>
+        <a class="btn" href="experiment.html">Back to survey</a>
+        <div style="flex: 1 1 0%;"></div>
+      </div>
+      <div class="flexy">
+        <div class="scrolly flexy">
+          <div class="width">
+            <h1>JavaScript cheatsheet</h1>
+            <textarea>// Comments for one line
+/* Multi-line 
+comments */
+
+// Variables
+var name = "John Doe"
+let name = "John Doe" // block scoped, can't be used before initialized
+const name = "John Doe" // can't be changed
+
+// Types
+let yesOrNo = false // or true
+let numeric = 3.14 // can be integer, decimal, float, any number
+let string = "quoted" // use double-quotes or single-quotes
+let object = { 
+  fieldA: "value", 
+  fieldB: 1,
+  familiar: "yes: this is what JSON looks like" 
+}
+let literalList = [1, 2, "mixed contents: fine", { k: "v" }]
+
+// Functions
+function foobar() {
+  return 0
+}
+// with lambda-functions no need for a return statement:
+let lambdaFunction = (firstArg, secondArg) => firstArg * secondArg
+
+// use a block if you need multiple expressions, now you need to return:
+let lambdaWithBlock = (firstArg, secondArg) => {
+  console.log("debugging this", firstArg)
+  return firstArg * secondArg
+}
+
+// Debugging
+// open console window: F12, Ctrl + Shift + I or Cmd + Opt + I
+console.log("This string if available in the console")
+debugger // pauses execution and let's you step through line-by-line
+</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <style>
+      .CodeMirror {
+        height: auto;
+      }
+    </style>
+    <script>
+      CodeMirror.fromTextArea(document.querySelector("textarea"), {
+        lineNumbers: true,
+      })
+    </script>
+</body>
+
+</html>

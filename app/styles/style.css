@@ -143,6 +143,7 @@ div.menufold a.brand {
   line-height: 50px;
   color: white;
   font-size: 1.5em;
+  margin-right: 5px;
 }
 div.menufold img {
   vertical-align: middle;
@@ -761,8 +762,8 @@ disable purple highlight border:
 .scheduler-icon {
   width: 16px;
   height: 16px;
-  mask-image: url(../scheduler-default.svg);
-  -webkit-mask-image: url(../scheduler-default.svg);
+  mask-image: url(../images/scheduler-default.svg);
+  -webkit-mask-image: url(../images/scheduler-default.svg);
   mask-size: contain;
   -webkit-mask-size: contain;
   background: white;
@@ -771,8 +772,8 @@ disable purple highlight border:
   margin: 4px 4px;
 }
 .scheduler-icon.virtual { 
-  mask-image: url("../scheduler-virtual.svg");
-  -webkit-mask-image: url("../scheduler-virtual.svg");
+  mask-image: url("../images/scheduler-virtual.svg");
+  -webkit-mask-image: url("../images/scheduler-virtual.svg");
 }
 
 /** Resizers **/

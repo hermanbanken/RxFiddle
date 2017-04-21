@@ -2,16 +2,32 @@
 <html>
 
 <head>
-  <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="3; /static/" />
   <title>RxFiddle</title>
+  <meta charset="utf8" />
+  <link rel="stylesheet" href="styles/style.css" type="text/css">
+  <link rel="stylesheet" href="styles/grid-resizer.css" type="text/css">
+  <link rel="stylesheet" href="styles/timelineGrid.css" type="text/css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    function script(src) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.async = false;
+      document.head.appendChild(s);
+    }
+    if (typeof require == 'undefined') {
+      script('dist/rx/dist/rx.all.js')
+      script('dist/graphlib/dist/graphlib.min.js')
+      script('dist/lodash/lodash.min.js')
+      script('dist/main.bundle.js')
+    } else {
+      script('dist/main.js')
+    }
+  </script>
 </head>
 
 <body>
-  You are now being redirected to /static.
-  <script>
-    window.location.pathname = "/static"
-  </script>
 </body>
 
 </html>

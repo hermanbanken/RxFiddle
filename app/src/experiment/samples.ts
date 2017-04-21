@@ -234,6 +234,12 @@ this.queries
   .debounce(100)
   .flatMap(query => this.searchService.search(query))
   .subscribe(this.render)
+
+for(var i = 0; i < 10; i++){
+  console.log("Test")
+  console.warn("Test")
+  console.info("Test")
+}
 `],
     question: `
     This sample represents a movie search engine. 

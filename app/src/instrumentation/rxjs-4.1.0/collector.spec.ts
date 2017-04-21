@@ -304,6 +304,36 @@ export class TreeCollectorTest {
   }
 
   @test
+  public publishDiamond2Test() {
+    let input = Rx.Observable.of("string")
+    let searchService = {
+      search: (_: string) => Rx.Observable.just("result"),
+    }
+
+    // Sample Program
+    let output = input
+      .map(x => x + x)
+      .filter(x => x.length > 0)
+      // create diamond
+      .publish(obs => Rx.Observable.merge(
+        obs.delay(10).take(2),
+        obs.take(3)
+      )
+        .take(6)
+      )
+      .debounce(100)
+      .flatMap(query => searchService.search(query))
+
+    let sub = output.subscribe(this.testObserver())
+
+    this.write("tree_diamond2")
+    if (!this.flowsFrom(this.getObs(input), this.getSub(sub))) {
+      console.log("flowsThrough sub", this.flowsTrough(this.getSub(sub)))
+      throw new Error("No connected sub")
+    }
+  }
+
+  @test
   public rawSubjectsTest() {
     let subject = new Rx.Subject<number>()
 

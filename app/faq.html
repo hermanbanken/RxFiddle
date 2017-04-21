@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>RxFiddle</title>
+  <meta charset="utf8" />
+  <link rel="stylesheet" href="styles/style.css" type="text/css">
+  <link rel="stylesheet" href="styles/survey.css" type="text/css">
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+
+<body>
+  <div id="screens">
+    <div class="tool flexy flexy-v rel">
+      <div id="menufold-static" class="menufold">
+        <a class="brand left" href="#"><img alt="ReactiveX" src="images/RxIconXs.png"></a>
+        <a class="btn" href="experiment.html">Back to survey</a>
+        <div style="flex: 1 1 0%;"></div>
+      </div>
+      <div class="flexy">
+        <div class="scrolly flexy">
+          <div class="width">
+            <h1>FAQ</h1>
+            <dl>
+
+              <dt>What is (the goal of) RxFiddle?</dt>
+              <dd>
+                <p>RxFiddle has multiple goals:</p>
+                <ul>
+                  <li>Aid developers in understanding reactive code</li>
+                  <li>Aid new developers to learn the reactive paradigm</li>
+                  <li>Aid developers finding bugs in reactive code</li>
+                </ul>
+                <p>The common goal here is to help developers. Whether you are building something yourself, viewing some code
+                  of a collegue or learning Rx. Make doing Reactive Programming easier than ever. I wanted to do something
+                  back after Rx gave me such a powerfull development tool.</p>
+              </dd>
+
+              <dt id="rxversion">Why go for RxJS version 4.1</dt>
+              <dd>
+                <p>Rx is available in many flavors. I investigated whether it is possible to instrument RxJava and RxJs and
+                  found out both the JVM and JavaScript libraries are perfectly instrumentable. Considering the visualization
+                  tool is browser based the development cycle could be sped up by using a in-browser instrumented version
+                  of Rx.</p>
+                <p>Using RxJS 4.1 is mainly an effect of what I had available when I started of with extending RxMarbles. Creating
+                  instumentation for RxJS 5 should be possible too but I expect some more work because of the new ecmascript
+                  module structure of version 5.</p>
+              </dd>
+
+              <dt id="difficulties">It isn't that hard right?</dt>
+              <dd>
+                <p>Actually, it is. During the last year I found out just how complicated instrumentation, call stacks and visualization
+                  are. Instrumenting Javascript is relatively easy - you just swap the prototype - but you do need a lot
+                  of bookkeeping to relate all the gathered information to Observables, Observers and the events flowing
+                  through. If you have got the basic map and filter operators working you are still far from done: throw
+                  Subjects into the mix and your whole world turns upside down. Same for higher order streams and merging
+                  them.
+                </p>
+                <p> And you can't just be lazy and correct stuff once you have more information. We are talking Rx here so I
+                  wanted everything to be streamed, push based. Any intermediate debug state should be a valid state itself.
+                </p>
+              </dd>
+
+              <dt id="thesismotivation">Why do a thesis on Reactive Programming / ReactiveX?</dt>
+              <dd>
+                <p>I first used Rx.NET in 2013 while doing the last project as an undergraduate student. I remember that it
+                  took me quite some time to fully understand the concepts of reactive programming. I did not really see
+                  how the data would flow through the stream unless I sprinkled println statements through the stream. When
+                  I first used the debugger to step through that code I thought about how awesome it would be to have better
+                  tooling. Fast forward to 2015 and I'm laying out the plan for the rest of my master, and there is Erik
+                  Meijer - inventor of Rx - as a professor at my university (TU Delft, The Netherlands).</p>
+              </dd>
+
+              <dt>Why did you setup the survey this way?</dt>
+              <dd>
+                <p>The goal of the survey is to measure the difference between developing reactive programs using traditional
+                  methodology and the development flow where the developer has the option to use RxFidle's capabilities.
+                  I hope to speed-up and improve the comprehension of reactive code. The hypothesis is that using RxFiddle
+                  the developer gains a better understanding of the reactive code and does so quicker.</p>
+              </dd>
+
+              <dt>This looks like... (RxMarbles, RxVision, etc.)</dt>
+              <dd>
+                <p>Yes! I got a lot of external inspiration. Andre Stalz has done some amazing work creating RxMarbles. I've
+                  spend some time trying to evaluate whether I could just work with that and extend it, however RxMarbles
+                  is mostly built around pre-specified examples, usable in for example the ReactiveX documentation, while
+                  RxFiddle aims to visualize áll your reactive code and operators. No matter how crazy you get.</p>
+                <p>RxVision is doing something comparable to what RxFiddle is doing. It instruments the Rx prototype and plots
+                  a visualization. I found it to be limited however. The implementation lacks support for many very common
+                  operators and its visualization is very unclear to people who have never seen the tool. It does not really
+                  relate to marble diagrams like I feel RxFiddle does.</p>
+              </dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+</body>
+
+</html>

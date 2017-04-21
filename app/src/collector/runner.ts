@@ -29,6 +29,8 @@ export default class RxRunner implements DataSource, Runner {
   public dataObs: Rx.Observable<any>
   public state: Rx.Observable<RxRunnerState>
 
+  protected workerFile = "dist/worker-rx-4.1.0.bundle.js"
+
   private code: Rx.Observable<Code>
   private stateSubject = new Rx.BehaviorSubject<RxRunnerState>("ready")
   private worker: Worker
@@ -38,11 +40,9 @@ export default class RxRunner implements DataSource, Runner {
     this.code = code
     this.dataObs = Rx.Observable
       .fromEventPattern<any>(h => {
-        console.log("RxRunner Subscribed")
         this.handler = (m) => h(m.data)
         this.stateSubject.onNext("ready")
       }, h => {
-        console.log("RxRunner Disposed")
         this.stop()
       })
       .flatMap(throwErrors)
@@ -54,7 +54,7 @@ export default class RxRunner implements DataSource, Runner {
 
   public run(code: Code) {
     this.stateSubject.onNext("starting")
-    this.worker = new Worker("../dist/worker-rx-4.1.0.bundle.js")
+    this.worker = new Worker(this.workerFile)
     this.worker.onmessage = this.handler
     this.handler({ data: "reset" })
     let chunks = typeof code === "string" ? [code] : code.chunks

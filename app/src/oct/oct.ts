@@ -205,7 +205,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
     }
     if (logger) {
       this.logger = logger
-      logger.addNode(id, "subject", Object.assign({}, scheduler))
+      logger.addNode(id, "subject", scheduler && Object.assign({}, scheduler))
       logger.addMeta(id, { names: name })
     }
     this.observable = this

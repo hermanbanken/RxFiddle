@@ -17,20 +17,6 @@ function getScheduler<T>(obs: Rx.Observable<T>, record?: ICallStart): Rx.ISchedu
     record && [].slice.call(record.arguments, -1).filter(isScheduler)[0]
 }
 
-function schedulerInfo(s: Rx.IScheduler | ISchedulerInfo): ISchedulerInfo {
-  if (typeof (s as any).schedule === "function") {
-    let scheduler = s as Rx.ICurrentThreadScheduler
-    return {
-      clock: scheduler.now(),
-      id: ((scheduler as any).id ||
-        ((scheduler as any).id = new Date().getTime() + "") && (scheduler as any).id) as string,
-      name: (s as any).constructor.name,
-      type: "immediate",
-    }
-  }
-  return s as ISchedulerInfo
-}
-
 class SequenceTicker {
   public last = 0
   public used = false

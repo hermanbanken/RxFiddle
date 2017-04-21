@@ -146,7 +146,10 @@ export let introScreen: Screen = {
           h("li", `What's in it for you: learn a new way of debugging Reactive Programs!`),
           h("li", `What's in it for me: you help me graduate!`),
           h("li", `Estimated time required: 60 minutes`),
-          h("li", `Used Reactive Programming implementation: RxJS 4.1`),
+          h("li", [
+            `Used Reactive Programming implementation: RxJS 4.1`,
+            "(", h("a", { attrs: { href: "faq.html#rxversion" } }, "why"), ")"
+          ]),
         ]),
         h("div.mobile-only", [
           h("p", `This survey works best on Chrome on a laptop/desktop. 

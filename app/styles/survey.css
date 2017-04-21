@@ -320,8 +320,8 @@ form .control input {
   color: #513502;
 }
 .console-messages > *:before {
-  background-image: url("../smallIcons_2x.png");
-  background-image: -webkit-image-set(url(../smallIcons.png) 1x, url(../smallIcons_2x.png) 2x);
+  background-image: url("../images/smallIcons_2x.png");
+  background-image: -webkit-image-set(url(../images/smallIcons.png) 1x, url(../images/smallIcons_2x.png) 2x);
   background-size: 190px 30px;
   margin-right: 12px;
 }
@@ -343,3 +343,13 @@ form .control input {
     top: 5px;
     -webkit-user-select: none;
 }*/
+
+dd {
+    margin-left: 2em;
+    font-weight: normal;
+}
+dt {
+    font-weight: bold;
+    list-style-position: inside;
+    list-style-type: lower-roman;
+}

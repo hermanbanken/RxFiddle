@@ -93,7 +93,7 @@ let testLoop = Rx.Observable
     /*
 h("div#menufold-static.menufold.noflex", [
   h("a.brand.left", [
-    h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
+    h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
     h("span", "Survey"),
   ]),
   h("div.left.flex", { attrs: { id: "menu" } }, [
@@ -108,13 +108,13 @@ h("div#menufold-static.menufold.noflex", [
       return dom.map(nodes => h("div.tool.flexy.flexy-v.rel", [
         h("div#menufold-static.menufold", [
           h("a.brand.left", { attrs: { href: "#" } }, [
-            h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
+            h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
+            "RxFiddle" as any as VNode,
           ]),
           h("div", { style: { flex: "1" } }),
           h("div.right", [
             ...testMenu(state, t => dispatcher(t)),
-            h("button.btn", "JavaScript cheatsheet"),
-            h("button.btn", "RxJS docs"),
+            ...rightMenuLinks,
             h("button.btn.helpbutton", "Help"),
             overlay(),
           ]),
@@ -142,6 +142,12 @@ function menu(runner?: Runner, editor?: CodeEditor): VNode {
     ...(runner ? [h("button.btn", { on: { click: clickHandler } }, runner.action)] : []),
   ])
 }
+
+let rightMenuLinks = [
+  h("a.btn", { attrs: { href: "faq.html" } }, "FAQ"),
+  h("a.btn", { attrs: { href: "cheatsheet.html" } }, "JavaScript cheatsheet"),
+  h("a.btn", { attrs: { href: "http://reactivex.io", target: "_blank" } }, "RxJS docs"),
+]
 
 function formatQuestion(sample: Sample, time: Rx.Observable<number>, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
   return sample.renderQuestion(dispatcher).flatMap(render =>
@@ -207,29 +213,29 @@ let testScreen = (scheduler: Rx.IScheduler): Screen => ({
             let vis = new RxFiddleVisualizer(new Grapher(collector.data))
             return vis.stream()
           } else {
-            let vis = new ConsoleVisualizer(collector.data)
+            let vis = new ConsoleVisualizer(collector.data as ConsoleRunner)
             return vis.dom.map(dom => ({ dom, timeSlider: h("div") }))
           }
         })
         .catch(errorHandler)
         .retry()
         .combineLatest(
-        question.do(vn => console.log("question")),
-        collector.vnode.do(vn => console.log("vnode")),
-        collector.runner.state.do(vn => console.log("runner.state")),
+        question,
+        collector.vnode,
+        collector.runner.state,
         (visualizer, questiondom, input) => [
           questiondom,
           vboxo({ class: "rel" },
             h("div#menufold-static.menufold.belowquestion", [
               h("a.brand.left", { attrs: { href: "#" } }, [
-                h("img", { attrs: { alt: "ReactiveX", src: "RxIconXs.png" } }),
+                h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
+                "RxFiddle" as any as VNode,
               ]),
               menu(collector.runner, collector.editor),
               h("div", { style: { flex: "1" } }),
               h("div.right", [
                 ...testMenu(state, dispatcher, index),
-                h("button.btn", "JavaScript cheatsheet"),
-                h("button.btn", "RxJS docs"),
+                ...rightMenuLinks,
                 h("button.btn.helpbutton", "Help"),
                 overlay(),
               ]),

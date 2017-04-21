@@ -21,13 +21,11 @@ function handleMessage(e: any) {
     }
   }
   if (typeof e.data.ranges === "object") {
-    console.log("Marking Text ranges", e.data.ranges)
     e.data.ranges.forEach(({ from, to, options }: { from: Pos, to: Pos, options: any }) =>
       editor.markText(from, to, options)
     )
   }
   if (typeof e.data.lineClasses === "object") {
-    console.log("Marking line classes", e.data.lineClasses)
     e.data.lineClasses.forEach(({ line, where, class: clasz }: { line: number, where: string, class: string }) =>
       editor.addLineClass(line, where, clasz)
     )
