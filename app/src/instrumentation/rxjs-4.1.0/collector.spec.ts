@@ -19,7 +19,7 @@ const onNext = Rx.ReactiveTest.onNext
 const onCompleted = Rx.ReactiveTest.onCompleted
 
 @suite
-export class TreeCollectorTest {
+export class TreeCollectorRx4Test {
 
   protected instrumentation: Instrumentation
   protected collector: TreeCollector

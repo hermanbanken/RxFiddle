@@ -29,7 +29,7 @@ export default class RxRunner implements DataSource, Runner {
   public dataObs: Rx.Observable<any>
   public state: Rx.Observable<RxRunnerState>
 
-  protected workerFile = "dist/worker-rx-4.1.0.bundle.js"
+  protected workerFile = "dist/worker-rx-5.x.x.bundle.js"
 
   private code: Rx.Observable<Code>
   private stateSubject = new Rx.BehaviorSubject<RxRunnerState>("ready")
