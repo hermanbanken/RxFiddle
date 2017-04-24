@@ -202,3 +202,40 @@ var result = scheduler.startScheduler(
 )
 console.log(result.messages)
 ````
+
+## RxDevCon delivered sample
+[nhaarman](https://rxdevcon.slack.com/team/nhaarman)
+
+````kotlin
+private val userAccountObservable = Observable.defer {
+    val cached = cacher.get("user_account").map { Cached(it) }.toObservable()
+    val network = userAccountApi.userAccount().map { Fresh(it) }.toObservable()
+
+    network.publish { network ->
+        Observable.merge(network, cached.takeUntil(network))
+    }.flatMapSingle { cache(it) }
+}.replay(1).refCount()
+````
+
+````javascript
+let cacher = {
+  get: (name) => Rx.Observable.timer(100).map(_ => "cached " + name),
+  store: (name, value) => {}
+}
+let userAccountApi = {
+  userAccount: () => Rx.Observable.timer(200).map(_ => "fresh user_account")
+}
+
+let userAccountObservable = Rx.Observable
+.defer(() => {
+  let cached = cacher.get("user_account")
+  let network = userAccountApi.userAccount()
+  return network.publish(network => Rx.Observable
+    .merge(network, cached.takeUntil(network))
+  ).do(value => cacher.store("user_account", value))
+})
+.replay(1)
+.refCount()
+
+userAccountObservable.subscribe()
+````
