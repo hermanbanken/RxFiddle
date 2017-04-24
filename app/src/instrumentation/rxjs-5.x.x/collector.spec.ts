@@ -94,6 +94,37 @@ export class TreeCollectorRx5Test {
     }
   }
 
+  @test
+  public someConcatTest() {
+    let a = Rx.Observable.of(1, 2, 3)
+    let b = Rx.Observable.of(4, 5, 6)
+    let obs = Rx.Observable
+      .concat(a, b)
+      .map(_ => _)
+    let sub = obs.subscribe()
+
+    this.write("tree5_b")
+
+    if (!this.flowsFrom(this.getObs(a), this.getSub(sub)) || !this.flowsFrom(this.getObs(b), this.getSub(sub))) {
+      console.log("flowsThrough sub", this.flowsTrough(this.getSub(sub)))
+      throw new Error("No connected sub")
+    }
+  }
+
+  @test
+  public someConcatTest2() {
+    let obs1 = Rx.Observable.of(1, 2, 3)
+    let obs2 = Rx.Observable.of(4, 5, 6)
+
+    obs1.concat(obs2)
+      .map(x => x * 2)
+      .filter(x => x > 4)
+      .do(x => console.log(x))
+      .subscribe()
+
+    this.write("tree5_c")
+  }
+
   private flowsFrom(observable: IObservableTree, to: IObserverTree, remaining: number = 100): boolean {
     if (to && to.observable === observable) {
       return true

@@ -17,7 +17,7 @@
     "test:cover": "nyc --reporter=lcov --reporter=html npm test",
     "dev-test-watch": "mocha-typescript-watch",
     "prepublish": "tsc -p .",
-    "cp-rx": "cp node_modules/rx/dist/rx.all.js src/instrumentation/rxjs-4.1.0/rx.all.js && cp node_modules/rxjs/bundles/Rx.min.js src/instrumentation/rxjs-5.x.x/Rx.min.js",
+    "cp-rx": "cp node_modules/rx/dist/rx.all.js src/instrumentation/rxjs-4.1.0/rx.all.js && cp node_modules/rxjs/bundles/Rx.js src/instrumentation/rxjs-5.x.x/Rx.min.js",
     "distlibs": "cp -R node_modules/codemirror dist/codemirror; cp -R node_modules/lodash dist/lodash; cp -R node_modules/graphlib dist/graphlib; cp -R node_modules/rx dist/rx",
     "pages": "git stash -u && git checkout gh-pages; git reset master --hard && tsc -p . && yarn run distlibs && yarn run cp-rx && yarn run build && git add -f dist && git commit -m 'Build' && git push -f origin gh-pages && git checkout master && git stash pop && tsc -p . && yarn run bundle",
     "start": "webpack --watch",
