@@ -24,7 +24,7 @@ export class Event {
       case "onError":
       case "fail":
         return new Error(timing, new ErrorInstance(args[0]), source)
-      case "completed":
+      case "complete":
       case "onCompleted":
         return new Complete(timing, source)
       case "connect":
@@ -34,6 +34,7 @@ export class Event {
       case "__subscribe":
         return new Subscribe(timing, source)
       case "dispose":
+      case "unsubscribe":
         return new Dispose(timing, source)
       default: break
       // console.log("Unknown event", record)

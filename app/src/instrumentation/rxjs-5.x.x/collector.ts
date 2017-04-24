@@ -44,6 +44,9 @@ export class TreeCollector implements RxCollector {
   public logger: ITreeLogger
   private eventSequencer = new SequenceTicker()
 
+  private wireStarts: WireStart[] = []
+  private wires: Wire[] = []
+
   private schedulers: { scheduler: IScheduler, info: ISchedulerInfo }[] = []
   private scheduler?: { scheduler: IScheduler, info: ISchedulerInfo }
 
@@ -101,6 +104,7 @@ export class TreeCollector implements RxCollector {
     }
   }
 
+
   public before(record: ICallStart, parents?: ICallStart[]): this {
     switch (callRecordType(record)) {
       case "subscribe":
@@ -111,7 +115,8 @@ export class TreeCollector implements RxCollector {
             record.arguments[0] = this.subscriptionWrapper(record.arguments[0], this.tagObserver(s, record)[0])
             return s
           })
-          .flatMap((s: any) => this.tagObserver(s, record)).forEach((sub: any) => {
+          .flatMap((s: any) => this.tagObserver(s, record))
+          .forEach((sub: any) => {
             obs.forEach(observable => {
               if (observable instanceof SubjectTree) {
                 // Special case for subjects
@@ -125,6 +130,11 @@ export class TreeCollector implements RxCollector {
         break
       case "setup":
         this.tagObservable(record.subject)
+        // Wires
+        this.wireStarts.push(
+          new WireStart(record, [record.subject, ...record.arguments]
+            .filter(isObservable)
+            .map(o => this.tag(o) as IObservableTree)))
       default: break
     }
     return this
@@ -138,7 +148,6 @@ export class TreeCollector implements RxCollector {
 
   public addEvent(observer: IObserverTree, event: IEvent, value?: any) {
     if (typeof event === "undefined") { return }
-
     // Enrich higher order events
     if (event.type === "next" && isObservable(value)) {
       event.value = {
@@ -164,11 +173,21 @@ export class TreeCollector implements RxCollector {
     switch (callRecordType(record)) {
       case "subscribe":
         if (isSubscription(record.returned)) {
-          record.returned = this.disposableWrapper(record.returned, record.arguments[0])
+          record.returned = this.subscriptionWrapper(record.returned, this.tag(record.returned) as IObserverTree)
         }
         break
       case "setup":
         this.tagObservable(record.returned, record)
+
+        // Wires
+        if (isObservable(record.returned)) {
+          this.wireStarts.filter(w => w.call === record).forEach(w => {
+            let completed = w.to([record.returned].filter(isObservable).map(o => this.tag(o) as IObservableTree))
+            this.wires.push(completed)
+            console.log("wire", completed)
+          })
+          this.wireStarts = this.wireStarts.filter(w => w.call !== record)
+        }
       default: break
     }
   }
@@ -257,12 +276,6 @@ export class TreeCollector implements RxCollector {
 
   private tagObserver(input: any, record?: ICallStart, traverse: boolean = true): IObserverTree[] {
     if (isObserver(input)) {
-
-      // Rx specific: unfold AutoDetachObserver's, 
-      while (traverse && input && input.constructor.name === "AutoDetachObserver" && input.observer) {
-        input = input.observer
-      }
-
       let tree = this.tag(input) as IObserverTree
 
       // Find sink
@@ -280,25 +293,20 @@ export class TreeCollector implements RxCollector {
     if (isObservable(input)) {
       let wasTagged = this.hasTag(input)
       let tree = this.tag(input, callRecord) as IObservableTree
-      if (!wasTagged) {
-        /* TODO find other way: this is a shortcut to prevent MulticastObservable._fn1 to show up */
-        if (callRecord && callRecord.method[0] !== "_") {
-          while (callRecord && isObservable((callRecord as ICallRecord).returned) && callRecord.method[0] !== "_") {
-            tree.addMeta({
-              calls: {
-                subject: `callRecord.subjectName ${this.hasTag(callRecord.subject) && this.tag(callRecord.subject).id}`,
-                args: formatArguments(callRecord.arguments),
-                method: callRecord.method,
-              },
-            })
-
-            // if (typeof callRecord.parent !== "undefined" && isObservable(callRecord.parent.subject)) {
-            callRecord = callRecord.parent
-            // } else {
-            //   callRecord = undefined
-            // }
-          }
+      /* TODO find other way: this is a shortcut to prevent MulticastObservable._fn1 to show up */
+      if (callRecord && callRecord.method[0] !== "_") {
+        while (callRecord && isObservable((callRecord as ICallRecord).returned) && callRecord.method[0] !== "_") {
+          tree.addMeta({
+            calls: {
+              subject: `callRecord.subjectName ${this.hasTag(callRecord.subject) && this.tag(callRecord.subject).id}`,
+              args: formatArguments(callRecord.arguments),
+              method: callRecord.method,
+            },
+          })
+          callRecord = callRecord.parent
         }
+      }
+      if (!wasTagged) {
         if ((input as any).source) {
           tree.setSources(this.tagObservable((input as any).source))
         } else if ((input as any)._sources) {
@@ -345,7 +353,7 @@ export class TreeCollector implements RxCollector {
       return target
     }
     let collector = this
-    let events = ["next", "error", "completed", "dispose"]
+    let events = ["next", "error", "complete", "dispose", "unsubscribe"]
     tree.addEvent(Event.fromCall("subscribe", undefined, this.getTiming()))
     let proxy = new Proxy(target, {
       get: (obj: any, name: string) => {
@@ -363,29 +371,6 @@ export class TreeCollector implements RxCollector {
     });
     (tree as any).proxy = proxy
     return proxy
-  }
-
-  // Wrap this around a Disposable to log dispose calls onto the supplied observer
-  private disposableWrapper<T>(target: any, observer?: any) {
-    if ((target as any).__isDisposableWrapper) {
-      return target
-    }
-    let tree: IObserverTree[] = isObserver(observer) ? this.tagObserver(observer) : []
-    let collector = this
-    return new Proxy(target, {
-      get: (obj: any, name: string) => {
-        let original = obj[name]
-        if (name === "__isDisposableWrapper") { return true }
-        if (typeof original === "function" && name === "dispose") {
-          function proxy() {
-            collector.addEvent(tree[0], Event.fromCall(name, arguments, undefined))
-            return original.apply(this, arguments)
-          }
-          return proxy
-        }
-        return original
-      },
-    })
   }
 
   private findFirstObserverInCallStack(forObservable: IObservableTree, record?: ICallStart): IObserverTree | undefined {
@@ -423,20 +408,6 @@ function generate<T>(seed: T, next: (acc: T) => T | undefined | null): T[] {
   }
 }
 
-function sequenceUnique<T, K>(keySelector: (e: T) => K, list: T[]): T[] {
-  let filtered = [] as T[]
-  for (let v of list) {
-    if (filtered.length === 0 || keySelector(filtered[filtered.length - 1]) !== keySelector(v)) {
-      filtered.push(v)
-    }
-  }
-  return filtered
-}
-
-function eventUpwards(e: IEvent) {
-  return e.type === "subscribe" || e.type === "dispose"
-}
-
 /** 
  * Get destination of input Observer
  */
@@ -446,5 +417,29 @@ function getSink<T>(input: Rx.Observer<T>, record?: ICallStart): [string, Rx.Obs
     return [["destination", anyInput.destination] as [string, Rx.Observer<T>]]
   } else {
     return []
+  }
+}
+
+class Wire {
+  // tslint:disable-next-line:no-constructor-vars
+  constructor(public call: ICallStart, public from: IObservableTree[], public to: IObservableTree[]) {
+    (this as any)._depth = this.depth
+  }
+
+  public get depth() {
+    let r: (call: ICallStart) => number = (call) =>
+      typeof call.parent === "undefined" ||
+        callRecordType(call.parent) !== "setup" ?
+        0 :
+        r(call.parent) + 1
+    return r(this.call)
+  }
+}
+
+class WireStart {
+  // tslint:disable-next-line:no-constructor-vars
+  constructor(public call: ICallStart, public from: IObservableTree[]) { }
+  public to(to: IObservableTree[]) {
+    return new Wire(this.call, this.from, to)
   }
 }

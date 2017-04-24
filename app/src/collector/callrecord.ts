@@ -27,7 +27,11 @@ export function callRecordType(record: ICallStart) {
     record.subjectName === "ObservableBase.prototype" ||
     record.subjectName.indexOf("Observable") >= 0
   ) {
-    if (record.method === "subscribe" || record.method === "_subscribe" || record.method === "__subscribe") {
+    if (record.method === "subscribe" ||
+      record.method === "_subscribe" ||
+      record.method === "__subscribe" ||
+      record.method === "_trySubscribe"
+    ) {
       return "subscribe"
     }
     return "setup"
