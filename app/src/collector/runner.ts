@@ -35,21 +35,25 @@ export default class RxRunner implements DataSource, Runner {
   private stateSubject = new Rx.BehaviorSubject<RxRunnerState>("ready")
   private worker: Worker
   private handler: (message: any) => void
+  private analyticsObserver?: Rx.IObserver<any>
 
-  constructor(code: Rx.Observable<Code>) {
+  constructor(code: Rx.Observable<Code>, analyticsObserver?: Rx.IObserver<any>) {
     this.code = code
     this.dataObs = Rx.Observable
       .fromEventPattern<any>(h => {
         this.handler = (m) => h(m.data)
         this.stateSubject.onNext("ready")
       }, h => {
-        this.stop()
+        if (this.worker) {
+          this.stop()
+        }
       })
       .flatMap(throwErrors)
       .delay(0, Rx.Scheduler.async)
       .takeUntil(this.stateSubject.filter(s => s === "stopped"))
     this.stateSubject.onNext("ready")
     this.state = this.stateSubject
+    this.analyticsObserver = analyticsObserver
   }
 
   public run(code: Code) {
@@ -58,6 +62,9 @@ export default class RxRunner implements DataSource, Runner {
     this.worker.onmessage = this.handler
     this.handler({ data: "reset" })
     let chunks = typeof code === "string" ? [code] : code.chunks
+    if (this.analyticsObserver) {
+      this.analyticsObserver.onNext({ code: chunks.join(), type: "run" })
+    }
     chunks.forEach(chunk => this.worker.postMessage({ code: chunk, type: "run" }))
     this.stateSubject.onNext("running")
   }
@@ -66,6 +73,9 @@ export default class RxRunner implements DataSource, Runner {
     if (this.worker) {
       this.worker.terminate()
       this.worker = undefined
+    }
+    if (this.analyticsObserver) {
+      this.analyticsObserver.onNext({ type: "stop" })
     }
     this.stateSubject.onNext("stopped")
   }

@@ -1,3 +1,4 @@
+import AnalyticsObserver from "./analytics"
 import JsonCollector from "./collector/jsonCollector"
 import RxRunner from "./collector/runner"
 import patch from "./patch"
@@ -29,7 +30,7 @@ const DataSource$: Rx.Observable<{
   } else if (q.type === "editor") {
     let editor = new CodeEditor(q.code ? atob(decodeURI(q.code)) : undefined)
     let code = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
-    let runner = new RxRunner(code)
+    let runner = new RxRunner(code, AnalyticsObserver)
     return {
       data: runner,
       runner,
@@ -40,6 +41,8 @@ const DataSource$: Rx.Observable<{
     return null
   }
 })
+
+Query.$.map(query => ({ query, type: "query" })).subscribe(AnalyticsObserver)
 
 function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
@@ -61,7 +64,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
     return Rx.Observable.of(0)
       .flatMap(_ => {
         let vis = new Visualizer(new Grapher(collector.data))
-        return vis.stream()
+        return vis.stream(AnalyticsObserver)
       })
       .catch(errorHandler)
       .retry()

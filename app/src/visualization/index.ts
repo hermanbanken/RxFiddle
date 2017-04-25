@@ -261,13 +261,16 @@ export default class Visualizer {
     this.uiEventsOutput = uievents.merge(timeComponent.uievent)
   }
 
-  public stream(): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
+  public stream(uiEvents?: Rx.IObserver<UIEvent>): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
     return Rx.Observable.defer(() => Rx.Observable.create<{ dom: VNode, timeSlider: VNode }>(subscriber => {
       let disposables = [] as Rx.Disposable[]
       disposables.push(this.DOM
         .combineLatest(this.timeSlider, (d, t) => ({ dom: d, timeSlider: t }))
         .subscribe(subscriber))
       disposables.push(this.uiEventsOutput.subscribe(this.uiEventsInput))
+      if (typeof uiEvents !== "undefined") {
+        disposables.push(this.uiEventsInput.subscribe(uiEvents))
+      }
       return new Rx.Disposable(() => {
         disposables.forEach(d => d.dispose())
       })

@@ -1,5 +1,6 @@
 // tslint:disable:object-literal-sort-keys
 // tslint:disable:max-line-length
+import AnalyticsObserver from "./analytics"
 import RxRunner, { Runner } from "./collector/runner"
 import ConsoleRunner from "./experiment/console-runner"
 import ConsoleVisualizer from "./experiment/console-visualizer"
@@ -44,13 +45,13 @@ if (localStorage) {
   }
 }
 
-
-
-
 let dispatcher: (event: TestEvent) => void = null
 let testLoop = Rx.Observable
   .create<TestEvent>(observer => {
-    dispatcher = (e) => observer.onNext(e)
+    dispatcher = (e) => {
+      observer.onNext(e)
+      AnalyticsObserver.onNext(e)
+    }
   })
   .do(console.log)
   .scan<TestState>((state, event) => {
@@ -211,7 +212,7 @@ let testScreen = (scheduler: Rx.IScheduler): Screen => ({
         .defer(() => {
           if (useRxFiddle) {
             let vis = new RxFiddleVisualizer(new Grapher(collector.data))
-            return vis.stream()
+            return vis.stream(AnalyticsObserver)
           } else {
             let vis = new ConsoleVisualizer(collector.data as ConsoleRunner)
             return vis.dom.map(dom => ({ dom, timeSlider: h("div") }))
@@ -275,9 +276,9 @@ function DataSource(sample: Sample) {
   let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
   let runner: Runner
   if (useRxFiddle) {
-    runner = new RxRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c))
+    runner = new RxRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
   } else {
-    runner = new ConsoleRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c))
+    runner = new ConsoleRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
   }
   return {
     data: runner,
