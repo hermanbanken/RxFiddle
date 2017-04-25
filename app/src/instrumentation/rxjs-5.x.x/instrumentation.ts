@@ -26,9 +26,13 @@ export default class Instrumentation {
     }
   }
 
-  public setup(): void {
-    Object.keys(this.subjects)
-      .forEach(name => this.setupPrototype(this.subjects[name], name))
+  public setup(target?: any, targetName?: string): void {
+    if (typeof target !== "undefined") {
+      this.setupPrototype(target, targetName)
+    } else {
+      Object.keys(this.subjects)
+        .forEach(name => this.setup(this.subjects[name], name))
+    }
     /* TODO:
      - schedulers
      - constructors
@@ -55,65 +59,75 @@ export default class Instrumentation {
     this.prototypes = []
   }
 
+  public callstacks = [] as string[][]
+
+  /* tslint:disable:only-arrow-functions */
+  /* tslint:disable:no-string-literal */
+  /* tslint:disable:no-string-literal */
+  public apply(
+    originalFn: Function,
+    target: any, thisArg: any, argumentsList: any[],
+    extras: { [key: string]: string; }
+  ): any {
+    // find more
+    argumentsList
+      .filter(hasRxObservablePrototype)
+      .filter((v: any) => !isInstrumented(v))
+      .forEach((t: any) => this.setupPrototype(t))
+
+    let call: ICallStart = {
+      arguments: [].slice.call(argumentsList, 0),
+      childs: [],
+      id: i++,
+      method: extras["methodName"],
+      subject: thisArg,
+      subjectName: extras["subjectName"],
+      tick: 0,
+      time: now(),
+    }
+
+    // Prepare
+    this.calls.push(call)
+    if (this.open.length > 0) {
+      call.parent = this.open[this.open.length - 1]
+      call.parent.childs.push(call)
+    }
+    this.open.push(call)
+
+    this.callstacks.push(this.open.map(m => `${m.subjectName}.${m.method}`))
+
+    // Actual method
+    let instanceLogger = this.collector.before(call, this.open.slice(0, -1))
+    let returned = target.apply(call.subject, [].map.call(
+      call.arguments,
+      this.wrap.bind(this)
+    ))
+
+    let end: ICallRecord = call as ICallRecord
+    end.returned = returned
+
+    instanceLogger.after(end);
+
+    // find more
+    ([end.returned])
+      .filter(hasRxObservablePrototype)
+      .filter((v: any) => !isInstrumented(v))
+      .forEach((t: any) => this.setupPrototype(t))
+
+    // Cleanup
+    this.open.pop()
+    return end.returned
+  }
+
   /* tslint:disable:only-arrow-functions */
   /* tslint:disable:no-string-literal */
   /* tslint:disable:no-string-literal */
   public instrument(fn: Function, extras: { [key: string]: string; }): Function {
-    let calls = this.calls
-    let logger = this.collector
-    let open = this.open
     let self = this
 
     let instrumented = new Proxy(fn, {
       apply: (target: any, thisArg: any, argumentsList: any[]) => {
-        // console.log(target.caller)
-
-        // find more
-        argumentsList
-          .filter(hasRxObservablePrototype)
-          .filter((v: any) => !isInstrumented(v))
-          .forEach((t: any) => this.setupPrototype(t))
-
-        let call: ICallStart = {
-          arguments: [].slice.call(argumentsList, 0),
-          childs: [],
-          id: i++,
-          method: extras["methodName"],
-          subject: thisArg,
-          subjectName: extras["subjectName"],
-          tick: 0,
-          time: now(),
-        }
-
-        // Prepare
-        calls.push(call)
-        if (open.length > 0) {
-          call.parent = open[open.length - 1]
-          call.parent.childs.push(call)
-        }
-        open.push(call)
-
-        // Actual method
-        let instanceLogger = logger.before(call, open.slice(0, -1))
-        let returned = target.apply(call.subject, [].map.call(
-          call.arguments,
-          instanceLogger.wrapHigherOrder.bind(instanceLogger, call))
-        )
-
-        let end: ICallRecord = call as ICallRecord
-        end.returned = returned
-
-        instanceLogger.after(end);
-
-        // find more
-        ([end.returned])
-          .filter(hasRxObservablePrototype)
-          .filter((v: any) => !isInstrumented(v))
-          .forEach((t: any) => this.setupPrototype(t))
-
-        // Cleanup
-        open.pop()
-        return end.returned
+        return this.apply(fn, target, thisArg, argumentsList, extras)
       },
       construct: (target: { new (...args: any[]): any }, args) => {
         console.warn("TODO, instrument constructor", target, args)
@@ -133,6 +147,9 @@ export default class Instrumentation {
   }
 
   public setupPrototype(prototype: any, name?: string) {
+    if (typeof prototype === "undefined") {
+      return
+    }
     if (typeof name !== "undefined") {
       prototype.__dynamicallyInstrumented = true
     }
@@ -148,6 +165,29 @@ export default class Instrumentation {
         subjectName: name || prototype.constructor.name,
       })
     })
+  }
+
+  private wrap<T>(input: T): T {
+    if (isObservable(input) && !prototypeIsInstrumented((input as any).prototype)) {
+      this.setupPrototype((input as any).prototype, input.constructor.name)
+      return input as any
+    }
+    if (isScheduler(input)) {
+      return input
+    }
+    if (isObserver(input)) {
+      return new Proxy(input, {
+        get: (thisArg: any, name: string) => {
+          let original = thisArg[name]
+          if (name === "__isInstrumentationWrapper") { return true }
+          if (typeof original === "function") {
+            return this.instrument(original, { methodName: name, subjectName: (input as any).constructor.name })
+          }
+          return original
+        },
+      })
+    }
+    return input
   }
 
 }
@@ -180,17 +220,18 @@ export function isInstrumented(fn: Function, by?: Instrumentation): boolean {
   return typeof orig === "function" && isInstrumented(orig, by)
 }
 
-
+function prototypeIsInstrumented(input: any): boolean {
+  return typeof input === "object" && input !== null && input.hasOwnProperty("__dynamicallyInstrumented")
+}
 
 export function isObservable<T>(v: any): v is RxImported.Observable<T> {
   return typeof v === "object" && v !== null && typeof v.subscribe === "function"
 }
-
 export function isSubscription(v: any): v is RxImported.Subscription & any {
-  return v instanceof InstrumentedRx.Subscriber
+  return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
 }
 export function isObserver(v: any): v is RxImported.Subscription & any {
-  return v instanceof InstrumentedRx.Subscriber
+  return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
 }
 export function isScheduler(v: any): v is IScheduler & any {
   return typeof v === "object" && v !== null && typeof v.now === "function" && typeof v.schedule === "function"

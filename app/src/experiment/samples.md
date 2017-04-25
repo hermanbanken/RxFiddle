@@ -89,6 +89,32 @@ This view combines data from 3 different sources.
 )
 ````
 
+````javascript
+function main(inp) {
+
+  inp.queries
+    .debounce(50)
+    .flatMap(query => inp.searchService.search(query))
+    .subscribe(inp.render)
+
+}
+
+let final = "the titanic"
+main({
+  queries: Rx.Observable
+  	.range(1,final.length)
+    .map(i => [i, final.substr(0, i)])
+    .delay(0, ([i, s]) => Rx.Observable.timer(i * Math.random() * 80))
+    .map(list => list[1]),
+  searchService: { 
+    search: (query) => Rx.Observable
+    	.just("result for "+query)
+    	.delay(0, t => Rx.Observable.timer(t.length * 200))
+  },
+  render: (out) => {}
+})
+````
+
 # Sample D
 Recursion:
 [Ben Lesh answering on SO](http://stackoverflow.com/questions/27514310/turning-paginated-requests-into-an-observable-stream-with-rxjs)

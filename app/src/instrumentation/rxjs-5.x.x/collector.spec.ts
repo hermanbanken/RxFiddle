@@ -7,6 +7,7 @@ import Instrumentation, { isInstrumented } from "./instrumentation"
 import { expect } from "chai"
 import { suite, test } from "mocha-typescript"
 import * as Rx from "rxjs/Rx"
+// import { HotObservable as hot } from "rxjs/helpers/marbleTesting"
 
 let btoa: Function
 if (typeof btoa !== "function") {
@@ -56,6 +57,7 @@ export class TreeCollectorRx5Test {
 
   public write(name: string) {
     let fs = require("fs")
+    fs.writeFileSync(`dist/${name}.stacks.txt`, jsonify(this.instrumentation.callstacks))
     fs.writeFileSync(`dist/${name}.graph.txt`, this.dot())
     fs.writeFileSync(`dist/${name}.json`, jsonify(this.writer.messages))
   }
@@ -113,6 +115,29 @@ export class TreeCollectorRx5Test {
 
   @test
   public someConcatTest2() {
+    let obs1 = Rx.Observable.of(1, 2, 3)
+    let obs2 = Rx.Observable.of(4, 5, 6)
+
+    obs1.concat(obs2)
+      .map(x => x * 2)
+      .filter(x => x > 4)
+      .do(x => console.log(x))
+      .subscribe()
+
+    this.write("tree5_c")
+  }
+
+  @test
+  public someRxTest() {
+    var e1 = hot('--a--^--b--c--|', { a: 'a', b: 'b', c: 'c' });
+    var e1subs = '^        !';
+    var e2 = hot('---e-^---f--g--|', { e: 'e', f: 'f', g: 'g' });
+    var e2subs = '^         !';
+    var expected = '----x-yz--|';
+    var result = Observable.combineLatest(e1, e2, function (x, y) { return x + y; });
+    expectObservable(result).toBe(expected, { x: 'bf', y: 'cf', z: 'cg' });
+    expectSubscriptions(e1.subscriptions).toBe(e1subs);
+    expectSubscriptions(e2.subscriptions).toBe(e2subs);
     let obs1 = Rx.Observable.of(1, 2, 3)
     let obs2 = Rx.Observable.of(4, 5, 6)
 
