@@ -414,27 +414,6 @@ export class TreeCollector implements RxCollector {
     })
   }
 
-  private findFirstObserverInCallStack(forObservable: IObservableTree, record?: ICallStart): IObserverTree | undefined {
-    let arg0 = record && record.arguments[0]
-    if (record && record.arguments.length > 0 && this.hasTag(arg0) && isObserver(arg0)) {
-      let tag = this.tag(arg0) as IObserverTree
-      if (debug) { console.debug("names", tag.observable && tag.observable.names, forObservable.names) }
-      if (tag.observable && tag.observable === forObservable) {
-        return tag
-      }
-    }
-    if (record) {
-      return this.findFirstObserverInCallStack(forObservable, record.parent)
-    }
-  }
-}
-
-function printStack(record?: ICallStart): string {
-  if (typeof record === "undefined") {
-    return ""
-  }
-  return "\n\t" + `${record.subject.constructor.name}.${record.method}(${formatArguments(record.arguments)})` +
-    (record.parent ? printStack(record.parent) : "")
 }
 
 function callStackDepth(record: ICallStart): number {
@@ -457,8 +436,4 @@ function sequenceUnique<T, K>(keySelector: (e: T) => K, list: T[]): T[] {
     }
   }
   return filtered
-}
-
-function eventUpwards(e: IEvent) {
-  return e.type === "subscribe" || e.type === "dispose"
 }

@@ -33,8 +33,10 @@ function flatMap<T, R>(f: (t: T, index: number, all: T[]) => R[]): R[] {
 Array.prototype.flatMap = flatMap
 
 /* Extension of Object prototype */
-interface Object {
-  getName(): string
+declare global {
+  interface Object {
+    getName(): string
+  }
 }
 function getName() {
   let funcNameRegex = /function (.{1,})\(/
@@ -81,7 +83,7 @@ export interface StackFrame {
 /* random */
 export function endsWith(self: string, suffix: string): boolean {
   return self.indexOf(suffix, self.length - suffix.length) !== -1
-};
+}
 
 export function last<T>(list: T[]): T {
   return list.length >= 1 ? list[list.length - 1] : undefined

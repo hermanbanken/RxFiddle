@@ -6,7 +6,7 @@ import * as Rx from "rx"
 @suite
 export class GenerateTest extends InstrumentationTest {
 
-  // @test
+  @test
   public "F"() {
     let fs = require("fs")
 
@@ -23,7 +23,7 @@ export class GenerateTest extends InstrumentationTest {
       .mergeAll()
       .subscribe()
 
-    fs.writeFileSync("static/F.json", jsonify(this.logger.messages))
+    fs.writeFileSync("dist/F.json", jsonify(this.logger.messages))
   }
 
   @test

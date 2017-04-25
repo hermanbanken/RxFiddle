@@ -17,8 +17,6 @@ let key = "rxfiddle_browsersession"
 let session = UUID()
 let browser = getOrCreate(key, UUID)
 
-let attempts = 1
-
 function websocket<D>(url: string): Rx.Observable<{ inbox: Rx.Observable<D>, outbox: Rx.IObserver<D> }> {
   return Rx.Observable.defer(() => {
     return Rx.Observable.create<{ inbox: Rx.Observable<D>, outbox: Rx.IObserver<D> }>(observer => {

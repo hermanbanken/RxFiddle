@@ -28,7 +28,9 @@ const QueryString = {
   },
 }
 
-const neverInNode = (subject: string) => Rx.Observable.defer(() => Rx.Observable.throw(new Error(`Do not use ${subject} in a non-browser environment`)))
+const neverInNode = (subject: string) => Rx.Observable.defer(() =>
+  Rx.Observable.throw(new Error(`Do not use ${subject} in a non-browser environment`))
+)
 
 let setting = false
 export let Query = {
