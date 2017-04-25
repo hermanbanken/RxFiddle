@@ -1,3 +1,10 @@
+# NPM
 node_modules
+
+# IDEs
 .vscode
+
+# Building & testing
 dist
+coverage
+.nyc_output

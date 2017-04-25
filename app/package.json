@@ -14,6 +14,7 @@
     "compile": "tsc -p .",
     "start-app": "electron .",
     "test": "tsc -p . && mocha --require source-map-support/register dist/test",
+    "test:cover": "nyc --reporter=lcov --reporter=html npm test",
     "dev-test-watch": "mocha-typescript-watch",
     "prepublish": "tsc -p .",
     "cp-rx": "cp node_modules/rx/dist/rx.all.js src/instrumentation/rxjs-4.1.0/rx.all.js",
@@ -23,6 +24,7 @@
     "build": "webpack -p"
   },
   "dependencies": {
+    "@types/codemirror": "^0.0.38",
     "@types/dagre": "^0.7.33",
     "@types/electron": "^1.4.24",
     "@types/esprima": "^2.1.33",
@@ -53,6 +55,7 @@
     "electron": "^1.4.4",
     "mocha": "^3.1.2",
     "mocha-typescript": "^1.0.10",
+    "nyc": "^10.2.0",
     "source-map-support": "^0.4.5",
     "ts-loader": "^2.0.3",
     "tsify": "^1.0.9",

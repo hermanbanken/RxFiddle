@@ -28,13 +28,15 @@ const QueryString = {
   },
 }
 
+const neverInNode = (subject: string) => Rx.Observable.defer(() => Rx.Observable.throw(new Error(`Do not use ${subject} in a non-browser environment`)))
+
 let setting = false
 export let Query = {
   $: typeof window === "object" ? Rx.Observable
     .fromEvent(window, "hashchange", () => window.location.hash.substr(1))
     .startWith(window.location.hash.substr(1))
     .map(str => QueryString.parse(str))
-    .filter(_ => !setting) : Rx.Observable.never(),
+    .filter(_ => !setting) : neverInNode("shared/ui/Query"),
   set: (object: any) => {
     if (typeof window === "object") {
       setting = true
@@ -44,7 +46,7 @@ export let Query = {
   },
 }
 
-export const sameOriginWindowMessages = Rx.Observable
+export const sameOriginWindowMessages = typeof window === "object" ? Rx.Observable
   .fromEvent(window, "message", (e: any) => {
     // For Chrome, the origin property is in the event.originalEvent object.
     let origin = e.origin || (e as any).originalEvent.origin
@@ -60,7 +62,7 @@ export const sameOriginWindowMessages = Rx.Observable
       return Rx.Observable.create(o => o.onError(event.error))
     }
     return Rx.Observable.just(event)
-  })
+  }) : neverInNode("shared/ui/sameOriginWindowMessages")
 
 export class LanguageMenu {
   public stream(): { dom: Rx.Observable<VNode>, language: Rx.Observable<LanguageCombination> } {

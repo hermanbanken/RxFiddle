@@ -2,9 +2,9 @@ import { UUID } from "./utils"
 import * as Rx from "rx"
 
 function getOrCreate(key: string, create: () => string) {
-  if (localStorage && localStorage.getItem(key)) {
+  if (typeof localStorage !== "undefined" && localStorage.getItem(key)) {
     return localStorage.getItem(key)
-  } else if (localStorage) {
+  } else if (typeof localStorage !== "undefined") {
     let value = create()
     localStorage.setItem(key, value)
     return value

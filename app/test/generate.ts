@@ -35,6 +35,6 @@ export class GenerateTest extends InstrumentationTest {
       .filter(_ => true)
       .subscribe()
 
-    fs.writeFileSync("static/G.json", jsonify(this.logger.messages))
+    fs.writeFileSync("dist/G.json", jsonify(this.logger.messages))
   }
 }

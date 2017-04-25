@@ -35,7 +35,7 @@ let initialTestState: TestState = {
   data: {},
 }
 
-if (localStorage) {
+if (typeof localStorage !== "undefined") {
   let lastId = localStorage.getItem("lastSurvey")
   if (lastId) {
     initialTestState = JSON.parse(localStorage.getItem(lastId))
@@ -299,15 +299,17 @@ let screens = [
   testScreen(scheduler),
 ]
 
-let mainVN = document.querySelector("#experiment") as VNode | HTMLBodyElement
-// Rx.Observable
-// .of(...screens)
-// .concatMap(_ => _.dom)
-// .subscribe(vnode => {
-//   mainVN = patch(mainVN, h("div#screens", [vnode]))
-// })
+if (typeof window !== "undefined") {
+  let mainVN = document.querySelector("#experiment") as VNode | HTMLBodyElement
+  // Rx.Observable
+  // .of(...screens)
+  // .concatMap(_ => _.dom)
+  // .subscribe(vnode => {
+  //   mainVN = patch(mainVN, h("div#screens", [vnode]))
+  // })
 
-testLoop
-  .subscribe(vnode => {
-    mainVN = patch(mainVN, h("div#screens", vnode))
-  })
+  testLoop
+    .subscribe(vnode => {
+      mainVN = patch(mainVN, h("div#screens", vnode))
+    })
+}
