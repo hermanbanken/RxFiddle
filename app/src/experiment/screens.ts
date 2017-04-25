@@ -72,10 +72,10 @@ function mkButton(text: string = "Next", callback: () => void) {
 
 type QuestionType = "range" | "labels"
 type QuestionTypeOptions =
-  { type: "range", min: number, max: number } |
-  { type: "labels", min: number, max: number, labels: string[] }
+  { type: "range", min: number, max: number, splits?: number, step?: number } |
+  { type: "labels", min: number, max: number, labels: string[], step?: number }
 
-function mkq(name: string, text: string, opts: QuestionTypeOptions, state: TestState, dispatcher: Dispatcher) {
+function mkq(name: string, text: string | VNode, opts: QuestionTypeOptions, state: TestState, dispatcher: Dispatcher) {
   let nodes: VNode[] = []
   if (opts.type === "range" || opts.type === "labels") {
     let value = state && typeof state.data[name] === "number" && state.data[name] || opts.min
@@ -84,7 +84,12 @@ function mkq(name: string, text: string, opts: QuestionTypeOptions, state: TestS
       value: (e.target as HTMLInputElement).value,
     })
     nodes.push(h("input", {
-      attrs: { type: "range", min: opts.min, max: opts.max, value },
+      attrs: {
+        type: "range",
+        min: opts.min, max: opts.max,
+        value,
+        step: typeof opts.step === "undefined" ? 1 : opts.step,
+      },
       on: {
         touchstart: (e: TouchEvent) => handleRangeTouch(e),
         touchmove: (e: TouchEvent) => handleRangeTouch(e),
@@ -96,7 +101,7 @@ function mkq(name: string, text: string, opts: QuestionTypeOptions, state: TestS
   if (opts.type === "labels") {
     nodes.push(h("div.labels", opts.labels.map(l => h("span.label", l))))
   } else {
-    let l = 10
+    let l = opts.splits || 10
     let labels = []
     for (let i = 0; i <= l; i++) {
       labels.push(h("span.label", `${opts.min + i * (opts.max - opts.min) / l}${i === l ? "+" : ""}`))
@@ -247,8 +252,11 @@ export let generalRpExperience: Screen = {
   isActive: (state) => state.active[0] === "general_rp",
   progress: () => ({ max: 0, done: 0 }),
   render: (state, dispatcher) => {
-    let years_rp = mkq("years_rp", "Your years of experience with Reactive Programming:",
-      { max: 10, min: 0, type: "range" as "range" }, state, dispatcher)
+    let years_rp = mkq("years_rp", h("div", [
+      "Your years of experience with Reactive Programming:",
+      h("div", "(sum different periods; you can drag between the years)"),
+    ]),
+      { max: 10, min: 0, splits: 10, step: 0.25, type: "range" as "range" }, state, dispatcher)
     let exp_rp = mkq("exp_rp", "Assess your level of experience in Reactive Programming:", {
       max: 8, min: 0, type: "labels" as "labels",
       labels: ["none", "beginner", "medium", "senior", "expert"],
