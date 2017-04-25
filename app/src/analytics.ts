@@ -48,10 +48,13 @@ function websocket<D>(url: string): Rx.Observable<{ inbox: Rx.Observable<D>, out
       }
     })
   })
-    // Retry 10 times with increasing timeouts
-    .retryWhen(errors => errors
-      .take(10)
-      .scan((acc, _) => acc + 1, 0)
+    // Retry with increasing timeouts on errors and cooldown every second
+    .retryWhen(errors => Rx.Observable
+      .merge(
+      errors.map(_ => 1),
+      Rx.Observable.timer(5000).map(_ => -1)
+      )
+      .scan((acc, mod) => Math.max(0, acc + mod), 0)
       .delay(k => Rx.Observable.timer(Math.pow(2, k) * 100))
     )
 }
