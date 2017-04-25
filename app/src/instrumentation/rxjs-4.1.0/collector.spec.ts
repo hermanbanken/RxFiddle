@@ -334,6 +334,23 @@ export class TreeCollectorTest {
   }
 
   @test
+  public nonGenericFunctionAsArgument() {
+    function id<T>(x: T): T { return x }
+    let o1 = Rx.Observable.of(2, 3, 4)
+      .expand(x => Rx.Observable.ofWithScheduler(Rx.Scheduler.async, x * x))
+      .take(10)
+      .map(id)
+      .filter(x => true)
+      .map(id)
+      .map(id)
+    let o2 = Rx.Observable.just(1)
+      .map(id)
+    o1.merge(o2).subscribe()
+
+    this.write("tree_nongenericfunctino")
+  }
+
+  @test
   public rawSubjectsTest() {
     let subject = new Rx.Subject<number>()
 

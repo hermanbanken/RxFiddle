@@ -43,6 +43,9 @@ function _formatArguments(args: IArguments | any[], levels: number = 2, depth: n
         if (typeof a.__original === "function") {
           return a.__original.toString()
         }
+        if (typeof a.__originalFunction === "function") {
+          return a.__originalFunction.toString()
+        }
         return a.toString()
       case "string":
         return `"${a.substring(0, 512)}"`
