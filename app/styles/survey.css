@@ -188,6 +188,7 @@ input[type="range"], .question input[type="range"] {
   flex: 1;
   display: flex;
   position: relative;
+  background: white;
 }
 #screens > .tool {
   flex: 1;
