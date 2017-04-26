@@ -34,6 +34,7 @@ export default class RxRunner implements DataSource, Runner {
   private code: Rx.Observable<Code>
   private stateSubject = new Rx.BehaviorSubject<RxRunnerState>("ready")
   private worker: Worker
+  private workerReady: boolean
   private handler: (message: any) => void
   private analyticsObserver?: Rx.IObserver<any>
 
@@ -44,7 +45,7 @@ export default class RxRunner implements DataSource, Runner {
         this.handler = (m) => h(m.data)
         this.stateSubject.onNext("ready")
       }, h => {
-        if (this.worker) {
+        if (this.stateSubject.getValue() !== "stopped") {
           this.stop()
         }
       })
@@ -54,12 +55,13 @@ export default class RxRunner implements DataSource, Runner {
     this.stateSubject.onNext("ready")
     this.state = this.stateSubject
     this.analyticsObserver = analyticsObserver
+    this.prepare()
   }
 
   public run(code: Code) {
     this.stateSubject.onNext("starting")
-    this.worker = new Worker(this.workerFile)
-    this.worker.onmessage = this.handler
+    this.prepare()
+    this.workerReady = false
     this.handler({ data: "reset" })
     let chunks = typeof code === "string" ? [code] : code.chunks
     if (this.analyticsObserver) {
@@ -70,10 +72,7 @@ export default class RxRunner implements DataSource, Runner {
   }
 
   public stop() {
-    if (this.worker) {
-      this.worker.terminate()
-      this.worker = undefined
-    }
+    this.prepare()
     if (this.analyticsObserver) {
       this.analyticsObserver.onNext({ type: "stop" })
     }
@@ -96,6 +95,17 @@ export default class RxRunner implements DataSource, Runner {
       case "stopping":
       case "stopped": return "Restart"
       default: return "?"
+    }
+  }
+
+  private prepare() {
+    if (!this.workerReady) {
+      if (this.worker) {
+        this.worker.terminate()
+      }
+      this.worker = new Worker(this.workerFile)
+      this.worker.onmessage = (m) => this.handler(m)
+      this.workerReady = true
     }
   }
 }
