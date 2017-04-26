@@ -1,11 +1,13 @@
+import "../../../src/utils"
 import { jsonify } from "../../../test/utils"
+import { ICallRecord, ICallStart } from "../../collector/callrecord"
 import { TreeReader, TreeWriter } from "../../collector/treeReader"
 import TypedGraph from "../../collector/typedgraph"
 import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../../oct/oct"
 import { TreeCollector } from "./collector"
 import Instrumentation, { isInstrumented } from "./instrumentation"
 import { expect } from "chai"
-import { suite, test } from "mocha-typescript"
+import { suite, test, only } from "mocha-typescript"
 import * as Rx from "rxjs/Rx"
 // import { HotObservable as hot } from "rxjs/helpers/marbleTesting"
 
@@ -24,6 +26,7 @@ export class TreeCollectorRx5Test {
   protected writer: TreeWriter
 
   public before() {
+    console.log("Arguments", arguments)
     this.writer = new TreeWriter()
     this.collector = new TreeCollector(this.writer)
     this.instrumentation = new Instrumentation(this.collector)
@@ -31,6 +34,8 @@ export class TreeCollectorRx5Test {
   }
 
   public after() {
+    console.log(this.trees())
+
     this.instrumentation.teardown()
   }
 
@@ -82,22 +87,21 @@ export class TreeCollectorRx5Test {
   }
 
   @test
-  public someTest() {
-    let input = Rx.Observable.of(1, 2, 3)
+  public simpleChainTest() {
+    let input = Rx.Observable.of(1)
     let obs = input.map(_ => _)
-      .filter(_ => true)
     let sub = obs.subscribe()
 
     this.write("tree5_a")
 
     if (!this.flowsFrom(this.getObs(input), this.getSub(sub))) {
-      console.log("flowsThrough sub", this.flowsTrough(this.getSub(sub)))
-      throw new Error("No connected sub")
+      throw new Error("Simple observable chain is not connected in OCT")
     }
   }
 
+  @only
   @test
-  public someConcatTest() {
+  public simpleHigherOrderConcatTest() {
     let a = Rx.Observable.of(1, 2, 3)
     let b = Rx.Observable.of(4, 5, 6)
     let obs = Rx.Observable
@@ -107,48 +111,98 @@ export class TreeCollectorRx5Test {
 
     this.write("tree5_b")
 
-    if (!this.flowsFrom(this.getObs(a), this.getSub(sub)) || !this.flowsFrom(this.getObs(b), this.getSub(sub))) {
-      console.log("flowsThrough sub", this.flowsTrough(this.getSub(sub)))
-      throw new Error("No connected sub")
+    if (!this.flowsFrom(this.getObs(a), this.getSub(sub))) {
+      throw new Error("Merged observable a is not connected in OCT")
+    }
+    if (!this.flowsFrom(this.getObs(b), this.getSub(sub))) {
+      throw new Error("Merged observable b is not connected in OCT")
     }
   }
 
   @test
-  public someConcatTest2() {
-    let obs1 = Rx.Observable.of(1, 2, 3)
-    let obs2 = Rx.Observable.of(4, 5, 6)
+  public testSubjects() {
+    let a = new Rx.Subject<{ k: number }>()
+    let b = a.map(_ => _.k)
+    let c = b.map(x => x * 2)
 
-    obs1.concat(obs2)
-      .map(x => x * 2)
-      .filter(x => x > 4)
-      .do(x => console.log(x))
-      .subscribe()
+    c.subscribe(c => document.body.innerHTML += ("C " + JSON.stringify(c) + "<br>"))
+    b.subscribe(b => document.body.innerHTML += ("B " + JSON.stringify(b) + "<br>"))
+    a.subscribe(a => document.body.innerHTML += ("A " + JSON.stringify(a) + "<br>"))
 
-    this.write("tree5_c")
+    Rx.Observable.fromEvent(document, "click").subscribe(() =>
+      (b as Rx.Subject<any>).next({ k: 1 })
+    )
+
+    document.body.innerHTML += "Click to reveal answer <br>"
   }
 
   @test
-  public someRxTest() {
-    var e1 = hot('--a--^--b--c--|', { a: 'a', b: 'b', c: 'c' });
-    var e1subs = '^        !';
-    var e2 = hot('---e-^---f--g--|', { e: 'e', f: 'f', g: 'g' });
-    var e2subs = '^         !';
-    var expected = '----x-yz--|';
-    var result = Observable.combineLatest(e1, e2, function (x, y) { return x + y; });
-    expectObservable(result).toBe(expected, { x: 'bf', y: 'cf', z: 'cg' });
-    expectSubscriptions(e1.subscriptions).toBe(e1subs);
-    expectSubscriptions(e2.subscriptions).toBe(e2subs);
-    let obs1 = Rx.Observable.of(1, 2, 3)
-    let obs2 = Rx.Observable.of(4, 5, 6)
-
-    obs1.concat(obs2)
-      .map(x => x * 2)
-      .filter(x => x > 4)
-      .do(x => console.log(x))
-      .subscribe()
-
-    this.write("tree5_c")
+  @only
+  public simpleDetachedChainTest() {
+    let a = Rx.Observable.of(1, 2, 3)
+    let b = a.publish(o => o.takeUntil(o.skip(10).delay(10)))
+    let sub = b.subscribe()
+    if (!this.flowsFrom(this.getObs(a), this.getSub(sub))) {
+      throw new Error("Root observable is not connected in OCT, using publish")
+    }
   }
+
+  // @test
+  // public someRxTest() {
+  //   var e1 = hot('--a--^--b--c--|', { a: 'a', b: 'b', c: 'c' });
+  //   var e1subs = '^        !';
+  //   var e2 = hot('---e-^---f--g--|', { e: 'e', f: 'f', g: 'g' });
+  //   var e2subs = '^         !';
+  //   var expected = '----x-yz--|';
+  //   var result = Observable.combineLatest(e1, e2, function (x, y) { return x + y; });
+  //   expectObservable(result).toBe(expected, { x: 'bf', y: 'cf', z: 'cg' });
+  //   expectSubscriptions(e1.subscriptions).toBe(e1subs);
+  //   expectSubscriptions(e2.subscriptions).toBe(e2subs);
+  //   let obs1 = Rx.Observable.of(1, 2, 3)
+  //   let obs2 = Rx.Observable.of(4, 5, 6)
+
+  //   obs1.concat(obs2)
+  //     .map(x => x * 2)
+  //     .filter(x => x > 4)
+  //     .do(x => console.log(x))
+  //     .subscribe()
+
+  //   this.write("tree5_c")
+  // }
+
+
+  private trees() {
+    let removed = 0
+    let stree = this.collector.stree.slice(0)
+    let otree = this.collector.otree.slice(0)
+    // Prune non-loose nodes
+    do {
+      removed = 0
+      function prune(item: IObserverTree) {
+        removed += deleteItem(stree, item.sink) ? 1 : 0
+        if (item.sink) { prune(item.sink) }
+      }
+      for (let item of stree) {
+        prune(item)
+      }
+    } while (removed > 0)
+    do {
+      removed = 0
+      function prune(item: IObservableTree) {
+        if (item.sources) {
+          removed += item.sources.filter(s => {
+            deleteItem(otree, s)
+            prune(s)
+          }).length
+        }
+      }
+      for (let item of otree) {
+        prune(item)
+      }
+    } while (removed > 0)
+    return { stree, otree }
+  }
+
 
   private flowsFrom(observable: IObservableTree, to: IObserverTree, remaining: number = 100): boolean {
     if (to && to.observable === observable) {
@@ -174,14 +228,26 @@ export class TreeCollectorRx5Test {
   }
 
   private getObs(o: Rx.Observable<any>): IObservableTree | undefined {
-    return (o as any)[this.collector.hash] as IObservableTree
+    return (o as any)[this.collector.symbol] as IObservableTree
   }
 
   private getSub(o: Rx.Subscription): IObserverTree | undefined {
     if ("observer" in o) {
-      return (o as any).observer[this.collector.hash] as IObserverTree
+      return (o as any).observer[this.collector.symbol] as IObserverTree
     }
-    return (o as any)[this.collector.hash] as IObserverTree
+    return (o as any)[this.collector.symbol] as IObserverTree
   }
 
+}
+
+function deleteAt<T>(list: T[], index: number): boolean {
+  if (index >= 0) {
+    list.splice(index, 1)
+    return true
+  }
+  return false
+}
+
+function deleteItem<T>(list: T[], item: T): boolean {
+  return deleteAt(list, list.indexOf(item))
 }

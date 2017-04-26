@@ -1,2 +1,4 @@
+--compilers ts-node/register
 --require source-map-support/register
-dist/test
+--require dist/test/setup
+dist/test/index

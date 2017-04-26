@@ -22,9 +22,13 @@ export interface ICallEnd {
 type CallRecordType = "setup" | "subscribe" | "event"
 
 export function callRecordType(record: ICallStart) {
+  if (typeof record === "undefined" || typeof record.subject === "undefined") {
+    return undefined
+  }
   if (record.subjectName === "Observable" ||
     record.subjectName === "Observable.prototype" ||
     record.subjectName === "ObservableBase.prototype" ||
+    record.subjectName &&
     record.subjectName.indexOf("Observable") >= 0
   ) {
     if (record.method === "subscribe" ||

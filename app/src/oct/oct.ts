@@ -127,7 +127,7 @@ export class ObserverTree implements IObserverTree {
         console.log("Adding second observable to ", this)
         console.log("becoming", observable)
         console.log("was", this.observable)
-        console.log("at", new Error().stack.split("\n").slice(1, 4).join("\n"))
+        console.log(new Error().stack.split("\n").filter(l => l.indexOf("instrumentation.ts") < 0).slice(0, 5).join("\n"))
       } else {
         return this
       }

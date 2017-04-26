@@ -13,7 +13,7 @@
   "scripts": {
     "compile": "tsc -p .",
     "start-app": "electron .",
-    "test": "tsc -p . && mocha --require source-map-support/register dist/test",
+    "test": "tsc -p . && mocha --require source-map-support/register dist/test/index",
     "test:cover": "nyc --reporter=lcov --reporter=html npm test",
     "dev-test-watch": "mocha-typescript-watch",
     "prepublish": "tsc -p .",
@@ -59,9 +59,22 @@
     "nyc": "^10.2.0",
     "source-map-support": "^0.4.5",
     "ts-loader": "^2.0.3",
+    "ts-node": "^3.0.2",
     "tsify": "^1.0.9",
     "tslint": "^3.15.1",
     "webpack": "^2.3.3",
     "webpack-dev-server": "^2.4.2"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "require": [
+      "ts-node/register"
+    ]
   }
 }

@@ -59,7 +59,9 @@ export default class Instrumentation {
     this.prototypes = []
   }
 
-  public callstacks = [] as string[][]
+  public callstacks = [] as ICallRecord[][]
+
+  public ignore = false
 
   /* tslint:disable:only-arrow-functions */
   /* tslint:disable:no-string-literal */
@@ -69,6 +71,10 @@ export default class Instrumentation {
     target: any, thisArg: any, argumentsList: any[],
     extras: { [key: string]: string; }
   ): any {
+    if (this.ignore) {
+      return target.apply(target, argumentsList)
+    }
+
     // find more
     argumentsList
       .filter(hasRxObservablePrototype)
@@ -94,10 +100,12 @@ export default class Instrumentation {
     }
     this.open.push(call)
 
-    this.callstacks.push(this.open.map(m => `${m.subjectName}.${m.method}`))
+    this.callstacks.push(this.open.slice(0))
 
     // Actual method
+    this.ignore = true
     let instanceLogger = this.collector.before(call, this.open.slice(0, -1))
+    this.ignore = false
     let returned = target.apply(call.subject, [].map.call(
       call.arguments,
       this.wrap.bind(this)
@@ -106,7 +114,9 @@ export default class Instrumentation {
     let end: ICallRecord = call as ICallRecord
     end.returned = returned
 
-    instanceLogger.after(end);
+    this.ignore = true
+    instanceLogger.after(end)
+    this.ignore = false;
 
     // find more
     ([end.returned])
@@ -155,16 +165,19 @@ export default class Instrumentation {
     }
     let methods = Object.keys(prototype)
       .filter((key) => typeof prototype[key] === "function")
+      .filter(key => !isInstrumented(prototype[key], this))
 
-    // store, preparing for teardown
-    this.prototypes.push(prototype)
+    if (methods.length) {
+      // store, preparing for teardown
+      this.prototypes.push(prototype)
 
-    methods.forEach(key => {
-      prototype[key] = this.instrument(prototype[key], {
-        methodName: key,
-        subjectName: name || prototype.constructor.name,
+      methods.forEach(key => {
+        prototype[key] = this.instrument(prototype[key], {
+          methodName: key,
+          subjectName: name || prototype.constructor.name,
+        })
       })
-    })
+    }
   }
 
   private wrap<T>(input: T): T {
@@ -175,17 +188,21 @@ export default class Instrumentation {
     if (isScheduler(input)) {
       return input
     }
-    if (isObserver(input)) {
+    if (isObserver(input) && !(input as any).__isInstrumentationWrapper) {
       return new Proxy(input, {
         get: (thisArg: any, name: string) => {
           let original = thisArg[name]
           if (name === "__isInstrumentationWrapper") { return true }
+          if (name === "hasOwnProperty") { return original }
           if (typeof original === "function") {
             return this.instrument(original, { methodName: name, subjectName: (input as any).constructor.name })
           }
           return original
         },
       })
+    }
+    if (typeof input === "function" && !isInstrumented(input, this)) {
+      return this.instrument(input, {}) as any as T
     }
     return input
   }
