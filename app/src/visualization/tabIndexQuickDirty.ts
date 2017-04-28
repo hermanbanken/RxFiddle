@@ -66,6 +66,7 @@ export class Navigatable {
 }
 
 function gather(vnode: VNode, parent?: Navigatable): Navigatable[] {
+  if (typeof vnode === "undefined") { return [] }
   if (typeof vnode.data === "object" && typeof vnode.data.tabIndex === "object") {
     let returned: Navigatable = new Navigatable(
       vnode.data.tabIndex.group || "column",
