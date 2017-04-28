@@ -20,6 +20,7 @@ export default class Instrumentation {
     this.collector = collector
     this.subjects = {
       "Observable": InstrumentedRx.Observable.prototype,
+      "Subscriber": InstrumentedRx.Subscriber.prototype,
       "ObservableStatic": InstrumentedRx.Observable,
       "SubjectStatic": InstrumentedRx.Subject,
       "Subject": InstrumentedRx.Subject.prototype,
@@ -69,10 +70,12 @@ export default class Instrumentation {
   public apply(
     originalFn: Function,
     target: any, thisArg: any, argumentsList: any[],
-    extras: { [key: string]: string; }
+    method: string,
+    subjectName: string,
   ): any {
     if (this.ignore) {
-      return target.apply(target, argumentsList)
+      console.log((originalFn as any).name, target, argumentsList, method)
+      return originalFn.apply(target, argumentsList)
     }
 
     // find more
@@ -85,9 +88,9 @@ export default class Instrumentation {
       arguments: [].slice.call(argumentsList, 0),
       childs: [],
       id: i++,
-      method: extras["methodName"],
+      method,
       subject: thisArg,
-      subjectName: extras["subjectName"],
+      subjectName,
       tick: 0,
       time: now(),
     }
@@ -132,12 +135,12 @@ export default class Instrumentation {
   /* tslint:disable:only-arrow-functions */
   /* tslint:disable:no-string-literal */
   /* tslint:disable:no-string-literal */
-  public instrument(fn: Function, extras: { [key: string]: string; }): Function {
+  public instrument(fn: Function, method: string, subjectName: string): Function {
     let self = this
 
     let instrumented = new Proxy(fn, {
       apply: (target: any, thisArg: any, argumentsList: any[]) => {
-        return this.apply(fn, target, thisArg, argumentsList, extras)
+        return this.apply(fn, target, thisArg, argumentsList, method, subjectName)
       },
       construct: (target: { new (...args: any[]): any }, args) => {
         console.warn("TODO, instrument constructor", target, args)
@@ -147,6 +150,9 @@ export default class Instrumentation {
         if (property === "__instrumentedBy") { return self }
         if (property === "__originalFunction") { return fn }
         return (target as any)[property]
+      },
+      ownKeys: (target: any) => {
+        return Object.getOwnPropertyNames(target).concat(["__instrumentedBy", "__originalFunction"])
       },
     })
     return instrumented
@@ -160,9 +166,7 @@ export default class Instrumentation {
     if (typeof prototype === "undefined") {
       return
     }
-    if (typeof name !== "undefined") {
-      prototype.__dynamicallyInstrumented = true
-    }
+    prototype.__dynamicallyInstrumented = true
     let methods = Object.keys(prototype)
       .filter((key) => typeof prototype[key] === "function")
       .filter(key => !isInstrumented(prototype[key], this))
@@ -172,10 +176,7 @@ export default class Instrumentation {
       this.prototypes.push(prototype)
 
       methods.forEach(key => {
-        prototype[key] = this.instrument(prototype[key], {
-          methodName: key,
-          subjectName: name || prototype.constructor.name,
-        })
+        prototype[key] = this.instrument(prototype[key], key, name || prototype.constructor.name)
       })
     }
   }
@@ -188,25 +189,27 @@ export default class Instrumentation {
     if (isScheduler(input)) {
       return input
     }
-    if (isObserver(input) && !(input as any).__isInstrumentationWrapper) {
+    if (isObserver(input) && !isInstrumented((input as any).next)) {
       return new Proxy(input, {
         get: (thisArg: any, name: string) => {
           let original = thisArg[name]
           if (name === "__isInstrumentationWrapper") { return true }
           if (name === "hasOwnProperty") { return original }
           if (typeof original === "function") {
-            return this.instrument(original, { methodName: name, subjectName: (input as any).constructor.name })
+            return this.instrument(original, name, (input as any).constructor.name)
           }
           return original
+        },
+        ownKeys: (target: any) => {
+          return Object.getOwnPropertyNames(target).concat(["__isInstrumentationWrapper"])
         },
       })
     }
     if (typeof input === "function" && !isInstrumented(input, this)) {
-      return this.instrument(input, {}) as any as T
+      return this.instrument(input, (input as any).name || "lambda", (input as any).name || "lambda") as any as T
     }
     return input
   }
-
 }
 
 function now() {
@@ -228,7 +231,7 @@ export function isInstrumented(fn: Function, by?: Instrumentation): boolean {
   if (typeof by === "undefined") {
     return ((
       typeof fn.__originalFunction === "function" ?
-        1 + (this.isInstrumented(fn.__originalFunction) as any) as number :
+        1 + (isInstrumented(fn.__originalFunction) as any) as number :
         0)
     ) as any as boolean
   }

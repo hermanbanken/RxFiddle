@@ -50,6 +50,7 @@ export class TreeCollectorRx5Test {
       (n: IObserverTree | IObservableTree) => ({
         color: n instanceof SubjectTree ? "purple" : (n instanceof ObserverTree ? "red" : "blue"),
         label: (n && n.names.join("\n") || n && n.id)
+        + (n instanceof ObserverTree ? `(${n.events.length})` : "")
         // + "\\n" + (n instanceof ObservableTree && n.calls ? n.calls.map(_ => _.method).join(",") : "")
         ,
       }),
@@ -99,7 +100,7 @@ export class TreeCollectorRx5Test {
     }
   }
 
-  @only
+  // @only
   @test
   public simpleHigherOrderConcatTest() {
     let a = Rx.Observable.of(1, 2, 3)
@@ -137,7 +138,7 @@ export class TreeCollectorRx5Test {
   }
 
   @test
-  @only
+  // @only
   public simpleDetachedChainTest() {
     let a = Rx.Observable.of(1, 2, 3)
     let b = a.publish(o => o.takeUntil(o.skip(10).delay(10)))
@@ -145,6 +146,21 @@ export class TreeCollectorRx5Test {
     if (!this.flowsFrom(this.getObs(a), this.getSub(sub))) {
       throw new Error("Root observable is not connected in OCT, using publish")
     }
+  }
+
+  @only
+  @test
+  public bmi() {
+    let results = [] as number[]
+    let weight = Rx.Observable.of(70, 72, 76, 79, 75)
+    let height = Rx.Observable.of(1.76, 1.77, 1.78)
+    let bmi = weight.combineLatest(height, (w, h) => w / (h * h))
+    let sub = bmi.subscribe(x => results.push(x) && false || console.log("BMI is " + x))
+
+    expect(results).to.have.lengthOf(3)
+    expect(this.getSub(sub).events).to.have.length.greaterThan(0)
+    expect(this.getSub(sub).observable).not.to.be.undefined
+    this.write("tree5_bmi")
   }
 
   // @test

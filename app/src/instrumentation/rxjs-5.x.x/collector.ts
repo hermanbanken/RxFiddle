@@ -155,12 +155,25 @@ export class TreeCollector implements RxCollector {
 
     if (isObservable(record.returned)) {
       this.linkSources(record.returned)
+      if (isFirstOpOntoSubject(record)) {
+        let tree = this.tag(record.returned) as IObservableTree
+        tree.addMeta({
+          calls: {
+            subject: `callRecord.subjectName ${this.hasTag(record.subject) && this.tag(record.subject).id}`,
+            args: formatArguments(record.arguments),
+            method: record.method,
+          },
+        })
+      }
     }
 
     if (callRecordType(record) === "subscribe") {
-      if (!isObserver(record.returned) && isObserver(record.arguments[0])) {
+      if (isObserver(record.arguments[0])) {
         this.linkSubscribeSource(record.arguments[0], record.subject)
         this.linkSinks(record.arguments[0])
+      } else if (isObserver(record.returned)) {
+        this.linkSubscribeSource(record.returned, record.subject)
+        this.linkSinks(record.returned)
       }
     }
 
@@ -501,4 +514,13 @@ class WireStart {
   public to(to: IObservableTree[]) {
     return new Wire(this.call, this.from, to)
   }
+}
+
+function isSource<T, R>(source: Rx.Observable<T>, obs: Rx.Observable<R>): boolean {
+  return (obs as any).source === source ||
+    Array.isArray((obs as any)._sources) && (obs as any)._sources.indexOf(source) >= 0
+}
+
+function isFirstOpOntoSubject(record: ICallRecord): boolean {
+  return !record.parent || record.parent.subject !== record.subject
 }
