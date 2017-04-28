@@ -133,7 +133,7 @@ html, body {height: 100%;width: 100%;}
 .flexy > * {
   flex: 1;
 }
-.noflex { flex: 0; }
+.noflex {flex: 0;}
 
 div.menufold {
   z-index: 1000;
@@ -261,6 +261,7 @@ top {
   overflow-y: auto;
   min-width: 320px;
   background: #eee;
+  align-items: flex-start;
 }
 
 .viewer-panel {
@@ -397,8 +398,6 @@ master > * {
 }
 
 master {
-  /* background: #eeeeee; */
-  /* border-right: 1px solid #c1c1c1; */
   margin-right: -15px;
   z-index: 1000;
 }

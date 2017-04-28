@@ -124,7 +124,7 @@ export function graph(
     .flatMap(level => level.nodes)
     .reduce((p: number, n: { y: number }) => Math.max(p, n.y), 0) as number
 
-  let xPos = (x: number) => (2 + xmax) * mx - (mx + mx * x)
+  let xPos = (x: number) => Math.min((2 + xmax) * mx, 400) - (mx + mx * x)
   let yPos = (y: number) => (my / 2 + my * y)
 
   // tslint:disable-next-line:no-unused-variable
@@ -365,7 +365,7 @@ export function graph(
       left: 0,
       position: "absolute",
       top: 0,
-      width: (xmax + 2) * mx,
+      width: Math.min((xmax + 2) * mx, 400),
     },
   }, elements.concat(defs()))
 
@@ -376,11 +376,11 @@ export function graph(
     style: {
       height: `${(ymax + 1) * my + 30}px`,
       position: "relative",
-      width: `${(xmax + 2) * mx}px`,
+      width: `${Math.min((xmax + 2) * mx, 400)}px`,
     },
   }, [svg].concat(ns.flatMap(n => n.html)))
 
-  let panel = h("div.flexy.flexy-v.noflex", [h("master", h("div", [mask]))])
+  let panel = h("div.flexy.flexy-v.noflex.heightauto", [h("master", h("div", [mask]))])
 
   if (layout.length === 0 || layout[0].nodes.length === 0) {
     panel = h("div.flexy.flexy-v", [h("master.center",
