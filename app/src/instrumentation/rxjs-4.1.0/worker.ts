@@ -4,6 +4,9 @@ import TreePoster from "../../collector/treePoster"
 import { TreeCollector } from "./collector"
 import Instrumentation, { defaultSubjects } from "./instrumentation"
 
+console.info("Ready for RxJS 4 instrumentation");
+(Rx as any).version = "4.1.0"
+
 export type ToWorkerMessage = { type: "run", code: string }
 
 function formatError(e: Error): any {
