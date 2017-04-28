@@ -1,5 +1,6 @@
 import { Doc, Editor } from "codemirror"
 import * as CodeMirror from "codemirror"
+import "codemirror/mode/javascript/javascript"
 
 declare type EditorDoc = Editor & Doc
 type Pos = { line: number, ch: number }
@@ -13,6 +14,7 @@ function setup() {
   // Attach CodeMirror to the DOM 
   editor = scope.editor = CodeMirror(document.querySelector("#editor") as HTMLElement, {
     lineNumbers: true,
+    mode: "javascript",
   }) as EditorDoc
 
   // Listen for messages
