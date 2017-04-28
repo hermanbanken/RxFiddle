@@ -140,15 +140,25 @@ export class TreeCollectorRx5Test {
   @test
   // @only
   public simpleDetachedChainTest() {
-    let a = Rx.Observable.of(1, 2, 3)
-    let b = a.publish(o => o.takeUntil(o.skip(10).delay(10)))
+    let a = Rx.Observable.of(1, 2, 3).map(x => x)
+    let b = a.publish(o => o
+      .filter(x => true)
+      .scan((p, n) => p + n, 10)
+      .takeUntil(o
+        .skip(1)
+        .delay(10)
+        .filter(x => true)
+      )
+      .take(1))
     let sub = b.subscribe()
+
+    this.write("tree5_publish")
     if (!this.flowsFrom(this.getObs(a), this.getSub(sub))) {
       throw new Error("Root observable is not connected in OCT, using publish")
     }
   }
 
-  @only
+  // @only
   @test
   public bmi() {
     let results = [] as number[]

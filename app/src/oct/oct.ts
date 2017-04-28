@@ -24,14 +24,15 @@ export interface IObserverTree {
   sink?: IObserverTree
   inflow?: IObserverTree[]
   events: IEvent[]
-  setSink(sinks: IObserverTree[], name?: string): IObserverTree
+  setOuter(sinks: IObserverTree): IObserverTree
+  setSink(sinks: IObserverTree[]): IObserverTree
   addInflow(inflow: IObserverTree): IObserverTree
   setObservable(observable: IObservableTree[]): IObserverTree
   addEvent(event: IEvent): IObserverTree
 }
 
 //                     O->O *-*    | O->S 1-1            | S->S *-*                
-export type EdgeType = "addSource" | "setObserverSource" | "addObserverSink"
+export type EdgeType = "addSource" | "setObserverSource" | "addObserverDestination" | "addObserverOuter"
 export type NodeType = "observable" | "subject" | "observer"
 
 export interface ITreeLogger {
@@ -87,6 +88,7 @@ export class ObserverTree implements IObserverTree {
   public names?: string[]
   public observable: IObservableTree
   public sink?: IObserverTree
+  public outer?: IObserverTree
   public inflow?: IObserverTree[]
   public events: IEvent[] = []
   public scheduler?: ISchedulerInfo
@@ -102,17 +104,26 @@ export class ObserverTree implements IObserverTree {
     }
   }
 
-  public setSink(sinks: IObserverTree[], name?: string): IObserverTree {
+  public setSink(sinks: IObserverTree[]): IObserverTree {
     if (this.sink === sinks[0]) {
       return this
     }
     this.sink = sinks[0]
     sinks.forEach(s => s.addInflow(this))
     if (this.logger) {
-      sinks.forEach(s => this.logger.addEdge(this.id, s.id, "addObserverSink", { label: "sink" + name }))
+      sinks.forEach(s => this.logger.addEdge(this.id, s.id, "addObserverDestination", { label: "destination" }))
     }
     return this
   }
+
+  public setOuter(outer: IObserverTree): IObserverTree {
+    this.outer = outer
+    if (this.logger) {
+      this.logger.addEdge(this.id, outer.id, "addObserverOuter", { label: "outer" })
+    }
+    return this
+  }
+
   public addInflow(inflow: IObserverTree) {
     this.inflow = this.inflow || []
     if (this.inflow.indexOf(inflow) >= 0) {
@@ -190,6 +201,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
 
   // Mixin Observable & Observer methods
   public setSink: (sinks: IObserverTree[], name?: string) => this
+  public setOuter: (sinks: IObserverTree) => this
   public addInflow: (inflow: IObserverTree) => this
   public setObservable: (observable: IObservableTree[]) => IObserverTree
   public setSources: (sources: IObservableTree[]) => IObservableTree
@@ -240,22 +252,24 @@ function applyMixins(derivedCtor: any, baseCtors: any[]) {
   })
 }
 
+export type SchedulerType = "immediate" | "recursive" | "timeout" | "virtual"
+
 export type ISchedulerInfo = {
   id: string
   name: string
-  type: "immediate" | "recursive" | "timeout" | "virtual"
+  type: SchedulerType
   clock: number
 }
 
 export class SchedulerInfo implements ISchedulerInfo {
   public id: string
   public name: string
-  public type: "immediate" | "recursive" | "timeout" | "virtual"
+  public type: SchedulerType
   public clock: number
 
   constructor(
     id: string, name: string,
-    type: "immediate" | "recursive" | "timeout" | "virtual",
+    type: SchedulerType,
     clock: number, logger?: ITreeLogger
   ) {
     this.id = id

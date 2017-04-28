@@ -62,9 +62,12 @@ export class TreeGrapherAdvanced implements ITreeLogger {
       let dest = this.graph.node(w) as ObservableTree
       let sources = (dest.sources || []).concat([this.graph.node(v) as ObservableTree])
       dest.setSources(sources)
-    } else if (type === "addObserverSink") {
+    } else if (type === "addObserverDestination") {
       let src = this.graph.node(v) as ObserverTree
-      src.setSink([this.graph.node(w) as ObserverTree], meta.label)
+      src.setSink([this.graph.node(w) as ObserverTree])
+    } else if (type === "addObserverOuter") {
+      let src = this.graph.node(v) as ObserverTree
+      src.setOuter(this.graph.node(w) as ObserverTree)
     } else if (type === "setObserverSource") {
       let src = this.graph.node(v) as ObservableTree
       let dst = this.graph.node(w) as ObserverTree

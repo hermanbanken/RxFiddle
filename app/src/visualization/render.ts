@@ -566,9 +566,11 @@ function renderMarbles(
       return [h("div", { attrs: { class: clazz } }, "Unknown node")]
     }
 
+    let coloring = (nodeId: string) => colorIndex(parseInt(nodeId, 10))
+
     if (node.type === "observer") {
       let events: IEvent[] = node.value.events
-      return [coordinator.render(node.value, events, uiEvents, debug, findSubscription, viewState)]
+      return [coordinator.render(node.value, events, uiEvents, debug, findSubscription, viewState, coloring)]
     } else {
       let obs = node.value
       let name = obs.names && obs.names[obs.names.length - 1]
