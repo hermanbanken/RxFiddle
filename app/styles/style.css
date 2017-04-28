@@ -306,7 +306,7 @@ master > * {
   background: white;
   text-align: center;
   position: relative;
-  margin-left: 20px;
+  /* margin-left: 20px; */
 }
 
 .operator.withStack {
@@ -399,7 +399,7 @@ master > * {
 master {
   /* background: #eeeeee; */
   /* border-right: 1px solid #c1c1c1; */
-  margin-right: -60px;
+  margin-right: -15px;
   z-index: 1000;
 }
 
