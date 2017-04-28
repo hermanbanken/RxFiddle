@@ -1,4 +1,5 @@
 import { TreeCollectorTest } from "../src/instrumentation/rxjs-4.1.0/collector.spec"
+import SpeedTest from "../src/instrumentation/rxjs-4.1.0/speedtest.spec"
 import CrossingTest from "../src/layout/crossings.spec"
 import MedianTest from "../src/layout/median.spec"
 import OrderingTest from "../src/layout/ordering.spec"
@@ -29,3 +30,4 @@ new PriorityLayoutSpec()
 new MorphSpec()
 new TabIndexSpec()
 new UtilsTest()
+new SpeedTest()
