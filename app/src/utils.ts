@@ -32,18 +32,12 @@ function flatMap<T, R>(f: (t: T, index: number, all: T[]) => R[]): R[] {
 }
 Array.prototype.flatMap = flatMap
 
-/* Extension of Object prototype */
-declare global {
-  interface Object {
-    getName(): string
-  }
-}
-function getName() {
+/* Get name of function */
+export function getName(this: Function) {
   let funcNameRegex = /function (.{1,})\(/
   let results = (funcNameRegex).exec((this).constructor.toString())
   return (results && results.length > 1) ? results[1] : ""
 }
-(<any>Object.prototype).getName = getName
 
 export function UUID() {
   /** UUID generator: http://stackoverflow.com/a/2117523/552203 */

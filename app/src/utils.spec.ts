@@ -1,5 +1,6 @@
+
 import "./utils" // add getName on Object
-import { UUID } from "./utils"
+import { UUID, getName } from "./utils"
 import { expect } from "chai"
 import { suite, test } from "mocha-typescript"
 
@@ -13,7 +14,7 @@ export default class UtilsTest {
   @test public objectPrototypeGetName() {
     function Foo() { /* */ }
     let foo = new (Foo as any)()
-    expect(foo.getName()).to.eq("Foo")
+    expect(getName.call(foo)).to.eq("Foo")
   }
 
 }
