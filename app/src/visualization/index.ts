@@ -382,6 +382,7 @@ function getFlow(
   hasPrefOpt: (o: IObserverTree, n?: any) => boolean | null,
   ...ids: string[]
 ) {
+  ids = ids.filter(id => typeof id !== "undefined")
   let hasPref = typeof hasPrefOpt === "function" ? hasPrefOpt : undefined
   if (ids.length === 2) {
     let focussed1 = graph.node(ids[0])
