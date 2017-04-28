@@ -251,5 +251,8 @@ export function isObserver(v: any): v is RxImported.Subscription & any {
   return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
 }
 export function isScheduler(v: any): v is IScheduler & any {
+  if (typeof v === "object" && v !== null && v.schedule) {
+    console.log("isScheduler?", typeof v === "object" && v !== null && typeof v.now === "function" && typeof v.schedule === "function", v)
+  }
   return typeof v === "object" && v !== null && typeof v.now === "function" && typeof v.schedule === "function"
 }

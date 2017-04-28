@@ -17,7 +17,7 @@ let debug = false
 function getScheduler<T>(obs: Observable<T>, record?: ICallStart): IScheduler | undefined {
   return (obs as any).scheduler ||
     (obs as any)._scheduler ||
-    record && [].slice.call(record.arguments, -1).filter(isScheduler)[0]
+    record && ([].filter.call(record.arguments || [], isScheduler)[0])
 }
 
 class SequenceTicker {
@@ -103,7 +103,11 @@ export class TreeCollector implements RxCollector {
     if (callRecordType(record) === "event" && isObserver(record.subject)) {
       let event = Event.fromRecord(record, this.getTiming())
       if (event) {
-        (this.tag(record.subject) as IObserverTree).addEvent(event)
+        let observer = this.tag(record.subject) as IObserverTree
+        if (!observer.inflow || observer.inflow.length === 0) {
+          this.eventSequencer.next()
+        }
+        observer.addEvent(event)
       }
     }
 
@@ -247,6 +251,18 @@ export class TreeCollector implements RxCollector {
       this.adds(tree)
       return tree
     }
+    if (isScheduler(input)) {
+      let scheduler = input as IScheduler
+      let clock = scheduler.now()
+      let type = "virtual" as "virtual"
+      let info = new SchedulerInfo(
+        `${this.nextId++}`, getPrototype(scheduler).constructor.name,
+        type, clock, this.logger
+      );
+      (input as any)[this.symbol] = info;
+      this.schedulers.push({ scheduler, info })
+      return info
+    }
 
     // if (isScheduler(input)) {
     //   let scheduler = input as IScheduler
@@ -290,9 +306,9 @@ export class TreeCollector implements RxCollector {
   }
 
   private getScheduler<T>(input: Observable<T>, record?: ICallStart): ISchedulerInfo {
-    // if (isObservable(input) && getScheduler(input, record)) {
-    //   return this.tag(getScheduler(input, record)) as ISchedulerInfo
-    // }
+    if (isObservable(input) && getScheduler(input, record)) {
+      return this.tag(getScheduler(input, record)) as ISchedulerInfo
+    }
     return
   }
 
@@ -409,7 +425,6 @@ export class TreeCollector implements RxCollector {
   //   (tree as any).proxy = proxy
   //   return proxy
   // }
-
 
   private linkSources<T>(observable: Rx.Observable<T>) {
     let sources = [(observable as any).source, ...((observable as any)._sources || [])]
