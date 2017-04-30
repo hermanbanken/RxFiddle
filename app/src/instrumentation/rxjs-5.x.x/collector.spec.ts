@@ -126,20 +126,31 @@ export class TreeCollectorRx5Test {
     let b = a.map(_ => _.k)
     let c = b.map(x => x * 2)
 
-    c.subscribe(c => document.body.innerHTML += ("C " + JSON.stringify(c) + "<br>"))
-    b.subscribe(b => document.body.innerHTML += ("B " + JSON.stringify(b) + "<br>"))
-    a.subscribe(a => document.body.innerHTML += ("A " + JSON.stringify(a) + "<br>"))
+    c.subscribe(ic => console.log(ic))
+    b.subscribe(ib => console.log(ib))
+    a.subscribe(ia => console.log(ia))
 
-    Rx.Observable.fromEvent(document, "click").subscribe(() =>
+    Rx.Observable.of(1, 2, 3).subscribe(() =>
       (b as Rx.Subject<any>).next({ k: 1 })
     )
-
-    document.body.innerHTML += "Click to reveal answer <br>"
   }
 
   @test
   // @only
   public simpleDetachedChainTest() {
+    let a = Rx.Observable.of("A")
+    let b = a.publish(o => o.map(x => x + x))
+    let sub = b.subscribe()
+
+    this.write("tree5_simple_publish")
+    if (!this.flowsFrom(this.getObs(a), this.getSub(sub))) {
+      throw new Error("Root observable is not connected in OCT, using publish")
+    }
+  }
+
+  @test
+  // @only
+  public complexDetachedChainTest() {
     let a = Rx.Observable.of(1, 2, 3).map(x => x)
     let b = a.publish(o => o
       .filter(x => true)
