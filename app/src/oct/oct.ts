@@ -118,6 +118,7 @@ export class ObserverTree implements IObserverTree {
 
   public setOuter(outer: IObserverTree): IObserverTree {
     this.outer = outer
+    outer.addInflow(this)
     if (this.logger) {
       this.logger.addEdge(this.id, outer.id, "addObserverOuter", { label: "outer" })
     }

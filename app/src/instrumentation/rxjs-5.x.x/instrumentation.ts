@@ -250,12 +250,16 @@ export function isObservable<T>(v: any): v is RxImported.Observable<T> {
 export function isSubscription(v: any): v is RxImported.Subscription & any {
   return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
 }
-export function isObserver(v: any): v is RxImported.Subscription & any {
+export function isObserver(v: any): v is RxImported.Subscriber<any> {
   return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
+}
+export function isSubject(v: any): v is RxImported.Subject<any> {
+  return typeof v === "object" && v instanceof InstrumentedRx.Subject
 }
 export function isScheduler(v: any): v is IScheduler & any {
   if (typeof v === "object" && v !== null && v.schedule) {
-    console.log("isScheduler?", typeof v === "object" && v !== null && typeof v.now === "function" && typeof v.schedule === "function", v)
+    console.log("isScheduler?", typeof v === "object" && v !== null &&
+      typeof v.now === "function" && typeof v.schedule === "function", v)
   }
   return typeof v === "object" && v !== null && typeof v.now === "function" && typeof v.schedule === "function"
 }

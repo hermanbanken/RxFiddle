@@ -8,7 +8,7 @@ import {
 
 } from "../../oct/oct"
 import { getPrototype } from "../../utils"
-import { InstrumentedRx, isObservable, isObserver, isScheduler, isSubscription } from "./instrumentation"
+import { isObservable, isObserver, isScheduler, isSubject } from "./instrumentation"
 import * as Rx from "rxjs"
 import { Observable } from "rxjs"
 import { IScheduler } from "rxjs/Scheduler"
@@ -185,7 +185,7 @@ export class TreeCollector implements RxCollector {
       return input[this.symbol]
     }
 
-    if (isObserver(input) && isObservable(input)) {
+    if (isSubject(input)) {
       let tree = (input as any)[this.symbol] = new SubjectTree(`${this.nextId++}`,
         input.constructor.name, this.logger, this.getScheduler(input))
       this.linkSources(input)
@@ -201,7 +201,7 @@ export class TreeCollector implements RxCollector {
       return tree
     }
     if (isObserver(input)) {
-      let tree = input[this.symbol] = new ObserverTree(`${this.nextId++}`,
+      let tree = (input as any)[this.symbol] = new ObserverTree(`${this.nextId++}`,
         input.constructor.name, this.logger)
       this.linkSinks(input)
       this.adds(tree)
@@ -363,7 +363,7 @@ export class TreeCollector implements RxCollector {
       return
     }
     let sinkOpt = [(observer as any).destination]
-      .filter(isObserver)
+      .filter(o => isObserver(o) || isSubject(o))
       .map(o => this.tag(o) as IObserverTree);
     (this.tag(observer) as IObserverTree).setSink(sinkOpt)
     let parentOpt = [(observer as any).parent]
