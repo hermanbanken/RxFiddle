@@ -53,7 +53,6 @@ export default class TabIndexSpec {
     nav.getActive().isActive(false).next(Codes.RIGHT).isActive()
     let active = nav.getActive()
     expect(active.index).to.eq(3)
-    console.log(active)
     expect(active.parent.index).to.eq(5)
     expect(active.getParent(Codes.UP).index).to.eq(2)
     expect(active.next(Codes.UP, true).index).to.eq(4)

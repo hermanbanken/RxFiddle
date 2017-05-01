@@ -76,7 +76,7 @@ export default class TypedGraph<V, E> extends Graph {
     return copy
   }
 
-  public contractEdge(e: GraphEdge): this {
+  public contractEdge(e: GraphEdge, keepFilter?: (e: GraphEdge) => boolean): this {
     let removed = e.w
     let cloned = this.clone()
     cloned.removeEdge(e.v, e.w)
@@ -85,7 +85,13 @@ export default class TypedGraph<V, E> extends Graph {
       .forEach(re => {
         let label = cloned.edge(re)
         cloned.removeEdge(re.v, re.w)
-        cloned.setEdge(re.v === removed ? e.v : re.v, re.w === removed ? re.v : re.w, label)
+        if (typeof keepFilter === "undefined" || keepFilter(re)) {
+          if (re.v === removed) {
+            cloned.setEdge(e.v, re.w, label)
+          } else {
+            cloned.setEdge(re.v, e.v, label)
+          }
+        }
       })
     cloned.removeNode(removed)
     return cloned as this

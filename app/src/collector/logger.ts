@@ -1,7 +1,7 @@
 import { IEvent } from "./event"
 
-function formatObject(o: any, levels: number = 2, depth: number = 0): string {
-  if (levels <= 0) { return "{...}" }
+export function formatObject(o: any, levels: number = 2, depth: number = 0): string {
+  if (levels <= 0) { return `${o.constructor.name !== "Object" ? `[${o.constructor.name}] ` : ""}{...}` }
   if (o === null) { return "null" }
 
   let result = `${o.constructor.name !== "Object" ? `[${o.constructor.name}] ` : ""}{`

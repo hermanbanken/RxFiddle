@@ -592,11 +592,25 @@ function renderMarbles(
   return [root, ...timeOverlays]
 }
 
-function interactiveArgs(args: string | IArguments): (VNode | string)[] {
+type ExtendedArgument = { type: "number" | "string" | "function", value: any } | { type: "ref", $ref: any, value: any }
+function interactiveArgs(args: string | (string | ExtendedArgument)[]): (VNode | string)[] {
   if (typeof args === "string") {
     return [args.substr(0, 97) + (args.length > 97 ? "..." : "")]
   } else {
-    return []
+    if (Array.isArray(args)) {
+      return interleave(", ", args.map(arg => {
+        if (typeof arg === "string") {
+          return arg
+        } else if (arg.type === "ref") {
+          let color = colorIndex(parseInt(arg.$ref, 10))
+          return h(`span.argument.argument-type-ref`, {
+            style: { background: color },
+          }, arg.value)
+        } else {
+          return h(`span.argument.argument-type-${arg.value}`, arg.value)
+        }
+      }))
+    }
   }
 }
 
@@ -626,5 +640,16 @@ function debug(...args: any[]) {
 function name(obs: IObservableTree): (string | VNode)[] {
   let name = obs.names && obs.names[obs.names.length - 1]
   let call = obs.calls && obs.calls[obs.calls.length - 1]
-  return call && call.method ? [call.method, " (", ...interactiveArgs(call.args), ")"] : [name]
+  return call && call.method ? [call.method, " (", ...interactiveArgs(call.args as any), ")"] : [name]
+}
+
+function interleave<T>(val: T, list: T[]): T[] {
+  let result = [] as T[]
+  for (let i = 0; i < list.length; i++) {
+    result.push(list[i])
+    if (i < list.length - 1) {
+      result.push(val)
+    }
+  }
+  return result
 }
