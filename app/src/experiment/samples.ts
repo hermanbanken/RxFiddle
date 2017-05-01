@@ -1,6 +1,6 @@
 import { LineClasses, Ranges } from "../ui/codeEditor"
 import { TestEvent } from "./screens"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -40,7 +40,7 @@ class DefaultSample<T> implements Sample {
     this.data = data
   }
   public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
-    return Rx.Observable.just(h("div.q", this.question))
+    return Rx.Observable.of(h("div.q", this.question))
   }
 }
 
@@ -50,7 +50,7 @@ class BmiSample<T> extends DefaultSample<T> {
   }
 
   public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
-    return Rx.Observable.just(h("form.q", {
+    return Rx.Observable.of(h("form.q", {
       on: {
         submit: (e: any) => {
           dispatcher({
@@ -116,7 +116,7 @@ class AdvancedSample<T> extends DefaultSample<T> {
     }
   }
   public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
-    return Rx.Observable.just(h("div.q", this.question))
+    return Rx.Observable.of(h("div.q", this.question))
   }
 
   public normalize(input?: string): { run: string, visual: string }[] {
@@ -215,9 +215,9 @@ bmi.subscribe(x => console.log('BMI is ' + x));`,
     checker: () => { return true },
     code: [{
       run: `
-this.queries = Rx.Observable.just("string")
+this.queries = Rx.Observable.of("string")
 this.searchService = {
-  search: (query) => Rx.Observable.just("result")
+  search: (query) => Rx.Observable.of("result")
 }
 this.render = () => {}
 `, visual: `

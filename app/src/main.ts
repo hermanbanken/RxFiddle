@@ -9,9 +9,16 @@ import { LanguageMenu, Query, errorHandler, shareButton } from "./ui/shared"
 import Splash from "./ui/splash"
 import Visualizer, { DataSource } from "./visualization"
 import Grapher from "./visualization/grapher"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
+
+//// Inception:
+// import Instrumentation from "./instrumentation/rxjs-5.x.x/instrumentation"
+// import { TreeCollector } from "./instrumentation/rxjs-5.x.x/collector"
+// import { MessageLogger } from "../test/messageLogger"
+// let i = new Instrumentation(new TreeCollector(new MessageLogger()))
+// i.setup()
 
 const DataSource$: Rx.Observable<{
   data: DataSource,
@@ -59,7 +66,7 @@ function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
 }
 
 const LanguageMenu$ = new LanguageMenu().stream()
-const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
+const VNodes$: Rx.Observable<VNode[]> = DataSource$.switchMap(collector => {
   if (collector) {
     return Rx.Observable.of(0)
       .flatMap(_ => {
@@ -70,9 +77,9 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
       .retry()
       .startWith({ dom: h("span.rxfiddle-waiting", "Waiting for Rx activity..."), timeSlider: h("div") })
       .combineLatest(
-      collector.vnode || Rx.Observable.just(undefined),
+      collector.vnode || Rx.Observable.of(undefined),
       LanguageMenu$.dom,
-      collector.runner && collector.runner.state || Rx.Observable.just(undefined),
+      collector.runner && collector.runner.state || Rx.Observable.of(undefined),
       (render, input, langs, state) => [
         h("div#menufold-static.menufold", [
           h("a.brand.left", { attrs: { href: "#" } }, [
@@ -85,7 +92,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.flatMapLatest(collector => {
         hbox(...(input ?
           [Resizer.h(
             "rxfiddle/editor+rxfiddle/inspector",
-            input,
+            input as any,
             vboxo({ class: "viewer-panel" }, /*render.timeSlider,*/ render.dom)
           )] :
           [vbox(/*render.timeSlider,*/ render.dom)]

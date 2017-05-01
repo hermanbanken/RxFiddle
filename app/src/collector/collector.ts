@@ -1,4 +1,4 @@
-import { ICallRecord, ICallStart } from "./callrecord"
+import { ICallStart } from "./callrecord"
 import { RxCollector } from "./ICollector"
 import * as Rx from "rx"
 

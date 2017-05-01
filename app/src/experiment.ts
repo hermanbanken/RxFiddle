@@ -1,4 +1,4 @@
-// tslint:disable:object-literal-sort-keys
+// tslint:disable:ob§ect-literal-sort-keys
 // tslint:disable:max-line-length
 import AnalyticsObserver from "./analytics"
 import RxRunner, { Runner } from "./collector/runner"
@@ -16,7 +16,8 @@ import { Query, errorHandler } from "./ui/shared"
 import { UUID } from "./utils"
 import RxFiddleVisualizer from "./visualization"
 import Grapher from "./visualization/grapher"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
+import { IScheduler } from "rxjs/Scheduler"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -46,15 +47,14 @@ if (typeof localStorage !== "undefined") {
 }
 
 let dispatcher: (event: TestEvent) => void = null
-let testLoop = Rx.Observable
-  .create<TestEvent>(observer => {
-    dispatcher = (e) => {
-      observer.onNext(e)
-      AnalyticsObserver.onNext(e)
-    }
-  })
+let testLoop = new Rx.Observable<TestEvent>(observer => {
+  dispatcher = (e) => {
+    observer.next(e)
+    AnalyticsObserver.next(e)
+  }
+})
   .do(console.log)
-  .scan<TestState>((state, event) => {
+  .scan((state: TestState, event: TestEvent): TestState => {
     if (event.type === "start") {
       return Object.assign({}, States.get(event.surveyId), { id: event.surveyId, paused: false, started: new Date() })
     }
@@ -77,11 +77,11 @@ let testLoop = Rx.Observable
     return state
   }, initialTestState)
   .startWith(initialTestState)
-  .do(s => { States.save(s) })
+  .do((s: TestState) => { States.save(s) })
   .do(console.log)
-  .map(state => {
+  .map((state: TestState) => {
     let screen: Screen
-    let screens = [general, generalLangs, generalRpExperience, testScreen(Rx.Scheduler.default), doneScreen]
+    let screens = [general, generalLangs, generalRpExperience, testScreen(Rx.Scheduler.asap), doneScreen]
     if (state.paused) {
       screen = introScreen
     } else {
@@ -126,9 +126,7 @@ h("div#menufold-static.menufold.noflex", [
 
     return dom
   })
-  .switchLatest()
-
-
+  .switch()
 
 
 
@@ -184,7 +182,7 @@ let doneScreen: Screen = {
   isActive: (state) => true,
   progress: () => ({ max: 0, done: 0 }),
   render: (state, dispatcher) => ({
-    dom: Rx.Observable.just(h("div", ["Done", h("a.btn", {
+    dom: Rx.Observable.of(h("div", ["Done", h("a.btn", {
       on: { click: () => dispatcher({ type: "pause" }) },
     }, "Back")])),
   }),
@@ -193,7 +191,7 @@ let doneScreen: Screen = {
 let useRxFiddle = false
 
 /* Screen containing RxFiddle */
-let testScreen = (scheduler: Rx.IScheduler): Screen => ({
+let testScreen = (scheduler: IScheduler): Screen => ({
   isActive: (state) => state.active[0] === "test" && samples.some((s, index) => !state.data[index] || !(state.data[index].passed || state.data[index].completed)),
   progress: () => ({ max: 0, done: 0 }),
   hasMenu: true,
@@ -249,7 +247,7 @@ let testScreen = (scheduler: Rx.IScheduler): Screen => ({
           ),
         ])
 
-      let outOfTime: Rx.Observable<VNode[]> = Rx.Observable.just(sample.timeout)
+      let outOfTime: Rx.Observable<VNode[]> = Rx.Observable.of(sample.timeout)
         .let(time => formatQuestion(sample, time, dispatcher))
         .map((render) => [
           render,
@@ -288,7 +286,7 @@ function DataSource(sample: Sample) {
   }
 }
 
-let scheduler = Rx.Scheduler.default
+let scheduler = Rx.Scheduler.asap
 //  (window as any).scheduler = new Rx.TestScheduler()
 // scheduler.advanceTo(Date.now())
 // setInterval(() => scheduler.advanceBy(200), 200)

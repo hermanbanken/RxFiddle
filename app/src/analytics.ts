@@ -1,5 +1,9 @@
 import { UUID } from "./utils"
-import * as Rx from "rx"
+import { Observable, Subscriber } from "rxjs"
+// import "rxjs/add/observable/create"
+// import "rxjs/add/observable/fromEvent"
+// import "rxjs/add/operator/map"
+// import "rxjs/add/operator/retryWhen"
 
 function getOrCreate(key: string, create: () => string) {
   if (typeof localStorage !== "undefined" && localStorage.getItem(key)) {
@@ -17,64 +21,58 @@ let key = "rxfiddle_browsersession"
 let session = UUID()
 let browser = getOrCreate(key, UUID)
 
-function websocket<D>(url: string): Rx.Observable<{ inbox: Rx.Observable<D>, outbox: Rx.IObserver<D> }> {
-  return Rx.Observable.defer(() => {
-    return Rx.Observable.create<{ inbox: Rx.Observable<D>, outbox: Rx.IObserver<D> }>(observer => {
+function websocket<D>(url: string): Observable<{ inbox: Observable<D>, outbox: Subscriber<D> }> {
+  return Observable.defer(() => {
+    return Observable.create((observer: Subscriber<{ inbox: Observable<D>, outbox: Subscriber<D> }>) => {
       let connection = new WebSocket(url)
-      let closes = Rx.Observable.fromEvent<MessageEvent>(connection, "close")
-        .subscribe(e => observer.onError(new Error("Disconnected")))
-      let opens = Rx.Observable.fromEvent<MessageEvent>(connection, "open")
+      let closes = Observable.fromEvent<MessageEvent>(connection, "close")
+        .subscribe(e => observer.error(new Error("Disconnected")))
+      let opens = Observable.fromEvent<MessageEvent>(connection, "open")
         .subscribe(open => {
-          observer.onNext({
-            inbox: Rx.Observable.fromEvent<MessageEvent>(connection, "message").map(d => d.data as D),
+          observer.next({
+            inbox: Observable.fromEvent<MessageEvent>(connection, "message").map(d => d.data as D),
             outbox: {
-              onNext(message: D) { connection.send(typeof message === "object" ? JSON.stringify(message) : message) },
-              onError(e: Error) {
+              next(message: D) { connection.send(typeof message === "object" ? JSON.stringify(message) : message) },
+              error(e: Error) {
                 connection.send({
                   message: e.message, name: e.name,
                   stack: e.stack, type: "error",
                 })
               },
-              onCompleted() { connection.close(); observer.onCompleted() },
-            } as Rx.IObserver<D>,
+              complete() { connection.close(); observer.complete() },
+            } as Subscriber<D>,
           })
         })
       return () => {
-        opens.dispose()
-        closes.dispose()
+        opens.unsubscribe()
+        closes.unsubscribe()
         connection.close()
       }
     })
   })
     // Retry with increasing timeouts on errors and cooldown every second
-    .retryWhen(errors => Rx.Observable
+    .retryWhen(errors => Observable
       .merge(
       errors.map(_ => 1),
-      Rx.Observable.timer(5000).map(_ => -1)
+      Observable.timer(5000).map(_ => -1)
       )
       .scan((acc, mod) => Math.max(0, acc + mod), 0)
-      .delay(k => Rx.Observable.timer(Math.pow(2, k) * 100))
+      .delayWhen(k => Observable.timer(Math.pow(2, k) * 100))
     )
 }
 
 let queue = [] as any[]
-let connection: { inbox: Rx.Observable<any>, outbox: Rx.IObserver<any> }
+let connection: { inbox: Observable<any>, outbox: Subscriber<any> }
 websocket("wss://data.rxfiddle.net/ws/" + session).subscribe(c => {
   connection = c
-  queue.forEach(m => m instanceof Error ? c.outbox.onError(m) : c.outbox.onNext(m))
+  queue.forEach(m => m instanceof Error ? c.outbox.error(m) : c.outbox.next(m))
   queue = []
 })
 
-let AnalyticsObserver: Rx.IObserver<any> = {
-  onNext(m) {
-    if (connection) { connection.outbox.onNext(m) } else { queue.push(m) }
-  },
-  onError(e) {
-    if (connection) { connection.outbox.onError(e) } else { queue.push(e) }
-  },
-  onCompleted() {
-    if (connection) { connection.outbox.onCompleted() }
-  },
-}
+let AnalyticsObserver: Subscriber<any> = Subscriber.create(
+  (m) => { if (connection) { connection.outbox.next(m) } else { queue.push(m) } },
+  (e) => { if (connection) { connection.outbox.error(e) } else { queue.push(e) } },
+  () => { if (connection) { connection.outbox.complete() } },
+)
 
 export default AnalyticsObserver

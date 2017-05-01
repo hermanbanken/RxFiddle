@@ -1,5 +1,5 @@
 import { Documentation, DocumentationMethod, DocumentationProvider } from "./provider"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 
 export class RxJSDocumentationProvider implements DocumentationProvider {
   public library = "RxJS"
@@ -17,17 +17,17 @@ export class RxJSDocumentationProvider implements DocumentationProvider {
 class RxJS4Documentation implements Documentation {
   public version = "4"
   public library = "RxJS"
-  public methods = Rx.Observable.just([])
+  public methods = Rx.Observable.of([])
   public search(query: string): Rx.Observable<{ method: DocumentationMethod; matchText: string; }[]> {
-    return Rx.Observable.just([])
+    return Rx.Observable.of([])
   }
 }
 
 class RxJS5Documentation implements Documentation {
   public library = "RxJS"
   public version = "5"
-  public methods = Rx.Observable.just([])
+  public methods = Rx.Observable.of([])
   public search(query: string): Rx.Observable<{ method: DocumentationMethod; matchText: string; }[]> {
-    return Rx.Observable.just([])
+    return Rx.Observable.of([])
   }
 }

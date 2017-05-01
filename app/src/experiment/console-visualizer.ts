@@ -1,5 +1,5 @@
 import ConsoleRunner from "./console-runner"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 

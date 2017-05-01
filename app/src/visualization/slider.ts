@@ -1,4 +1,4 @@
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import { h } from "snabbdom"
 import { VNode } from "snabbdom/vnode"
 

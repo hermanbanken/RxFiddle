@@ -3,7 +3,7 @@ import TreeReader from "../collector/treeReader"
 import TypedGraph from "../collector/typedgraph"
 import { EdgeType, IObserverTree, ObservableTree, ObserverTree, SubjectTree } from "../oct/oct"
 import { DataSource, Graphs } from "./index"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 
 export default class Grapher {
 
@@ -21,7 +21,7 @@ export default class Grapher {
   protected makeGraphObservable(): Rx.Observable<Graphs> {
     return Rx.Observable.defer(() => this.collector.dataObs
       .scan(grapherNext, this.treeReader)
-      .debounce(10)
+      .debounceTime(10)
       .startWith(this.treeReader)
       .map(readerToGraph)
     )

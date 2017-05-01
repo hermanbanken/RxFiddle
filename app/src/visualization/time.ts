@@ -5,6 +5,7 @@ import { ViewState } from "./index"
 import { In as RenderInput } from "./render"
 import { horizontalSlider } from "./timeGrid"
 import { UIEvent } from "./uievent"
+import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -34,7 +35,7 @@ export function time(input: RenderInput): {
 } {
   let events = new Rx.Subject<UIEvent>()
 
-  let vnode = input.flatMapLatest(({ graphs, viewState, time }) => {
+  let vnode = input.switchMap(({ graphs, viewState, time }) => {
     graphs.subscriptions.nodes().flatMap(n => graphs.subscriptions.node(n).events).map(_ => _.timing)
 
     let activeId = highlightScheduler(graphs.main, viewState) || time.defaultId()
@@ -42,9 +43,9 @@ export function time(input: RenderInput): {
     let canvas = h("canvas.resources", { bins: (w: number) => time.bins(w, activeId), hook: CanvasHooks })
 
     let slider = horizontalSlider({
-      bounds: Rx.Observable.just({ max: time.max(activeId), min: time.min(activeId) }),
+      bounds: Rx.Observable.of({ max: time.max(activeId), min: time.min(activeId) }),
       canvas,
-      selected: Rx.Observable.just(viewState.timeRange || null),
+      selected: Rx.Observable.of(viewState.timeRange || null),
       unit: time.unit(activeId),
     })
 
@@ -52,11 +53,11 @@ export function time(input: RenderInput): {
       .map(range => ({ max: range.max, min: range.min, scheduler: activeId, type: "timeRange" }) as UIEvent)
       .subscribe(events)
 
-    let schedulers = Rx.Observable.just(time.schedulers.map(scheduler => {
+    let schedulers = Rx.Observable.of(time.schedulers.map(scheduler => {
       let active = scheduler.id === activeId
       return h(
         `div.scheduler.toolbar-pill${active ? ".active" : ""}`,
-        { on: { click: () => events.onNext({ id: active ? undefined : scheduler.id, type: "scheduler" }) } },
+        { on: { click: () => events.next({ id: active ? undefined : scheduler.id, type: "scheduler" }) } },
         scheduler.name
       )
     }))

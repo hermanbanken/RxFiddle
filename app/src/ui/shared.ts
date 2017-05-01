@@ -1,6 +1,7 @@
 import { LanguageCombination } from "../languages"
 import CodeEditor from "./codeEditor"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
+import { Observable } from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -34,7 +35,7 @@ const neverInNode = (subject: string) => Rx.Observable.defer(() =>
 
 let setting = false
 export let Query = {
-  $: typeof window === "object" ? Rx.Observable
+  $: typeof window === "object" ? Observable
     .fromEvent(window, "hashchange", () => window.location.hash.substr(1))
     .startWith(window.location.hash.substr(1))
     .map(str => QueryString.parse(str))
@@ -61,15 +62,15 @@ export const sameOriginWindowMessages = typeof window === "object" ? Rx.Observab
   .flatMap(event => {
     // Emit Editor errors in this stream; todo: move this throw elsewhere
     if (event && event.type === "error") {
-      return Rx.Observable.create(o => o.onError(event.error))
+      return new Rx.Observable(o => o.error(event.error))
     }
-    return Rx.Observable.just(event)
+    return Rx.Observable.of(event)
   }) : neverInNode("shared/ui/sameOriginWindowMessages")
 
 export class LanguageMenu {
   public stream(): { dom: Rx.Observable<VNode>, language: Rx.Observable<LanguageCombination> } {
     return {
-      dom: Rx.Observable.just(h("div.select", [
+      dom: Rx.Observable.of(h("div.select", [
         h("div.selected", "RxJS 4"),
         h("div.options", [
           h("div.option", "RxJS 4"),
@@ -99,15 +100,16 @@ const rxErrorHelp = [
   )]
 
 export function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
-  return Rx.Observable.create<{ dom: VNode, timeSlider: VNode }>(observer => {
-    observer.onNext({
+  console.error(e)
+  return new Rx.Observable<{ dom: VNode, timeSlider: VNode }>(observer => {
+    observer.next({
       dom: h("div.error", [
         h("p", [
           `An error occurred `,
           h("a.btn.btn-small", {
             on: {
               click: () => {
-                observer.onError(new Error("This error is catched and the stream is retry'd."))
+                observer.error(new Error("This error is catched and the stream is retry'd."))
                 return false
               },
             },

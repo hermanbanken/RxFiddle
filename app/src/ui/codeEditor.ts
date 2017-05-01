@@ -1,5 +1,5 @@
 import { sameOriginWindowMessages } from "./shared"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -19,6 +19,8 @@ export type Pos = { line: number, ch: number }
 export type Ranges = { from: Pos, to: Pos, options: CMMarkOptions }[]
 export type LineClasses = { line: number, where: "text" | "background" | "gutter" | "wrap", class: string }[]
 export type Source = string | DynamicSource
+
+type CodeEditorMessage = { desiredWidth: number } | { code: string }
 
 export default class CodeEditor {
   public dom: Rx.Observable<VNode>
@@ -46,12 +48,12 @@ export default class CodeEditor {
     }
 
     this.dom = sameOriginWindowMessages
-      .startWith({})
+      .startWith({ desiredWidth: 320 })
       .scan((prev, message) => {
-        return Object.assign({}, prev, message)
+        return Object.assign({}, prev, message) as CodeEditorMessage & { desiredWidth: number }
       }, {})
       .distinctUntilChanged()
-      .map(state => h("div.editor.flexy.flexy-v", {
+      .map((state: { desiredWidth: number }) => h("div.editor.flexy.flexy-v", {
         style: {
           width: `${Math.max(320, state.desiredWidth)}px`,
         },
@@ -74,7 +76,8 @@ export default class CodeEditor {
     if (this.prepare()) {
       sameOriginWindowMessages
         .take(1)
-        .map(d => d.code)
+        .filter(d => d && "code" in d)
+        .map((d: { code: string }) => d.code)
         .do(code => localStorage && localStorage.setItem("code", js.w(code)))
         .subscribe(cb)
       this.frameWindow.postMessage("requestCode", window.location.origin)

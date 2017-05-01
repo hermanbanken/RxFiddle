@@ -17,7 +17,7 @@ import {
   MarbleClick, MarbleHoover,
   UIEvent,
 } from "./uievent"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import { h } from "snabbdom"
 import { VNode } from "snabbdom/vnode"
 
@@ -43,7 +43,7 @@ export type Out = {
 export function graph$(inp: In): Out {
   let result = inp.map(data => {
     return graph(data.layout, data.viewState, data.graphs, data._sequence, data.focusNodes, data.hooverNodes)
-  }).publish().refCount()
+  }).share()
 
   return {
     clicks: result.flatMap(_ => _.clicks),
@@ -103,17 +103,19 @@ function getObservable(
   }).find(v => typeof v !== "undefined")
 }
 
+export type graphType = {
+  svg: VNode, timeSlider: VNode,
+  clicks: Rx.Observable<string[]>,
+  groupClicks: Rx.Observable<string>,
+  tickSelection: Rx.Observable<number>,
+  uievents: Rx.Observable<UIEvent>
+}
+
 export function graph(
   layout: Layout, viewState: ViewState,
   graphs: Graphs, sequence: number,
   focusNodes: string[], hooverNodes: string[]
-): {
-    svg: VNode, timeSlider: VNode,
-    clicks: Rx.Observable<string[]>,
-    groupClicks: Rx.Observable<string>,
-    tickSelection: Rx.Observable<number>,
-    uievents: Rx.Observable<UIEvent>
-  } {
+): graphType {
   let graph = graphs.main
 
   // Calculate SVG bounds
@@ -168,9 +170,9 @@ export function graph(
 
   let handleClick = (v: string, w: string) => {
     if (flowPathIds.indexOf(v) >= 0 && flowPathIds.indexOf(w) >= 0) {
-      uievents.onNext({ type: "selectionGraphNone" })
+      uievents.next({ type: "selectionGraphNone" })
     } else {
-      uievents.onNext({ type: "selectionGraphEdge", v, w })
+      uievents.next({ type: "selectionGraphEdge", v, w })
     }
   }
 
@@ -262,7 +264,7 @@ export function graph(
     let handlers = {
       click: (item: { id: string }) => (e: any) => {
         console.log(focusNodes, "checking", item.id, focusNodes.indexOf(item.id) < 0)
-        uievents.onNext(focusNodes.indexOf(item.id) < 0 ?
+        uievents.next(focusNodes.indexOf(item.id) < 0 ?
           { type: "selectionGraphNode", node: item.id } :
           { type: "selectionGraphNone" }
         )
@@ -417,7 +419,7 @@ export function graph(
             (n as IObserverTree).observable.id !== sub.observable.sources[0].id
           ) as IObserverTree[]
       },
-      event => uievents.onNext(event),
+      event => uievents.next(event),
       graphs.time.max(),
       id => graphs.subscriptions.node(id)
     )
@@ -432,7 +434,7 @@ export function graph(
         h(`detail.flexy.rel${!flow.length ? ".center" : ""}`, diagram),
     ])
 
-  let timeSlider = slider(graphs.time.min(), graphs.time.max(), currentTick, (v, final) => uievents.onNext({
+  let timeSlider = slider(graphs.time.min(), graphs.time.max(), currentTick, (v, final) => uievents.next({
     type: "tickSelection",
     tick: v === graphs.time.max() && final ? undefined : v,
   }))

@@ -2,6 +2,7 @@
 // tslint:disable:variable-name
 import { UUID } from "../utils"
 import { handleRangeTouch } from "./range"
+import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -143,7 +144,7 @@ export let introScreen: Screen = {
         ])
       })
     return {
-      dom: Rx.Observable.just(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
+      dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
         h("h1", "Survey on Reactive Programming"),
         h("p", `This is a survey to test Reactive Program comprehension and debugability.
                 Please take part, even if you have little experience with Reactive Programming.`),
@@ -189,7 +190,7 @@ export let general: Screen = {
     let button = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_langs"] }))
 
     return {
-      dom: Rx.Observable.just(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
+      dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
         h("p", `First some general questions to get an understanding
             of your experience (without Reactive Programming).`),
         age.dom,
@@ -232,7 +233,7 @@ export let generalLangs: Screen = {
     let button = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_rp"] }))
 
     return {
-      dom: Rx.Observable.just(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
+      dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
         h("p", `First some general questions to get an understanding
             of your experience (without Reactive Programming).`),
         h("h2", "Languages"),
@@ -281,7 +282,7 @@ export let generalRpExperience: Screen = {
     let button = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["test"] }))
 
     return {
-      dom: Rx.Observable.just(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
+      dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
         h("p", `Now some questions to get an understanding 
                 of your experience with Reactive Programming.`),
         h("h2", "Reactive Programming"),
