@@ -1,3 +1,4 @@
+// tslint:disable:max-line-length
 import "../../../src/utils"
 import { jsonify } from "../../../test/utils"
 import TreeReader from "../../collector/treeReader"
@@ -139,7 +140,7 @@ export class TreeCollectorRx5Test {
   // @only
   public simpleDetachedChainTest() {
     let a = Rx.Observable.of("A")
-    let b = a.publish(o => o.map(x => x + x))
+    let b = a.publish(o => o.map(x => x + x).filter(x => true))
     let sub = b.subscribe()
 
     this.write("tree5_simple_publish")
@@ -163,10 +164,43 @@ export class TreeCollectorRx5Test {
       .take(1))
     let sub = b.subscribe()
 
+    expect(this.getObs(a).sources).to.not.contain(this.getObs(a))
+
     this.write("tree5_publish")
     if (!this.flowsFrom(this.getObs(a), this.getSub(sub))) {
       throw new Error("Root observable is not connected in OCT, using publish")
     }
+  }
+
+  /**
+   * Test regression: invalid source loop at refcount-input
+   * http://localhost:8085/graphviz.html#ZGlncmFwaCBnCnsKcmFua2Rpcj1UQgpzdWJncmFwaCBjbHVzdGVyMCB7IDEgMiAzIDQgNSA2IDcgOCA5IDEwIDExIDEyIH07CjEgW2NvbG9yPSJibHVlIiwgbGFiZWw9IlNjYWxhck9ic2VydmFibGUiXTsKMiBbY29sb3I9ImJsdWUiLCBsYWJlbD0iT2JzZXJ2YWJsZSJdOwozIFtjb2xvcj0icmVkIiwgbGFiZWw9IlJlZkNvdW50U3Vic2NyaWJlcig0KSJdOwo0IFtjb2xvcj0icmVkIiwgbGFiZWw9IlN1YnNjcmliZXIoNCkiXTsKNSBbY29sb3I9InJlZCIsIGxhYmVsPSJTYWZlU3Vic2NyaWJlcigxKSJdOwo2IFtjb2xvcj0icHVycGxlIiwgbGFiZWw9IlN1YmplY3QiXTsKNyBbY29sb3I9InJlZCIsIGxhYmVsPSJDb25uZWN0YWJsZVN1YnNjcmliZXIoMykiXTsKOCBbY29sb3I9ImJsdWUiLCBsYWJlbD0iT2JzZXJ2YWJsZSJdOwo5IFtjb2xvcj0icmVkIiwgbGFiZWw9Ik1hcFN1YnNjcmliZXIoMykiXTsKMTAgW2NvbG9yPSJyZWQiLCBsYWJlbD0iU3Vic2NyaWJlcigzKSJdOwoxMSBbY29sb3I9InJlZCIsIGxhYmVsPSJTYWZlU3Vic2NyaWJlcigxKSJdOwoxMiBbY29sb3I9InJlZCIsIGxhYmVsPSJSZWZDb3VudFN1YnNjcmliZXIoMykiXTsKMSAtPiAxIFt0eXBlPSJhZGRTb3VyY2UiLCBsYWJlbD0ic291cmNlIiwgbWlubGVuPSIxIl07CjEgLT4gMiBbdHlwZT0iYWRkU291cmNlIiwgbGFiZWw9InNvdXJjZSIsIG1pbmxlbj0iMSJdOwo0IC0+IDUgW3R5cGU9ImFkZE9ic2VydmVyRGVzdGluYXRpb24iLCBsYWJlbD0iZGVzdGluYXRpb24iLCBtaW5sZW49IjEiXTsKMyAtPiA0IFt0eXBlPSJhZGRPYnNlcnZlckRlc3RpbmF0aW9uIiwgbGFiZWw9ImRlc3RpbmF0aW9uIiwgbWlubGVuPSIxIl07CjYgLT4gMyBbdHlwZT0ic2V0T2JzZXJ2ZXJTb3VyY2UiLCBsYWJlbD0ib2JzZXJ2YWJsZSIsIG1pbmxlbj0iMSJdOwo3IC0+IDYgW3R5cGU9ImFkZE9ic2VydmVyRGVzdGluYXRpb24iLCBsYWJlbD0iZGVzdGluYXRpb24iLCBtaW5sZW49IjEiXTsKMSAtPiA3IFt0eXBlPSJzZXRPYnNlcnZlclNvdXJjZSIsIGxhYmVsPSJvYnNlcnZhYmxlIiwgbWlubGVuPSIxIl07CjIgLT4gNCBbdHlwZT0ic2V0T2JzZXJ2ZXJTb3VyY2UiLCBsYWJlbD0ib2JzZXJ2YWJsZSIsIG1pbmxlbj0iMSJdOwoyIC0+IDggW3R5cGU9ImFkZFNvdXJjZSIsIGxhYmVsPSJzb3VyY2UiLCBtaW5sZW49IjEiXTsKMTAgLT4gMTEgW3R5cGU9ImFkZE9ic2VydmVyRGVzdGluYXRpb24iLCBsYWJlbD0iZGVzdGluYXRpb24iLCBtaW5sZW49IjEiXTsKOSAtPiAxMCBbdHlwZT0iYWRkT2JzZXJ2ZXJEZXN0aW5hdGlvbiIsIGxhYmVsPSJkZXN0aW5hdGlvbiIsIG1pbmxlbj0iMSJdOwoxMiAtPiA5IFt0eXBlPSJhZGRPYnNlcnZlckRlc3RpbmF0aW9uIiwgbGFiZWw9ImRlc3RpbmF0aW9uIiwgbWlubGVuPSIxIl07CjYgLT4gMTIgW3R5cGU9InNldE9ic2VydmVyU291cmNlIiwgbGFiZWw9Im9ic2VydmFibGUiLCBtaW5sZW49IjEiXTsKMiAtPiA5IFt0eXBlPSJzZXRPYnNlcnZlclNvdXJjZSIsIGxhYmVsPSJvYnNlcnZhYmxlIiwgbWlubGVuPSIxIl07CjggLT4gMTAgW3R5cGU9InNldE9ic2VydmVyU291cmNlIiwgbGFiZWw9Im9ic2VydmFibGUiLCBtaW5sZW49IjEiXTsKfQ==
+   */
+  @test
+  // @only
+  public refcountTest() {
+    let a = Rx.Observable.of(1, 2, 3)
+    let b = a.publish().refCount()
+    b.map(x => x * 2).subscribe()
+    let sub = b.subscribe()
+
+    expect(this.getObs(a).sources, "expecting sources to not be circular").to.not.contain(this.getObs(a))
+
+    this.write("tree5_refcount")
+    if (!this.flowsFrom(this.getObs(a), this.getSub(sub))) {
+      throw new Error("Root observable is not connected in OCT, using publish")
+    }
+  }
+
+  @only
+  @test
+  public simplePublishConnect() {
+    let a = Rx.Observable.of("A")
+    let b = a.publish()
+    b.subscribe()
+    b.map(x => x).subscribe()
+    b.connect()
+    this.write("tree5_connect")
   }
 
   // @only
@@ -229,7 +263,9 @@ export class TreeCollectorRx5Test {
         if (item.sources) {
           removed += item.sources.filter(s => {
             deleteItem(otree, s)
-            prune(s)
+            if (s !== item) {
+              prune(s)
+            }
           }).length
         }
       }

@@ -43,6 +43,9 @@ function readerToGraph(reader: TreeReader) {
   let graph = reader.treeGrapher.graph
 
   // Apply filters
+  graph = expandSubjects(graph)
+  graph = swapSubjectAsObservables(graph)
+  graph = contractSubjectObservables(graph)
   graph = stripEndPointSafeSubscribers(graph)
 
   return ({
@@ -92,4 +95,81 @@ function stripEndPointSafeSubscribers(graph: TG): TG {
     }
     return true
   })
+}
+
+/**
+ * Filter: replace AnonymousSubject's that actually are observables
+ */
+function swapSubjectAsObservables(graph: TG): TG {
+  return graph.flatMap(
+    (id, label) => label instanceof SubjectTree && graph.nodeEdges(id).every(e => isObservableEdge(graph.edge(e))) ?
+      [{ id, label: asObservableTree(label) }] :
+      [{ id, label }],
+    (id, label) => [{ id, label }]
+  )
+}
+
+/**
+ * Filter: connect Subject
+ */
+function contractSubjectObservables(graph: TG): TG {
+  return graph.nodes()
+    .filter(n => graph.node(n) instanceof SubjectTree)
+    .filter(n => graph.nodeEdges(n).every(e => graph.edge(e).type === "addObserverDestination"))
+    .map(n => graph.inEdges(n))
+    .filter(es => es && es.length === 1)
+    .map(es => es && es[0])
+    .reduce((prev, edge) => prev.contractEdge(edge), graph)
+}
+
+/**
+ * Filter: Expand Subject into subscription and non-subscription side
+ */
+function expandSubjects(graph: TG): TG {
+
+  // graph.nodes().forEach(n => {
+  //   if (graph.node(n) instanceof SubjectTree && graph.inEdges(n).some(e => graph.edge(e).type === "addObserverDestination")) {
+  //     let compId = n + "-companion"
+  //     graph.setNode(compId, new ObserverTree(compId))
+  //     graph.inEdges(n).filter(e => graph.edge(e).type === "addObserverDestination").forEach(e => {
+  //       graph.removeEdge(e.v, e.w)
+  //       graph.setEdge(e.v, compId, { type: "addObserverDestination" })
+  //     })
+
+  //     console.log(n, graph.node(n), graph.nodeEdges(n).map(e => ({ e, label: graph.edge(e) })))
+  //   }
+  // })
+
+  // graph.flatMap<ObserverTree | ObservableTree, { type: EdgeType }>(
+  //   (id, label) => {
+  //     if (label instanceof SubjectTree && graph.inEdges(id).some(e => graph.edge(e).type === "addObserverDestination")) {
+  //       //
+  //     }
+  //     return [{ id, label }]
+  //   },
+  //   (id, label) => {
+  //     if (label.type === "addObserverDestination" && graph.node(id.w) instanceof SubjectTree) {
+  //       let sources = graph.inEdges(id.v).filter(e => graph.edge(e).type === "addSource")
+  //       return [...sources.map(s => ({
+  //         id: { v: s.v, w: id.w },
+  //         label: { label: "mock inserted", type: "addSource" as "addSource" },
+  //       }))]
+  //     }
+  //     return [{ id, label }]
+  //   }
+  // )
+  return graph
+}
+
+function isObservableEdge(edge: { type: EdgeType }) {
+  return edge.type === "addSource" || edge.type === "setObserverSource"
+}
+
+function asObservableTree(subjectTree: SubjectTree): ObservableTree {
+  let tree = new ObservableTree(subjectTree.id)
+  tree.names = subjectTree.names
+  tree.sources = subjectTree.sources
+  tree.scheduler = subjectTree.scheduler
+  tree.calls = (subjectTree as ObservableTree).calls
+  return tree
 }

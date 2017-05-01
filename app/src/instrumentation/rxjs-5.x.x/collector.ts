@@ -38,8 +38,10 @@ class SequenceTicker {
 }
 
 export class TreeCollector implements RxCollector {
+  public call: ICallRecord
   public static collectorId = 0
   public symbol: symbol
+  public subjectObserverSymbol: symbol
   public collectorId: number
   public nextId = 1
   public logger: ITreeLogger
@@ -58,6 +60,7 @@ export class TreeCollector implements RxCollector {
     this.collectorId = TreeCollector.collectorId++
     this.logger = logger
     this.symbol = Symbol("tree")
+    this.subjectObserverSymbol = Symbol("tree2")
   }
 
   /**
@@ -112,6 +115,7 @@ export class TreeCollector implements RxCollector {
   }
 
   public after(record: ICallRecord): void {
+    this.call = record;
     // tag all encountered Observables & Subscribers
     [record.returned].forEach(t => this.tag(t, record))
 
@@ -178,10 +182,11 @@ export class TreeCollector implements RxCollector {
   }
 
   private tag(input: any, record?: ICallStart): IObserverTree | IObservableTree | ISchedulerInfo | undefined {
-    if (typeof input === "undefined") {
+    if (typeof input !== "object" || input === null) {
       return undefined
     }
-    if (typeof input[this.symbol] !== "undefined") {
+
+    if (input.hasOwnProperty(this.symbol) && typeof input[this.symbol] !== "undefined") {
       return input[this.symbol]
     }
 
@@ -355,6 +360,9 @@ export class TreeCollector implements RxCollector {
     let sources = [(observable as any).source, ...((observable as any)._sources || [])]
       .filter(isObservable)
       .map(o => this.tag(o) as IObservableTree);
+    if (sources.indexOf(this.tag(observable) as IObservableTree) >= 0) {
+      console.log("Reference loop", observable, this.call)
+    }
     (this.tag(observable) as IObservableTree).setSources(sources)
   }
 
@@ -373,6 +381,14 @@ export class TreeCollector implements RxCollector {
   }
 
   private linkSubscribeSource<T>(observer: Rx.Observer<T>, observable: Rx.Observable<T>) {
+    if (isSubject(observable)) {
+      let subject = this.tag(observable) as SubjectTree
+      if (subject.sources.length === 0) {
+        console.log(observable)
+        subject.addSink([this.tag(observer) as IObserverTree])
+        return
+      }
+    }
     let stree = this.tag(observer) as IObserverTree
     let otree = this.tag(observable) as IObservableTree
     stree.setObservable([otree])
@@ -467,4 +483,8 @@ function schedulerType(
   } else if (scheduler === Rx.Scheduler.queue) {
     return "recursive"
   }
+}
+
+function derivatedSubject<T>(input: Rx.Subject<T>) {
+  return (input as any).source === (input as any).destination
 }

@@ -40,6 +40,7 @@ export interface ITreeLogger {
   addMeta(id: Id, meta: any): void
   addEdge(v: Id, w: Id, type: EdgeType, meta?: any): void
   addScheduler(id: Id, scheduler: ISchedulerInfo): void
+  addContraction(id: Id, nodes: Id[]): void
 }
 
 export class ObservableTree implements IObservableTree {
@@ -77,9 +78,11 @@ export class ObservableTree implements IObservableTree {
   }
 
   public inspect(depth: number, opts: any) {
-    return `ObservableTree(${this.id}, ${this.names}, ${
-      (this.sources || []).map(s => pad(inspect(s, depth + 2, opts), 2))
-      })`
+    if (depth < 100) {
+      return `ObservableTree(${this.id}, ${this.names}, ${
+        (this.sources || []).map(s => pad(inspect(s, depth + 2, opts), 2))
+        })`
+    }
   }
 }
 
@@ -193,6 +196,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   public names?: string[]
   public args: IArguments
   public inflow?: IObserverTree[]
+  public calls?: MethodCall[]
   public sources?: IObservableTree[]
   public observable: IObservableTree
   public sink?: IObserverTree

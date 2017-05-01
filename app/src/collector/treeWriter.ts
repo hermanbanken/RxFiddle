@@ -19,6 +19,9 @@ export class TreeWriter implements ITreeLogger {
   public addScheduler(id: string, scheduler: ISchedulerInfo): void {
     this.messages.push({ id, scheduler })
   }
+  public addContraction(id: string, nodes: string[]): void {
+    this.messages.push({ id, contract: nodes })
+  }
 }
 
 export default TreeWriter

@@ -54,12 +54,41 @@ export default class TypedGraph<V, E> extends Graph {
     let copy = new TypedGraph<V2, E2>(this.options)
     copy.setGraph(this.graph())
     _.each(this.nodes(), (n) => {
-      nodeMap(n, this.node(n)).forEach(({id, label}) => copy.setNode(id, label))
+      nodeMap(n, this.node(n)).forEach(({ id, label }) => copy.setNode(id, label))
     })
     _.each(this.edges(), (e) => {
-      edgeMap(e, this.edge(e)).forEach(({id, label}) => copy.setEdge(id.v, id.w, label))
+      edgeMap(e, this.edge(e)).forEach(({ id, label }) => copy.setEdge(id.v, id.w, label))
     })
     return copy
+  }
+
+  public clone() {
+    let copy = new TypedGraph<V, E>(this.options)
+    copy.setGraph(this.graph())
+    _.each(this.nodes(), (id) => {
+      let label = this.node(id)
+      copy.setNode(id, label)
+    })
+    _.each(this.edges(), (id) => {
+      let label = this.edge(id)
+      copy.setEdge(id.v, id.w, label)
+    })
+    return copy
+  }
+
+  public contractEdge(e: GraphEdge): this {
+    let removed = e.w
+    let cloned = this.clone()
+    cloned.removeEdge(e.v, e.w)
+    this.nodeEdges(removed)
+      .filter(re => !(e.v === re.v && e.w === re.w))
+      .forEach(re => {
+        let label = cloned.edge(re)
+        cloned.removeEdge(re.v, re.w)
+        cloned.setEdge(re.v === removed ? e.v : re.v, re.w === removed ? re.v : re.w, label)
+      })
+    cloned.removeNode(removed)
+    return cloned as this
   }
 
   public setNode(name: string, label?: V): this {
@@ -96,7 +125,7 @@ export default class TypedGraph<V, E> extends Graph {
 
   public toDot(
     nodeProps?: (n: V) => any,
-    edgeProps: (e: E) => any = () => ({ type: "s" }), 
+    edgeProps: (e: E) => any = () => ({ type: "s" }),
     cluster: (n: V) => string = () => "",
     extraProps: () => any = () => ["rankdir=LR", "splines=line"]
   ): string {

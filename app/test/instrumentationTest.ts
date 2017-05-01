@@ -18,6 +18,9 @@ export class MessageLogger implements ITreeLogger {
   public addScheduler(id: string, scheduler: ISchedulerInfo): void {
     this.post({ id, scheduler })
   }
+  public addContraction(id: string, nodes: string[]): void {
+    this.post({ id, contract: nodes })
+  }
   public reset() {
     this.post("reset")
   }

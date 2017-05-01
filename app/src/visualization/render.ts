@@ -5,7 +5,7 @@ import TimeComposer from "../collector/timeComposer"
 import TypedGraph from "../collector/typedgraph"
 import { generateColors } from "../color"
 import "../object/extensions"
-import { IObservableTree, IObserverTree, ISchedulerInfo, ObservableTree, ObserverTree } from "../oct/oct"
+import { IObservableTree, IObserverTree, ISchedulerInfo, ObservableTree, ObserverTree, SubjectTree } from "../oct/oct"
 import "../utils"
 import { Graphs, ViewState } from "./index"
 import { MarbleCoordinator } from "./marbles"
@@ -67,15 +67,18 @@ export function mapTuples<T, R>(list: T[], f: (a: T, b: T, anr: number, bnr: num
   return result
 }
 
-function nodeLabel(node: IObservableTree | IObserverTree): string {
-  if (node instanceof ObservableTree && node.calls) {
+function nodeLabel(node: IObservableTree | IObserverTree): (VNode | string)[] {
+  if (node instanceof ObservableTree || node instanceof SubjectTree) {
+    return name(node as IObservableTree)
+  }
+  if ((node instanceof ObservableTree || node instanceof SubjectTree) && node.calls) {
     let call = node.calls[node.calls.length - 1]
-    return `${call.method}(${call.args})`
+    return [`${call.method}(${call.args})`]
   }
   if (node && node.names) {
-    return node.names[node.names.length - 1]
+    return [node.names[node.names.length - 1]]
   }
-  return ""
+  return [""]
 }
 
 function getObservable(
@@ -111,9 +114,6 @@ export function graph(
     tickSelection: Rx.Observable<number>,
     uievents: Rx.Observable<UIEvent>
   } {
-  if (typeof window === "object") {
-    (window as any).graphs = graphs
-  }
   let graph = graphs.main
 
   // Calculate SVG bounds
@@ -573,15 +573,13 @@ function renderMarbles(
       return [coordinator.render(node.value, events, uiEvents, debug, findSubscription, viewState, coloring)]
     } else {
       let obs = node.value
-      let name = obs.names && obs.names[obs.names.length - 1]
-      let call = obs.calls && obs.calls[obs.calls.length - 1]
       let handlers = {
         click: () => uiEvents({ observable: node.value.id, type: "diagramOperatorClick" }),
         mouseover: () => uiEvents({ observable: node.value.id, type: "diagramOperatorHoover" }),
       }
       let box = h("div", { attrs: { class: clazz }, style: { "margin-top": `${offsets[i]}px` }, on: handlers }, [
         h("div", [
-          ...(call && call.method ? [call.method, " (", ...interactiveArgs(call.args), ")"] : [name]),
+          ...name(obs),
           schedulerIcon(obs.scheduler),
         ]),
         // h("div", [], incoming ? incoming(nodeList[i + 1] as IObserverTree).map(o => o.id).join(",") : "no subs"),
@@ -623,4 +621,10 @@ function debug(...args: any[]) {
   } else {
     // console.log.apply(console, args)
   }
+}
+
+function name(obs: IObservableTree): (string | VNode)[] {
+  let name = obs.names && obs.names[obs.names.length - 1]
+  let call = obs.calls && obs.calls[obs.calls.length - 1]
+  return call && call.method ? [call.method, " (", ...interactiveArgs(call.args), ")"] : [name]
 }

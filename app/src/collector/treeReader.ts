@@ -39,12 +39,13 @@ export class TreeGrapher implements ITreeLogger {
   public graph = new TypedGraph<ObservableTree | ObserverTree, { type: EdgeType }>()
   public events: IEvent[] = []
   public time: TimeComposer = new TimeComposer()
+  public contractions: { id: string, contract: string[] }[] = []
   public addNode(id: string, type: NodeType, scheduler: ISchedulerInfo): void {
     if (type === "observable") {
       this.graph.setNode(id, new ObservableTree(id, undefined, undefined, scheduler))
     } else if (type === "subject") {
       this.graph.setNode(id, new SubjectTree(id, undefined, undefined, scheduler))
-    } else {
+    } else if (type === "observer") {
       this.graph.setNode(id, new ObserverTree(id, undefined, undefined))
     }
   }
@@ -78,6 +79,9 @@ export class TreeGrapher implements ITreeLogger {
   }
   public addScheduler(id: string, scheduler: ISchedulerInfo): void {
     this.time.schedulers.push(scheduler)
+  }
+  public addContraction(id: string, nodes: string[]): void {
+    this.contractions.push({ id, contract: nodes })
   }
   public reset() {
     this.graph.nodes().forEach(n => this.graph.removeNode(n))
