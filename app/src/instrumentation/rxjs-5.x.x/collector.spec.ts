@@ -219,7 +219,7 @@ export class TreeCollectorRx5Test {
     s.next(1)
     s.next(2)
     console.log(
-      (s as any)[this.collector.subjectObserverSymbol],
+      (s as any)[this.collector.subSymbol],
       (s as any)[this.collector.symbol]
     )
     this.write("tree5_subjectAsSubscriber")

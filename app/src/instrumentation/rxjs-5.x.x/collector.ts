@@ -41,10 +41,8 @@ class SequenceTicker {
 
 export class TreeCollector implements RxCollector {
   public call: ICallRecord
-  public static collectorId = 0
   public symbol: symbol
-  public subjectObserverSymbol: symbol
-  public collectorId: number
+  public subSymbol: symbol
   public nextId = 1
   public logger: ITreeLogger
   private eventSequencer = new SequenceTicker()
@@ -59,29 +57,9 @@ export class TreeCollector implements RxCollector {
   private scheduler?: { scheduler: IScheduler, info: ISchedulerInfo }
 
   public constructor(logger: ITreeLogger) {
-    this.collectorId = TreeCollector.collectorId++
     this.logger = logger
     this.symbol = Symbol("tree")
-    this.subjectObserverSymbol = Symbol("tree2")
-  }
-
-  /**
-   * Used to wrap arguments of higher order functions. Consider:
-   *   
-   *   let a = Rx.Observable.just(1)
-   *   a.flatMap((nr) => Rx.Observable.of(nr, nr * 2, nr * 3))
-   * 
-   * now wrapHigherOrder is called like this:
-   * 
-   *   wrapHigherOrder(a, (nr) => Rx.Observable.of(nr, nr * 2, nr * 3))
-   * 
-   * so we can inject a custom function which can link the result of the lambda to `a`.
-   * 
-   * @param subject observable to link to
-   * @param fn function (or any other argument) to wrap
-   */
-  public wrapHigherOrder(call: ICallRecord, fn: Function | any): Function | any {
-    return fn
+    this.subSymbol = Symbol("tree2")
   }
 
   public schedule(scheduler: IScheduler, method: string, action: Function, state: any): Function | undefined {
@@ -186,16 +164,6 @@ export class TreeCollector implements RxCollector {
     return typeof input === "object" && input !== null && typeof input[this.symbol] !== "undefined"
   }
 
-  private alternativeTag(input: any): IObserverTree {
-    if (isSubject(input)) {
-      let observable = this.tag("observable", input)
-      let tree = (input as any)[this.subjectObserverSymbol] = new ObserverTree(`${this.nextId++}`,
-        input.constructor.name, this.logger)
-      tree.setObservable([observable])
-      return tree
-    }
-  }
-
   private tag(role: "observable", input: any, record?: ICallStart): IObservableTree
   private tag(role: "observer", input: any, record?: ICallStart): IObserverTree
   private tag(role: "scheduler", input: any, record?: ICallStart): ISchedulerInfo
@@ -206,22 +174,25 @@ export class TreeCollector implements RxCollector {
       return undefined
     }
 
+    let symbol = this.symbol
+    if (isSubject(input) && role === "observer") {
+      symbol = this.subSymbol
+    }
+
+    if (input.hasOwnProperty(symbol) && typeof input[symbol] !== "undefined") {
+      return input[symbol]
+    }
+
     if (isSubject(input)) {
       if (role === "observable") {
-        if (input.hasOwnProperty(this.symbol) && typeof (input as any)[this.symbol] !== "undefined") {
-          return (input as any)[this.symbol]
-        }
         let tree = (input as any)[this.symbol] = new ObservableTree(`${this.nextId++}`,
           input.constructor.name, this.logger, this.getScheduler(input))
         this.linkSources(input)
         this.addo(tree)
-        this.linkSubject(tree, (input as any)[this.subjectObserverSymbol])
+        this.linkSubject(tree, (input as any)[this.subSymbol])
         return tree
       } else if (role === "observer") {
-        if (input.hasOwnProperty(this.subjectObserverSymbol) && typeof (input as any)[this.subjectObserverSymbol] !== "undefined") {
-          return (input as any)[this.subjectObserverSymbol]
-        }
-        let tree = (input as any)[this.subjectObserverSymbol] = new SubjectTree(`${this.nextId++}`,
+        let tree = (input as any)[this.subSymbol] = new SubjectTree(`${this.nextId++}`,
           input.constructor.name, this.logger, this.getScheduler(input))
         this.linkSinks(input)
         this.adds(tree)
@@ -229,13 +200,8 @@ export class TreeCollector implements RxCollector {
         return tree
       }
     }
-
-    if (input.hasOwnProperty(this.symbol) && typeof input[this.symbol] !== "undefined") {
-      return input[this.symbol]
-    }
-
     if (isObservable(input)) {
-      let tree = (input as any)[this.symbol] = new ObservableTree(`${this.nextId++}`,
+      let tree = (input as any)[symbol] = new ObservableTree(`${this.nextId++}`,
         input.constructor.name, this.logger, this.getScheduler(input, record)
       )
       this.linkSources(input)
@@ -243,7 +209,7 @@ export class TreeCollector implements RxCollector {
       return tree
     }
     if (isObserver(input)) {
-      let tree = (input as any)[this.symbol] = new ObserverTree(`${this.nextId++}`,
+      let tree = (input as any)[symbol] = new ObserverTree(`${this.nextId++}`,
         input.constructor.name, this.logger)
       this.linkSinks(input)
       this.adds(tree)
@@ -257,7 +223,7 @@ export class TreeCollector implements RxCollector {
         `${this.nextId++}`, getPrototype(scheduler).constructor.name,
         type, clock, this.logger
       );
-      (input as any)[this.symbol] = info;
+      (input as any)[symbol] = info;
       this.schedulers.push({ scheduler, info })
       return info
     }
@@ -309,90 +275,6 @@ export class TreeCollector implements RxCollector {
     return []
   }
 
-  private tagObservable(input: any, callRecord?: ICallStart): IObservableTree[] {
-    // if (isObservable(input)) {
-    //   let wasTagged = this.hasTag(input)
-    //   let tree = this.tag(input, callRecord) as IObservableTree
-    //   /* TODO find other way: this is a shortcut to prevent MulticastObservable._fn1 to show up */
-    //   if (callRecord && callRecord.method[0] !== "_") {
-    //     while (callRecord && isObservable((callRecord as ICallRecord).returned) && callRecord.method[0] !== "_") {
-    //       tree.addMeta({
-    //         calls: {
-    //           subject: `callRecord.subjectName ${this.hasTag(callRecord.subject) && this.tag(callRecord.subject).id}`,
-    //           args: formatArguments(callRecord.arguments),
-    //           method: callRecord.method,
-    //         },
-    //       })
-    //       callRecord = callRecord.parent
-    //     }
-    //   }
-    //   if (!wasTagged) {
-    //     if ((input as any).source) {
-    //       tree.setSources(this.tagObservable((input as any).source))
-    //     } else if ((input as any)._sources) {
-    //       tree.setSources((input as any)._sources.flatMap((s: any) => this.tagObservable(s)))
-    //     }
-    //   }
-    //   if (getScheduler(input)) {
-    //     this.tag(getScheduler(input))
-    //   }
-    //   return [tree]
-    // }
-    return []
-  }
-
-  // private observableWrapper<T, R>(target: T, context: Rx.Observable<R>, outerContext: () => Rx.Observable<R>): T {
-  //   function subscribe() {
-  //     if (debug) {
-  //       console.debug("Wrap this higher order subscribe method\n",
-  //         target.constructor.name,
-  //         context.constructor.name,
-  //         outerContext().constructor.name)
-  //     }
-  //     let result = (target as any).subscribe.apply(target, arguments)
-  //     return result
-  //   }
-  //   return new Proxy(target, {
-  //     get: (obj: any, name: string) => {
-  //       if (name === "isScoped") { return true }
-  //       if (name === "subscribe" && "subscribe" in target) {
-  //         return subscribe
-  //       }
-  //       return obj[name]
-  //     },
-  //   })
-  // }
-
-  // // Wrap this around a Subscription to log onNext, onError, onComplete, dispose calls
-  // private subscriptionWrapper<T>(target: Rx.Observer<T>, tree: IObserverTree) {
-  //   if ((target as any).__isSubscriptionWrapper) {
-  //     return target
-  //   }
-  //   // Ensure only one single Proxy is attached to the IObserverTree
-  //   if ((tree as any).proxy) {
-  //     return target
-  //   }
-  //   let collector = this
-  //   let events = ["next", "error", "complete", "dispose", "unsubscribe"]
-  //   tree.addEvent(Event.fromCall("subscribe", undefined, this.getTiming()))
-  //   let proxy = new Proxy(target, {
-  //     get: (obj: any, name: string) => {
-  //       let original = obj[name]
-  //       if (name === "__isSubscriptionWrapper") { return true }
-  //       if (typeof original === "function" && events.indexOf(name) >= 0) {
-  //         function proxy() {
-  //           collector.addEvent(tree, Event.fromCall(name, arguments, undefined), arguments[0])
-  //           return original.apply(this, arguments)
-  //         }
-  //         return proxy
-  //       }
-  //       return original
-  //     },
-  //   });
-  //   (tree as any).proxy = proxy
-  //   return proxy
-  // }
-
   private linkSources<T>(observable: Rx.Observable<T>) {
     let sources = [(observable as any).source, ...((observable as any)._sources || [])]
       .filter(isObservable)
@@ -426,13 +308,6 @@ export class TreeCollector implements RxCollector {
         this.tag("observer", observer).setObservable([subjectAsObs])
         return
       }
-      //   let subject = this.tag("observable", observable) as SubjectTree
-      //   let subscriber = this.alternativeTag(observable) as IObserverTree
-      //   if (subject.sources.length === 0) {
-      //     console.log(observable)
-      //     subject.addSink([this.tag("observer", observer)])
-      //     return
-      //   }
     }
     let stree = this.tag("observer", observer)
     let otree = this.tag("observable", observable)
@@ -470,18 +345,6 @@ function generate<T>(seed: T, next: (acc: T) => T | undefined | null): T[] {
     return [seed, ...generate(next(seed), next)]
   }
 }
-
-/** 
- * Get destination of input Observer
- */
-// function getSink<T>(input: Rx.Observer<T>, record?: ICallStart): [string, Rx.Observer<T>][] {
-//   let anyInput = input as any
-//   if (typeof anyInput.destination !== "undefined" && anyInput.destination instanceof InstrumentedRx.Subscriber) {
-//     return [["destination", anyInput.destination] as [string, Rx.Observer<T>]]
-//   } else {
-//     return []
-//   }
-// }
 
 class Wire {
   // tslint:disable-next-line:no-constructor-vars

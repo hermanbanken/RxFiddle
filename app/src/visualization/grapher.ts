@@ -43,8 +43,7 @@ function readerToGraph(reader: TreeReader) {
   let graph = reader.treeGrapher.graph
 
   // Apply filters
-  graph = expandSubjects(graph)
-  // graph = swapSubjectAsObservables(graph)
+  graph = swapSubjectAsObservables(graph)
   graph = contractSubjectObservables(graph)
   graph = stripEndPointSafeSubscribers(graph)
 
@@ -118,47 +117,8 @@ function contractSubjectObservables(graph: TG): TG {
     // .filter(n => graph.nodeEdges(n).every(e => graph.edge(e).type === "addObserverDestination"))
     .map(n => graph.inEdges(n))
     .filter(es => es && es.length > 0)
-    .map(es => es && es[0])
-    .reduce((prev, edge) => prev.contractEdge(edge), graph)
-}
-
-/**
- * Filter: Expand Subject into subscription and non-subscription side
- */
-function expandSubjects(graph: TG): TG {
-
-  // graph.nodes().forEach(n => {
-  //   if (graph.node(n) instanceof SubjectTree && graph.inEdges(n).some(e => graph.edge(e).type === "addObserverDestination")) {
-  //     let compId = n + "-companion"
-  //     graph.setNode(compId, new ObserverTree(compId))
-  //     graph.inEdges(n).filter(e => graph.edge(e).type === "addObserverDestination").forEach(e => {
-  //       graph.removeEdge(e.v, e.w)
-  //       graph.setEdge(e.v, compId, { type: "addObserverDestination" })
-  //     })
-
-  //     console.log(n, graph.node(n), graph.nodeEdges(n).map(e => ({ e, label: graph.edge(e) })))
-  //   }
-  // })
-
-  // graph.flatMap<ObserverTree | ObservableTree, { type: EdgeType }>(
-  //   (id, label) => {
-  //     if (label instanceof SubjectTree && graph.inEdges(id).some(e => graph.edge(e).type === "addObserverDestination")) {
-  //       //
-  //     }
-  //     return [{ id, label }]
-  //   },
-  //   (id, label) => {
-  //     if (label.type === "addObserverDestination" && graph.node(id.w) instanceof SubjectTree) {
-  //       let sources = graph.inEdges(id.v).filter(e => graph.edge(e).type === "addSource")
-  //       return [...sources.map(s => ({
-  //         id: { v: s.v, w: id.w },
-  //         label: { label: "mock inserted", type: "addSource" as "addSource" },
-  //       }))]
-  //     }
-  //     return [{ id, label }]
-  //   }
-  // )
-  return graph
+    .map(es => es && es.find(e => graph.edge(e).type === "addObserverDestination") || es[0])
+    .reduce((prev, edge) => prev.contractEdge(edge, e => graph.edge(e).type === "addObserverDestination"), graph)
 }
 
 function isObservableEdge(edge: { type: EdgeType }) {
