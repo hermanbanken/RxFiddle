@@ -222,7 +222,6 @@ export class TreeCollectorRx5Test {
     this.write("tree5_subjectAsSubscriber")
   }
 
-  // @only
   @test
   public bmi() {
     let results = [] as number[]

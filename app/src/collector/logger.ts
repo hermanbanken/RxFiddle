@@ -1,8 +1,14 @@
 import { IEvent } from "./event"
 
 export function formatObject(o: any, levels: number = 2, depth: number = 0): string {
-  if (levels <= 0) { return `${o.constructor.name !== "Object" ? `[${o.constructor.name}] ` : ""}{...}` }
   if (o === null) { return "null" }
+  if (levels <= 0) {
+    return `${
+      o.constructor && o.constructor.name !== "Object" ?
+        `[${o.constructor.name}] ` :
+        ""
+      }{...}`
+  }
 
   let result = `${o.constructor.name !== "Object" ? `[${o.constructor.name}] ` : ""}{`
   let i = 0
