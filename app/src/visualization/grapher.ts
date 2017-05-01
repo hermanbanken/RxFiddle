@@ -53,8 +53,7 @@ function readerToGraph(reader: TreeReader) {
     main: graph
       .filterNodes(n => true),
     subscriptions: graph
-      .filterNodes((n, l) => !(l instanceof ObservableTree))
-      .filterEdges((e, l) => l.type === "addObserverDestination") as TypedGraph<IObserverTree, {}>,
+      .filterNodes((n, l) => !(l instanceof ObservableTree)) /* .filterEdges((e, l) => l.type === "addObserverDestination")*/ as TypedGraph<IObserverTree, {}>,
     time: reader.treeGrapher.time,
     toDot: () => dotGraph(graph),
   })
