@@ -24,6 +24,7 @@ export default class Instrumentation {
       "ObservableStatic": InstrumentedRx.Observable,
       "SubjectStatic": InstrumentedRx.Subject,
       "Subject": InstrumentedRx.Subject.prototype,
+      "Scheduler": (InstrumentedRx.Scheduler.async as any).__proto__.__proto__,
     }
   }
 
@@ -32,6 +33,7 @@ export default class Instrumentation {
       this.setupPrototype(target, targetName)
     } else {
       Object.keys(this.subjects)
+        .filter(name => typeof this.subjects[name] !== "undefined")
         .forEach(name => this.setup(this.subjects[name], name))
     }
     /* TODO:
@@ -74,7 +76,6 @@ export default class Instrumentation {
     subjectName: string,
   ): any {
     if (this.ignore) {
-      console.log((originalFn as any).name, target, argumentsList, method)
       return originalFn.apply(target, argumentsList)
     }
 
@@ -137,7 +138,6 @@ export default class Instrumentation {
   /* tslint:disable:no-string-literal */
   public instrument(fn: Function, method: string, subjectName: string): Function {
     let self = this
-
     let instrumented = new Proxy(fn, {
       apply: (target: any, thisArg: any, argumentsList: any[]) => {
         return this.apply(fn, target, thisArg, argumentsList, method, subjectName)
@@ -186,10 +186,10 @@ export default class Instrumentation {
       this.setupPrototype((input as any).prototype, input.constructor.name)
       return input as any
     }
-    if (isScheduler(input)) {
-      return input
-    }
-    if (isObserver(input) && !isInstrumented((input as any).next)) {
+    if (
+      isScheduler(input) && !isInstrumented((input as any).schedule) ||
+      isObserver(input) && !isInstrumented((input as any).next)
+    ) {
       return new Proxy(input, {
         get: (thisArg: any, name: string) => {
           let original = thisArg[name]
@@ -257,9 +257,5 @@ export function isSubject(v: any): v is RxImported.Subject<any> {
   return typeof v === "object" && v instanceof InstrumentedRx.Subject
 }
 export function isScheduler(v: any): v is IScheduler & any {
-  if (typeof v === "object" && v !== null && v.schedule) {
-    console.log("isScheduler?", typeof v === "object" && v !== null &&
-      typeof v.now === "function" && typeof v.schedule === "function", v)
-  }
   return typeof v === "object" && v !== null && typeof v.now === "function" && typeof v.schedule === "function"
 }

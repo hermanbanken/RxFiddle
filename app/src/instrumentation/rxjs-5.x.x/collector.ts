@@ -20,6 +20,7 @@ type Role = "observable" | "observer" | "scheduler"
 function getScheduler<T>(obs: Observable<T>, record?: ICallStart): IScheduler | undefined {
   return (obs as any).scheduler ||
     (obs as any)._scheduler ||
+    (obs as any).operator && (obs as any).operator.scheduler ||
     record && ([].filter.call(record.arguments || [], isScheduler)[0])
 }
 
@@ -62,27 +63,17 @@ export class TreeCollector implements RxCollector {
     this.subSymbol = Symbol("tree2")
   }
 
-  public schedule(scheduler: IScheduler, method: string, action: Function, state: any): Function | undefined {
-    return
-    // let info = this.tag(scheduler)
-    // let self = this
-    // if (method.startsWith("schedule") && method !== "scheduleRequired") {
-    //   // tslint:disable-next-line:only-arrow-functions
-    //   return function () {
-    //     let justAssigned = self.scheduler = { scheduler, info: info as ISchedulerInfo }
-    //     self.eventSequencer.next()
-    //     let result = action.apply(this, arguments)
-    //     if (self.scheduler === justAssigned) {
-    //       self.scheduler = undefined
-    //     }
-    //     return result
-    //   }
-    // }
+  public schedule(scheduler: IScheduler, method: string, action: Function, state: any) {
+    this.eventSequencer.next()
   }
 
   public before(record: ICallStart, parents?: ICallStart[]): this {
     // tag all encountered Observables & Subscribers
     [record.subject, ...record.arguments].forEach(this.tag.bind(this, undefined))
+
+    if (record.method === "schedule") {
+      this.schedule(record.subject, record.method, undefined, undefined)
+    }
 
     if (callRecordType(record) === "event" && isObserver(record.subject)) {
       let event = Event.fromRecord(record, this.getTiming())
@@ -258,21 +249,6 @@ export class TreeCollector implements RxCollector {
       clocks,
       scheduler: "tick",
     }
-  }
-
-  private tagObserver(input: any, record?: ICallStart, traverse: boolean = true): IObserverTree[] {
-    // if (isObserver(input)) {
-    //   let tree = this.tag(input) as IObserverTree
-
-    //   // Find sink
-    //   let sinks = getSink(input, record)
-    //   sinks.forEach(([how, sink]) => {
-    //     tree.setSink([this.tag(sink) as IObserverTree], how)
-    //   })
-
-    //   return [tree]
-    // }
-    return []
   }
 
   private linkSources<T>(observable: Rx.Observable<T>) {
