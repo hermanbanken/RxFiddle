@@ -43,7 +43,6 @@ function readerToGraph(reader: TreeReader) {
   let graph = reader.treeGrapher.graph
 
   // Apply filters
-  graph = expandSubjects(graph)
   graph = stripEndPointSafeSubscribers(graph)
 
   return ({
@@ -59,10 +58,38 @@ function readerToGraph(reader: TreeReader) {
   })
 }
 
-export class GrapherAdvanced extends Grapher {
-  constructor(collector: DataSource) {
-    super(collector)
-    this.treeReader = new TreeReader()
-    this.graph = this.makeGraphObservable()
+function dotGraph(graph: TG) {
+  let dot = graph.toDot(
+    (n) => ({
+      color: n instanceof SubjectTree ? "purple" : (n instanceof ObserverTree ? "red" : "blue"),
+      label: (n && n.names.join("\n") || n && n.id)
+      + (n instanceof ObserverTree ? `(${n.events.length})` : "")
+      // + "\\n" + (n instanceof ObservableTree && n.calls ? n.calls.map(_ => _.method).join(",") : "")
+      ,
+    }),
+    e => Object.assign(e, { minlen: (e as any).label === "source" ? 1 : 1 }),
+    undefined, // n => n instanceof ObserverTree ? "red" : "blue",
+    () => ["rankdir=TB"]
+  )
+  if (typeof window !== "undefined") {
+    window.open("graphviz.html#" + btoa(dot))
   }
+  return dot
+}
+
+export type TG = TypedGraph<ObserverTree | ObservableTree, { type: EdgeType }>
+
+/**
+ * Filter: remove SafeSubscriber wrappers that RxJS 5 adds around subscribes with lambdas,
+ * preventing duplicate subscribers at end of flow
+ */
+function stripEndPointSafeSubscribers(graph: TG): TG {
+  return graph.filterNodes(n => {
+    let es = graph.nodeEdges(n)
+    // Detect single incoming destination edge
+    if (es.length === 1 && es[0].w === n && graph.edge(es[0]).type === "addObserverDestination") {
+      return false
+    }
+    return true
+  })
 }
