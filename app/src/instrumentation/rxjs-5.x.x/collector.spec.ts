@@ -27,7 +27,6 @@ export class TreeCollectorRx5Test {
   protected writer: TreeWriter
 
   public before() {
-    console.log("Arguments", arguments)
     this.writer = new TreeWriter()
     this.collector = new TreeCollector(this.writer)
     this.instrumentation = new Instrumentation(this.collector)

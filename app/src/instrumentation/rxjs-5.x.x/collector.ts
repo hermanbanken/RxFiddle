@@ -1,7 +1,7 @@
 import { ICallRecord, ICallStart, callRecordType } from "../../collector/callrecord"
 import { RxCollector, elvis } from "../../collector/collector"
 import { Event, IEvent, Timing } from "../../collector/event"
-import { formatArguments } from "../../collector/logger"
+import { formatArguments, formatObject } from "../../collector/logger"
 import {
   IObservableTree, IObserverTree, ISchedulerInfo, ITreeLogger,
   ObservableTree, ObserverTree, SchedulerInfo, SchedulerType, SubjectTree,
@@ -104,7 +104,7 @@ export class TreeCollector implements RxCollector {
         let tree = this.tag("observable", record.returned)
         tree.addMeta({
           calls: {
-            args: formatArguments(record.arguments),
+            args: this.formatArguments(...record.arguments),
             method: record.method,
             subject: `callRecord.subjectName ${
             this.hasTag(record.subject) &&
@@ -301,6 +301,24 @@ export class TreeCollector implements RxCollector {
     if (typeof a !== "undefined" && typeof b !== "undefined" && typeof b.observable === "undefined") {
       b.setObservable([a])
     }
+  }
+
+  private formatArguments(...args: any[]): any {
+    return args.map(arg => {
+      if (typeof arg === "number" || typeof arg === "string") {
+        return { type: typeof arg, value: formatArguments([arg]) }
+      }
+      if (typeof arg === "object") {
+        if (Array.isArray(arg)) {
+          return { type: "array", value: formatArguments(arg) }
+        } else if (this.hasTag(arg)) {
+          return { $ref: this.tag(undefined, arg).id, type: "ref", value: formatObject(arg, 0) }
+        } else { return { type: "object", value: formatArguments([arg]) } }
+      }
+      if (typeof arg === "function") {
+        return { type: "function", value: formatArguments([arg]) }
+      }
+    })
   }
 }
 

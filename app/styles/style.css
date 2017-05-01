@@ -465,7 +465,7 @@ g.circle:hover text, g.circle:hover rect {
   z-index: 9999;
 }
 
-.graph-label span {
+.graph-label > span {
   display: none;
   border-radius: 4px;
   background: rgba(0,0,0,.75);
@@ -477,7 +477,7 @@ g.circle:hover text, g.circle:hover rect {
   white-space: nowrap;
 }
 
-.graph-label:hover span
+.graph-label:hover > span
 /*, .graph-label.focus span*/ {
   display: block;
 }
@@ -810,4 +810,9 @@ disable purple highlight border:
     top:0px; bottom:0px; 
     left:-4px; right:-4px; 
     z-index: 100;
+}
+
+.app span.argument:hover {
+  background: lightblue;
+  border-radius: 5px;
 }
