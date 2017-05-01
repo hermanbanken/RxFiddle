@@ -1,6 +1,6 @@
 import { ICallRecord, ICallStart, callRecordType } from "../../collector/callrecord"
-import { RxCollector, elvis } from "../../collector/collector"
 import { Event, IEvent, Timing } from "../../collector/event"
+import { RxCollector } from "../../collector/ICollector"
 import { formatArguments, formatObject } from "../../collector/logger"
 import {
   IObservableTree, IObserverTree, ISchedulerInfo, ITreeLogger,
@@ -8,16 +8,15 @@ import {
 
 } from "../../oct/oct"
 import { getPrototype } from "../../utils"
-import { isObservable, isObserver, isScheduler, isSubject } from "./instrumentation"
-import * as Rx from "rxjs"
-import { Observable } from "rxjs"
+import { InstrumentedRx, isObservable, isObserver, isScheduler, isSubject } from "./instrumentation"
+import * as RxType from "rxjs/Rx"
 import { IScheduler } from "rxjs/Scheduler"
 
 let debug = false
 
 type Role = "observable" | "observer" | "scheduler"
 
-function getScheduler<T>(obs: Observable<T>, record?: ICallStart): IScheduler | undefined {
+function getScheduler<T>(obs: RxType.Observable<T>, record?: ICallStart): IScheduler | undefined {
   return (obs as any).scheduler ||
     (obs as any)._scheduler ||
     (obs as any).operator && (obs as any).operator.scheduler ||
@@ -229,7 +228,7 @@ export class TreeCollector implements RxCollector {
     this.otree.push(tree)
   }
 
-  private getScheduler<T>(input: Observable<T>, record?: ICallStart): ISchedulerInfo {
+  private getScheduler<T>(input: RxType.Observable<T>, record?: ICallStart): ISchedulerInfo {
     if (isObservable(input) && getScheduler(input, record)) {
       return this.tag("scheduler", getScheduler(input, record))
     }
@@ -251,7 +250,7 @@ export class TreeCollector implements RxCollector {
     }
   }
 
-  private linkSources<T>(observable: Rx.Observable<T>) {
+  private linkSources<T>(observable: RxType.Observable<T>) {
     let sources = [(observable as any).source, ...((observable as any)._sources || [])]
       .filter(isObservable)
       .map(o => this.tag("observable", o))
@@ -261,7 +260,7 @@ export class TreeCollector implements RxCollector {
     (this.tag("observable", observable)).setSources(sources)
   }
 
-  private linkSinks<T>(observer: Rx.Observer<T>) {
+  private linkSinks<T>(observer: RxType.Observer<T>) {
     if (isObservable(observer)) {
       return
     }
@@ -275,7 +274,7 @@ export class TreeCollector implements RxCollector {
     parentOpt.forEach(p => (this.tag("observer", observer)).setOuter(p))
   }
 
-  private linkSubscribeSource<T>(observer: Rx.Observer<T>, observable: Rx.Observable<T>) {
+  private linkSubscribeSource<T>(observer: RxType.Observer<T>, observable: RxType.Observable<T>) {
     if (isSubject(observable)) {
       let subjectAsObs = this.tag("observable", observable) as IObservableTree
       let subject = this.tag("observer", observable) as SubjectTree
@@ -366,12 +365,12 @@ class WireStart {
   }
 }
 
-function isSource<T, R>(source: Rx.Observable<T>, obs: Rx.Observable<R>): boolean {
+function isSource<T, R>(source: RxType.Observable<T>, obs: RxType.Observable<R>): boolean {
   return (obs as any).source === source ||
     Array.isArray((obs as any)._sources) && (obs as any)._sources.indexOf(source) >= 0
 }
 
-function hasSource<T, R>(obs: Rx.Observable<R>): boolean {
+function hasSource<T, R>(obs: RxType.Observable<R>): boolean {
   return (obs as any).source ||
     Array.isArray((obs as any)._sources) && (obs as any)._sources.length > 0
 }
@@ -381,25 +380,25 @@ function isFirstOpOntoSubject(record: ICallRecord): boolean {
 }
 
 function schedulerType(
-  scheduler: Rx.VirtualTimeScheduler |
-    Rx.TestScheduler |
-    typeof Rx.Scheduler.asap | typeof Rx.Scheduler.animationFrame |
-    typeof Rx.Scheduler.async |
-    typeof Rx.Scheduler.queue
+  scheduler: RxType.VirtualTimeScheduler |
+    RxType.TestScheduler |
+    typeof RxType.Scheduler.asap | typeof RxType.Scheduler.animationFrame |
+    typeof RxType.Scheduler.async |
+    typeof RxType.Scheduler.queue
 ): SchedulerType {
-  if (scheduler instanceof Rx.VirtualTimeScheduler || scheduler instanceof Rx.TestScheduler) {
+  if (scheduler instanceof InstrumentedRx.VirtualTimeScheduler || scheduler instanceof InstrumentedRx.TestScheduler) {
     return "virtual"
-  } else if (scheduler === Rx.Scheduler.asap) {
+  } else if (scheduler === InstrumentedRx.Scheduler.asap) {
     return "recursive"
-  } else if (scheduler === Rx.Scheduler.async) {
+  } else if (scheduler === InstrumentedRx.Scheduler.async) {
     return "timeout"
-  } else if (scheduler === Rx.Scheduler.animationFrame) {
+  } else if (scheduler === InstrumentedRx.Scheduler.animationFrame) {
     return "timeout"
-  } else if (scheduler === Rx.Scheduler.queue) {
+  } else if (scheduler === InstrumentedRx.Scheduler.queue) {
     return "recursive"
   }
 }
 
-function derivatedSubject<T>(input: Rx.Subject<T>) {
+function derivatedSubject<T>(input: RxType.Subject<T>) {
   return (input as any).source === (input as any).destination
 }

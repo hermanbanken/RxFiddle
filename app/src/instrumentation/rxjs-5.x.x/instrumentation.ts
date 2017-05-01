@@ -1,12 +1,13 @@
 // tslint:disable:no-constructor-vars
 // tslint:disable:object-literal-key-quotes
 import { ICallRecord, ICallStart } from "../../collector/callrecord"
-import { RxCollector } from "../../collector/collector"
+import { RxCollector } from "../../collector/ICollector"
 
 // Allow either external scoped Rx or local imported Rx to be used
 import * as RxImported from "rxjs/Rx"
 import { IScheduler } from "rxjs/Scheduler"
 declare let Rx: any
+
 export let InstrumentedRx: typeof RxImported = typeof Rx === "undefined" ? RxImported : Rx
 
 let i = 0

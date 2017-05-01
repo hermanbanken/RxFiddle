@@ -30,6 +30,8 @@ module.exports = {
   },
   externals: {
     rx: 'Rx',
+    rxjs: 'Rx',
+    "rxjs/Rx": 'Rx',
     graphlib: 'graphlib',
     dagre: 'dagre',
     lodash: '_',
