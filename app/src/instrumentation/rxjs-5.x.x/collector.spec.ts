@@ -240,28 +240,31 @@ export class TreeCollectorRx5Test {
     this.write("tree5_bmi")
   }
 
-  // @test
-  // public someRxTest() {
-  //   var e1 = hot('--a--^--b--c--|', { a: 'a', b: 'b', c: 'c' });
-  //   var e1subs = '^        !';
-  //   var e2 = hot('---e-^---f--g--|', { e: 'e', f: 'f', g: 'g' });
-  //   var e2subs = '^         !';
-  //   var expected = '----x-yz--|';
-  //   var result = Observable.combineLatest(e1, e2, function (x, y) { return x + y; });
-  //   expectObservable(result).toBe(expected, { x: 'bf', y: 'cf', z: 'cg' });
-  //   expectSubscriptions(e1.subscriptions).toBe(e1subs);
-  //   expectSubscriptions(e2.subscriptions).toBe(e2subs);
-  //   let obs1 = Rx.Observable.of(1, 2, 3)
-  //   let obs2 = Rx.Observable.of(4, 5, 6)
+  @test
+  public someRxTest() {
+    let s = new Rx.TestScheduler(() => void 0)
 
-  //   obs1.concat(obs2)
-  //     .map(x => x * 2)
-  //     .filter(x => x > 4)
-  //     .do(x => console.log(x))
-  //     .subscribe()
+    let e1 = s.createHotObservable<number>("--a--^--b--c--|", { a: 1, b: 2, c: 3 })
+    let e1subs = "^        !"
+    let e2 = s.createHotObservable<number>("---e-^---f--g--|", { e: 5, f: 6, g: 7 })
+    let e2subs = "^         !"
+    let expected = "----x-yz--|"
+    let result = Rx.Observable.combineLatest(e1, e2, (x, y) => x + y)
+    s.expectObservable(result).toBe(expected, { x: "bf", y: "cf", z: "cg" })
+    s.expectSubscriptions(e1.subscriptions).toBe(e1subs)
+    s.expectSubscriptions(e2.subscriptions).toBe(e2subs)
 
-  //   this.write("tree5_c")
-  // }
+    let obs1 = Rx.Observable.of(1, 2, 3)
+    let obs2 = Rx.Observable.of(4, 5, 6)
+
+    obs1.concat(obs2)
+      .map(x => x * 2)
+      .filter(x => x > 4)
+      .do(x => console.log(x))
+      .subscribe()
+
+    this.write("tree5_c")
+  }
 
 
   private trees() {
