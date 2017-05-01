@@ -1,5 +1,6 @@
 import { jsonify } from "../../../test/utils"
-import { TreeReader, TreeWriter } from "../../collector/treeReader"
+import TreeReader from "../../collector/treeReader"
+import TreeWriter from "../../collector/treeWriter"
 import TypedGraph from "../../collector/typedgraph"
 import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../../oct/oct"
 import { TreeCollector } from "./collector"

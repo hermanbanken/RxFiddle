@@ -24,7 +24,7 @@ export class TreeReader {
     if (typeof message.v !== "undefined" && typeof message.w !== "undefined") {
       this.treeGrapher.addEdge(message.v, message.w, message.type, message.meta)
     } else if (typeof message.type !== "undefined") {
-      this.treeGrapher.addNode(message.id, message.type, message.timing)
+      this.treeGrapher.addNode(message.id, message.type, message.scheduler)
     } else if (message && message.meta) {
       this.treeGrapher.addMeta(message.id, message.meta)
     } else if (typeof message.scheduler !== "undefined") {
@@ -33,24 +33,10 @@ export class TreeReader {
   }
 }
 
-export class TreeWriter implements ITreeLogger {
-  public messages: any[] = []
-  public addNode(id: string, type: NodeType, scheduler?: ISchedulerInfo): void {
-    this.messages.push({ id, type, scheduler })
-  }
-  public addMeta(id: string, meta: any): void {
-    this.messages.push({ id, meta })
-  }
-  public addEdge(v: string, w: string, type: EdgeType, meta?: any): void {
-    this.messages.push({ v, w, type, meta })
-  }
-  public addScheduler(id: string, scheduler: ISchedulerInfo): void {
-    this.messages.push({ id, scheduler })
-  }
-}
+export default TreeReader
 
 export class TreeGrapher implements ITreeLogger {
-  public graph = new TypedGraph<ObservableTree | ObserverTree, {}>()
+  public graph = new TypedGraph<ObservableTree | ObserverTree, { type: EdgeType }>()
   public events: IEvent[] = []
   public time: TimeComposer = new TimeComposer()
   public addNode(id: string, type: NodeType, scheduler: ISchedulerInfo): void {
@@ -88,7 +74,7 @@ export class TreeGrapher implements ITreeLogger {
       let dst = this.graph.node(w) as ObserverTree
       dst.setObservable([src])
     }
-    this.graph.setEdge(v, w, meta)
+    this.graph.setEdge(v, w, Object.assign({ type }, meta))
   }
   public addScheduler(id: string, scheduler: ISchedulerInfo): void {
     this.time.schedulers.push(scheduler)

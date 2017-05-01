@@ -1,8 +1,7 @@
 import { Message } from "../collector/logger"
-import { TreeReader } from "../collector/treeReader"
-import { TreeReaderAdvanced } from "../collector/treeReaderAdvanced"
+import TreeReader from "../collector/treeReader"
 import TypedGraph from "../collector/typedgraph"
-import { IObserverTree, ObservableTree } from "../oct/oct"
+import { EdgeType, IObserverTree, ObservableTree, ObserverTree, SubjectTree } from "../oct/oct"
 import { DataSource, Graphs } from "./index"
 import * as Rx from "rx"
 
@@ -24,16 +23,14 @@ export default class Grapher {
       .scan(grapherNext, this.treeReader)
       .debounce(10)
       .startWith(this.treeReader)
-      .map(reader => ({
-        _sequence: Grapher.sequence++,
-        events: reader.treeGrapher.events,
-        main: reader.treeGrapher.graph
-          .filterNodes(n => true),
-        subscriptions: reader.treeGrapher.graph
-          .filterNodes((n, l) => !(l instanceof ObservableTree)) as TypedGraph<IObserverTree, {}>,
-        time: reader.treeGrapher.time,
-      }))
-    ).repeat()
+      .map(readerToGraph)
+    )
+      .repeat()
+      .do(graphs => {
+        if (typeof window === "object") {
+          (window as any).graphs = graphs
+        }
+      })
   }
 }
 
@@ -42,10 +39,30 @@ function grapherNext(reader: TreeReader, event: Message): TreeReader {
   return reader
 }
 
+function readerToGraph(reader: TreeReader) {
+  let graph = reader.treeGrapher.graph
+
+  // Apply filters
+  graph = expandSubjects(graph)
+  graph = stripEndPointSafeSubscribers(graph)
+
+  return ({
+    _sequence: Grapher.sequence++,
+    events: reader.treeGrapher.events,
+    main: graph
+      .filterNodes(n => true),
+    subscriptions: graph
+      .filterNodes((n, l) => !(l instanceof ObservableTree))
+      .filterEdges((e, l) => l.type === "addObserverDestination") as TypedGraph<IObserverTree, {}>,
+    time: reader.treeGrapher.time,
+    toDot: () => dotGraph(graph),
+  })
+}
+
 export class GrapherAdvanced extends Grapher {
   constructor(collector: DataSource) {
     super(collector)
-    this.treeReader = new TreeReaderAdvanced()
+    this.treeReader = new TreeReader()
     this.graph = this.makeGraphObservable()
   }
 }

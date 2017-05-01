@@ -1,4 +1,4 @@
-import { IEvent, Timing } from "../collector/event"
+import { IEvent } from "../collector/event"
 
 export type Id = string
 
