@@ -609,7 +609,7 @@ function interactiveArgs(args: string | (string | ExtendedArgument)[]): (VNode |
             style: { background: color },
           }, arg.value)
         } else {
-          return h(`span.argument.argument-type-${arg.value}`, arg.value)
+          return h(`span.argument.argument-type-${arg.type}`, arg.value)
         }
       }))
     }
