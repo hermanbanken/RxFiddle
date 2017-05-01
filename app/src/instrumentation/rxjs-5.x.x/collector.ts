@@ -287,7 +287,9 @@ export class TreeCollector implements RxCollector {
     }
     let stree = this.tag("observer", observer)
     let otree = this.tag("observable", observable)
-    stree.setObservable([otree])
+    if (typeof stree.observable === "undefined") {
+      stree.setObservable([otree])
+    }
   }
 
   /**
@@ -296,7 +298,7 @@ export class TreeCollector implements RxCollector {
    * @param b observer-side
    */
   private linkSubject(a: IObservableTree, b: IObserverTree) {
-    if (typeof a !== "undefined" && typeof b !== "undefined") {
+    if (typeof a !== "undefined" && typeof b !== "undefined" && typeof b.observable === "undefined") {
       b.setObservable([a])
     }
   }
