@@ -44,7 +44,7 @@ function readerToGraph(reader: TreeReader) {
 
   // Apply filters
   graph = expandSubjects(graph)
-  graph = swapSubjectAsObservables(graph)
+  // graph = swapSubjectAsObservables(graph)
   graph = contractSubjectObservables(graph)
   graph = stripEndPointSafeSubscribers(graph)
 
@@ -115,9 +115,9 @@ function swapSubjectAsObservables(graph: TG): TG {
 function contractSubjectObservables(graph: TG): TG {
   return graph.nodes()
     .filter(n => graph.node(n) instanceof SubjectTree)
-    .filter(n => graph.nodeEdges(n).every(e => graph.edge(e).type === "addObserverDestination"))
+    // .filter(n => graph.nodeEdges(n).every(e => graph.edge(e).type === "addObserverDestination"))
     .map(n => graph.inEdges(n))
-    .filter(es => es && es.length === 1)
+    .filter(es => es && es.length > 0)
     .map(es => es && es[0])
     .reduce((prev, edge) => prev.contractEdge(edge), graph)
 }

@@ -192,7 +192,6 @@ export class TreeCollectorRx5Test {
     }
   }
 
-  @only
   @test
   public simplePublishConnect() {
     let a = Rx.Observable.of("A")
@@ -201,6 +200,29 @@ export class TreeCollectorRx5Test {
     b.map(x => x).subscribe()
     b.connect()
     this.write("tree5_connect")
+  }
+
+  // @only
+  @test
+  public subjectAsObservable() {
+    let s = new Rx.Subject<number>()
+    s.map(x => x * 2)
+    this.write("tree5_subjectAsObservable")
+  }
+
+  // @only
+  @test
+  public subjectAsSubcriber() {
+    let s = new Rx.Subject<number>()
+    s.map(x => x * 2)
+      .subscribe((n) => { /* noop */ }, (e) => { /* noop */ }, () => { /* noop */ })
+    s.next(1)
+    s.next(2)
+    console.log(
+      (s as any)[this.collector.subjectObserverSymbol],
+      (s as any)[this.collector.symbol]
+    )
+    this.write("tree5_subjectAsSubscriber")
   }
 
   // @only

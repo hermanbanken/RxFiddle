@@ -15,6 +15,8 @@ import { IScheduler } from "rxjs/Scheduler"
 
 let debug = false
 
+type Role = "observable" | "observer" | "scheduler"
+
 function getScheduler<T>(obs: Observable<T>, record?: ICallStart): IScheduler | undefined {
   return (obs as any).scheduler ||
     (obs as any)._scheduler ||
@@ -102,12 +104,12 @@ export class TreeCollector implements RxCollector {
 
   public before(record: ICallStart, parents?: ICallStart[]): this {
     // tag all encountered Observables & Subscribers
-    [record.subject, ...record.arguments].forEach(this.tag.bind(this))
+    [record.subject, ...record.arguments].forEach(this.tag.bind(this, undefined))
 
     if (callRecordType(record) === "event" && isObserver(record.subject)) {
       let event = Event.fromRecord(record, this.getTiming())
       if (event) {
-        let observer = this.tag(record.subject) as IObserverTree
+        let observer = this.tag("observer", record.subject)
         this.addEvent(observer, event, record.arguments[0])
       }
     }
@@ -117,7 +119,7 @@ export class TreeCollector implements RxCollector {
   public after(record: ICallRecord): void {
     this.call = record;
     // tag all encountered Observables & Subscribers
-    [record.returned].forEach(t => this.tag(t, record))
+    [record.returned].forEach(t => this.tag(undefined, t, record))
 
     if (isObservable(record.returned)) {
       this.linkSources(record.returned)
@@ -130,12 +132,15 @@ export class TreeCollector implements RxCollector {
       )
 
       if (shouldName) {
-        let tree = this.tag(record.returned) as IObservableTree
+        let tree = this.tag("observable", record.returned)
         tree.addMeta({
           calls: {
-            subject: `callRecord.subjectName ${this.hasTag(record.subject) && this.tag(record.subject).id}`,
             args: formatArguments(record.arguments),
             method: record.method,
+            subject: `callRecord.subjectName ${
+            this.hasTag(record.subject) &&
+            this.tag("observable", record.subject).id
+            }`,
           },
         })
       }
@@ -164,7 +169,7 @@ export class TreeCollector implements RxCollector {
     // Enrich higher order events
     if (event.type === "next" && isObservable(value)) {
       event.value = {
-        id: this.tag(value).id,
+        id: this.tag("observable", value).id,
         type: value.constructor.name,
       } as any as string
     }
@@ -181,22 +186,54 @@ export class TreeCollector implements RxCollector {
     return typeof input === "object" && input !== null && typeof input[this.symbol] !== "undefined"
   }
 
-  private tag(input: any, record?: ICallStart): IObserverTree | IObservableTree | ISchedulerInfo | undefined {
+  private alternativeTag(input: any): IObserverTree {
+    if (isSubject(input)) {
+      let observable = this.tag("observable", input)
+      let tree = (input as any)[this.subjectObserverSymbol] = new ObserverTree(`${this.nextId++}`,
+        input.constructor.name, this.logger)
+      tree.setObservable([observable])
+      return tree
+    }
+  }
+
+  private tag(role: "observable", input: any, record?: ICallStart): IObservableTree
+  private tag(role: "observer", input: any, record?: ICallStart): IObserverTree
+  private tag(role: "scheduler", input: any, record?: ICallStart): ISchedulerInfo
+
+  private tag(role: Role | undefined, input: any, record?: ICallStart):
+    IObserverTree | IObservableTree | ISchedulerInfo | undefined {
     if (typeof input !== "object" || input === null) {
       return undefined
+    }
+
+    if (isSubject(input)) {
+      if (role === "observable") {
+        if (input.hasOwnProperty(this.symbol) && typeof (input as any)[this.symbol] !== "undefined") {
+          return (input as any)[this.symbol]
+        }
+        let tree = (input as any)[this.symbol] = new ObservableTree(`${this.nextId++}`,
+          input.constructor.name, this.logger, this.getScheduler(input))
+        this.linkSources(input)
+        this.addo(tree)
+        this.linkSubject(tree, (input as any)[this.subjectObserverSymbol])
+        return tree
+      } else if (role === "observer") {
+        if (input.hasOwnProperty(this.subjectObserverSymbol) && typeof (input as any)[this.subjectObserverSymbol] !== "undefined") {
+          return (input as any)[this.subjectObserverSymbol]
+        }
+        let tree = (input as any)[this.subjectObserverSymbol] = new SubjectTree(`${this.nextId++}`,
+          input.constructor.name, this.logger, this.getScheduler(input))
+        this.linkSinks(input)
+        this.adds(tree)
+        this.linkSubject((input as any)[this.symbol], tree)
+        return tree
+      }
     }
 
     if (input.hasOwnProperty(this.symbol) && typeof input[this.symbol] !== "undefined") {
       return input[this.symbol]
     }
 
-    if (isSubject(input)) {
-      let tree = (input as any)[this.symbol] = new SubjectTree(`${this.nextId++}`,
-        input.constructor.name, this.logger, this.getScheduler(input))
-      this.linkSources(input)
-      this.addo(tree)
-      return tree
-    }
     if (isObservable(input)) {
       let tree = (input as any)[this.symbol] = new ObservableTree(`${this.nextId++}`,
         input.constructor.name, this.logger, this.getScheduler(input, record)
@@ -237,7 +274,7 @@ export class TreeCollector implements RxCollector {
 
   private getScheduler<T>(input: Observable<T>, record?: ICallStart): ISchedulerInfo {
     if (isObservable(input) && getScheduler(input, record)) {
-      return this.tag(getScheduler(input, record)) as ISchedulerInfo
+      return this.tag("scheduler", getScheduler(input, record))
     }
     return
   }
@@ -359,11 +396,11 @@ export class TreeCollector implements RxCollector {
   private linkSources<T>(observable: Rx.Observable<T>) {
     let sources = [(observable as any).source, ...((observable as any)._sources || [])]
       .filter(isObservable)
-      .map(o => this.tag(o) as IObservableTree);
-    if (sources.indexOf(this.tag(observable) as IObservableTree) >= 0) {
+      .map(o => this.tag("observable", o))
+    if (sources.indexOf(this.tag("observable", observable)) >= 0) {
       console.log("Reference loop", observable, this.call)
     }
-    (this.tag(observable) as IObservableTree).setSources(sources)
+    (this.tag("observable", observable)).setSources(sources)
   }
 
   private linkSinks<T>(observer: Rx.Observer<T>) {
@@ -372,26 +409,45 @@ export class TreeCollector implements RxCollector {
     }
     let sinkOpt = [(observer as any).destination]
       .filter(o => isObserver(o) || isSubject(o))
-      .map(o => this.tag(o) as IObserverTree);
-    (this.tag(observer) as IObserverTree).setSink(sinkOpt)
+      .map(o => this.tag("observer", o))
+    this.tag("observer", observer).setSink(sinkOpt)
     let parentOpt = [(observer as any).parent]
       .filter(isObserver)
-      .map(o => this.tag(o) as IObserverTree);
-    parentOpt.forEach(p => (this.tag(observer) as IObserverTree).setOuter(p))
+      .map(o => this.tag("observer", o))
+    parentOpt.forEach(p => (this.tag("observer", observer)).setOuter(p))
   }
 
   private linkSubscribeSource<T>(observer: Rx.Observer<T>, observable: Rx.Observable<T>) {
     if (isSubject(observable)) {
-      let subject = this.tag(observable) as SubjectTree
-      if (subject.sources.length === 0) {
-        console.log(observable)
-        subject.addSink([this.tag(observer) as IObserverTree])
+      let subjectAsObs = this.tag("observable", observable) as IObservableTree
+      let subject = this.tag("observer", observable) as SubjectTree
+      if (subjectAsObs.sources.length === 0) {
+        subject.addSink([this.tag("observer", observer)])
+        this.tag("observer", observer).setObservable([subjectAsObs])
         return
       }
+      //   let subject = this.tag("observable", observable) as SubjectTree
+      //   let subscriber = this.alternativeTag(observable) as IObserverTree
+      //   if (subject.sources.length === 0) {
+      //     console.log(observable)
+      //     subject.addSink([this.tag("observer", observer)])
+      //     return
+      //   }
     }
-    let stree = this.tag(observer) as IObserverTree
-    let otree = this.tag(observable) as IObservableTree
+    let stree = this.tag("observer", observer)
+    let otree = this.tag("observable", observable)
     stree.setObservable([otree])
+  }
+
+  /**
+   * Create link representing the domain border crossing of the Subject
+   * @param a observable-side
+   * @param b observer-side
+   */
+  private linkSubject(a: IObservableTree, b: IObserverTree) {
+    if (typeof a !== "undefined" && typeof b !== "undefined") {
+      b.setObservable([a])
+    }
   }
 }
 
