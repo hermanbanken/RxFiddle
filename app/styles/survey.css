@@ -11,8 +11,8 @@ body {
 .width {
   max-width: 40em;
   font-size: 1.2em;
-  margin: 0 auto;
-  padding: 1em;
+  margin: 0 auto 2em;
+  padding: 2em 1em;
   flex: 1;
 }
 
@@ -353,4 +353,8 @@ dt {
     font-weight: bold;
     list-style-position: inside;
     list-style-type: lower-roman;
+}
+
+#screens .buttons {
+  margin-bottom: 1em;
 }

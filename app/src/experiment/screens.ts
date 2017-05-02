@@ -25,7 +25,8 @@ export type TestEvent =
   { type: "goto", surveyId: string, path: string[] } |
   { type: "next", surveyId: string, fromActive: string[] } |
   { type: "pause" } |
-  { type: "pass", question: number }
+  { type: "pass", question: string } |
+  { type: "tick", question: string }
 
 export type Progress = {
   max: number
@@ -35,9 +36,10 @@ export type Progress = {
 export type Dispatcher = (event: TestEvent) => void
 
 export type Screen = {
+  goto: (state: TestState, dispatcher: Dispatcher) => void
   isActive: (state: TestState) => boolean
   progress: (state: TestState) => Progress
-  render: (state: TestState, dispatcher: Dispatcher, surveyState: SurveyState) => {
+  render: (state: TestState, dispatcher: Dispatcher, surveyState: SurveyState, allScreens: Screen[]) => {
     dom: Rx.Observable<VNode>
   },
   hasMenu?: boolean
@@ -74,6 +76,11 @@ export let States = new State()
 
 function mkButton(text: string = "Next", callback: () => void) {
   return h("a.btn", { attrs: { href: "#top" }, on: { click: callback } }, text)
+}
+
+export function previous(list: Screen[], current: Screen): Screen {
+  let index = list.indexOf(current)
+  if (index >= 1) { return list[index - 1] } else { return list[0] }
 }
 
 type QuestionType = "range" | "labels"
@@ -130,7 +137,8 @@ function formatDate(date: Date) {
 
 /* First screen the user sees */
 export let introScreen: Screen = {
-  isActive: (state) => state.paused,
+  goto: (_, dispatch) => { dispatch({ type: "pause" }) },
+  isActive: (state) => !state || state.paused,
   progress: (state) => ({ max: 2, done: state.paused ? 0 : 2 }),
   render: (state, dispatcher, surveys) => {
     let buttons = surveys.surveys
@@ -159,7 +167,7 @@ export let introScreen: Screen = {
           h("li", `Estimated time required: 60 minutes`),
           h("li", [
             `Used Reactive Programming implementation: RxJS 4.1`,
-            "(", h("a", { attrs: { href: "faq.html#rxversion" } }, "why"), ")"
+            "(", h("a", { attrs: { href: "faq.html#rxversion" } }, "why"), ")",
           ]),
         ]),
         h("div.mobile-only", [
@@ -175,9 +183,10 @@ export let introScreen: Screen = {
 
 /* Second screen the user sees */
 export let general: Screen = {
+  goto: (state, dispatch) => { dispatch({ path: ["general"], surveyId: state.id, type: "goto" }) },
   isActive: (state) => !state || !state.active || !state.active.length || state.active[0] === "general",
   progress: () => ({ max: 0, done: 0 }),
-  render: (state, dispatcher) => {
+  render(state, dispatcher, _, screens) {
     let age = mkq("age", "Your age:", { max: 88, min: 18, type: "range" as "range" }, state, dispatcher)
     let years_pr = mkq("years_pr", "Your years of experience with programming in general:", {
       max: 30, min: 0, type: "range" as "range",
@@ -192,7 +201,8 @@ export let general: Screen = {
         labels: ["worse", "slightly worse", "equal", "slightly better", "better"],
       }, state, dispatcher)
 
-    let button = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_langs"] }))
+    let prevButton = mkButton("Prev", () => previous(screens, this).goto(state, dispatcher))
+    let nextButton = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_langs"] }))
 
     return {
       dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
@@ -203,7 +213,7 @@ export let general: Screen = {
         years_pr.dom,
         exp_pr.dom,
         exp_pr_compared.dom,
-        button,
+        h("div.buttons", [prevButton, " ", nextButton]),
       ])))),
     }
   },
@@ -211,9 +221,10 @@ export let general: Screen = {
 
 /* Second screen the user sees */
 export let generalLangs: Screen = {
+  goto: (state, dispatch) => { dispatch({ path: ["general_langs"], surveyId: state.id, type: "goto" }) },
   isActive: (state) => !state.active || state.active[0] === "general_langs",
   progress: () => ({ max: 0, done: 0 }),
-  render: (state, dispatcher) => {
+  render(state, dispatcher, _, screens) {
     let exp_js = mkq("exp_lang_js", "Assess your level of experience in JavaScript:", {
       max: 8, min: 0, type: "labels" as "labels",
       labels: ["none", "beginner", "medium", "senior", "expert"],
@@ -235,7 +246,8 @@ export let generalLangs: Screen = {
       labels: ["none", "beginner", "medium", "senior", "expert"],
     }, state, dispatcher)
 
-    let button = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_rp"] }))
+    let prevButton = mkButton("Prev", () => previous(screens, this).goto(state, dispatcher))
+    let nextButton = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_rp"] }))
 
     return {
       dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
@@ -247,7 +259,7 @@ export let generalLangs: Screen = {
         exp_scala.dom,
         exp_swift.dom,
         exp_cs.dom,
-        button,
+        h("div.buttons", [prevButton, " ", nextButton]),
       ])))),
     }
   },
@@ -255,9 +267,10 @@ export let generalLangs: Screen = {
 
 /* Thirds screen the user sees */
 export let generalRpExperience: Screen = {
+  goto: (state, dispatch) => { dispatch({ path: ["general_rp"], surveyId: state.id, type: "goto" }) },
   isActive: (state) => state.active[0] === "general_rp",
   progress: () => ({ max: 0, done: 0 }),
-  render: (state, dispatcher) => {
+  render(state, dispatcher, _, screens) {
     let years_rp = mkq("years_rp", h("div", [
       "Your years of experience with Reactive Programming:",
       h("div", "(sum different periods; you can drag between the years)"),
@@ -284,7 +297,8 @@ export let generalRpExperience: Screen = {
         labels: ["none", "beginner", "medium", "senior", "expert"],
       }, state, dispatcher)
 
-    let button = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["test"] }))
+    let prevButton = mkButton("Prev", () => previous(screens, this).goto(state, dispatcher))
+    let nextButton = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["test"] }))
 
     return {
       dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
@@ -296,7 +310,7 @@ export let generalRpExperience: Screen = {
         exp_rp_compared.dom,
         exp_rx.dom,
         exp_reactivestreams.dom,
-        button,
+        h("div.buttons", [prevButton, " ", nextButton]),
       ])))),
     }
   },

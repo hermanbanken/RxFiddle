@@ -153,7 +153,9 @@ class RxRunnerSubject<T> extends Rx.AnonymousSubject<T> {
   }
 
   protected _resetState() {
-    this.worker.readyState = "stopped"
+    if (this.worker) {
+      this.worker.readyState = "stopped"
+    }
     this.notify("stopped")
     this.worker = null
     if (!this.source) {

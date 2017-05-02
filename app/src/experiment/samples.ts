@@ -6,6 +6,7 @@ import { VNode } from "snabbdom/vnode"
 import { elvis } from "../collector/collector"
 
 export type Sample = {
+  id: string,
   code: string,
   question: VNode | string,
   timeout: number,
@@ -13,20 +14,23 @@ export type Sample = {
   renderCode?(input?: string): { chunks: string[] }
   codeRanges?(): Ranges
   lineClasses?(): LineClasses
+  handleSubmit?: (state: TestState, dispatcher: (event: TestEvent) => void, data: any) => boolean
 }
 
 export type CodeChunk = { run: string, visual: string } | string
 export type Code = string | CodeChunk[]
 
 export type SampleData<T> = {
+  id: string,
   code: Code,
   question: string,
   checker: (answers: T) => boolean,
   timeout: number,
-  answers?: T
+  answers?: T,
 }
 
 class DefaultSample<T> implements Sample {
+  public get id() { return this.data.id }
   public get code() {
     return typeof this.data.code === "string" ?
       this.data.code :
@@ -51,44 +55,42 @@ class BmiSample<T> extends DefaultSample<T> {
   }
 
   public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
-    return Rx.Observable.of(h("form.q", {
-      on: {
-        submit: (e: any) => {
-          dispatcher({
-            path: ["sample_bmi"],
-            type: "answer",
-            value: {
-              count: parseInt(e.target.elements.count.value, 10) || null,
-              last: parseFloat(e.target.elements.last.value) || null,
-            },
-          })
-          e.preventDefault()
-          return false
-        },
-      },
-    }, [
-        h("div.control", [
-          h("label", `How many BMI values are logged?`),
-          h("input", {
-            attrs: {
-              name: "count", placeholder: "enter a number", type: "number",
-              value: elvis(state, ["data", "sample_bmi", "count"])[0],
-            },
-          }),
-        ]),
-        h("div.control", [
-          h("label", `What is the last value logged?`),
-          h("input", {
-            attrs: {
-              name: "last",
-              placeholder: "enter nearest integer BMI value",
-              step: "any", type: "number",
-              value: elvis(state, ["data", "sample_bmi", "last"])[0],
-            }
-          }),
-        ]),
-        h("input.btn.inverse", { attrs: { type: "submit" } }, "Submit"),
-      ]))
+    return Rx.Observable.of(h("div", [
+      h("div.control", [
+        h("label", `How many BMI values are logged?`),
+        h("input", {
+          attrs: {
+            name: "count", placeholder: "enter a number", type: "number",
+            value: elvis(state, ["data", "sample_bmi", "count"])[0],
+          },
+        }),
+      ]),
+      h("div.control", [
+        h("label", `What is the last value logged?`),
+        h("input", {
+          attrs: {
+            name: "last",
+            placeholder: "enter nearest integer BMI value",
+            step: "any", type: "number",
+            value: elvis(state, ["data", "sample_bmi", "last"])[0],
+          }
+        }),
+      ]),
+    ]))
+  }
+
+  public handleSubmit(state: TestState, dispatcher: (e: TestEvent) => void, data: any) {
+    let value = {
+      completed: false,
+      count: parseInt(data.count.value, 10) || null,
+      last: parseFloat(data.last.value) || null,
+    }
+    value.completed = value.count === 7 && Math.round(value.last) === Math.round(23.67)
+    dispatcher({
+      path: ["sample_bmi"],
+      type: "answer",
+      value,
+    })
   }
 }
 
@@ -204,6 +206,7 @@ class AdvancedSample<T> extends DefaultSample<T> {
 
 let samples: Sample[] = [
   new BmiSample({
+    id: "sample_bmi",
     answers: [],
     checker: () => { return true },
     code: `
@@ -216,6 +219,7 @@ bmi.subscribe(x => console.log('BMI is ' + x));`,
   }),
 
   new AdvancedSample({
+    id: "sample_search",
     checker: () => { return true },
     code: [{
       run: `
@@ -254,6 +258,7 @@ for(var i = 0; i < 10; i++){
   }),
 
   new DefaultSample({
+    id: "sample_generate",
     checker: () => { return true },
     code: `
 Rx.Observable.generate(
