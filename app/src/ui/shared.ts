@@ -100,7 +100,9 @@ const rxErrorHelp = [
   )]
 
 export function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
-  console.error(e)
+  if (e instanceof Error) {
+    console.error(e)
+  }
   return new Rx.Observable<{ dom: VNode, timeSlider: VNode }>(observer => {
     observer.next({
       dom: h("div.error", [

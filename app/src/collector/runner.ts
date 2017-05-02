@@ -46,7 +46,12 @@ export default class RxRunner implements DataSource, Runner {
       workerFile: this.workerFile,
     })
     this.state = this.stateSubject.asObservable()
-    this.dataObs = this.subject.asObservable().startWith("reset")
+    this.dataObs = this.subject.asObservable().startWith("reset").map(d => {
+      if (d && d.type === "error") {
+        throw d.error
+      }
+      return d
+    })
     // .takeUntil(this.state.filter(s => s === "stopping"))
     this.analyticsObserver = analyticsObserver
   }
@@ -120,7 +125,7 @@ class RxRunnerSubject<T> extends Rx.AnonymousSubject<T> {
     let { source } = this
     if (source) {
       super.next(value)
-    } else {
+    } else if (this.worker) {
       this.worker.readyState = "used"
       this.notify("used")
       this.worker.postMessage(value)
