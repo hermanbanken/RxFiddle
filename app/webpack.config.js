@@ -33,6 +33,8 @@ module.exports = {
     rxjs: 'Rx',
     "rxjs/Rx": 'Rx',
     graphlib: 'graphlib',
+    codemirror: 'CodeMirror',
+    "codemirror/mode/javascript/javascript": "CodeMirror",
     dagre: 'dagre',
     lodash: '_',
   },

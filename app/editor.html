@@ -1,6 +1,11 @@
 <!DOCTYPE html>
-<link rel="stylesheet" href="dist/codemirror/lib/codemirror.css" />
 <script>
+  function link(src) {
+    var s = document.createElement("link");
+    s.href = src;
+    s.rel = "stylesheet";
+    document.head.appendChild(s);
+  }
   function script(src) {
     var s = document.createElement("script");
     s.src = src;
@@ -8,7 +13,18 @@
     document.head.appendChild(s);
   }
   if (typeof require == 'undefined') {
-    script('dist/editor.bundle.js')
+    if (window.location.hostname === "localhost") {
+      link('node_modules/codemirror/lib/codemirror.css')
+      script('node_modules/codemirror/lib/codemirror.js')
+      script('node_modules/codemirror/mode/javascript/javascript.js')
+      script('dist/editor.bundle.js')
+    } else {
+      let codemirror = "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.25.2/"
+      link(codemirror + 'codemirror.min.css')
+      script(codemirror + 'codemirror.min.js')
+      script(codemirror + 'mode/javascript/javascript.min.js')
+      script('dist/editor.bundle.js')
+    }
   } else {
     script('dist/editor.js')
   }

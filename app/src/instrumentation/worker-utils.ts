@@ -1,4 +1,4 @@
-export type ToWorkerMessage = { type: "run", code: string }
+export type ToWorkerMessage = { type: "run", code: string } | { type: "importScripts", url: string }
 
 function formatError(e: Error): any {
   return {
@@ -50,6 +50,9 @@ function evalAndRepackageErrors(code: string): { type: "result", result: any } |
 export function onWorkerMessage(e: MessageEvent) {
   let message = e.data as ToWorkerMessage
   switch (message.type) {
+    case "importScripts":
+      importScripts(message.url)
+      break
     case "run":
       // Execute user code
       let result = evalAndRepackageErrors(message.code)

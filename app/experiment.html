@@ -17,13 +17,16 @@
       s.async = false;
       document.head.appendChild(s);
     }
-    if (typeof require == 'undefined') {
+    if (window.location.hostname === "localhost") {
       script('node_modules/rxjs/bundles/Rx.js')
-      script('dist/graphlib/dist/graphlib.min.js')
-      script('dist/lodash/lodash.min.js')
+      script('node_modules/graphlib/dist/graphlib.min.js')
+      script('node_modules/lodash/lodash.min.js')
       script('dist/experiment.bundle.js')
     } else {
-      script('dist/experiment.js')
+      script('https://cdnjs.cloudflare.com/ajax/libs/rxjs/5.3.0/Rx.min.js')
+      script('https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.11.1/lodash.min.js')
+      script('dist/graphlib.min.js')
+      script('dist/experiment.bundle.js')
     }
   </script>
 </head>

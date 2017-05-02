@@ -1,4 +1,4 @@
-importScripts("../src/instrumentation/rxjs-5.x.x/Rx.min.js")
+importScripts("instrumentation/rxjs-5.x.x/Rx.js")
 import { formatArguments } from "../../collector/logger"
 import { onWorkerMessage } from "../worker-utils"
 
