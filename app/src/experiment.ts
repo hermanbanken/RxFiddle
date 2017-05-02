@@ -20,6 +20,7 @@ import * as Rx from "rxjs"
 import { IScheduler } from "rxjs/Scheduler"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
+import { RxJS4 } from "./languages"
 
 // for experiment:
 // load samples, concat them
@@ -188,7 +189,7 @@ let doneScreen: Screen = {
   }),
 }
 
-let useRxFiddle = false
+let useRxFiddle = true
 
 /* Screen containing RxFiddle */
 let testScreen = (scheduler: IScheduler): Screen => ({
@@ -274,9 +275,10 @@ function DataSource(sample: Sample) {
   let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
   let runner: Runner
   if (useRxFiddle) {
-    runner = new RxRunner(undefined, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
+    runner = new RxRunner(RxJS4.runnerConfig, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
   } else {
-    runner = new ConsoleRunner(undefined, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
+    let config = { libraryFile: RxJS4.runnerConfig.libraryFile, workerFile: "dist/worker-console-experiment.bundle.js" }
+    runner = new ConsoleRunner(config, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
   }
   return {
     data: runner,
