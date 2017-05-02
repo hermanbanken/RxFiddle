@@ -32,6 +32,9 @@ const QueryString = {
   updated: (object: any) => {
     return QueryString.format(Object.assign(QueryString.parse(hash()), object))
   },
+  get current(): any {
+    return QueryString.parse(hash())
+  },
 }
 
 const neverInNode = (subject: string) => Rx.Observable.defer(() =>
@@ -88,7 +91,10 @@ export class LanguageMenu {
   }
 
   public stream(): { dom: Rx.Observable<VNode>, language: Rx.Observable<LanguageCombination> } {
-    let subject = new Rx.BehaviorSubject<LanguageCombination>(Languages[Languages.length - 1])
+    let subject = new Rx.BehaviorSubject<LanguageCombination>(
+      Languages.find(l => l.id === QueryString.current.lib) ||
+      Languages[Languages.length - 1]
+    )
     return {
       dom: subject.map(selected => h("div.select", [
         h("div.selected", selected.name),
