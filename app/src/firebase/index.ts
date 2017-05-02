@@ -21,7 +21,9 @@ export function init() {
  * Any Error's contain .code and .message fields
  */
 export function signin(): Observable<void> {
-  return Observable.from(firebase.auth().signInAnonymously())
+  return new Observable(o => firebase.auth().onAuthStateChanged(o.next.bind(o), o.error.bind(o), o.complete.bind(o)))
+    .take(1)
+    .flatMap(state => state === null ? Observable.from(firebase.auth().signInAnonymously()) : Observable.empty<void>())
 }
 
 /**
