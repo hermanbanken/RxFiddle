@@ -222,6 +222,28 @@ export class TreeCollectorRx5Test {
     this.write("tree5_subjectAsSubscriber")
   }
 
+  // @only
+  @test
+  public regressionInnerObserverOnScalarObservable() {
+    let sub = Rx.Observable.of(1, 2, 3)
+      .map(x => Rx.Observable.of(x).startWith(0))
+      .mergeAll()
+      .subscribe()
+    let subs = [this.getSub(sub)]
+    let found = true
+    do {
+      let added = subs.flatMap(s => s.inflow || []).filter(s => subs.indexOf(s) < 0)
+      subs.push(...added)
+      found = added.length > 0
+    } while (found)
+
+    let ends = subs.filter(s => !s.inflow || s.inflow.length === 0)
+    // There should be 1 merge observable and 2x per 3 higher order = 7 observers
+    expect(ends).to.have.lengthOf(7)
+    // All starting points should have observables attached
+    ends.forEach(s => expect(s).to.have.property("observable"))
+  }
+
   @test
   public bmi() {
     let results = [] as number[]

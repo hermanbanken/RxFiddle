@@ -246,7 +246,7 @@ function prototypeIsInstrumented(input: any): boolean {
 }
 
 export function isObservable<T>(v: any): v is RxImported.Observable<T> {
-  return typeof v === "object" && v !== null && typeof v.subscribe === "function"
+  return typeof v === "object" && v instanceof InstrumentedRx.Observable
 }
 export function isSubscription(v: any): v is RxImported.Subscription & any {
   return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
@@ -258,5 +258,5 @@ export function isSubject(v: any): v is RxImported.Subject<any> {
   return typeof v === "object" && v instanceof InstrumentedRx.Subject
 }
 export function isScheduler(v: any): v is IScheduler & any {
-  return typeof v === "object" && v !== null && typeof v.now === "function" && typeof v.schedule === "function"
+  return typeof v === "object" && v !== null && "now" in v && "schedule" in v
 }

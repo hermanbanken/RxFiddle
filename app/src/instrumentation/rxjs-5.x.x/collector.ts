@@ -191,6 +191,11 @@ export class TreeCollector implements RxCollector {
       }
     }
     if (isObservable(input)) {
+      /* this hack is neccessary since subscribeToResult does not call subscribe on ScalarObservables */
+      if (input && input.constructor && input.constructor.name === "ScalarObservable") {
+        input._isScalar = false
+      }
+      /* end of ScalarObservable hack */
       let tree = (input as any)[symbol] = new ObservableTree(`${this.nextId++}`,
         input.constructor.name, this.logger, this.getScheduler(input, record)
       )
