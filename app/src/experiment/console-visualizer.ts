@@ -1,5 +1,5 @@
 import ConsoleRunner from "./console-runner"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -12,7 +12,7 @@ export default class ConsoleVisualizer {
         if (message === "reset") {
           return h("div.reset", "Restarted at " + new Date())
         }
-        if ("level" in message && "arguments" in message) {
+        if (typeof message === "object" && "level" in message && "arguments" in message) {
           return h(`div.level-${message.level}`, message.arguments)
         }
         return h("div", JSON.stringify(message))

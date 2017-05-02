@@ -1,7 +1,7 @@
 // tslint:disable:max-line-length
 import { IEvent } from "../collector/event"
 import { EventLabel } from "../collector/logger"
-import { IObserverTree } from "../oct/oct"
+import { IObservableTree, IObserverTree } from "../oct/oct"
 import { ViewState } from "./index"
 import { UIEvent } from "./render"
 import { groupBy } from "lodash"
@@ -87,6 +87,7 @@ export class MarbleCoordinator {
     debug?: (...arg: any[]) => void,
     findSubscription?: (id: string) => IObserverTree,
     viewState?: ViewState,
+    coloring?: (node: string) => string
   ): VNode {
     let events = edges.map(_ => ((_ as EventLabel).event || _) as IEvent)
 
@@ -124,7 +125,7 @@ export class MarbleCoordinator {
         mouseover: () => uiEvents({ marble: e, subscription: observer.id, type: "marbleHoover" }),
       }
 
-      let content: VNode[] = eventBody(e)
+      let content: VNode[] = eventBody(e, coloring)
 
       let left = isNaN(this.relTime(e)) ? 50 : this.relTime(e)
 
@@ -241,7 +242,7 @@ function makeTimespan(this: MarbleCoordinator, events: IEvent[]) {
     .map((_, i) => isNaN(_) ? (i === 0 ? 0 : 100) : _)
 }
 
-function eventBody(e: IEvent) {
+function eventBody(e: IEvent, coloring?: (node: string) => string) {
   let arrow = h("path", {
     attrs: {
       class: "arrow",
@@ -278,7 +279,11 @@ function eventBody(e: IEvent) {
     case "next":
       if (typeof e.value === "object") {
         content = [arrow, h("rect", {
-          attrs: { class: "higher next", height: 24, width: 32, x: -12, y: -12 },
+          attrs: {
+            class: "higher next",
+            fill: coloring((e.value as any).id) || "white",
+            height: 24, width: 32, x: -12, y: -12,
+          },
         })]
         break
       }

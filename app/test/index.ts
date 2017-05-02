@@ -1,5 +1,6 @@
-import { TreeCollectorTest } from "../src/instrumentation/rxjs-4.1.0/collector.spec"
+// import { TreeCollectorRx4Test } from "../src/instrumentation/rxjs-4.1.0/collector.spec"
 import SpeedTest from "../src/instrumentation/rxjs-4.1.0/speedtest.spec"
+import { TreeCollectorRx5Test } from "../src/instrumentation/rxjs-5.x.x/collector.spec"
 import CrossingTest from "../src/layout/crossings.spec"
 import MedianTest from "../src/layout/median.spec"
 import OrderingTest from "../src/layout/ordering.spec"
@@ -16,18 +17,21 @@ import { OperatorTest } from "./operators"
 import { SubscriptionTest } from "./subscriptions"
 
 // tslint:disable:no-unused-new
-new IntegrationTest()
-new TreeCollectorTest()
-new OperatorTest()
-new OrderingTest()
+// new IntegrationTest()
+// new TreeCollectorRx4Test()
+new TreeCollectorRx5Test()
+// new OperatorTest()
 new VisualizationLayoutTest()
-new GenerateTest()
-new SubscriptionTest()
+// new GenerateTest()
+// new SubscriptionTest()
+new UtilsTest()
+
+/* Visual */
+new OrderingTest()
+new TabIndexSpec()
 new CrossingTest()
 new TransposeTest()
 new MedianTest()
 new PriorityLayoutSpec()
 new MorphSpec()
-new TabIndexSpec()
-new UtilsTest()
 new SpeedTest()

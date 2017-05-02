@@ -3,10 +3,10 @@ import { Edge as EdgeLabel, Message, NodeLabel } from "../collector/logger"
 import TimeComposer from "../collector/timeComposer"
 import TypedGraph from "../collector/typedgraph"
 import "../object/extensions"
-import { IObservableTree, IObserverTree, ISchedulerInfo, ObserverTree } from "../oct/oct"
+import { IObservableTree, IObserverTree, ObserverTree } from "../oct/oct"
 import "../utils"
 import Grapher from "./grapher"
-import layoutf, { LayoutType } from "./layout"
+import layoutf from "./layout"
 import { In as RenderInput, graph$ } from "./render"
 import { time } from "./time"
 import {
@@ -14,7 +14,8 @@ import {
   SelectionGraphEdge, SelectionGraphNode, SelectionGraphNone,
   UIEvent,
 } from "./uievent"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
+import { Subject } from "rxjs/Subject"
 import { VNode } from "snabbdom/vnode"
 
 export interface DataSource {
@@ -44,6 +45,7 @@ export type Graphs = {
   main: TypedGraph<IObservableTree | IObserverTree, {}>,
   subscriptions: TypedGraph<IObserverTree, {}>,
   time: TimeComposer
+  isStopped: boolean
 }
 
 export function isIObserver(a: any): a is IObserverTree {
@@ -192,8 +194,8 @@ function reduce(pstate: ViewState, event: UIEvent): ViewState {
 export default class Visualizer {
 
   // TODO workaround for Rx.Subject's
-  public openGroups = new Rx.Subject<string[]>()
-  public tick = new Rx.Subject<number>()
+  public openGroups = new Subject<string[]>()
+  public tick = new Subject<number>()
 
   public timeSlider: Rx.Observable<VNode>
   public DOM: Rx.Observable<VNode>
@@ -237,7 +239,7 @@ export default class Visualizer {
       })
       // Do not re-layout for equal graphs
       .publish(obs => obs
-        .distinctUntilChanged(_ => _, equalData)
+        .distinctUntilChanged(equalData)
         .map(data => Object.assign(data, {
           layout: layoutf(
             data.graphs.subscriptions.filterNodes(() => true),
@@ -248,7 +250,7 @@ export default class Visualizer {
         }))
         .combineLatest(obs, (layoutData, fullData) => Object.assign(fullData, { layout: layoutData.layout }))
       )
-      .shareReplay()
+      .share()
 
     let timeComponent = time(inp)
     let { svg, clicks, groupClicks, tickSelection, uievents } = graph$(inp)
@@ -261,20 +263,18 @@ export default class Visualizer {
     this.uiEventsOutput = uievents.merge(timeComponent.uievent)
   }
 
-  public stream(uiEvents?: Rx.IObserver<UIEvent>): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
-    return Rx.Observable.defer(() => Rx.Observable.create<{ dom: VNode, timeSlider: VNode }>(subscriber => {
-      let disposables = [] as Rx.Disposable[]
-      disposables.push(this.DOM
+  public stream(uiEvents?: Rx.Subscriber<UIEvent>): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
+    return new Rx.Observable<{ dom: VNode, timeSlider: VNode }>(subscriber => {
+      let subscription = new Rx.Subscription()
+      subscription.add(this.DOM
         .combineLatest(this.timeSlider, (d, t) => ({ dom: d, timeSlider: t }))
         .subscribe(subscriber))
-      disposables.push(this.uiEventsOutput.subscribe(this.uiEventsInput))
+      subscription.add(this.uiEventsOutput.subscribe(this.uiEventsInput))
       if (typeof uiEvents !== "undefined") {
-        disposables.push(this.uiEventsInput.subscribe(uiEvents))
+        subscription.add(this.uiEventsInput.subscribe(uiEvents))
       }
-      return new Rx.Disposable(() => {
-        disposables.forEach(d => d.dispose())
-      })
-    }))
+      return subscription
+    })
   }
 
   // tslint:disable-next-line:max-line-length
@@ -311,6 +311,7 @@ export default class Visualizer {
       return {
         _sequence: graphs._sequence,
         events: graphs.events,
+        isStopped: graphs.isStopped,
         main: graphs.main.filterNodes((n, o) => isIObserver(o) ? true : o.scheduler.clock <= viewState.tick),
         subscriptions: graphs.subscriptions.filterNodes((n, o) => o.observable.scheduler.clock <= viewState.tick),
         time: graphs.time,
@@ -320,6 +321,7 @@ export default class Visualizer {
       return {
         _sequence: graphs._sequence,
         events: graphs.events,
+        isStopped: graphs.isStopped,
         main: graphs.main,
         subscriptions: graphs.subscriptions, // subs
         time: graphs.time,

@@ -1,6 +1,6 @@
 import { Message } from "../collector/logger"
 import { DataSource } from "../visualization"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 
 type Response = { json(): Promise<any>, text(): Promise<string> }
 declare const fetch: (url: string) => Promise<Response>
@@ -25,11 +25,11 @@ export default class JsonCollector implements DataSource {
   public restart(url: string) {
     let previous = this.subject
     this.start(url)
-    previous.onCompleted()
+    previous.complete()
   }
 
   private receive(v: any, subject: Rx.Subject<any>): void {
-    subject.onNext(v as Message)
+    subject.next(v as Message)
   }
 
   private clean(str: string): string {
@@ -45,10 +45,14 @@ export default class JsonCollector implements DataSource {
       let socket = new WebSocket(url)
       socket.onmessage = (m) => this.receive(JSON.parse(this.clean(m.data)), subject)
       this.write = (d) => socket.send(JSON.stringify(d))
-      subject.subscribeOnCompleted(() => socket.close())
+      subject.do(() => { /* */ }, undefined, () => socket.close())
     } else {
       fetch(url).then(res => res.text()).then((data: any) => {
-        data = JSON.parse(this.clean(data))
+        try {
+          data = JSON.parse(this.clean(data))
+        } catch (e) {
+          data = JSON.parse(data)
+        }
         if (typeof window !== "undefined") {
           (window as any).data = data
           console.info("window.data is now filled with JSON data of", url)

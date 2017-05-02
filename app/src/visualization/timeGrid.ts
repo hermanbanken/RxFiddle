@@ -1,6 +1,6 @@
 import { h } from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 
 export type Range = {
   min: number
@@ -45,7 +45,7 @@ export function horizontalSlider(input: In): { vnode: Rx.Observable<VNode>, sele
   let activeUps = new Rx.Subject<number>()
 
   let activeSelection: Rx.Observable<Range> = activeDowns
-    .flatMapLatest(down => activeMoves
+    .switchMap(down => activeMoves
       .takeUntil(activeUps)
       .map(m => tupleRange(m, down))
       .startWith(tupleRange(down, down))
@@ -54,7 +54,7 @@ export function horizontalSlider(input: In): { vnode: Rx.Observable<VNode>, sele
     .startWith(null)
 
   let completedSelection: Rx.Observable<Range> = activeDowns
-    .flatMapLatest(down => activeUps.map(m => tupleRange(m, down)))
+    .switchMap(down => activeUps.map(m => tupleRange(m, down)))
 
   let vnode$ = input.bounds.combineLatest(
     input.selected,
@@ -93,9 +93,9 @@ export function horizontalSlider(input: In): { vnode: Rx.Observable<VNode>, sele
       let vnode = h("div#overview-grid", [
         h("div.overview-grid-cursor-area", {
           on: {
-            mousedown: (e: MouseEvent) => activeDowns.onNext(percentage(e)),
-            mousemove: (e: MouseEvent) => activeMoves.onNext(percentage(e)),
-            mouseup: (e: MouseEvent) => activeUps.onNext(percentage(e)),
+            mousedown: (e: MouseEvent) => activeDowns.next(percentage(e)),
+            mousemove: (e: MouseEvent) => activeMoves.next(percentage(e)),
+            mouseup: (e: MouseEvent) => activeUps.next(percentage(e)),
           },
         }, resizers.concat(cursors)),
         input.canvas,

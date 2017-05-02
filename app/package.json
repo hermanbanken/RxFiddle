@@ -13,13 +13,12 @@
   "scripts": {
     "compile": "tsc -p .",
     "start-app": "electron .",
-    "test": "tsc -p . && mocha --require source-map-support/register dist/test",
+    "test": "tsc -p . && mocha --require source-map-support/register dist/test/index",
     "test:cover": "nyc --reporter=lcov --reporter=html npm test",
     "dev-test-watch": "mocha-typescript-watch",
     "prepublish": "tsc -p .",
-    "cp-rx": "cp node_modules/rx/dist/rx.all.js src/instrumentation/rxjs-4.1.0/rx.all.js",
-    "distlibs": "cp -R node_modules/codemirror dist/codemirror; cp -R node_modules/lodash dist/lodash; cp -R node_modules/graphlib dist/graphlib; cp -R node_modules/rx dist/rx",
-    "pages": "git stash -u && git checkout gh-pages; git reset master --hard && tsc -p . && yarn run distlibs && yarn run cp-rx && yarn run build && git add -f dist && git commit -m 'Build' && git push -f origin gh-pages && git checkout master && git stash pop && tsc -p . && yarn run bundle",
+    "distlibs": "sh scripts/distlibs.sh",
+    "pages": "sh scripts/deploy.sh",
     "start": "webpack --watch",
     "build": "webpack -p"
   },
@@ -41,6 +40,7 @@
     "immutable": "^3.8.1",
     "lodash": "^4.11.1",
     "rx": "^4.1.0",
+    "rxjs": "^5.3.0",
     "snabbdom": "0.6.5",
     "typescript": "2.2",
     "typings": "^2.1.1"
@@ -58,9 +58,22 @@
     "nyc": "^10.2.0",
     "source-map-support": "^0.4.5",
     "ts-loader": "^2.0.3",
+    "ts-node": "^3.0.2",
     "tsify": "^1.0.9",
     "tslint": "^3.15.1",
     "webpack": "^2.3.3",
     "webpack-dev-server": "^2.4.2"
+  },
+  "nyc": {
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      "**/*.d.ts"
+    ],
+    "require": [
+      "ts-node/register"
+    ]
   }
 }

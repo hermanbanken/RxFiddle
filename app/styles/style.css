@@ -133,7 +133,7 @@ html, body {height: 100%;width: 100%;}
 .flexy > * {
   flex: 1;
 }
-.noflex { flex: 0; }
+.noflex {flex: 0;}
 
 div.menufold {
   z-index: 1000;
@@ -261,6 +261,7 @@ top {
   overflow-y: auto;
   min-width: 320px;
   background: #eee;
+  align-items: flex-start;
 }
 
 .viewer-panel {
@@ -361,7 +362,7 @@ master > * {
 }
 
 .marblediagram .next.higher {
-  fill: white;
+  /* fill: white; */
   stroke-width: 2px;
   stroke: black;
   rx: 12;
@@ -397,8 +398,6 @@ master > * {
 }
 
 master {
-  /* background: #eeeeee; */
-  /* border-right: 1px solid #c1c1c1; */
   margin-right: -15px;
   z-index: 1000;
 }
@@ -466,7 +465,7 @@ g.circle:hover text, g.circle:hover rect {
   z-index: 9999;
 }
 
-.graph-label span {
+.graph-label > span {
   display: none;
   border-radius: 4px;
   background: rgba(0,0,0,.75);
@@ -478,7 +477,7 @@ g.circle:hover text, g.circle:hover rect {
   white-space: nowrap;
 }
 
-.graph-label:hover span
+.graph-label:hover > span
 /*, .graph-label.focus span*/ {
   display: block;
 }
@@ -811,4 +810,9 @@ disable purple highlight border:
     top:0px; bottom:0px; 
     left:-4px; right:-4px; 
     z-index: 100;
+}
+
+.app span.argument:hover {
+  background: lightblue;
+  border-radius: 5px;
 }

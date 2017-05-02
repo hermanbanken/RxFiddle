@@ -1,4 +1,4 @@
-import { TreeWriter } from "../../collector/treeReader"
+import TreeWriter from "../../collector/treeWriter"
 import { TreeCollector } from "./collector"
 import Instrumentation, { defaultSubjects } from "./instrumentation"
 import { suite, test } from "mocha-typescript"

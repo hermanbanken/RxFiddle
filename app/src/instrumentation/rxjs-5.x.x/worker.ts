@@ -1,14 +1,14 @@
-importScripts("instrumentation/rxjs-4.1.0/rx.all.js")
+importScripts("instrumentation/rxjs-5.x.x/Rx.js")
 import TreePoster from "../../collector/treePoster"
 import { onWorkerMessage } from "../worker-utils"
 import { TreeCollector } from "./collector"
-import Instrumentation, { defaultSubjects } from "./instrumentation"
+import Instrumentation from "./instrumentation"
 
 onmessage = onWorkerMessage(() => {
   let poster = new TreePoster(m => (postMessage as (m: any) => void)(m))
   let collector = new TreeCollector(poster)
-  let instrumentation: Instrumentation = new Instrumentation(defaultSubjects(Rx), collector)
+  let instrumentation: Instrumentation = new Instrumentation(collector)
   instrumentation.setup()
-  console.info("Ready for RxJS 4 instrumentation");
-  (Rx as any).version = "4.1.0"
+  console.info("Ready for RxJS 5 instrumentation");
+  (Rx as any).version = "5.3.0"
 })

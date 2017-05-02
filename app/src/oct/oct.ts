@@ -1,4 +1,4 @@
-import { IEvent, Timing } from "../collector/event"
+import { IEvent } from "../collector/event"
 
 export type Id = string
 
@@ -24,14 +24,15 @@ export interface IObserverTree {
   sink?: IObserverTree
   inflow?: IObserverTree[]
   events: IEvent[]
-  setSink(sinks: IObserverTree[], name?: string): IObserverTree
+  setOuter(sinks: IObserverTree): IObserverTree
+  setSink(sinks: IObserverTree[]): IObserverTree
   addInflow(inflow: IObserverTree): IObserverTree
   setObservable(observable: IObservableTree[]): IObserverTree
   addEvent(event: IEvent): IObserverTree
 }
 
 //                     O->O *-*    | O->S 1-1            | S->S *-*                
-export type EdgeType = "addSource" | "setObserverSource" | "addObserverSink"
+export type EdgeType = "addSource" | "setObserverSource" | "addObserverDestination" | "addObserverOuter"
 export type NodeType = "observable" | "subject" | "observer"
 
 export interface ITreeLogger {
@@ -39,6 +40,7 @@ export interface ITreeLogger {
   addMeta(id: Id, meta: any): void
   addEdge(v: Id, w: Id, type: EdgeType, meta?: any): void
   addScheduler(id: Id, scheduler: ISchedulerInfo): void
+  addContraction(id: Id, nodes: Id[]): void
 }
 
 export class ObservableTree implements IObservableTree {
@@ -76,9 +78,11 @@ export class ObservableTree implements IObservableTree {
   }
 
   public inspect(depth: number, opts: any) {
-    return `ObservableTree(${this.id}, ${this.names}, ${
-      (this.sources || []).map(s => pad(inspect(s, depth + 2, opts), 2))
-      })`
+    if (depth < 100) {
+      return `ObservableTree(${this.id}, ${this.names}, ${
+        (this.sources || []).map(s => pad(inspect(s, depth + 2, opts), 2))
+        })`
+    }
   }
 }
 
@@ -87,6 +91,7 @@ export class ObserverTree implements IObserverTree {
   public names?: string[]
   public observable: IObservableTree
   public sink?: IObserverTree
+  public outer?: IObserverTree
   public inflow?: IObserverTree[]
   public events: IEvent[] = []
   public scheduler?: ISchedulerInfo
@@ -102,17 +107,27 @@ export class ObserverTree implements IObserverTree {
     }
   }
 
-  public setSink(sinks: IObserverTree[], name?: string): IObserverTree {
+  public setSink(sinks: IObserverTree[]): IObserverTree {
     if (this.sink === sinks[0]) {
       return this
     }
     this.sink = sinks[0]
     sinks.forEach(s => s.addInflow(this))
     if (this.logger) {
-      sinks.forEach(s => this.logger.addEdge(this.id, s.id, "addObserverSink", { label: "sink" + name }))
+      sinks.forEach(s => this.logger.addEdge(this.id, s.id, "addObserverDestination", { label: "destination" }))
     }
     return this
   }
+
+  public setOuter(outer: IObserverTree): IObserverTree {
+    this.outer = outer
+    outer.addInflow(this)
+    if (this.logger) {
+      this.logger.addEdge(this.id, outer.id, "addObserverOuter", { label: "outer" })
+    }
+    return this
+  }
+
   public addInflow(inflow: IObserverTree) {
     this.inflow = this.inflow || []
     if (this.inflow.indexOf(inflow) >= 0) {
@@ -127,7 +142,7 @@ export class ObserverTree implements IObserverTree {
         console.log("Adding second observable to ", this)
         console.log("becoming", observable)
         console.log("was", this.observable)
-        console.log("at", new Error().stack.split("\n").slice(1, 4).join("\n"))
+        console.log(new Error().stack.split("\n").filter(l => l.indexOf("instrumentation.ts") < 0).slice(0, 5).join("\n"))
       } else {
         return this
       }
@@ -181,6 +196,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
   public names?: string[]
   public args: IArguments
   public inflow?: IObserverTree[]
+  public calls?: MethodCall[]
   public sources?: IObservableTree[]
   public observable: IObservableTree
   public sink?: IObserverTree
@@ -190,6 +206,7 @@ export class SubjectTree implements ObservableTree, ObserverTree {
 
   // Mixin Observable & Observer methods
   public setSink: (sinks: IObserverTree[], name?: string) => this
+  public setOuter: (sinks: IObserverTree) => this
   public addInflow: (inflow: IObserverTree) => this
   public setObservable: (observable: IObservableTree[]) => IObserverTree
   public setSources: (sources: IObservableTree[]) => IObservableTree
@@ -240,22 +257,24 @@ function applyMixins(derivedCtor: any, baseCtors: any[]) {
   })
 }
 
+export type SchedulerType = "immediate" | "recursive" | "timeout" | "virtual"
+
 export type ISchedulerInfo = {
   id: string
   name: string
-  type: "immediate" | "recursive" | "timeout" | "virtual"
+  type: SchedulerType
   clock: number
 }
 
 export class SchedulerInfo implements ISchedulerInfo {
   public id: string
   public name: string
-  public type: "immediate" | "recursive" | "timeout" | "virtual"
+  public type: SchedulerType
   public clock: number
 
   constructor(
     id: string, name: string,
-    type: "immediate" | "recursive" | "timeout" | "virtual",
+    type: SchedulerType,
     clock: number, logger?: ITreeLogger
   ) {
     this.id = id

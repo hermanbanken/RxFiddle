@@ -1,15 +1,10 @@
-import { EdgeType, ISchedulerInfo, ITreeLogger, NodeType } from "../oct/oct"
+import { EdgeType, ISchedulerInfo, ITreeLogger, NodeType } from "../src/oct/oct"
 
-export default class TreePoster implements ITreeLogger {
-  private post: (message: any) => void
-  constructor(cb?: (message: any) => void) {
-    if (typeof cb === "function") {
-      this.post = cb
-    } else if (typeof window === "object" && window.parent) {
-      this.post = m => window.parent.postMessage(m, window.location.origin)
-    } else {
-      this.post = m => { /* intentionally left blank */ }
-      console.error("Using Window.postMessage logger in non-browser environment", new Error())
+export class MessageLogger implements ITreeLogger {
+  public messages: any = []
+  constructor() {
+    if (typeof window !== "undefined") {
+      this.messages = (window as any).messages = []
     }
   }
   public addNode(id: string, type: NodeType, scheduler?: ISchedulerInfo): void {
@@ -27,8 +22,8 @@ export default class TreePoster implements ITreeLogger {
   public addContraction(id: string, nodes: string[]): void {
     this.post({ id, contract: nodes })
   }
-
   public reset() {
     this.post("reset")
   }
+  private post = (m: any) => this.messages.push(m)
 }

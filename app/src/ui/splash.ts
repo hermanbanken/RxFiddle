@@ -1,16 +1,16 @@
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
 export default class Splash {
-  public stream() {
-    return Rx.Observable.create<VNode>(subscriber => {
+  public stream(): Rx.Observable<VNode> {
+    return new Rx.Observable<VNode>(subscriber => {
       let debugOptions: VNode[] = [
         h("span.separator", "or"),
         h("label.launchOption", [
           h("span", "Static Demos"),
           h("div", { attrs: { style: "display: flex" } }, [
-            h("a", { attrs: { class: "btn", href: "#source=dist/tree_a.json&type=demo" } }, "A"), " ",
+            h("a", { attrs: { class: "btn", href: "#source=dist/tree_rxfiddle.json&type=demo" } }, "A"), " ",
             h("a", { attrs: { class: "btn", href: "#source=dist/tree_b.json&type=demo" } }, "B"), " ",
             h("a", { attrs: { class: "btn", href: "#source=dist/tree_c.json&type=demo" } }, "C"), " ",
             h("a", { attrs: { class: "btn", href: "#source=dist/tree_d.json&type=demo" } }, "D"), " ",
@@ -58,7 +58,7 @@ export default class Splash {
 
         ...debugOptions,
       ])])
-      subscriber.onNext(vnode)
+      subscriber.next(vnode)
     })
   }
 }

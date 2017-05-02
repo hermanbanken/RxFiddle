@@ -18,14 +18,13 @@ export class Event {
   public static fromCall(method: string, args: IArguments, timing: Timing, source?: string): IEvent {
     switch (method) {
       case "next":
-      case "error":
-      case "completed":
-        return
       case "onNext":
         return new Next(timing, args[0], source)
+      case "error":
       case "onError":
       case "fail":
         return new Error(timing, new ErrorInstance(args[0]), source)
+      case "complete":
       case "onCompleted":
         return new Complete(timing, source)
       case "connect":
@@ -35,6 +34,7 @@ export class Event {
       case "__subscribe":
         return new Subscribe(timing, source)
       case "dispose":
+      case "unsubscribe":
         return new Dispose(timing, source)
       default: break
       // console.log("Unknown event", record)

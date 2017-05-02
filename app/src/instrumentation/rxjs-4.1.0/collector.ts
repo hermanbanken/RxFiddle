@@ -265,7 +265,7 @@ export class TreeCollector implements RxCollector {
       // Find sink
       let sinks = this.getSink(input, record)
       sinks.forEach(([how, sink]) => {
-        tree.setSink([this.tag(sink) as IObserverTree], how)
+        tree.setSink([this.tag(sink) as IObserverTree])
       })
 
       return [tree]

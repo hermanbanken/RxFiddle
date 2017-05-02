@@ -5,7 +5,7 @@ import TimeComposer from "../collector/timeComposer"
 import TypedGraph from "../collector/typedgraph"
 import { generateColors } from "../color"
 import "../object/extensions"
-import { IObservableTree, IObserverTree, ISchedulerInfo, ObservableTree, ObserverTree } from "../oct/oct"
+import { IObservableTree, IObserverTree, ISchedulerInfo, ObservableTree, ObserverTree, SubjectTree } from "../oct/oct"
 import "../utils"
 import { Graphs, ViewState } from "./index"
 import { MarbleCoordinator } from "./marbles"
@@ -17,7 +17,7 @@ import {
   MarbleClick, MarbleHoover,
   UIEvent,
 } from "./uievent"
-import * as Rx from "rx"
+import * as Rx from "rxjs"
 import { h } from "snabbdom"
 import { VNode } from "snabbdom/vnode"
 
@@ -43,7 +43,7 @@ export type Out = {
 export function graph$(inp: In): Out {
   let result = inp.map(data => {
     return graph(data.layout, data.viewState, data.graphs, data._sequence, data.focusNodes, data.hooverNodes)
-  }).publish().refCount()
+  }).share()
 
   return {
     clicks: result.flatMap(_ => _.clicks),
@@ -67,15 +67,18 @@ export function mapTuples<T, R>(list: T[], f: (a: T, b: T, anr: number, bnr: num
   return result
 }
 
-function nodeLabel(node: IObservableTree | IObserverTree): string {
-  if (node instanceof ObservableTree && node.calls) {
+function nodeLabel(node: IObservableTree | IObserverTree): (VNode | string)[] {
+  if (node instanceof ObservableTree || node instanceof SubjectTree) {
+    return name(node as IObservableTree)
+  }
+  if ((node instanceof ObservableTree || node instanceof SubjectTree) && node.calls) {
     let call = node.calls[node.calls.length - 1]
-    return `${call.method}(${call.args})`
+    return [`${call.method}(${call.args})`]
   }
   if (node && node.names) {
-    return node.names[node.names.length - 1]
+    return [node.names[node.names.length - 1]]
   }
-  return ""
+  return [""]
 }
 
 function getObservable(
@@ -100,20 +103,19 @@ function getObservable(
   }).find(v => typeof v !== "undefined")
 }
 
+export type graphType = {
+  svg: VNode, timeSlider: VNode,
+  clicks: Rx.Observable<string[]>,
+  groupClicks: Rx.Observable<string>,
+  tickSelection: Rx.Observable<number>,
+  uievents: Rx.Observable<UIEvent>
+}
+
 export function graph(
   layout: Layout, viewState: ViewState,
   graphs: Graphs, sequence: number,
   focusNodes: string[], hooverNodes: string[]
-): {
-    svg: VNode, timeSlider: VNode,
-    clicks: Rx.Observable<string[]>,
-    groupClicks: Rx.Observable<string>,
-    tickSelection: Rx.Observable<number>,
-    uievents: Rx.Observable<UIEvent>
-  } {
-  if (typeof window === "object") {
-    (window as any).graphs = graphs
-  }
+): graphType {
   let graph = graphs.main
 
   // Calculate SVG bounds
@@ -124,7 +126,7 @@ export function graph(
     .flatMap(level => level.nodes)
     .reduce((p: number, n: { y: number }) => Math.max(p, n.y), 0) as number
 
-  let xPos = (x: number) => (2 + xmax) * mx - (mx + mx * x)
+  let xPos = (x: number) => Math.min((2 + xmax) * mx, 400) - (mx + mx * x)
   let yPos = (y: number) => (my / 2 + my * y)
 
   // tslint:disable-next-line:no-unused-variable
@@ -168,9 +170,9 @@ export function graph(
 
   let handleClick = (v: string, w: string) => {
     if (flowPathIds.indexOf(v) >= 0 && flowPathIds.indexOf(w) >= 0) {
-      uievents.onNext({ type: "selectionGraphNone" })
+      uievents.next({ type: "selectionGraphNone" })
     } else {
-      uievents.onNext({ type: "selectionGraphEdge", v, w })
+      uievents.next({ type: "selectionGraphEdge", v, w })
     }
   }
 
@@ -262,7 +264,7 @@ export function graph(
     let handlers = {
       click: (item: { id: string }) => (e: any) => {
         console.log(focusNodes, "checking", item.id, focusNodes.indexOf(item.id) < 0)
-        uievents.onNext(focusNodes.indexOf(item.id) < 0 ?
+        uievents.next(focusNodes.indexOf(item.id) < 0 ?
           { type: "selectionGraphNode", node: item.id } :
           { type: "selectionGraphNone" }
         )
@@ -365,7 +367,7 @@ export function graph(
       left: 0,
       position: "absolute",
       top: 0,
-      width: (xmax + 2) * mx,
+      width: Math.min((xmax + 2) * mx, 400),
     },
   }, elements.concat(defs()))
 
@@ -376,11 +378,11 @@ export function graph(
     style: {
       height: `${(ymax + 1) * my + 30}px`,
       position: "relative",
-      width: `${(xmax + 2) * mx}px`,
+      width: `${Math.min((xmax + 2) * mx, 400)}px`,
     },
   }, [svg].concat(ns.flatMap(n => n.html)))
 
-  let panel = h("div.flexy.flexy-v.noflex", [h("master", h("div", [mask]))])
+  let panel = h("div.flexy.flexy-v.noflex.heightauto", [h("master", h("div", [mask]))])
 
   if (layout.length === 0 || layout[0].nodes.length === 0) {
     panel = h("div.flexy.flexy-v", [h("master.center",
@@ -417,7 +419,7 @@ export function graph(
             (n as IObserverTree).observable.id !== sub.observable.sources[0].id
           ) as IObserverTree[]
       },
-      event => uievents.onNext(event),
+      event => uievents.next(event),
       graphs.time.max(),
       id => graphs.subscriptions.node(id)
     )
@@ -432,7 +434,7 @@ export function graph(
         h(`detail.flexy.rel${!flow.length ? ".center" : ""}`, diagram),
     ])
 
-  let timeSlider = slider(graphs.time.min(), graphs.time.max(), currentTick, (v, final) => uievents.onNext({
+  let timeSlider = slider(graphs.time.min(), graphs.time.max(), currentTick, (v, final) => uievents.next({
     type: "tickSelection",
     tick: v === graphs.time.max() && final ? undefined : v,
   }))
@@ -566,20 +568,20 @@ function renderMarbles(
       return [h("div", { attrs: { class: clazz } }, "Unknown node")]
     }
 
+    let coloring = (nodeId: string) => colorIndex(parseInt(nodeId, 10))
+
     if (node.type === "observer") {
       let events: IEvent[] = node.value.events
-      return [coordinator.render(node.value, events, uiEvents, debug, findSubscription, viewState)]
+      return [coordinator.render(node.value, events, uiEvents, debug, findSubscription, viewState, coloring)]
     } else {
       let obs = node.value
-      let name = obs.names && obs.names[obs.names.length - 1]
-      let call = obs.calls && obs.calls[obs.calls.length - 1]
       let handlers = {
         click: () => uiEvents({ observable: node.value.id, type: "diagramOperatorClick" }),
         mouseover: () => uiEvents({ observable: node.value.id, type: "diagramOperatorHoover" }),
       }
       let box = h("div", { attrs: { class: clazz }, style: { "margin-top": `${offsets[i]}px` }, on: handlers }, [
         h("div", [
-          ...(call && call.method ? [call.method, " (", ...interactiveArgs(call.args), ")"] : [name]),
+          ...name(obs),
           schedulerIcon(obs.scheduler),
         ]),
         // h("div", [], incoming ? incoming(nodeList[i + 1] as IObserverTree).map(o => o.id).join(",") : "no subs"),
@@ -592,11 +594,25 @@ function renderMarbles(
   return [root, ...timeOverlays]
 }
 
-function interactiveArgs(args: string | IArguments): (VNode | string)[] {
+type ExtendedArgument = { type: "number" | "string" | "function", value: any } | { type: "ref", $ref: any, value: any }
+function interactiveArgs(args: string | (string | ExtendedArgument)[]): (VNode | string)[] {
   if (typeof args === "string") {
     return [args.substr(0, 97) + (args.length > 97 ? "..." : "")]
   } else {
-    return []
+    if (Array.isArray(args)) {
+      return interleave(", ", args.map(arg => {
+        if (typeof arg === "string") {
+          return arg
+        } else if (arg.type === "ref") {
+          let color = colorIndex(parseInt(arg.$ref, 10))
+          return h(`span.argument.argument-type-ref`, {
+            style: { background: color },
+          }, arg.value)
+        } else {
+          return h(`span.argument.argument-type-${arg.type}`, arg.value)
+        }
+      }))
+    }
   }
 }
 
@@ -621,4 +637,21 @@ function debug(...args: any[]) {
   } else {
     // console.log.apply(console, args)
   }
+}
+
+function name(obs: IObservableTree): (string | VNode)[] {
+  let name = obs.names && obs.names[obs.names.length - 1]
+  let call = obs.calls && obs.calls[obs.calls.length - 1]
+  return call && call.method ? [call.method, " (", ...interactiveArgs(call.args as any), ")"] : [name]
+}
+
+function interleave<T>(val: T, list: T[]): T[] {
+  let result = [] as T[]
+  for (let i = 0; i < list.length; i++) {
+    result.push(list[i])
+    if (i < list.length - 1) {
+      result.push(val)
+    }
+  }
+  return result
 }
