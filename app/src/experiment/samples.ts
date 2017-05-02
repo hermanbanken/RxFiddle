@@ -1,14 +1,15 @@
 import { LineClasses, Ranges } from "../ui/codeEditor"
-import { TestEvent } from "./screens"
+import { TestEvent, TestState } from "./screens"
 import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
+import { elvis } from "../collector/collector"
 
 export type Sample = {
   code: string,
   question: VNode | string,
   timeout: number,
-  renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode>
+  renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode>
   renderCode?(input?: string): { chunks: string[] }
   codeRanges?(): Ranges
   lineClasses?(): LineClasses
@@ -39,7 +40,7 @@ class DefaultSample<T> implements Sample {
   constructor(data: SampleData<T>) {
     this.data = data
   }
-  public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+  public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
     return Rx.Observable.of(h("div.q", this.question))
   }
 }
@@ -49,17 +50,16 @@ class BmiSample<T> extends DefaultSample<T> {
     super(data)
   }
 
-  public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+  public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
     return Rx.Observable.of(h("form.q", {
       on: {
         submit: (e: any) => {
           dispatcher({
-            path: ["sample.bmi"],
-            surveyId: undefined,
+            path: ["sample_bmi"],
             type: "answer",
             value: {
-              count: parseInt(e.target.elements.count.value, 10),
-              last: parseFloat(e.target.elements.last.value),
+              count: parseInt(e.target.elements.count.value, 10) || null,
+              last: parseFloat(e.target.elements.last.value) || null,
             },
           })
           e.preventDefault()
@@ -70,7 +70,10 @@ class BmiSample<T> extends DefaultSample<T> {
         h("div.control", [
           h("label", `How many BMI values are logged?`),
           h("input", {
-            attrs: { name: "count", placeholder: "enter a number", type: "number" },
+            attrs: {
+              name: "count", placeholder: "enter a number", type: "number",
+              value: elvis(state, ["data", "sample_bmi", "count"])[0],
+            },
           }),
         ]),
         h("div.control", [
@@ -80,6 +83,7 @@ class BmiSample<T> extends DefaultSample<T> {
               name: "last",
               placeholder: "enter nearest integer BMI value",
               step: "any", type: "number",
+              value: elvis(state, ["data", "sample_bmi", "last"])[0],
             }
           }),
         ]),
@@ -115,7 +119,7 @@ class AdvancedSample<T> extends DefaultSample<T> {
       })
     }
   }
-  public renderQuestion(dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+  public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
     return Rx.Observable.of(h("div.q", this.question))
   }
 

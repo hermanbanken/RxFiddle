@@ -6,7 +6,7 @@ import ConsoleRunner from "./experiment/console-runner"
 import ConsoleVisualizer from "./experiment/console-visualizer"
 import overlay from "./experiment/overlay"
 import samples, { Sample } from "./experiment/samples"
-import { Screen, States, TestEvent, TestState, general, generalLangs, generalRpExperience, introScreen } from "./experiment/screens"
+import { Screen, States, SurveyState, TestEvent, TestState, general, generalLangs, generalRpExperience, introScreen } from "./experiment/screens"
 import { formatSeconds } from "./experiment/utils"
 import patch from "./patch"
 import CodeEditor from "./ui/codeEditor"
@@ -21,6 +21,17 @@ import { IScheduler } from "rxjs/Scheduler"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 import { RxJS4 } from "./languages"
+import { personal, signin, user } from "./firebase"
+import { database } from "firebase"
+import debug from "./rx-operator-debug"
+
+function asObject(map: Map<string, any>): any {
+  let o = {} as any
+  for (let kv of map) {
+    o[kv[0]] = kv[1]
+  }
+  return o
+}
 
 // for experiment:
 // load samples, concat them
@@ -29,6 +40,10 @@ import { RxJS4 } from "./languages"
 //
 // other:
 // track all events
+
+let initialSurveyState: SurveyState = {
+  surveys: []
+}
 
 let initialTestState: TestState = {
   id: UUID(),
@@ -47,43 +62,77 @@ if (typeof localStorage !== "undefined") {
   }
 }
 
+let inputData = personal("surveys")
+
+function handleTestEvent(state: SurveyState, event: TestEvent, data: database.DataSnapshot): void {
+  console.log("handle", event)
+  if (typeof event === "undefined") {
+    return
+  }
+  if (event.type === "start") {
+    data.ref.update(asObject(new Map<string, any>([
+      ["active", event.surveyId],
+      [`${event.surveyId}/id`, event.surveyId],
+      [`${event.surveyId}/paused`, false],
+      [`${event.surveyId}/started`, new Date()],
+    ])))
+  }
+  if (event.type === "answer") {
+    data.ref.update(asObject(new Map<string, any>([
+      [`${state.active}/data/${event.path[0]}`, event.value],
+    ])))
+  }
+  if (event.type === "goto") {
+    data.ref.update(asObject(new Map<string, any>([
+      [`${event.surveyId}/active`, event.path],
+    ])))
+  }
+  if (event.type === "pause") {
+    data.ref.child("active").remove()
+  }
+  if (event.type === "pass") {
+    let test = state.surveys.find(s => s.id === state.active)
+    data.ref.update(asObject(new Map<string, any>([
+      [`${test.id}/${state.active[0]}/passed`, event.question],
+    ])))
+  }
+}
+
+function snapshotToState(snapshot: firebase.database.DataSnapshot): { surveys: SurveyState, state: TestState } {
+  let val = snapshot.val()
+  let active: string = val && val.active
+  let surveys: TestState[] = val && Object.keys(val).filter(k => typeof val[k] === "object").map(k => val[k])
+  if (!surveys) {
+    return { surveys: initialSurveyState, state: undefined }
+  } else if (!active) {
+    return { state: undefined, surveys: { active, surveys } }
+  } else {
+    return { state: surveys.find(s => s.id === active) || initialTestState, surveys: { active, surveys } || initialSurveyState }
+  }
+}
+
 let dispatcher: (event: TestEvent) => void = null
-let testLoop = new Rx.Observable<TestEvent>(observer => {
+let dispatchObservable = new Rx.Observable<TestEvent>(observer => {
   dispatcher = (e) => {
     observer.next(e)
     AnalyticsObserver.next(e)
   }
 })
-  .do(console.log)
-  .scan((state: TestState, event: TestEvent): TestState => {
-    if (event.type === "start") {
-      return Object.assign({}, States.get(event.surveyId), { id: event.surveyId, paused: false, started: new Date() })
-    }
-    if (event.type === "answer") {
-      let data = Object.assign({}, state.data)
-      data[event.path[0]] = event.value
-      return Object.assign({}, state, { data })
-    }
-    if (event.type === "goto") {
-      return Object.assign({}, state, { active: event.path })
-    }
-    if (event.type === "pause") {
-      return Object.assign({ paused: true }, state, { paused: true })
-    }
-    if (event.type === "pass") {
-      let data = Object.assign({}, state.data)
-      data[event.question] = Object.assign({}, data[event.question], { passed: true })
-      return Object.assign({}, state, { data })
-    }
-    return state
-  }, initialTestState)
-  .startWith(initialTestState)
-  .do((s: TestState) => { States.save(s) })
-  .do(console.log)
-  .map((state: TestState) => {
+
+let testLoop = inputData
+  .switchMap((snapshot: firebase.database.DataSnapshot) => {
+    return dispatchObservable
+      .map(event => ({ event, snapshot: undefined }))
+      .do(d => handleTestEvent(snapshotToState(snapshot).surveys, d.event, snapshot))
+      .startWith({ snapshot, event: undefined })
+  })
+  .filter(input => "snapshot" in input && input.snapshot)
+  .map(({ snapshot }) => snapshotToState(snapshot))
+  .startWith({ state: undefined, surveys: initialSurveyState })
+  .map(({ state, surveys }) => {
     let screen: Screen
     let screens = [general, generalLangs, generalRpExperience, testScreen(Rx.Scheduler.async), doneScreen]
-    if (state.paused) {
+    if (!state || !surveys.active) {
       screen = introScreen
     } else {
       screen = screens.find(s => s.isActive(state))
@@ -92,19 +141,7 @@ let testLoop = new Rx.Observable<TestEvent>(observer => {
       return Rx.Observable.never()
     }
 
-    /*
-h("div#menufold-static.menufold.noflex", [
-  h("a.brand.left", [
-    h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
-    h("span", "Survey"),
-  ]),
-  h("div.left.flex", { attrs: { id: "menu" } }, [
-    h("button.btn", { on: { click: () => { } } }, "Back"),
-  ]),
-  h("div", { style: { flex: "1" } }),
-]),    
-     */
-    let { dom } = screen.render(state, e => dispatcher(e))
+    let { dom } = screen.render(state, e => dispatcher(e), surveys)
 
     if (!screen.hasMenu) {
       return dom.map(nodes => h("div.tool.flexy.flexy-v.rel", [
@@ -129,8 +166,6 @@ h("div#menufold-static.menufold.noflex", [
   })
   .switch()
 
-
-
 function menu(runner?: Runner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
     editor.withValue(v => {
@@ -149,8 +184,8 @@ let rightMenuLinks = [
   h("a.btn", { attrs: { href: "http://reactivex.io", target: "_blank" } }, "RxJS docs"),
 ]
 
-function formatQuestion(sample: Sample, time: Rx.Observable<number>, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
-  return sample.renderQuestion(dispatcher).flatMap(render =>
+function formatQuestion(state: TestState, sample: Sample, time: Rx.Observable<number>, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+  return sample.renderQuestion(state, dispatcher).flatMap(render =>
     time.map(t => h("div.question-bar", h("div.question-wrapper", {
       key: sample.question.toString(), style: {
         "margin-top": "-100%",
@@ -193,19 +228,19 @@ let useRxFiddle = true
 
 /* Screen containing RxFiddle */
 let testScreen = (scheduler: IScheduler): Screen => ({
-  isActive: (state) => state.active[0] === "test" && samples.some((s, index) => !state.data[index] || !(state.data[index].passed || state.data[index].completed)),
+  isActive: (state) => !state.active || state.active[0] === "test" && samples.some((s, index) => !state.data || !state.data[index] || !(state.data[index].passed || state.data[index].completed)),
   progress: () => ({ max: 0, done: 0 }),
   hasMenu: true,
   render: (state, dispatcher) => ({
     dom: Rx.Observable.defer(() => {
-      let index = samples.findIndex((s, index) => !state.data[index] || !(state.data[index].passed || state.data[index].completed))
+      let index = samples.findIndex((s, index) => !state.data || !state.data[index] || !(state.data[index].passed || state.data[index].completed))
       let sample = samples[index]
       let collector = DataSource(sample)
 
       let question = Rx.Observable.interval(1000, scheduler)
         .startWith(0)
         .take(sample.timeout)
-        .let(time => formatQuestion(sample, time, dispatcher))
+        .let(time => formatQuestion(state, sample, time, dispatcher))
 
       let active = Rx.Observable
         .defer(() => {
@@ -249,7 +284,7 @@ let testScreen = (scheduler: IScheduler): Screen => ({
         ])
 
       let outOfTime: Rx.Observable<VNode[]> = Rx.Observable.of(sample.timeout)
-        .let(time => formatQuestion(sample, time, dispatcher))
+        .let(time => formatQuestion(state, sample, time, dispatcher))
         .map((render) => [
           render,
           h("div.center", h("div", { style: { padding: "3em" } }, [
@@ -311,5 +346,5 @@ if (typeof window !== "undefined") {
   testLoop
     .subscribe(vnode => {
       mainVN = patch(mainVN, h("div#screens", vnode))
-    })
+    }, e => console.warn(e))
 }

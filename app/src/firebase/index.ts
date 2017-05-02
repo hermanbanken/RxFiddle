@@ -56,6 +56,10 @@ export let snippets = {
   user: () => uid().switchMap(userSnippetsById),
 }
 
+export function personal(ref: string) {
+  return uid().switchMap(uid => data(`users/${uid}/${ref}`))
+}
+
 init()
 
 export type SnippetDict = { [key: string]: Snippet }

@@ -84,7 +84,7 @@ export default class Splash {
           ...brand,
           ...staticContent.inputs,
           h("h3", ["Shared samples"]),
-          h("div.snippets", Object.keys(snippets).filter(key => validSnippet(snippets[key]))
+          h("div.snippets", Object.keys(snippets || {}).filter(key => validSnippet(snippets[key]))
             .map(key => h("div.snippet", [
               h("a",
                 { attrs: { href: `#type=editor&code=${btoa(snippets[key].code)}` } },
@@ -94,7 +94,7 @@ export default class Splash {
             ]))
           ),
           h("h3", ["My samples"]),
-          h("div.snippets", Object.keys(mySnippets).filter(key => validSnippet(mySnippets[key]))
+          h("div.snippets", Object.keys(mySnippets || {}).filter(key => validSnippet(mySnippets[key]))
             .map(key => h("div.snippet", [
               h("a",
                 { attrs: { href: `#type=editor&code=${btoa(snippets[key].code)}` } },

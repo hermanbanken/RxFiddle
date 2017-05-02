@@ -6,17 +6,22 @@ import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
+export type SurveyState = {
+  active?: string
+  surveys: TestState[]
+}
+
 export type TestState = {
   id: string
   paused: boolean
   started?: Date
   active: string[]
-  data: { [testId: string]: any }
+  data?: { [testId: string]: any }
 }
 
 export type TestEvent =
   { type: "start", surveyId: string } |
-  { type: "answer", surveyId: string, path: string[], value: any } |
+  { type: "answer", path: string[], value: any } |
   { type: "goto", surveyId: string, path: string[] } |
   { type: "next", surveyId: string, fromActive: string[] } |
   { type: "pause" } |
@@ -32,7 +37,7 @@ export type Dispatcher = (event: TestEvent) => void
 export type Screen = {
   isActive: (state: TestState) => boolean
   progress: (state: TestState) => Progress
-  render: (state: TestState, dispatcher: Dispatcher) => {
+  render: (state: TestState, dispatcher: Dispatcher, surveyState: SurveyState) => {
     dom: Rx.Observable<VNode>
   },
   hasMenu?: boolean
@@ -79,10 +84,10 @@ type QuestionTypeOptions =
 function mkq(name: string, text: string | VNode, opts: QuestionTypeOptions, state: TestState, dispatcher: Dispatcher) {
   let nodes: VNode[] = []
   if (opts.type === "range" || opts.type === "labels") {
-    let value = state && typeof state.data[name] === "number" && state.data[name] || opts.min
+    let value = state && state.data && typeof state.data[name] === "number" && state.data[name] || opts.min
     let handler = (e: Event) => dispatcher({
       type: "answer", surveyId: state.id, path: [name],
-      value: (e.target as HTMLInputElement).value,
+      value: parseFloat((e.target as HTMLInputElement).value) || 0,
     })
     nodes.push(h("input", {
       attrs: {
@@ -127,9 +132,9 @@ function formatDate(date: Date) {
 export let introScreen: Screen = {
   isActive: (state) => state.paused,
   progress: (state) => ({ max: 2, done: state.paused ? 0 : 2 }),
-  render: (state, dispatcher) => {
-    let buttons = States.list()
-      .concat(States.list().some(s => !s.started) ? [] : [States.create()])
+  render: (state, dispatcher, surveys) => {
+    let buttons = surveys.surveys
+      .concat(surveys.surveys.some(s => !s.started) ? [] : [States.create()])
       .map(survey => {
         let button = mkButton(survey.started ?
           "Resume survey" :
