@@ -286,7 +286,7 @@ function DataSource(sample: Sample) {
   }
 }
 
-let scheduler = Rx.Scheduler.asap
+let scheduler = Rx.Scheduler.async
 //  (window as any).scheduler = new Rx.TestScheduler()
 // scheduler.advanceTo(Date.now())
 // setInterval(() => scheduler.advanceBy(200), 200)

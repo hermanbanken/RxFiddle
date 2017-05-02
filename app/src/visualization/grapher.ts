@@ -39,7 +39,7 @@ function grapherNext(reader: TreeReader, event: Message): TreeReader {
   return reader
 }
 
-function readerToGraph(reader: TreeReader) {
+function readerToGraph(reader: TreeReader): Graphs {
   let graph = reader.treeGrapher.graph
 
   // Apply filters
@@ -56,7 +56,8 @@ function readerToGraph(reader: TreeReader) {
       .filterNodes((n, l) => !(l instanceof ObservableTree)) /* .filterEdges((e, l) => l.type === "addObserverDestination")*/ as TypedGraph<IObserverTree, {}>,
     time: reader.treeGrapher.time,
     toDot: () => dotGraph(graph),
-  })
+    isStopped: reader.isStopped
+  } as Graphs)
 }
 
 function dotGraph(graph: TG) {

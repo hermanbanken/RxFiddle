@@ -1,4 +1,4 @@
-importScripts("../src/instrumentation/rxjs-4.1.0/rx.all.js")
+importScripts("../src/instrumentation/rxjs-5.x.x/Rx.min.js")
 import { formatArguments } from "../../collector/logger"
 
 export type ToWorkerMessage = { type: "run", code: string }
@@ -17,21 +17,21 @@ let Console = {
   info(...args: any[]) { post("info", arguments); actualConsole.info.apply(actualConsole, arguments) },
   debug(...args: any[]) { post("debug", arguments); actualConsole.debug.apply(actualConsole, arguments) },
   assert(value: boolean) { post("assert", arguments); actualConsole.assert.apply(actualConsole, arguments) },
-  clear() { },
-  count() { },
-  dir() { },
-  dirxml() { },
-  exception() { },
-  group() { },
-  groupCollapsed() { },
-  groupEnd() { },
-  profile() { },
-  profileEnd() { },
-  select() { },
-  table() { },
-  time() { },
-  timeEnd() { },
-  trace() { },
+  clear() { /* */ },
+  count() { /* */ },
+  dir() { /* */ },
+  dirxml() { /* */ },
+  exception() { /* */ },
+  group() { /* */ },
+  groupCollapsed() { /* */ },
+  groupEnd() { /* */ },
+  profile() { /* */ },
+  profileEnd() { /* */ },
+  select() { /* */ },
+  table() { /* */ },
+  time() { /* */ },
+  timeEnd() { /* */ },
+  trace() { /* */ },
   Console: new Object() as any,
   msIsIndependentlyComposed(element: Element): boolean { return false },
 }
@@ -56,6 +56,9 @@ let scope = {}
  * and strip that from the errors coming from it 
  */
 function scopedEval(code: string) {
+  // tslint:disable:no-var-keyword
+  // tslint:disable:no-unused-variable
+  // tslint:disable-next-line:semicolon
   let indirect = eval;
   // tslint:disable-next-line:only-arrow-functions
   (function () {

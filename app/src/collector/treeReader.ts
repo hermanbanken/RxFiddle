@@ -9,11 +9,15 @@ import TypedGraph from "./typedgraph"
 
 export class TreeReader {
   public treeGrapher: TreeGrapher = new TreeGrapher()
-  public maxTick = -1
+  public isStopped = false
   public next(message: any): void {
     if (message === null) { return }
+
     if (message === "reset") {
-      return this.treeGrapher.reset()
+      this.isStopped = true
+    } else if (this.isStopped) {
+      this.treeGrapher.reset()
+      this.isStopped = false
     }
 
     elvis(message, ["meta", "events"]).forEach(event => {

@@ -45,6 +45,7 @@ export type Graphs = {
   main: TypedGraph<IObservableTree | IObserverTree, {}>,
   subscriptions: TypedGraph<IObserverTree, {}>,
   time: TimeComposer
+  isStopped: boolean
 }
 
 export function isIObserver(a: any): a is IObserverTree {
@@ -310,6 +311,7 @@ export default class Visualizer {
       return {
         _sequence: graphs._sequence,
         events: graphs.events,
+        isStopped: graphs.isStopped,
         main: graphs.main.filterNodes((n, o) => isIObserver(o) ? true : o.scheduler.clock <= viewState.tick),
         subscriptions: graphs.subscriptions.filterNodes((n, o) => o.observable.scheduler.clock <= viewState.tick),
         time: graphs.time,
@@ -319,6 +321,7 @@ export default class Visualizer {
       return {
         _sequence: graphs._sequence,
         events: graphs.events,
+        isStopped: graphs.isStopped,
         main: graphs.main,
         subscriptions: graphs.subscriptions, // subs
         time: graphs.time,
