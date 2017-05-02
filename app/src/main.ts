@@ -60,7 +60,7 @@ const DataSource$: Rx.Observable<{
       }
     }
   } else {
-    return null
+    return { q }
   }
 }, { q: {} }).distinctUntilKeyChanged("data")
 
@@ -93,7 +93,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.switchMap(collector => {
     Query.update({ lib: lang.id })
   }))
 
-  if (collector) {
+  if (collector && collector.data) {
     return Rx.Observable.of(0)
       .flatMap(_ => {
         let vis = new Visualizer(new Grapher(collector.data))
