@@ -81,7 +81,7 @@ let testLoop = new Rx.Observable<TestEvent>(observer => {
   .do(console.log)
   .map((state: TestState) => {
     let screen: Screen
-    let screens = [general, generalLangs, generalRpExperience, testScreen(Rx.Scheduler.asap), doneScreen]
+    let screens = [general, generalLangs, generalRpExperience, testScreen(Rx.Scheduler.async), doneScreen]
     if (state.paused) {
       screen = introScreen
     } else {
