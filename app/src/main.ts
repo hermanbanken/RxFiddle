@@ -25,48 +25,74 @@ const DataSource$: Rx.Observable<{
   vnode?: Rx.Observable<VNode>,
   runner?: RxRunner,
   editor?: CodeEditor,
-}> = Query.$.map(q => {
+  q: any
+}> = Query.$all.scan((prev, q) => {
   if (q.type === "demo" && q.source) {
-    let collector = new JsonCollector()
-    collector.restart(q.source)
-    return { data: collector }
+    let collector = prev.type === "demo" ? prev.collector : new JsonCollector()
+    if (!prev.q || q.source !== prev.q.source) { collector.restart(q.source) }
+    return { data: collector, q }
   } else if (q.type === "ws" && q.url) {
-    let collector = new JsonCollector()
-    collector.restart(q.url)
-    return { data: collector }
+    let collector = prev.type === "ws" ? prev.collector : new JsonCollector()
+    if (!prev.q || q.url !== prev.q.url) { collector.restart(q.url) }
+    return { data: collector, q }
   } else if (q.type === "editor") {
-    let editor = new CodeEditor(q.code ? atob(decodeURI(q.code)) : undefined)
-    let code = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
-    let runner = new RxRunner(code, AnalyticsObserver)
-    return {
-      data: runner,
-      runner,
-      editor,
-      vnode: editor.dom,
+    if (q.type === prev.q.type && q.lib === prev.q.lib) {
+      let editor = prev.editor
+      let runner = prev.runner
+      return {
+        data: runner,
+        runner,
+        editor,
+        vnode: editor.dom,
+        q,
+      }
+    } else {
+      let config = LanguageMenu.get(q.lib).runnerConfig
+      let editor = new CodeEditor(q.code ? atob(decodeURI(q.code)) : undefined)
+      let code = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
+      let runner = new RxRunner(config, code, AnalyticsObserver)
+      return {
+        data: runner,
+        runner,
+        editor,
+        vnode: editor.dom,
+        q,
+      }
     }
   } else {
     return null
   }
-})
+}, { q: {} }).distinctUntilKeyChanged("data")
 
 Query.$.map(query => ({ query, type: "query" })).subscribe(AnalyticsObserver)
 
 function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
     editor.withValue(v => {
-      Query.set({ code: btoa(v), type: "editor" })
+      Query.update({ code: btoa(v) })
       runner.trigger()
     })
   }
   return h("div.left.ml3.flex", { attrs: { id: "menu" } }, [
     language,
-    ...(runner ? [h("button.btn", { on: { click: clickHandler } }, runner.action)] : []),
+    ...(runner ? [
+      h(`button.btn${runner.currentState === "initializing" ? ".disabled" : ""}`, {
+        attrs: { disabled: runner.currentState === "initializing" ? true : false },
+        on: { click: clickHandler },
+      }, runner.action),
+    ] : []),
     ...(editor ? [shareButton(editor)] : []),
   ])
 }
 
 const LanguageMenu$ = new LanguageMenu().stream()
+
 const VNodes$: Rx.Observable<VNode[]> = DataSource$.switchMap(collector => {
+  // Attach language menu
+  LanguageMenu$.language.subscribe(lang => collector && collector.editor && collector.editor.withValue(v => {
+    Query.update({ lib: lang.id })
+  }))
+
   if (collector) {
     return Rx.Observable.of(0)
       .flatMap(_ => {

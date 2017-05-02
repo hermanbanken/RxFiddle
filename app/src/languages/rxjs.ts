@@ -14,6 +14,8 @@ export class RxJSDocumentationProvider implements DocumentationProvider {
   }
 }
 
+export default new RxJSDocumentationProvider()
+
 class RxJS4Documentation implements Documentation {
   public version = "4"
   public library = "RxJS"

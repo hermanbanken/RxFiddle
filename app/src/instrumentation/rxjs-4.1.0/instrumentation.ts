@@ -5,7 +5,7 @@ import * as Rx from "rx"
 
 const rxAny: any = Rx as any
 
-export let defaultSubjects = {
+export let defaultSubjects = (rxAny: any) => ({
   Observable: Rx.Observable,
   "Observable.prototype": rxAny.Observable.prototype,
   "ConnectableObservable.prototype": rxAny.ConnectableObservable.prototype,
@@ -13,7 +13,7 @@ export let defaultSubjects = {
   // "AbstractObserver.prototype": rxAny.internals.AbstractObserver.prototype,
   // "AnonymousObserver.prototype": rxAny.AnonymousObserver.prototype,
   "Subject.prototype": rxAny.Subject.prototype,
-}
+})
 
 export let defaultSchedulerFactory: { [key: string]: any } = Object.keys(Rx.Scheduler)
   .filter(name => typeof (Rx.Scheduler as any)[name] === "object")

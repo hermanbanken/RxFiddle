@@ -37,4 +37,6 @@ let Console = {
 }
 console = Console
 
-onmessage = onWorkerMessage
+onmessage = onWorkerMessage(() => {
+  /* noop */
+})

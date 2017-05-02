@@ -47,22 +47,29 @@ function evalAndRepackageErrors(code: string): { type: "result", result: any } |
   }
 }
 
-export function onWorkerMessage(e: MessageEvent) {
-  let message = e.data as ToWorkerMessage
-  switch (message.type) {
-    case "importScripts":
-      importScripts(message.url)
-      break
-    case "run":
-      // Execute user code
-      let result = evalAndRepackageErrors(message.code)
-      if (result.type === "error") {
-        (postMessage as (m: any) => void)({
-          error: result.error,
-          type: "error",
-        })
-      }
-      break
-    default: break
+export function onWorkerMessage(instrument: () => void): ((e: MessageEvent) => void) {
+  return (e: MessageEvent) => {
+    let message = e.data as ToWorkerMessage
+    switch (message.type) {
+      case "importScripts":
+        importScripts(message.url)
+        instrument()
+        break
+      case "run":
+        // Execute user code
+        let result = evalAndRepackageErrors(message.code)
+        if (result.type === "error") {
+          (postMessage as (m: any) => void)({
+            error: result.error,
+            type: "error",
+          })
+        }
+        break
+      default: break
+    }
   }
+}
+
+if (typeof postMessage === "function") {
+  (postMessage as Function)("ready")
 }

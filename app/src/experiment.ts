@@ -274,9 +274,9 @@ function DataSource(sample: Sample) {
   let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
   let runner: Runner
   if (useRxFiddle) {
-    runner = new RxRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
+    runner = new RxRunner(undefined, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
   } else {
-    runner = new ConsoleRunner(editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
+    runner = new ConsoleRunner(undefined, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
   }
   return {
     data: runner,

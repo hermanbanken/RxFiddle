@@ -1,6 +1,6 @@
 import { DataSource } from "../visualization"
 import * as Rx from "rxjs"
-import { Observer, NextObserver } from "rxjs/Observer"
+import { NextObserver } from "rxjs/Observer"
 import { Subscriber } from "rxjs/Subscriber"
 import { Subscription } from "rxjs/Subscription"
 
@@ -32,19 +32,22 @@ export default class RxRunner implements DataSource, Runner {
   public dataObs: Rx.Observable<any>
   public state: Rx.Observable<RxRunnerState>
 
-  protected get workerFile() { return "dist/worker-rx-5.x.x.bundle.js" }
+  protected get defaultConfig(): RunnerConfig {
+    return {
+      libraryFile: "instrumentation/rxjs-5.x.x/Rx.js",
+      workerFile: "dist/worker-rx-5.x.x.bundle.js",
+    }
+  }
 
   private code: Rx.Observable<Code>
   private stateSubject = new Rx.BehaviorSubject<RxRunnerState>("ready")
   private subject: RxRunnerSubject<any>
   private analyticsObserver?: Rx.Subscriber<any>
 
-  constructor(code: Rx.Observable<Code>, analyticsObserver?: Rx.Subscriber<any>) {
+  constructor(config: RunnerConfig | undefined, code: Rx.Observable<Code>, analyticsObserver?: Rx.Subscriber<any>) {
     this.code = code
-    this.subject = new RxRunnerSubject<any>({
-      stateObserver: this.stateSubject,
-      workerFile: this.workerFile,
-    })
+    let settings = Object.assign(this.defaultConfig, config || {}, { stateObserver: this.stateSubject })
+    this.subject = new RxRunnerSubject<any>(settings)
     this.state = this.stateSubject.asObservable()
     this.dataObs = this.subject.asObservable().startWith("reset").map(d => {
       if (d && d.type === "error") {
@@ -76,8 +79,13 @@ export default class RxRunner implements DataSource, Runner {
     }
   }
 
+  public get currentState(): RxRunnerState {
+    return this.stateSubject.getValue()
+  }
+
   public get action(): string {
     switch (this.stateSubject.getValue()) {
+      case "initializing": return "Run"
       case "ready": return "Run"
       case "used": return "Stop"
       case "stopped": return "Restart"
@@ -88,6 +96,12 @@ export default class RxRunner implements DataSource, Runner {
 
 export interface RunnerConfig {
   workerFile: string
+  libraryFile: string
+}
+
+interface InternalRunnerConfig {
+  workerFile: string
+  libraryFile: string
   resultSelector?: <T>(e: MessageEvent) => T
   openObserver?: NextObserver<Event>
   stateObserver?: NextObserver<RxRunnerState>
@@ -104,7 +118,7 @@ class RxRunnerSubject<T> extends Rx.AnonymousSubject<T> {
   private output: Rx.Subject<T>
 
   // tslint:disable-next-line:no-constructor-vars
-  constructor(private config: RunnerConfig) {
+  constructor(private config: InternalRunnerConfig) {
     super()
     this.output = new Rx.Subject<T>()
   }
@@ -149,7 +163,8 @@ class RxRunnerSubject<T> extends Rx.AnonymousSubject<T> {
   }
 
   protected connect() {
-    const worker = this.worker = new Worker(this.config.workerFile) as RunnerWorker
+    const config = this.config
+    const worker = this.worker = new Worker(config.workerFile) as RunnerWorker
     const observer = this.output
     worker.readyState = "initializing"
     this.notify("initializing")
@@ -179,7 +194,7 @@ class RxRunnerSubject<T> extends Rx.AnonymousSubject<T> {
     }
 
     const onOpen = () => {
-      const openObserver = this.config.openObserver
+      const openObserver = config.openObserver
       if (openObserver) {
         openObserver.next({ type: "open" } as Event)
       }
@@ -199,8 +214,16 @@ class RxRunnerSubject<T> extends Rx.AnonymousSubject<T> {
       observer.error(e)
     }
     worker.onmessage = (e: MessageEvent) => {
+      if (e.data === "ready") {
+        if (config.libraryFile) {
+          worker.postMessage({ type: "importScripts", url: config.libraryFile })
+        }
+        worker.readyState = "ready"
+        this.notify("ready")
+        return
+      }
       let result: T
-      let f: (m: MessageEvent) => T = this.config.resultSelector || ((m: MessageEvent) => m.data as T)
+      let f: (m: MessageEvent) => T = config.resultSelector || ((m: MessageEvent) => m.data as T)
       try {
         result = f(e)
       } catch (error) {
@@ -224,8 +247,6 @@ class RxRunnerSubject<T> extends Rx.AnonymousSubject<T> {
     if (!this.worker) {
       this.connect()
     }
-    this.worker.readyState = "ready"
-    this.notify("ready")
     let subscription = new Subscription()
     subscription.add(this.output.subscribe(subscriber))
     subscription.add(() => {
