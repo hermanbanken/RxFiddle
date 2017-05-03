@@ -46,6 +46,12 @@
                 <p>Using RxJS 4.1 is mainly an effect of what I had available when I started of with extending RxMarbles. Creating
                   instumentation for RxJS 5 should be possible too but I expect some more work because of the new ecmascript
                   module structure of version 5.</p>
+                <p><b>Update [2017-05-02]:</b> version 5 is (mostly) supported in the version that is available at
+                  <a href="http://rxfiddle.net">rxfiddle.net</a>. Be aware that version 5 brings Ecmascript modules into
+                  the mix, which makes it harder to swap prototypes (module exports are immutable). Furthermore version 5
+                  has some performance features which we need to revert in order to create a full model of the program (affecting
+                  ScalarObservables). This should not affect your program in any other way than it's performance, but for
+                  non-high-througput samples you should be fine.</p>
               </dd>
 
               <dt id="difficulties">It isn't that hard right?</dt>

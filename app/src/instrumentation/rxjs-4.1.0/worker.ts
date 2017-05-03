@@ -1,5 +1,6 @@
 importScripts("instrumentation/rxjs-4.1.0/rx.all.js")
 import TreePoster from "../../collector/treePoster"
+import "../../experiment/sample-data"
 import { onWorkerMessage } from "../worker-utils"
 import { TreeCollector } from "./collector"
 import Instrumentation, { defaultSubjects } from "./instrumentation"

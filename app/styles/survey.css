@@ -11,8 +11,8 @@ body {
 .width {
   max-width: 40em;
   font-size: 1.2em;
-  margin: 0 auto;
-  padding: 1em;
+  margin: 0 auto 2em;
+  padding: 2em 1em;
   flex: 1;
 }
 
@@ -188,6 +188,7 @@ input[type="range"], .question input[type="range"] {
   flex: 1;
   display: flex;
   position: relative;
+  background: white;
 }
 #screens > .tool {
   flex: 1;
@@ -251,12 +252,13 @@ form .control label, form .control input {
   display: table-cell;
 }
 
-form .control input {
+form .control input, form .control input[type="text"] {
   box-sizing: content-box;
   font-size: 1.2em;
   border: none;
   padding: 4px;
   margin: 2px;
+  background: white;
 }
 
 .mb {
@@ -352,4 +354,14 @@ dt {
     font-weight: bold;
     list-style-position: inside;
     list-style-type: lower-roman;
+}
+
+#screens .buttons {
+  margin-bottom: 1em;
+}
+
+input.ref {
+  font-size: 1em;
+  width: 100%;
+  margin: 5px 0;
 }

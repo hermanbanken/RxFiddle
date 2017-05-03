@@ -265,3 +265,157 @@ let userAccountObservable = Rx.Observable
 
 userAccountObservable.subscribe()
 ````
+
+# Sample gorgeous
+[Have withLatestFrom wait until all sources have produced one value](http://stackoverflow.com/questions/39097699/have-withlatestfrom-wait-until-all-sources-have-produced-one-value)
+
+> The contract needs to be: if source1 emits then combined will always 
+> eventually emit when the other sources finally produce. If source1 
+> emits multiple times while waiting for the other sources we can use 
+> the latest value and discard the previous values.
+
+````javascript
+// Use with RxJS 5 (RxJS 4 graph becomes cyclic)
+
+var source1 = Rx.Observable.interval(500).take(5)
+var source2 = Rx.Observable.interval(1000).take(2)
+var source3 = Rx.Observable.interval(2000).take(2)
+
+var selector = (a,b,c) => [a,b,c]
+
+var operator = (s1, s2, s3) => Rx.Observable
+  .merge(
+    s1.combineLatest(s2, s3, selector).take(1),
+    s1.skip(1).withLatestFrom(s2, s3, selector)
+  )
+
+var combined = source1.publish(s1 => 
+                 source2.publish(s2 => 
+                   source3.publish(s3 => 
+                     operator(s1, s2, s3)
+                   )));
+
+combined.subscribe()
+````
+
+http://rxfiddle.net/#lib=rxjs5&type=editor&code=dmFyIHNvdXJjZTEgPSBSeC5PYnNlcnZhYmxlLmludGVydmFsKDUwMCkudGFrZSg1KQp2YXIgc291cmNlMiA9IFJ4Lk9ic2VydmFibGUuaW50ZXJ2YWwoMTAwMCkudGFrZSgyKQp2YXIgc291cmNlMyA9IFJ4Lk9ic2VydmFibGUuaW50ZXJ2YWwoMjAwMCkudGFrZSgyKQoKdmFyIHNlbGVjdG9yID0gKGEsYixjKSA9PiBbYSxiLGNdCgp2YXIgb3BlcmF0b3IgPSAoczEsIHMyLCBzMykgPT4gUnguT2JzZXJ2YWJsZQogIC5tZXJnZSgKICAgIHMxLmNvbWJpbmVMYXRlc3QoczIsIHMzLCBzZWxlY3RvcikudGFrZSgxKSwKICAgIHMxLnNraXAoMSkud2l0aExhdGVzdEZyb20oczIsIHMzLCBzZWxlY3RvcikKICApCgp2YXIgY29tYmluZWQgPSBzb3VyY2UxLnB1Ymxpc2goczEgPT4gCiAgICAgICAgICAgICAgICAgc291cmNlMi5wdWJsaXNoKHMyID0+IAogICAgICAgICAgICAgICAgICAgc291cmNlMy5wdWJsaXNoKHMzID0+IAogICAgICAgICAgICAgICAgICAgICBvcGVyYXRvcihzMSwgczIsIHMzKQogICAgICAgICAgICAgICAgICAgKSkpOwoKY29tYmluZWQuc3Vic2NyaWJlKCk=
+
+# IMDB 
+
+````javascript
+let final = "the titanic"
+let scheduler = new Rx.TestScheduler()
+
+const onNext = Rx.ReactiveTest.onNext;
+const onCompleted = Rx.ReactiveTest.onCompleted;
+
+function inputStream(text) {
+  let t = 0
+  let messages = []
+  for(let i = 0; i <= text.length; i++) {
+    t += 30 + Math.random() * 100
+    messages.push(onNext(t, text.slice(0, i)))
+  }
+  return scheduler.createHotObservable(messages)
+}
+
+let list = [
+  "The Titanic",
+  "Lion King",
+  "Belle & The Beast",
+  "Avatar",
+  "Harry Potter",
+  "Guardians of the Galaxy",
+  "House of Cards",
+  "Spectre",
+  "Interstellar",
+  "Iron Man",
+  "Terminator Genisys",
+]
+function findMovie(term) {
+  let result = list.filter(movie => movie.toLowerCase().indexOf(term.toLowerCase()) >= 0)
+  let t = 200 * result.length
+  return scheduler.createHotObservable(
+    onNext(t, result),
+    onComplete(t+1)
+  )
+}
+
+scheduler.advanceTo(0)
+inputStream("the titanic").debounce(50, scheduler).flatMap(findMovie).subscribe()
+
+scheduler.advanceTo(1e6)
+````
+
+#### Android Lifecycle
+
+````javascript
+
+function mainActivity(lifecycle) {
+  lifecycle
+}
+
+function dialogActivity(lifecycle) {
+  lifecycle
+}
+
+mainActivity(getLifecycle())
+dialogActivity(getLifecycle())
+
+function getLifecycle() {
+  return scheduler.createHotObservable(
+    
+  )
+}
+
+let scheduler = new Rx.TestScheduler()
+const onNext = Rx.ReactiveTest.onNext;
+const onCompleted = Rx.ReactiveTest.onCompleted;
+scheduler.advanceTo(0)
+
+inputStream("the titanic").debounce(50, scheduler).flatMap(findMovie).subscribe()
+
+scheduler.advanceTo(1e6)
+
+````
+
+#### Millenium bug all over again
+
+````javascript
+let scheduler = new Rx.TestScheduler()
+const onNext = Rx.ReactiveTest.onNext;
+const onCompleted = Rx.ReactiveTest.onCompleted;
+scheduler.advanceTo(0)
+
+function veryOldLotteryServer(date) {
+  let unix = new Date(date).getTime() / 1000
+  if(unix > Math.pow(2, 31)) throw new Error("Crash!")
+  else return scheduler.createHotObservable(
+    onNext(0, { msg: "calculating" }),
+    onNext(10, { msg: "Happy new year!", winningTicket: Math.round(Math.random()*10) }), 
+    onCompleted(20)
+  )
+}
+
+let start = new Date("2017-01-01").getTime()
+let year = 1000 * 3600 * 24 * 365.25
+Rx.Observable.interval(year, scheduler)
+  .map(t => new Date(start + t * year).toString())
+  .flatMap(veryOldLotteryServer)
+  .subscribe(lottery => {}, e => {})
+
+scheduler.advanceTo(1e20)
+````
+
+
+#### Chat room
+
+````javascript
+let scheduler = new Rx.TestScheduler()
+const onNext = Rx.ReactiveTest.onNext;
+const onCompleted = Rx.ReactiveTest.onCompleted;
+scheduler.advanceTo(0)
+
+
+
+````

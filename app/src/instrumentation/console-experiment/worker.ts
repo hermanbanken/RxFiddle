@@ -1,5 +1,6 @@
 importScripts("instrumentation/rxjs-5.x.x/Rx.js")
 import { formatArguments } from "../../collector/logger"
+import "../../experiment/sample-data"
 import { onWorkerMessage } from "../worker-utils"
 
 // tslint:disable:max-line-length

@@ -6,7 +6,7 @@ import ConsoleRunner from "./experiment/console-runner"
 import ConsoleVisualizer from "./experiment/console-visualizer"
 import overlay from "./experiment/overlay"
 import samples, { Sample } from "./experiment/samples"
-import { Screen, States, TestEvent, TestState, general, generalLangs, generalRpExperience, introScreen } from "./experiment/screens"
+import { Screen, States, SurveyState, TestEvent, TestState, general, generalLangs, generalRpExperience, introScreen, previous } from "./experiment/screens"
 import { formatSeconds } from "./experiment/utils"
 import patch from "./patch"
 import CodeEditor from "./ui/codeEditor"
@@ -21,6 +21,17 @@ import { IScheduler } from "rxjs/Scheduler"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 import { RxJS4 } from "./languages"
+import { personal, signin, user } from "./firebase"
+import { database } from "firebase"
+import debug from "./rx-operator-debug"
+
+function asObject(map: Map<string, any>): any {
+  let o = {} as any
+  for (let kv of map) {
+    o[kv[0]] = kv[1]
+  }
+  return o
+}
 
 // for experiment:
 // load samples, concat them
@@ -29,6 +40,11 @@ import { RxJS4 } from "./languages"
 //
 // other:
 // track all events
+
+let initialSurveyState: SurveyState = {
+  surveys: [],
+  loading: true
+}
 
 let initialTestState: TestState = {
   id: UUID(),
@@ -47,43 +63,109 @@ if (typeof localStorage !== "undefined") {
   }
 }
 
+let inputData = personal("surveys")
+
+function handleTestEvent(state: SurveyState, event: TestEvent, data: database.DataSnapshot): void {
+  console.log("handle", event)
+  if (typeof event === "undefined") {
+    return
+  }
+  if (event.type === "start") {
+    data.ref.update(asObject(new Map<string, any>([
+      ["active", event.surveyId],
+      [`${event.surveyId}/id`, event.surveyId],
+      [`${event.surveyId}/paused`, false],
+      [`${event.surveyId}/started`, new Date()],
+      [`${event.surveyId}/reference`, UUID()],
+      [`${event.surveyId}/mode`, Math.random() > .5 ? "rxfiddle" : "console"],
+    ])))
+  }
+  if (event.type === "answer") {
+    let test = state.surveys.find(s => s.id === state.active);
+    let existing = (test.data || {})[event.path[0]] || {}
+    data.ref.update(asObject(new Map<string, any>([
+      [`${state.active}/data/${event.path[0]}`, Object.assign({}, existing, event.value)],
+    ])))
+  }
+  if (event.type === "goto") {
+    data.ref.update(asObject(new Map<string, any>([
+      [`${event.surveyId}/active`, event.path],
+    ])))
+  }
+  if (event.type === "pause") {
+    data.ref.child("active").remove()
+  }
+  if (event.type === "pass") {
+    let test = state.surveys.find(s => s.id === state.active)
+    data.ref.update(asObject(new Map<string, any>([
+      [`${test.id}/data/${event.question}/passed`, true],
+    ])))
+  }
+  if (event.type === "reference") {
+    let test = state.surveys.find(s => s.id === state.active)
+    let map = new Map<string, any>([
+      [`${test.id}/reference`, event.ref],
+    ])
+    if (!isNaN(event.ref as any)) {
+      map.set(`${test.id}/mode`, parseInt(event.ref, 10) % 2 === 0 ? "rxfiddle" : "console")
+    }
+    data.ref.update(asObject(map))
+  }
+
+  if (event.type === "tick") {
+    //// TODO log passing of time
+    // let test = state.surveys.find(s => s.id === state.active)
+    // data.ref.child(`${test.id}/data/${event.question}/ticks`).ref
+    // data.ref.update(asObject(new Map<string, any>([
+    //   [`${test.id}/data/${event.question}/ticks`, true],
+    // ])))
+  }
+}
+
+function snapshotToState(snapshot: firebase.database.DataSnapshot): { surveys: SurveyState, state: TestState } {
+  let val = snapshot.val()
+  let active: string = val && val.active
+  let initialSurveys = Object.assign({}, initialSurveyState, { loading: false })
+  let surveys: TestState[] = val && Object.keys(val).filter(k => typeof val[k] === "object").map(k => val[k])
+  if (!surveys) {
+    return {
+      surveys: initialSurveys,
+      state: undefined,
+    }
+  } else if (!active) {
+    return { state: undefined, surveys: { active, surveys } }
+  } else {
+    return {
+      state: surveys.find(s => s.id === active) || initialTestState,
+      surveys: { active, surveys } || initialSurveys,
+    }
+  }
+}
+
 let dispatcher: (event: TestEvent) => void = null
-let testLoop = new Rx.Observable<TestEvent>(observer => {
+let dispatchObservable = new Rx.Observable<TestEvent>(observer => {
   dispatcher = (e) => {
     observer.next(e)
-    AnalyticsObserver.next(e)
+    if (e.type !== "tick") {
+      AnalyticsObserver.next(e)
+    }
   }
 })
-  .do(console.log)
-  .scan((state: TestState, event: TestEvent): TestState => {
-    if (event.type === "start") {
-      return Object.assign({}, States.get(event.surveyId), { id: event.surveyId, paused: false, started: new Date() })
-    }
-    if (event.type === "answer") {
-      let data = Object.assign({}, state.data)
-      data[event.path[0]] = event.value
-      return Object.assign({}, state, { data })
-    }
-    if (event.type === "goto") {
-      return Object.assign({}, state, { active: event.path })
-    }
-    if (event.type === "pause") {
-      return Object.assign({ paused: true }, state, { paused: true })
-    }
-    if (event.type === "pass") {
-      let data = Object.assign({}, state.data)
-      data[event.question] = Object.assign({}, data[event.question], { passed: true })
-      return Object.assign({}, state, { data })
-    }
-    return state
-  }, initialTestState)
-  .startWith(initialTestState)
-  .do((s: TestState) => { States.save(s) })
-  .do(console.log)
-  .map((state: TestState) => {
+
+let testLoop = inputData
+  .switchMap((snapshot: firebase.database.DataSnapshot) => {
+    return dispatchObservable
+      .map(event => ({ event, snapshot: undefined }))
+      .do(d => handleTestEvent(snapshotToState(snapshot).surveys, d.event, snapshot))
+      .startWith({ snapshot, event: undefined })
+  })
+  .filter(input => "snapshot" in input && input.snapshot)
+  .map(({ snapshot }) => snapshotToState(snapshot))
+  .startWith({ state: undefined, surveys: initialSurveyState })
+  .map(({ state, surveys }) => {
     let screen: Screen
-    let screens = [general, generalLangs, generalRpExperience, testScreen(Rx.Scheduler.async), doneScreen]
-    if (state.paused) {
+    let screens = [introScreen, general, generalLangs, generalRpExperience, testScreen(Rx.Scheduler.async), doneScreen]
+    if (!state || !surveys.active) {
       screen = introScreen
     } else {
       screen = screens.find(s => s.isActive(state))
@@ -92,30 +174,20 @@ let testLoop = new Rx.Observable<TestEvent>(observer => {
       return Rx.Observable.never()
     }
 
-    /*
-h("div#menufold-static.menufold.noflex", [
-  h("a.brand.left", [
-    h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
-    h("span", "Survey"),
-  ]),
-  h("div.left.flex", { attrs: { id: "menu" } }, [
-    h("button.btn", { on: { click: () => { } } }, "Back"),
-  ]),
-  h("div", { style: { flex: "1" } }),
-]),    
-     */
-    let { dom } = screen.render(state, e => dispatcher(e))
+    let { dom } = screen.render(state, e => dispatcher(e), surveys, screens)
 
     if (!screen.hasMenu) {
       return dom.map(nodes => h("div.tool.flexy.flexy-v.rel", [
         h("div#menufold-static.menufold", [
-          h("a.brand.left", { attrs: { href: "#" } }, [
-            h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
-            "RxFiddle" as any as VNode,
-          ]),
+          h("a.brand.left", {
+            attrs: { href: "#" },
+            on: { click: () => dispatcher({ type: "pause" }) },
+          }, [
+              h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
+              "RxFiddle" as any as VNode,
+            ]),
           h("div", { style: { flex: "1" } }),
           h("div.right", [
-            ...testMenu(state, t => dispatcher(t)),
             ...rightMenuLinks,
             h("button.btn.helpbutton", "Help"),
             overlay(),
@@ -128,8 +200,6 @@ h("div#menufold-static.menufold.noflex", [
     return dom
   })
   .switch()
-
-
 
 function menu(runner?: Runner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
@@ -149,10 +219,10 @@ let rightMenuLinks = [
   h("a.btn", { attrs: { href: "http://reactivex.io", target: "_blank" } }, "RxJS docs"),
 ]
 
-function formatQuestion(sample: Sample, time: Rx.Observable<number>, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
-  return sample.renderQuestion(dispatcher).flatMap(render =>
+function formatQuestion(state: TestState, sample: Sample, time: Rx.Observable<number>, dispatch: (event: TestEvent) => void, screens: Screen[], current: Screen): Rx.Observable<VNode> {
+  return sample.renderQuestion(state, dispatch).flatMap(render =>
     time.map(t => h("div.question-bar", h("div.question-wrapper", {
-      key: sample.question.toString(), style: {
+      key: sample.id.toString(), style: {
         "margin-top": "-100%",
         delayed: { "margin-top": "0%" },
         remove: { "margin-top": "-100%" },
@@ -162,30 +232,54 @@ function formatQuestion(sample: Sample, time: Rx.Observable<number>, dispatcher:
           formatSeconds((sample.timeout || 600) - t),
         ]),
         h("h1", "Question"),
-        render,
+        h("form.q", {
+          on: {
+            submit: (e: any) => {
+              if (sample.handleSubmit) {
+                sample.handleSubmit(state, dispatch, e.target.elements)
+              }
+              e.preventDefault()
+              return false
+            },
+          },
+        }, [
+            render,
+            h("div.buttons", { style: { "margin-top": "10px", "margin-bottom": "0" } }, [
+              h("a.btn.inverse", { attrs: { role: "button" }, on: { click: () => previous(screens, current).goto(state, dispatch) }, style: { "margin-right": "5px" } }, "Back"),
+              h("a.btn.inverse", { attrs: { role: "button" }, on: { click: () => dispatch({ type: "pause" }) }, style: { "margin-right": "5px" } }, "Pause"),
+              h("a.btn.inverse", {
+                attrs: { role: "button", title: "Skip to next question" },
+                on: { click: () => confirm("Are you sure you to pass on this question?") && dispatcher({ question: sample.id, type: "pass" }) },
+                style: { "margin-right": "5px" },
+              }, "Pass"),
+              h("input.btn.inverse", { attrs: { type: "submit" } }, "Submit"),
+            ]),
+          ]),
       ]))
     ))
 }
 
-function testMenu(state: TestState, dispatcher: (event: TestEvent) => void, index?: number) {
-  return [
-    state && state.paused ? undefined : h("button.btn", {
-      on: { click: () => dispatcher({ type: "pause" }) },
-    }, "Pause"),
-    typeof index === "number" ? h("button.btn", {
-      attrs: { title: "Skip to next question" },
-      on: { click: () => confirm("Are you sure you to pass on this question?") && dispatcher({ type: "pass", question: index }) },
-    }, "Pass") : undefined,
-  ]
-}
-
 let doneScreen: Screen = {
+  goto: () => { },
   isActive: (state) => true,
   progress: () => ({ max: 0, done: 0 }),
   render: (state, dispatcher) => ({
-    dom: Rx.Observable.of(h("div", ["Done", h("a.btn", {
-      on: { click: () => dispatcher({ type: "pause" }) },
-    }, "Back")])),
+    dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
+      h("h2", "Done"),
+      h("p", "Thank you very much for filling in this survey."),
+      h("p", [
+        "RxFiddle is live at ",
+        h("a", { attrs: { href: "http://rxfiddle.net" } }, "rxfiddle.net"),
+        ". If you like this survey or RxFiddle please Star ",
+        h("a", { attrs: { href: "https://github.com/hermanbanken/RxFiddle" } }, "the project on Github"),
+        ". For any issues you can make an Issue on the Github page.",
+      ]),
+      h("a.btn", {
+        on: { click: () => dispatcher({ type: "pause" }) },
+      }, "Back"),
+      h("p", "Your data (sorry, no neat view yet):"),
+      h("pre", JSON.stringify(state, null, 2)),
+    ])))),
   }),
 }
 
@@ -193,88 +287,99 @@ let useRxFiddle = true
 
 /* Screen containing RxFiddle */
 let testScreen = (scheduler: IScheduler): Screen => ({
-  isActive: (state) => state.active[0] === "test" && samples.some((s, index) => !state.data[index] || !(state.data[index].passed || state.data[index].completed)),
-  progress: () => ({ max: 0, done: 0 }),
+  goto(state, dispatch) { dispatch({ path: ["test"], surveyId: state.id, type: "goto" }) },
+  isActive(state) {
+    return !state.active ||
+      state.active[0] === "test" &&
+      samples.some((s, index) => !state.data || !state.data[s.id] || !(state.data[s.id].passed || state.data[s.id].completed))
+  },
+  progress() { return { max: 0, done: 0 } },
   hasMenu: true,
-  render: (state, dispatcher) => ({
-    dom: Rx.Observable.defer(() => {
-      let index = samples.findIndex((s, index) => !state.data[index] || !(state.data[index].passed || state.data[index].completed))
-      let sample = samples[index]
-      let collector = DataSource(sample)
+  render(state, dispatch, _, screens) {
+    return {
+      dom: Rx.Observable.defer(() => {
+        let index = samples.findIndex((s, index) => !state.data || !state.data[s.id] || !(state.data[s.id].passed || state.data[s.id].completed))
+        let sample = samples[index]
+        let collector = DataSource(state, sample)
 
-      let question = Rx.Observable.interval(1000, scheduler)
-        .startWith(0)
-        .take(sample.timeout)
-        .let(time => formatQuestion(sample, time, dispatcher))
+        let question = Rx.Observable.interval(1000, scheduler)
+          .startWith(0)
+          .take(sample.timeout)
+          .let(time => formatQuestion(state, sample, time, dispatch, screens, this))
 
-      let active = Rx.Observable
-        .defer(() => {
-          if (useRxFiddle) {
-            let vis = new RxFiddleVisualizer(new Grapher(collector.data))
-            return vis.stream(AnalyticsObserver)
-          } else {
-            let vis = new ConsoleVisualizer(collector.data as ConsoleRunner)
-            return vis.dom.map(dom => ({ dom, timeSlider: h("div") }))
-          }
-        })
-        .catch(errorHandler)
-        .retry()
-        .combineLatest(
-        question,
-        collector.vnode,
-        collector.runner.state,
-        (visualizer, questiondom, input) => [
-          questiondom,
-          vboxo({ class: "rel" },
-            h("div#menufold-static.menufold.belowquestion", [
-              h("a.brand.left", { attrs: { href: "#" } }, [
-                h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
-                "RxFiddle" as any as VNode,
+        let active = Rx.Observable
+          .defer(() => {
+            if (state.mode === "rxfiddle") {
+              let vis = new RxFiddleVisualizer(new Grapher(collector.data))
+              return vis.stream(AnalyticsObserver)
+            } else {
+              let vis = new ConsoleVisualizer(collector.data as ConsoleRunner)
+              return vis.dom.map(dom => ({ dom, timeSlider: h("div") }))
+            }
+          })
+          .catch(errorHandler)
+          .retry()
+          .combineLatest(
+          question,
+          collector.vnode,
+          collector.runner.state,
+          (visualizer, questiondom, input) => [
+            questiondom,
+            vboxo({ class: "rel" },
+              h("div#menufold-static.menufold.belowquestion", [
+                h("a.brand.left", {
+                  attrs: { href: "#" },
+                  on: { click: () => dispatch({ type: "pause" }) },
+                }, [
+                    h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
+                    "RxFiddle" as any as VNode,
+                  ]),
+                menu(collector.runner, collector.editor),
+                h("div", { style: { flex: "1" } }),
+                h("div.right", [
+                  ...rightMenuLinks,
+                  h("button.btn.helpbutton", "Help"),
+                  overlay(),
+                ]),
               ]),
-              menu(collector.runner, collector.editor),
-              h("div", { style: { flex: "1" } }),
-              h("div.right", [
-                ...testMenu(state, dispatcher, index),
-                ...rightMenuLinks,
-                h("button.btn.helpbutton", "Help"),
-                overlay(),
-              ]),
-            ]),
-            hboxo({ class: "editor-visualizer" }, Resizer.h(
-              "rxfiddle/editor+rxfiddle/inspector",
-              input,
-              vboxo({ class: "viewer-panel" }, visualizer.dom)
-            )),
-          ),
-        ])
+              hboxo({ class: "editor-visualizer" }, Resizer.h(
+                "rxfiddle/editor+rxfiddle/inspector",
+                input,
+                vboxo({ class: "viewer-panel" }, visualizer.dom)
+              )),
+            ),
+          ])
 
-      let outOfTime: Rx.Observable<VNode[]> = Rx.Observable.of(sample.timeout)
-        .let(time => formatQuestion(sample, time, dispatcher))
-        .map((render) => [
-          render,
-          h("div.center", h("div", { style: { padding: "3em" } }, [
-            h("h2", "time's up"),
-            h("a.btn", { on: { click: () => dispatcher({ type: "pass", question: index }) } }, "Continue with next question"),
-            h("p.gray", { style: { width: "21em", "margin-left": "auto", "margin-right": "auto", color: "gray" } },
-              `Don't worry. After the survey, you may spend all the time you
+        let outOfTime: Rx.Observable<VNode[]> = Rx.Observable.of(sample.timeout)
+          .let(time => formatQuestion(state, sample, time, dispatch, screens, this))
+          .map((render) => [
+            render,
+            h("div.center", h("div", { style: { padding: "3em" } }, [
+              h("h2", "time's up"),
+              h("p.gray", { style: { width: "21em", "margin-left": "auto", "margin-right": "auto", color: "gray" } },
+                `No problem, just continue with the next question.`),
+              h("a.btn", { on: { click: () => dispatch({ type: "pass", question: sample.id }) } }, "Continue with next question"),
+              h("p.gray", { style: { width: "21em", "margin-left": "auto", "margin-right": "auto", color: "gray" } },
+                `Don't worry. After the survey, you may spend all the time you
                want in this tool. Your questions, your code and your answers
                will be available at the end of the survey, if you wish.`),
-          ])),
-        ])
+            ])),
+          ])
 
-      return Rx.Observable.of(active)
-        .merge(Rx.Observable.timer(1000 * sample.timeout, scheduler).map(_ => outOfTime))
-        .switch()
-        .map(nodes => h("div.tool.flexy.flexy-v.rel", nodes))
-    }),
-  }),
+        return Rx.Observable.of(active)
+          .merge(Rx.Observable.timer(1000 * sample.timeout, scheduler).map(_ => outOfTime))
+          .switch()
+          .map(nodes => h("div.tool.flexy.flexy-v.rel", nodes))
+      }),
+    }
+  },
 })
 
-function DataSource(sample: Sample) {
+function DataSource(state: TestState, sample: Sample) {
   let editor = new CodeEditor(sample.code.trim(), sample.codeRanges && sample.codeRanges(), sample.lineClasses && sample.lineClasses())
   let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
   let runner: Runner
-  if (useRxFiddle) {
+  if (state.mode === "rxfiddle") {
     runner = new RxRunner(RxJS4.runnerConfig, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
   } else {
     let config = { libraryFile: RxJS4.runnerConfig.libraryFile, workerFile: "dist/worker-console-experiment.bundle.js" }
@@ -288,28 +393,10 @@ function DataSource(sample: Sample) {
   }
 }
 
-let scheduler = Rx.Scheduler.async
-//  (window as any).scheduler = new Rx.TestScheduler()
-// scheduler.advanceTo(Date.now())
-// setInterval(() => scheduler.advanceBy(200), 200)
-
-let screens = [
-  // introScreen, 
-  // generalScreens,
-  testScreen(scheduler),
-]
-
 if (typeof window !== "undefined") {
   let mainVN = document.querySelector("#experiment") as VNode | HTMLBodyElement
-  // Rx.Observable
-  // .of(...screens)
-  // .concatMap(_ => _.dom)
-  // .subscribe(vnode => {
-  //   mainVN = patch(mainVN, h("div#screens", [vnode]))
-  // })
-
   testLoop
     .subscribe(vnode => {
       mainVN = patch(mainVN, h("div#screens", vnode))
-    })
+    }, e => console.warn(e))
 }
