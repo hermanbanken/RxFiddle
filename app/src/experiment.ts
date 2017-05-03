@@ -130,7 +130,8 @@ function handleTestEvent(state: SurveyState, event: TestEvent, data: database.Da
 function snapshotToState(snapshot: firebase.database.DataSnapshot): { surveys: SurveyState, state: TestState } {
   let val = snapshot.val()
   let active: string = val && val.active
-  let initialSurveys = Object.assign({}, initialSurveyState, { loading: false })
+  let initialSurveys = Object.assign({}, initialSurveyState)
+  initialSurveys.loading = false
   let surveys: TestState[] = val && Object.keys(val).filter(k => typeof val[k] === "object").map(k => val[k])
   if (!surveys) {
     return {
