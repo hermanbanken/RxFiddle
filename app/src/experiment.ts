@@ -66,26 +66,31 @@ if (typeof localStorage !== "undefined") {
 let inputData = personal("surveys")
 
 function handleTestEvent(state: SurveyState, event: TestEvent, data: database.DataSnapshot): void {
-  console.log("handle", event)
+  // console.log("handle", event, state, state.surveys.find(s => s.id === state.active))
   if (typeof event === "undefined") {
     return
   }
   if (event.type === "start") {
+    let survey = (state.surveys.find(s => s.id === event.surveyId) || {} as TestState)
+    let uuid = survey.reference || UUID()
+    let mode = survey.mode || Math.random() > .5 ? "rxfiddle" : "console"
     data.ref.update(asObject(new Map<string, any>([
       ["active", event.surveyId],
       [`${event.surveyId}/id`, event.surveyId],
       [`${event.surveyId}/paused`, false],
       [`${event.surveyId}/started`, new Date()],
-      [`${event.surveyId}/reference`, UUID()],
-      [`${event.surveyId}/mode`, Math.random() > .5 ? "rxfiddle" : "console"],
+      [`${event.surveyId}/reference`, uuid],
+      [`${event.surveyId}/mode`, mode],
     ])))
   }
   if (event.type === "answer") {
-    let test = state.surveys.find(s => s.id === state.active);
+    let test = state.surveys.find(s => s.id === state.active)
     let existing = (test.data || {})[event.path[0]] || {}
-    data.ref.update(asObject(new Map<string, any>([
-      [`${state.active}/data/${event.path[0]}`, Object.assign({}, existing, event.value)],
-    ])))
+    let update = new Map<string, any>([
+      [`${test.id}/data/${event.path[0]}`, typeof event.value === "object" ? Object.assign({}, existing, event.value) : event.value],
+    ])
+    // console.log(update)
+    data.ref.update(asObject(update))
   }
   if (event.type === "goto") {
     data.ref.update(asObject(new Map<string, any>([
