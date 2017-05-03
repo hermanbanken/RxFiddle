@@ -1,15 +1,16 @@
-import { personal, signin } from "./firebase"
+import { personal, uid, signin } from "./firebase"
 import { database } from "firebase"
-import { Subscriber } from "rxjs"
+import { Subscriber, Observable } from "rxjs"
 
 signin()
 
 let queue = [] as any[]
 let snapshot: database.DataSnapshot
-personal("logs").subscribe(snap => {
-  snapshot = snap
-  queue.splice(0, queue.length).forEach(m => snap.ref.push().set(m))
-})
+uid().switchMap(u => u === null ? Observable.empty<database.DataSnapshot>() : personal("logs"))
+  .subscribe(snap => {
+    snapshot = snap
+    queue.splice(0, queue.length).forEach(m => snap.ref.push().set(m))
+  })
 
 let AnalyticsObserver: Subscriber<any> = Subscriber.create(
   (m) => {

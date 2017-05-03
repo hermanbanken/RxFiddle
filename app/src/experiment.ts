@@ -21,7 +21,7 @@ import { IScheduler } from "rxjs/Scheduler"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 import { RxJS4 } from "./languages"
-import { personal, signin, user } from "./firebase"
+import { personal, signin, user, uid } from "./firebase"
 import { database } from "firebase"
 import debug from "./rx-operator-debug"
 
@@ -63,7 +63,8 @@ if (typeof localStorage !== "undefined") {
   }
 }
 
-let inputData = personal("surveys")
+let inputData = uid().switchMap(u => u === null ? Rx.Observable.empty<database.DataSnapshot>() : personal("surveys"))
+
 
 function handleTestEvent(state: SurveyState, event: TestEvent, data: database.DataSnapshot): void {
   // console.log("handle", event, state, state.surveys.find(s => s.id === state.active))
