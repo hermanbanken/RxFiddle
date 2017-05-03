@@ -42,7 +42,8 @@ function asObject(map: Map<string, any>): any {
 // track all events
 
 let initialSurveyState: SurveyState = {
-  surveys: []
+  surveys: [],
+  loading: true
 }
 
 let initialTestState: TestState = {
@@ -75,6 +76,8 @@ function handleTestEvent(state: SurveyState, event: TestEvent, data: database.Da
       [`${event.surveyId}/id`, event.surveyId],
       [`${event.surveyId}/paused`, false],
       [`${event.surveyId}/started`, new Date()],
+      [`${event.surveyId}/reference`, UUID()],
+      [`${event.surveyId}/mode`, Math.random() > .5 ? "rxfiddle" : "console"],
     ])))
   }
   if (event.type === "answer") {
@@ -98,6 +101,16 @@ function handleTestEvent(state: SurveyState, event: TestEvent, data: database.Da
       [`${test.id}/data/${event.question}/passed`, true],
     ])))
   }
+  if (event.type === "reference") {
+    let test = state.surveys.find(s => s.id === state.active)
+    let map = new Map<string, any>([
+      [`${test.id}/reference`, event.ref],
+    ])
+    if (!isNaN(event.ref as any)) {
+      map.set(`${test.id}/mode`, parseInt(event.ref, 10) % 2 === 0 ? "rxfiddle" : "console")
+    }
+    data.ref.update(asObject(map))
+  }
 
   if (event.type === "tick") {
     //// TODO log passing of time
@@ -112,13 +125,20 @@ function handleTestEvent(state: SurveyState, event: TestEvent, data: database.Da
 function snapshotToState(snapshot: firebase.database.DataSnapshot): { surveys: SurveyState, state: TestState } {
   let val = snapshot.val()
   let active: string = val && val.active
+  let initialSurveys = Object.assign({}, initialSurveyState, { loading: false })
   let surveys: TestState[] = val && Object.keys(val).filter(k => typeof val[k] === "object").map(k => val[k])
   if (!surveys) {
-    return { surveys: initialSurveyState, state: undefined }
+    return {
+      surveys: initialSurveys,
+      state: undefined,
+    }
   } else if (!active) {
     return { state: undefined, surveys: { active, surveys } }
   } else {
-    return { state: surveys.find(s => s.id === active) || initialTestState, surveys: { active, surveys } || initialSurveyState }
+    return {
+      state: surveys.find(s => s.id === active) || initialTestState,
+      surveys: { active, surveys } || initialSurveys,
+    }
   }
 }
 
@@ -280,7 +300,7 @@ let testScreen = (scheduler: IScheduler): Screen => ({
       dom: Rx.Observable.defer(() => {
         let index = samples.findIndex((s, index) => !state.data || !state.data[s.id] || !(state.data[s.id].passed || state.data[s.id].completed))
         let sample = samples[index]
-        let collector = DataSource(sample)
+        let collector = DataSource(state, sample)
 
         let question = Rx.Observable.interval(1000, scheduler)
           .startWith(0)
@@ -289,7 +309,7 @@ let testScreen = (scheduler: IScheduler): Screen => ({
 
         let active = Rx.Observable
           .defer(() => {
-            if (useRxFiddle) {
+            if (state.mode === "rxfiddle") {
               let vis = new RxFiddleVisualizer(new Grapher(collector.data))
               return vis.stream(AnalyticsObserver)
             } else {
@@ -355,11 +375,11 @@ let testScreen = (scheduler: IScheduler): Screen => ({
   },
 })
 
-function DataSource(sample: Sample) {
+function DataSource(state: TestState, sample: Sample) {
   let editor = new CodeEditor(sample.code.trim(), sample.codeRanges && sample.codeRanges(), sample.lineClasses && sample.lineClasses())
   let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
   let runner: Runner
-  if (useRxFiddle) {
+  if (state.mode === "rxfiddle") {
     runner = new RxRunner(RxJS4.runnerConfig, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)
   } else {
     let config = { libraryFile: RxJS4.runnerConfig.libraryFile, workerFile: "dist/worker-console-experiment.bundle.js" }

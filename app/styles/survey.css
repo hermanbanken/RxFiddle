@@ -359,3 +359,9 @@ dt {
 #screens .buttons {
   margin-bottom: 1em;
 }
+
+input.ref {
+  font-size: 1em;
+  width: 100%;
+  margin: 5px 0;
+}

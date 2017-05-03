@@ -9,12 +9,15 @@ import { VNode } from "snabbdom/vnode"
 export type SurveyState = {
   active?: string
   surveys: TestState[]
+  loading?: boolean
 }
 
 export type TestState = {
   id: string
   paused: boolean
   started?: Date
+  reference?: string
+  mode?: "console" | "rxfiddle"
   active: string[]
   data?: { [testId: string]: any }
 }
@@ -26,7 +29,8 @@ export type TestEvent =
   { type: "next", surveyId: string, fromActive: string[] } |
   { type: "pause" } |
   { type: "pass", question: string } |
-  { type: "tick", question: string }
+  { type: "tick", question: string } |
+  { type: "reference", ref: string }
 
 export type Progress = {
   max: number
@@ -141,7 +145,7 @@ export let introScreen: Screen = {
   isActive: (state) => !state || state.paused,
   progress: (state) => ({ max: 2, done: state.paused ? 0 : 2 }),
   render: (state, dispatcher, surveys) => {
-    let buttons = surveys.surveys
+    let buttons = surveys.loading ? [h("a.btn", "Connecting to Firebase...")] : surveys.surveys
       .concat(surveys.surveys.some(s => !s.started) ? [] : [States.create()])
       .map(survey => {
         let button = mkButton(survey.started ?
@@ -164,7 +168,7 @@ export let introScreen: Screen = {
         h("ul", [
           h("li", `What's in it for you: learn a new way of debugging Reactive Programs!`),
           h("li", `What's in it for me: you help me graduate!`),
-          h("li", `Estimated time required: 60 minutes`),
+          h("li", `Estimated time required: 30-60 minutes`),
           h("li", [
             `Used Reactive Programming implementation: RxJS 4.1`,
             "(", h("a", { attrs: { href: "faq.html#rxversion" } }, "why"), ")",
@@ -204,8 +208,19 @@ export let general: Screen = {
     let prevButton = mkButton("Prev", () => previous(screens, this).goto(state, dispatcher))
     let nextButton = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_langs"] }))
 
+    let setRef = (val: string) => {
+      dispatcher({ type: "reference", ref: val.toString() })
+    }
+
     return {
       dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
+        h("div.control", [
+          h("label", "Survey reference number:"),
+          h("input.ref", {
+            attrs: { placeholder: "A reference number", value: state.reference },
+            on: { change: (e: Event) => setRef((e.target as any).value) },
+          }),
+        ]),
         h("p", `First some general questions to get an understanding
             of your experience (without Reactive Programming).`),
         age.dom,
