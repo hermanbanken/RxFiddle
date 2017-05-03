@@ -202,7 +202,7 @@ let rightMenuLinks = [
 function formatQuestion(state: TestState, sample: Sample, time: Rx.Observable<number>, dispatch: (event: TestEvent) => void, screens: Screen[], current: Screen): Rx.Observable<VNode> {
   return sample.renderQuestion(state, dispatch).flatMap(render =>
     time.map(t => h("div.question-bar", h("div.question-wrapper", {
-      key: sample.question.toString(), style: {
+      key: sample.id.toString(), style: {
         "margin-top": "-100%",
         delayed: { "margin-top": "0%" },
         remove: { "margin-top": "-100%" },

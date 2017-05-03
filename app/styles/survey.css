@@ -252,12 +252,13 @@ form .control label, form .control input {
   display: table-cell;
 }
 
-form .control input {
+form .control input, form .control input[type="text"] {
   box-sizing: content-box;
   font-size: 1.2em;
   border: none;
   padding: 4px;
   margin: 2px;
+  background: white;
 }
 
 .mb {

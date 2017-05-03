@@ -14,7 +14,8 @@ export type Sample = {
   renderCode?(input?: string): { chunks: string[] }
   codeRanges?(): Ranges
   lineClasses?(): LineClasses
-  handleSubmit?: (state: TestState, dispatcher: (event: TestEvent) => void, data: any) => boolean
+  checker: (data: any) => boolean
+  handleSubmit?: (state: TestState, dispatcher: (event: TestEvent) => void, data: any) => void
 }
 
 export type CodeChunk = { run: string, visual: string } | string
@@ -26,7 +27,6 @@ export type SampleData<T> = {
   question: string,
   checker: (answers: T) => boolean,
   timeout: number,
-  answers?: T,
 }
 
 class DefaultSample<T> implements Sample {
@@ -38,6 +38,7 @@ class DefaultSample<T> implements Sample {
         .map(_ => typeof _ === "object" ? _.visual : _)
         .join("\n")
   }
+  public get checker() { return this.data.checker }
   public get question() { return this.data.question }
   public get timeout() { return this.data.timeout }
   protected data: SampleData<T>
@@ -49,9 +50,88 @@ class DefaultSample<T> implements Sample {
   }
 }
 
-class BmiSample<T> extends DefaultSample<T> {
-  constructor(data: SampleData<T>) {
+class DummySample extends DefaultSample<void> {
+  constructor(data: SampleData<void>) {
     super(data)
+  }
+
+  public get checker() {
+    return (value: any) => true
+  }
+
+  public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+    return Rx.Observable.of(h("div", [
+      h("div.control", [
+        h("label", `If you have familiarized yourself with the tool, hit Submit`),
+      ]),
+    ]))
+  }
+
+  public handleSubmit(state: TestState, dispatcher: (e: TestEvent) => void, data: any) {
+    dispatcher({
+      path: [this.id],
+      type: "answer",
+      value: {
+        completed: true,
+      },
+    })
+  }
+}
+
+class GenerateSample extends DefaultSample<{ value1: number, value2: number }> {
+  constructor(data: SampleData<{ value1: number, value2: number }>) {
+    super(data)
+  }
+
+  public get checker() {
+    return (value: any) => value.value1 === 257 && value.value2 === 513
+  }
+
+  public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+    return Rx.Observable.of(h("div", [
+      h("p", `What are the last 2 values arriving at the \`survey.render\` function?`),
+      h("div.control", [
+        h("label", `Values:`),
+        h("input", {
+          attrs: {
+            name: "value1", placeholder: "enter a number", type: "number",
+            value: elvis(state, ["data", this.id, "value1"])[0],
+          },
+        }), ",",
+        h("input", {
+          attrs: {
+            name: "value2",
+            placeholder: "enter a number",
+            step: "any", type: "number",
+            value: elvis(state, ["data", this.id, "value2"])[0],
+          },
+        }),
+      ]),
+    ]))
+  }
+
+  public handleSubmit(state: TestState, dispatcher: (e: TestEvent) => void, data: any) {
+    let value = {
+      completed: false,
+      value1: parseInt(data.value1.value, 10) || null,
+      value2: parseInt(data.value2.value, 10) || null,
+    }
+    value.completed = this.checker(value)
+    dispatcher({
+      path: [this.id],
+      type: "answer",
+      value,
+    })
+  }
+}
+
+class BmiSample extends DefaultSample<{ count: number, last: number }> {
+  constructor(data: SampleData<{ count: number, last: number }>) {
+    super(data)
+  }
+
+  public get checker() {
+    return (value: any) => value.count === 8 && Math.round(value.last) === Math.round(23.67)
   }
 
   public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
@@ -61,7 +141,7 @@ class BmiSample<T> extends DefaultSample<T> {
         h("input", {
           attrs: {
             name: "count", placeholder: "enter a number", type: "number",
-            value: elvis(state, ["data", "sample_bmi", "count"])[0],
+            value: elvis(state, ["data", this.id, "count"])[0],
           },
         }),
       ]),
@@ -72,8 +152,8 @@ class BmiSample<T> extends DefaultSample<T> {
             name: "last",
             placeholder: "enter nearest integer BMI value",
             step: "any", type: "number",
-            value: elvis(state, ["data", "sample_bmi", "last"])[0],
-          }
+            value: elvis(state, ["data", this.id, "last"])[0],
+          },
         }),
       ]),
     ]))
@@ -85,14 +165,310 @@ class BmiSample<T> extends DefaultSample<T> {
       count: parseInt(data.count.value, 10) || null,
       last: parseFloat(data.last.value) || null,
     }
-    value.completed = value.count === 7 && Math.round(value.last) === Math.round(23.67)
+    value.completed = this.checker(value)
     dispatcher({
-      path: ["sample_bmi"],
+      path: [this.id],
       type: "answer",
       value,
     })
   }
 }
+
+class TimeBugSample extends DefaultSample<{ count: number, last: number }> {
+  constructor(data: SampleData<{ count: number, last: number }>) {
+    super(data)
+  }
+
+  public get checker() {
+    return (value: any) => value.year === 2039
+  }
+
+  public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+    return Rx.Observable.of(h("div", [
+      h("div.control", [
+        h("label", `In which year does the lottery server fail?`),
+        h("input", {
+          attrs: {
+            name: "year", placeholder: "enter a number", type: "number",
+            value: elvis(state, ["data", this.id, "year"])[0],
+          },
+        }),
+      ]),
+    ]))
+  }
+
+  public handleSubmit(state: TestState, dispatcher: (e: TestEvent) => void, data: any) {
+    let value = {
+      completed: false,
+      year: parseInt(data.year.value, 10) || null,
+    }
+    value.completed = this.checker(value)
+    dispatcher({
+      path: [this.id],
+      type: "answer",
+      value,
+    })
+  }
+}
+
+class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, replaced_with: string }> {
+  constructor(data: SampleData<{ firstresult: string, replaced: string, replaced_with: string }>) {
+    super(data)
+  }
+
+  public get checker() {
+    return (value: any) =>
+      typeof value.firstresult === "string" && value.firstresult.toLowerCase() === "them" &&
+      typeof value.firstresult === "string" && value.replaced.toLowerCase() === "flatmap" &&
+      typeof value.firstresult === "string" && value.replaced_with.toLowerCase() === "switchmap"
+  }
+
+  public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
+    return Rx.Observable.of(h("div", { style: { "max-width": "500px" } }, [
+      h("p", `The example below is a piece of a movie search website.
+              You can enter a movie name and the site looks it up in a database.
+              John - a tester - searches for "The Titanic", however he sees al 
+              kinds of other results too.`),
+      h("div.control", [
+        h("label", `After he's done typing, grapped a coffee,
+                    what is the movie at the top of the result list?`),
+        h("input", {
+          attrs: {
+            name: "firstresult", placeholder: "", type: "text",
+            value: elvis(state, ["data", this.id, "firstresult"])[0],
+          },
+        }),
+      ]),
+      h("div.control", [
+        h("label", `What operator do you need to replace for correct behaviour?`),
+        h("input", {
+          attrs: {
+            name: "replaced", placeholder: "", type: "text",
+            value: elvis(state, ["data", this.id, "replaced"])[0],
+          },
+        }),
+      ]),
+      h("div.control", [
+        h("label", `What operator should take it's place?`),
+        h("input", {
+          attrs: {
+            name: "replaced_with", placeholder: "", type: "text",
+            value: elvis(state, ["data", this.id, "replaced_with"])[0],
+          },
+        }),
+      ]),
+    ]))
+  }
+
+  public handleSubmit(state: TestState, dispatcher: (e: TestEvent) => void, data: any) {
+    let value = {
+      completed: false,
+      firstresult: data.firstresult.value,
+      replaced: data.replaced.value,
+      replaced_with: data.replaced_with.value,
+    }
+    value.completed = this.checker(value)
+    dispatcher({
+      path: [this.id],
+      type: "answer",
+      value,
+    })
+  }
+}
+
+let samples: Sample[] = [
+  new DummySample({
+    id: "sample_dummy",
+    checker: () => { return true },
+    code: `
+//// First uncomment the next line and hit "Run":
+// Rx.Observable.of(1, 2, 3).map(x => x * 2).subscribe(x => console.log(x))
+//// Try to find the data in the tool on the right
+
+//// Then uncomment the next line and hit "Stop" then "Run" again:
+// Rx.Observable.interval(1000).map(x => x * 2).subscribe(x => console.log(x))
+//// See how it is live updating? Hit "Stop" to cancel execution
+
+//// Then uncomment the following lines and hit "Run" again:
+// var a = Rx.Observable.of(1, 2, 3).map(x => x * 2)
+// var b = Rx.Observable.of(1, 2, 3)
+// a.concat(b).subscribe(x => console.log(x))
+//// A structure emerges
+
+//// Now continue with the next question (Submit)
+`,
+    question: ``,
+    timeout: 4 * 60,
+  }),
+  new GenerateSample({
+    id: "sample_generate",
+    checker: (data) => { return true },
+    code: `
+Rx.Observable.generate(
+    2, 
+    x => true, 
+    x => x + (x - 1),
+    x => x
+  )
+  .take(10)
+  .subscribe(survey.render)
+`,
+    question: ``,
+    timeout: 600,
+  }) as Sample,
+  new BmiSample({
+    id: "sample_bmi",
+    checker: () => { return true },
+    code: `
+var weight = survey.bmi.weight;
+var height = survey.bmi.height;
+var bmi = weight.combineLatest(height, (w, h) => w / (h * h));
+
+bmi.subscribe(x => survey.log('BMI is ' + x));
+
+survey.scheduler.advanceTo(10000)`,
+    question: ``,
+    timeout: 600,
+  }),
+  new TimeBugSample({
+    id: "sample_time",
+    checker: () => { return true },
+    code: `
+var start = survey.lottery.start
+var year = 1000 * 3600 * 24 * 365.25
+
+var dates = Rx.Observable
+  .interval(year, survey.scheduler)
+  .map(t => new Date(Date.UTC(t + start, 0, 1)))
+  .map(date => date.toUTCString())
+
+let server = survey.lottery.veryOldServer
+
+dates
+  .flatMap(date => server(date))
+  .subscribe(
+    lottery => survey.noop, 
+    e => survey.noop
+  )
+
+survey.scheduler.advanceTo(1e20)`,
+    question: ``,
+    timeout: 600,
+  }),
+  new ImdbSample({
+    id: "sample_imdb",
+    checker: () => { return true },
+    code: `
+survey.imdb.johnsInput
+  .debounce(50, survey.scheduler)
+  .flatMap(survey.imdb.findMovie)
+  .subscribe(survey.imdb.render)
+
+// getting coffee
+survey.scheduler.advanceTo(1e6)`,
+    question: ``,
+    timeout: 600,
+  }),
+]
+
+export default samples
+
+/* 
+sample:
+var weight = Rx.Observable.of(70, 72, 76, 79, 75);
+var height = Rx.Observable.of(1.76, 1.77, 1.78);
+var bmi = weight.combineLatest(height, (w, h) => w / (h * h));
+bmi.subscribe(x => console.log('BMI is ' + x));
+*/
+
+/* 
+This sample represents a movie search engine. The user types a query and expects a list of movies to be returned.
+However, the results he receives are not what he expects. Please find and fix the bug.
+
+// Inputs
+var queries = /(* Rx.Observable containing search string's *)/
+var searchService = {
+  search: function (query) { /(* *)/ }
+}
+function render(results) { /(* *)/ }
+
+// Sample Program
+queries
+  .debounce(100)
+  .flatMap(query => searchService.search(query))
+  .subscribe(render)
+
+*/
+
+/*
+What are the last 2 values arriving at the `test` function?
+
+Rx.Observable.generate(
+    2, 
+    x => true, 
+    x => x + (x - 1),
+    x => x
+  )
+  .take(10)
+  .subscribe(x => test(x))
+
+*/
+
+/* 
+You are building a snake game using Rx. The users report 
+
+// Inputs
+var clock = /(* Observable representing clock. Ticks every 500ms. *)/
+var keyboardDirection = /(* Observable of { x: 0, 1 or -1, y: 0, 1 or -1 },
+                                      up = { x: 0, y: -1 },
+                                   right = { x: 1, y: 0 }
+                        *)/
+var candyPosition = /(* Observable of candy's location in x y coordinates: { x: number, y: number } *)/
+
+// Sample Program
+function trimLast(list) {
+  return list.slice(0, list.length - 1)
+}
+function willCollide(body, point) {
+  return body.some(b => b.x === point.x && b.y === point.y)
+}
+
+var initialState = { body: [{ x: 0, y: 0 }], points: 0 }
+
+clock
+  .combineLatest(
+    keyboardDirection, candyPosition, 
+    (clock, move, candyPos) => ({ move: move, candyPos: candyPos })
+  )
+  .scan((snake, nextInput) => {
+    var head = {
+      x: snake.body[0].x + move.x, 
+      y: snake.body[0].y + move.y
+    }
+    if(head.x === candyPos.x && head.y === candyPos.y) {
+      return { body: [head, ...snake.body]), points: snake.points + 1 }
+    } else if(willCollide(snake.body, head)) {
+      return initialState
+    } else {
+      return { body: [head, ...trimLast(snake.body)], points: snake.points }
+    }
+  }, initialState)
+
+*/
+
+function trim(input: string, limit: number = -1): string {
+  if (limit < 0) { return input.trim() }
+  if (limit === 0) { return input }
+  if (input[input.length - 1] === "\n") {
+    input = input.substr(0, input.length - 1)
+  }
+  if (input[0] === "\n") {
+    input = input.substr(1)
+  }
+  return limit > 1 ? trim(input, limit - 1) : input
+}
+
+
 
 class AdvancedSample<T> extends DefaultSample<T> {
   public get code() {
@@ -204,25 +580,11 @@ class AdvancedSample<T> extends DefaultSample<T> {
   }
 }
 
-let samples: Sample[] = [
-  new BmiSample({
-    id: "sample_bmi",
-    answers: [],
-    checker: () => { return true },
-    code: `
-var weight = Rx.Observable.of(70, 72, 76, 79, 75);
-var height = Rx.Observable.of(1.76, 1.77, 1.78);
-var bmi = weight.combineLatest(height, (w, h) => w / (h * h));
-bmi.subscribe(x => console.log('BMI is ' + x));`,
-    question: `How many BMI values are logged? What is the last value logged?`,
-    timeout: 600,
-  }),
-
-  new AdvancedSample({
-    id: "sample_search",
-    checker: () => { return true },
-    code: [{
-      run: `
+let oldImdb = new AdvancedSample({
+  id: "sample_search",
+  checker: () => { return true },
+  code: [{
+    run: `
 this.queries = Rx.Observable.of("string")
 this.searchService = {
   search: (query) => Rx.Observable.of("result")
@@ -249,125 +611,10 @@ for(var i = 0; i < 10; i++){
   console.info("Test")
 }
 `],
-    question: `
+  question: `
     This sample represents a movie search engine. 
     The user types a query and expects a list of movies to be returned.
     However, the results he receives are not what he expects.
     Please find and fix the bug.`,
-    timeout: 600,
-  }),
-
-  new DefaultSample({
-    id: "sample_generate",
-    checker: () => { return true },
-    code: `
-Rx.Observable.generate(
-    2, 
-    x => true, 
-    x => x + (x - 1),
-    x => x
-  )
-  .take(10)
-  .subscribe(x => test(x))
-`,
-    question: `What are the last 2 values arriving at the \`test\` function?`,
-    timeout: 600,
-  }),
-]
-
-export default samples
-
-/* 
-sample:
-var weight = Rx.Observable.of(70, 72, 76, 79, 75);
-var height = Rx.Observable.of(1.76, 1.77, 1.78);
-var bmi = weight.combineLatest(height, (w, h) => w / (h * h));
-bmi.subscribe(x => console.log('BMI is ' + x));
-*/
-
-/* 
-This sample represents a movie search engine. The user types a query and expects a list of movies to be returned.
-However, the results he receives are not what he expects. Please find and fix the bug.
-
-// Inputs
-var queries = /(* Rx.Observable containing search string's *)/
-var searchService = {
-  search: function (query) { /(* *)/ }
-}
-function render(results) { /(* *)/ }
-
-// Sample Program
-queries
-  .debounce(100)
-  .flatMap(query => searchService.search(query))
-  .subscribe(render)
-
-*/
-
-/*
-What are the last 2 values arriving at the `test` function?
-
-Rx.Observable.generate(
-    2, 
-    x => true, 
-    x => x + (x - 1),
-    x => x
-  )
-  .take(10)
-  .subscribe(x => test(x))
-
-*/
-
-/* 
-You are building a snake game using Rx. The users report 
-
-// Inputs
-var clock = /(* Observable representing clock. Ticks every 500ms. *)/
-var keyboardDirection = /(* Observable of { x: 0, 1 or -1, y: 0, 1 or -1 },
-                                      up = { x: 0, y: -1 },
-                                   right = { x: 1, y: 0 }
-                        *)/
-var candyPosition = /(* Observable of candy's location in x y coordinates: { x: number, y: number } *)/
-
-// Sample Program
-function trimLast(list) {
-  return list.slice(0, list.length - 1)
-}
-function willCollide(body, point) {
-  return body.some(b => b.x === point.x && b.y === point.y)
-}
-
-var initialState = { body: [{ x: 0, y: 0 }], points: 0 }
-
-clock
-  .combineLatest(
-    keyboardDirection, candyPosition, 
-    (clock, move, candyPos) => ({ move: move, candyPos: candyPos })
-  )
-  .scan((snake, nextInput) => {
-    var head = {
-      x: snake.body[0].x + move.x, 
-      y: snake.body[0].y + move.y
-    }
-    if(head.x === candyPos.x && head.y === candyPos.y) {
-      return { body: [head, ...snake.body]), points: snake.points + 1 }
-    } else if(willCollide(snake.body, head)) {
-      return initialState
-    } else {
-      return { body: [head, ...trimLast(snake.body)], points: snake.points }
-    }
-  }, initialState)
-
-*/
-
-function trim(input: string, limit: number = -1): string {
-  if (limit < 0) { return input.trim() }
-  if (limit === 0) { return input }
-  if (input[input.length - 1] === "\n") {
-    input = input.substr(0, input.length - 1)
-  }
-  if (input[0] === "\n") {
-    input = input.substr(1)
-  }
-  return limit > 1 ? trim(input, limit - 1) : input
-}
+  timeout: 600,
+})
