@@ -25,6 +25,7 @@ export function signin(): Observable<void> {
     .take(1)
     .do(s => console.log("authstate", s))
     .flatMap(state => state === null ? Observable.from(firebase.auth().signInAnonymously()) : Observable.empty<void>())
+    .do(s => console.log("auth", s), e => console.log("auth error", e))
 }
 
 /**

@@ -25,7 +25,7 @@ import { personal, signin, user, uid } from "./firebase"
 import { database } from "firebase"
 import debug from "./rx-operator-debug"
 
-signin()
+signin().subscribe()
 
 function asObject(map: Map<string, any>): any {
   let o = {} as any
