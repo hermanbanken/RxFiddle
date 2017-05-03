@@ -23,6 +23,7 @@ export function init() {
 export function signin(): Observable<void> {
   return new Observable(o => firebase.auth().onAuthStateChanged(o.next.bind(o), o.error.bind(o), o.complete.bind(o)))
     .take(1)
+    .do(s => console.log("authstate", s))
     .flatMap(state => state === null ? Observable.from(firebase.auth().signInAnonymously()) : Observable.empty<void>())
 }
 

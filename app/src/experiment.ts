@@ -25,6 +25,8 @@ import { personal, signin, user, uid } from "./firebase"
 import { database } from "firebase"
 import debug from "./rx-operator-debug"
 
+signin()
+
 function asObject(map: Map<string, any>): any {
   let o = {} as any
   for (let kv of map) {
