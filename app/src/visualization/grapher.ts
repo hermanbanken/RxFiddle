@@ -46,6 +46,7 @@ function readerToGraph(reader: TreeReader): Graphs {
   graph = swapSubjectAsObservables(graph)
   graph = contractSubjectObservables(graph)
   graph = stripEndPointSafeSubscribers(graph)
+  graph = moveOuterSubscribersDown(graph)
 
   return ({
     _sequence: Grapher.sequence++,
@@ -94,6 +95,24 @@ function stripEndPointSafeSubscribers(graph: TG): TG {
     }
     return true
   })
+}
+
+/**
+ * Filter: move outer subscriptions one level down (they are merged in below not at the outerSubscriber)
+ */
+function moveOuterSubscribersDown(graph: TG): TG {
+  let replace = graph.edges()
+    .map(e => ({ id: e, label: graph.edge(e) }))
+    .filter(e => e.label.type === "addObserverOuter")
+    .map(e => ({ oldId: e.id, id: { v: e.id.v, w: graph.outEdges(e.id.w)[0].w }, label: e.label }))
+
+  let clone = graph.clone()
+  replace.forEach(({ oldId, id, label }) => {
+    clone.removeEdge(oldId.v, oldId.w)
+    clone.setEdge(id.v, id.w, label)
+  })
+
+  return clone
 }
 
 /**
