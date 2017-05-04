@@ -1,5 +1,14 @@
 let scheduler: Rx.TestScheduler = null
 
+let _ = {
+  get next(): Function {
+    return Rx.ReactiveTest.onNext
+  },
+  get complete(): Function {
+    return Rx.ReactiveTest.onCompleted
+  }
+}
+
 let experimentProto: any = {
   get scheduler() {
     if (scheduler === null) {
@@ -11,9 +20,9 @@ let experimentProto: any = {
   get bmi() {
     return {
       height: this.scheduler.createHotObservable([1.76, 1.77, 1.78]
-        .map((v, i) => Rx.ReactiveTest.onNext(i * 100, v)).concat([Rx.ReactiveTest.onCompleted(400)])),
+        .map((v, i) => _.next(i * 100, v)).concat([_.complete(400)])),
       weight: this.scheduler.createHotObservable([70, 72, 76, 79, 78, 75]
-        .map((v, i) => Rx.ReactiveTest.onNext(i * 100, v)).concat([Rx.ReactiveTest.onCompleted(700)])),
+        .map((v, i) => _.next(i * 100, v)).concat([_.complete(700)])),
     }
   },
   get lottery() {
@@ -22,15 +31,15 @@ let experimentProto: any = {
       veryOldServer: (date: string) => {
         let unix = new Date(date).getTime() / 1000
         if (unix > Math.pow(2, 31)) {
-          throw new Error("Crash!")
+          return Rx.Observable.throw(new Error("Crash!"), this.scheduler)
         } else {
           return this.scheduler.createHotObservable(
-            Rx.ReactiveTest.onNext(0, { msg: "calculating" }),
-            Rx.ReactiveTest.onNext(10, { msg: "Happy new year!", winningTicket: Math.round(Math.random() * 10) }),
-            Rx.ReactiveTest.onCompleted(20)
+            _.next(0, { msg: "calculating" }),
+            _.next(10, { msg: "Happy new year!", winningTicket: Math.round(Math.random() * 10) }),
+            _.complete(20)
           )
         }
-      }
+      },
     }
   },
   get imdb() {
@@ -39,7 +48,7 @@ let experimentProto: any = {
       let messages = []
       for (let i = 0; i <= text.length; i++) {
         t += 30 + Math.random() * 100
-        messages.push(Rx.ReactiveTest.onNext(t, text.slice(0, i)))
+        messages.push(_.next(t, text.slice(0, i)))
       }
       return this.scheduler.createHotObservable(...messages)
     }
@@ -62,8 +71,8 @@ let experimentProto: any = {
         let result = this.imdb._movies.filter((movie: string) => movie.toLowerCase().indexOf(term.toLowerCase()) >= 0)
         let t = 200 * result.length
         return this.scheduler.createHotObservable(
-          Rx.ReactiveTest.onNext(t, result),
-          Rx.ReactiveTest.onCompleted(t + 1)
+          _.next(t, result),
+          _.complete(t + 1)
         )
       },
       inputStream,
