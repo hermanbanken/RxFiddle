@@ -12,13 +12,7 @@ import Grapher from "./visualization/grapher"
 import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
-
-//// Inception:
-// import Instrumentation from "./instrumentation/rxjs-5.x.x/instrumentation"
-// import { TreeCollector } from "./instrumentation/rxjs-5.x.x/collector"
-// import { MessageLogger } from "../test/messageLogger"
-// let i = new Instrumentation(new TreeCollector(new MessageLogger()))
-// i.setup()
+import "./prelude"
 
 const DataSource$: Rx.Observable<{
   data: DataSource,

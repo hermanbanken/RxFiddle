@@ -1,4 +1,4 @@
-import { StackFrame } from "../utils"
+import { StackFrame } from "./stackframe"
 
 export type ICallRecord = ICallStart & ICallEnd
 

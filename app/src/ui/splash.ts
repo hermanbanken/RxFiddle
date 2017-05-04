@@ -45,15 +45,22 @@ let inputs = [
   h("p", [`This is a work in progress. You can help by creating collectors 
           for the JVM, Swift, .NET, Chrome DevTools, etc.`]),
 
-  h("label.launchOption", { style: { cursor: "not-allowed", opacity: 0.3 } }, [
+  h("label.launchOption", [
     h("span", "WebSocket debugger"),
-    h("form", { attrs: { method: "get", style: "display: flex; pointer-events: none" } }, [
+    h("form", { 
+      attrs: { method: "get", style: "display: flex; pointer-events: none" },
+      on: { submit: (e: Event) => {
+        window.location.hash = `#type=ws&url=${(e.target as any).elements.url.value}`
+        e.preventDefault();
+        return false;
+      } },
+    }, [
       h("div.inputbar", [
         h("input", {
-          attrs: { placeholder: "url, e.g. ws://localhost:1337", type: "text" },
+          attrs: { placeholder: "url, e.g. ws://localhost:1337", type: "text", name: "url" },
         }),
       ]),
-      h("button.btn", "Connect"),
+      h("input.btn", { attrs: { type: "submit" } }, "Connect"),
     ]),
   ]),
 

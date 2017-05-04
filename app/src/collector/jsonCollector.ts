@@ -47,7 +47,7 @@ export default class JsonCollector implements DataSource {
       this.write = (d) => socket.send(JSON.stringify(d))
       subject.do(() => { /* */ }, undefined, () => socket.close())
     } else {
-      fetch(url).then(res => res.text()).then((data: any) => {
+      fetch(url).then(res => (res as any).text()).then((data: any) => {
         try {
           data = JSON.parse(this.clean(data))
         } catch (e) {

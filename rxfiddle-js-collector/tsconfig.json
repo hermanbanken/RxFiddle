@@ -1,0 +1,20 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "sourceMap": true,
+    "module": "es2015",
+    "target": "ES6",
+    "strictNullChecks": false,
+    "removeComments": true,
+    "noImplicitAny": true,
+    "declaration": true,
+    "preserveConstEnums": true,
+    "moduleResolution": "node"
+  },
+  "include": [
+    "index.ts"
+  ],
+  "exclude": [
+    "node_modules/rxjs"
+  ]
+}

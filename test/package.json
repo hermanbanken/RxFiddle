@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node index.js"
+  },
   "dependencies": {
     "rxjs": "^5.3.1",
     "typescript": "^2.3.2"

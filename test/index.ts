@@ -15,7 +15,3 @@ new RxFiddle({
 let obs = Observable.of(1, 2, 3)
 let obs2 = obs.map(x => x * 2)
 let sub = obs2.subscribe()
-
-console.log((obs as any).prototype)
-console.log((obs2 as any).prototype)
-console.log((sub as any).prototype)

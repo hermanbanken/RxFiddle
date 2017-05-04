@@ -5,7 +5,7 @@ import { RxCollector } from "../../collector/ICollector"
 
 // Allow either external scoped Rx or local imported Rx to be used
 import * as RxImported from "rxjs/Rx"
-import { IScheduler } from "rxjs/Scheduler"
+import { Scheduler } from "rxjs/Scheduler"
 declare let Rx: any
 
 export let InstrumentedRx: typeof RxImported = typeof Rx === "undefined" ? RxImported : Rx
@@ -246,17 +246,20 @@ function prototypeIsInstrumented(input: any): boolean {
 }
 
 export function isObservable<T>(v: any): v is RxImported.Observable<T> {
-  return typeof v === "object" && v instanceof InstrumentedRx.Observable
+  return typeof v === "object" && (v instanceof InstrumentedRx.Observable || typeof v.subscribe === "function")
 }
 export function isSubscription(v: any): v is RxImported.Subscription & any {
   return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
 }
 export function isObserver(v: any): v is RxImported.Subscriber<any> {
-  return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
+  return typeof v === "object" &&
+    (v instanceof InstrumentedRx.Subscriber || typeof v.next === "function") &&
+    /* Prevent emptyObserver as a subscriber (since it is statically used everywhere, effectively linking all streams...) */
+    v.constructor !== Object
 }
 export function isSubject(v: any): v is RxImported.Subject<any> {
-  return typeof v === "object" && v instanceof InstrumentedRx.Subject
+  return typeof v === "object" && (v instanceof InstrumentedRx.Subject || typeof v.next === "function" && typeof v.subscribe === "function")
 }
-export function isScheduler(v: any): v is IScheduler & any {
+export function isScheduler(v: any): v is Scheduler & any {
   return typeof v === "object" && v !== null && "now" in v && "schedule" in v
 }

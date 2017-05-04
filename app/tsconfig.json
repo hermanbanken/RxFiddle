@@ -4,9 +4,6 @@
     "sourceMap": true,
     "outDir": "dist",
     "module": "commonjs",
-    "typeRoots": [
-      "node_modules/@types/"
-    ],
     "types": [
       "node",
       "electron"

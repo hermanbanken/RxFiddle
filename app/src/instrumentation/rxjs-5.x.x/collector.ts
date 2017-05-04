@@ -7,7 +7,7 @@ import {
   ObservableTree, ObserverTree, SchedulerInfo, SchedulerType, SubjectTree,
 
 } from "../../oct/oct"
-import { getPrototype } from "../../utils"
+import { getPrototype } from "../../prelude"
 import { InstrumentedRx, isObservable, isObserver, isScheduler, isSubject } from "./instrumentation"
 import * as RxType from "rxjs/Rx"
 import { IScheduler } from "rxjs/Scheduler"

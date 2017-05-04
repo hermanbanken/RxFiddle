@@ -6,7 +6,7 @@ import {
   IObservableTree, IObserverTree, ISchedulerInfo, ITreeLogger,
   ObservableTree, ObserverTree, SchedulerInfo, SubjectTree,
 } from "../../oct/oct"
-import { getPrototype } from "../../utils"
+import { getPrototype } from "../../prelude"
 import * as Rx from "rx"
 
 let debug = false
@@ -325,8 +325,8 @@ export class TreeCollector implements RxCollector {
             // }
           }
         }
-        if (input.source) {
-          tree.setSources(this.tagObservable(input.source))
+        if ((input as any).source) {
+          tree.setSources(this.tagObservable((input as any).source))
         } else if ((input as any)._sources) {
           tree.setSources((input as any)._sources.flatMap((s: any) => this.tagObservable(s)))
         }

@@ -20,12 +20,15 @@ export function init() {
  * Sign in.
  * Any Error's contain .code and .message fields
  */
-export function signin(): Observable<void> {
-  return new Observable(o => firebase.auth().onAuthStateChanged(o.next.bind(o), o.error.bind(o), o.complete.bind(o)))
+export function signin(): Observable<any> {
+  return new Observable<any>((o: Observer<any>) => firebase.auth().onAuthStateChanged(
+      o.next.bind(o),
+      o.error.bind(o),
+      o.complete.bind(o)
+    ))
     .take(1)
-    .do(s => console.log("authstate", s))
-    .flatMap(state => state === null ? Observable.from(firebase.auth().signInAnonymously()) : Observable.empty<void>())
-    .do(s => console.log("auth", s), e => console.log("auth error", e))
+    .flatMap(state => state === null ? Observable.from<void>(firebase.auth().signInAnonymously()) : Observable.empty<any>())
+    .do<void>((s: any) => console.log("auth", s), (e: Error) => console.log("auth error", e))
 }
 
 /**
