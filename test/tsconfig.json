@@ -1,0 +1,14 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "ES5",
+    "skipLibCheck": true
+  },
+  "include": [
+    "index.ts"
+  ],
+  "exclude": [
+    "node_modules/rxjs"
+  ]
+}
