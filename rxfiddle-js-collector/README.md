@@ -4,7 +4,7 @@ RxFiddle is a debugger for Reactive Extensions (Rx).
 Add this (rxfiddle) module to your applications repository to inspect your
 Observable data flow on [RxFiddle.net](https://rxfiddle.net).
 
-<img src="https://github.com/hermanbanken/RxFiddle/raw/master/rxfiddle-js-collector/screenshot.png" width="400" alt="Screenshot of RxFiddle.net" />
+<img src="https://github.com/hermanbanken/RxFiddle/raw/master/screenshots/mergeAll.png" width="400" alt="Screenshot of RxFiddle.net" />
 
 ## Getting started
 
