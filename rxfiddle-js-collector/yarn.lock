@@ -1983,12 +1983,6 @@ rxjs:
   dependencies:
     symbol-observable "^1.0.1"
 
-rxjs-es:
-  version "5.0.0-beta.12"
-  resolved "https://registry.yarnpkg.com/rxjs-es/-/rxjs-es-5.0.0-beta.12.tgz#cf161b173f5086feec113b82c4d95187b2f11c43"
-  dependencies:
-    symbol-observable "^1.0.1"
-
 safe-buffer@^5.0.1, safe-buffer@~5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/safe-buffer/-/safe-buffer-5.0.1.tgz#d263ca54696cd8a306b5ca6551e92de57918fbe7"

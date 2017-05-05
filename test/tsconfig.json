@@ -6,7 +6,8 @@
     "skipLibCheck": true
   },
   "include": [
-    "index.ts"
+    "index.ts",
+    "index-lazy.ts"
   ],
   "exclude": [
     "node_modules/rxjs"

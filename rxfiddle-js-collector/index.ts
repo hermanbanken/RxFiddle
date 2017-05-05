@@ -14,9 +14,24 @@ export type TeardownLogic = Function
 export type OnNext = (m: any) => void
 export type PartialObserver = OnNext | { next: OnNext } | { onNext: OnNext }
 
-export class RxFiddle {
+export default class RxFiddle {
 
   constructor(private targets: { [name: string]: any } = {}) {
+    if("Rx" in targets) {
+      Object.assign(targets, {
+        Observable: targets.Rx.Observable,
+        Subscriber: targets.Rx.Subscriber,
+      })
+    }
+    Object.keys(targets).forEach(name => {
+      if(
+        (name === "Observable" || name === "Subscriber") &&
+        Object.keys(targets).map(name => targets[name]).indexOf(targets[name].prototype) < 0
+      ) {
+        targets[name + "Proto"] = targets[name].prototype
+      }
+    })
+    this.targets = targets
   }
 
   /**
@@ -79,5 +94,3 @@ export class RxFiddle {
   }
 
 }
-
-export default new RxFiddle

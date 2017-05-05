@@ -4,20 +4,25 @@ RxFiddle is a debugger for Reactive Extensions (Rx).
 Add this (rxfiddle) module to your applications repository to inspect your
 Observable data flow on [RxFiddle.net](https://rxfiddle.net).
 
-<img src="screenshot.png" width="400" alt="Screenshot of RxFiddle.net" />
+<img src="https://github.com/hermanbanken/RxFiddle/blob/master/rxfiddle-js-collector/screenshot.png" width="400" alt="Screenshot of RxFiddle.net" />
 
 ## Getting started
 
 ````javascript
 /* File: your-application.js */
-import { Observable } from "rxjs"
+import { Observable } from "rxjs/Observable"
+import { Subscriber } from "rxjs/Subscriber"
+import "rxjs/add/observable/of"
+import "rxjs/add/operator/map"
 import RxFiddle from "rxfiddle"
 
-RxFiddle.serve({ port: 8080 })
+new RxFiddle({
+  Observable: Observable,
+  Subscriber: Subscriber,
+}).serve({ port: 8080 })
 
 /* Rest of your application here */
-Observable
-  .of(1, 2, 3)
+Observable.of(1, 2, 3)
   .map(x => x * 2)
   .subscribe()
 ````
@@ -28,6 +33,20 @@ Note that RxFiddle works completely on your machine only when using websocket co
 no code and or event data is send to rxfiddle's servers. 
 If you're afraid it does, feel free to run the [RxFiddle App](https://github.com/hermanbanken/RxFiddle) 
 on your own machine.
+
+If you have taken the shortcut of importing using `import * as Rx from "rxjs"` then you can use the following shortcut for instrumentation:
+
+````javascript
+import * as Rx from "rxjs"
+import RxFiddle from "rxfiddle"
+
+new RxFiddle({ Rx }).serve({ port: 8080 })
+
+/* Rest of your application here */
+Rx.Observable.of(1, 2, 3)
+  .map(x => x * 2)
+  .subscribe()
+````
 
 ## Features
 See the [RxFiddle repository](https://github.com/hermanbanken/RxFiddle) for the full list of features.
