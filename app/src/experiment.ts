@@ -1,4 +1,4 @@
-// tslint:disable:ob§ect-literal-sort-keys
+// tslint:disable:object-literal-sort-keys
 // tslint:disable:max-line-length
 import AnalyticsObserver from "./analytics"
 import RxRunner, { Runner } from "./collector/runner"
@@ -8,22 +8,22 @@ import overlay from "./experiment/overlay"
 import samples, { Sample } from "./experiment/samples"
 import { Screen, States, SurveyState, TestEvent, TestState, general, generalLangs, generalRpExperience, introScreen, previous } from "./experiment/screens"
 import { formatSeconds } from "./experiment/utils"
+import { personal, signin, uid } from "./firebase"
+import { RxJS4 } from "./languages"
 import patch from "./patch"
+import "./prelude"
 import CodeEditor from "./ui/codeEditor"
-import { hboxo, vbox, vboxo } from "./ui/flex"
+import { hboxo, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
 import { Query, errorHandler } from "./ui/shared"
 import { UUID } from "./utils"
 import RxFiddleVisualizer from "./visualization"
 import Grapher from "./visualization/grapher"
+import { database } from "firebase"
 import * as Rx from "rxjs"
 import { IScheduler } from "rxjs/Scheduler"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
-import { RxJS4 } from "./languages"
-import { personal, signin, user, uid } from "./firebase"
-import { database } from "firebase"
-import debug from "./rx-operator-debug"
 
 signin().subscribe()
 

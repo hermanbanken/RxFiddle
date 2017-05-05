@@ -2,6 +2,7 @@ import AnalyticsObserver from "./analytics"
 import JsonCollector from "./collector/jsonCollector"
 import RxRunner from "./collector/runner"
 import patch from "./patch"
+import "./prelude"
 import CodeEditor from "./ui/codeEditor"
 import { hbox, vbox, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
@@ -12,7 +13,6 @@ import Grapher from "./visualization/grapher"
 import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
-import "./prelude"
 
 const DataSource$: Rx.Observable<{
   data: DataSource,
