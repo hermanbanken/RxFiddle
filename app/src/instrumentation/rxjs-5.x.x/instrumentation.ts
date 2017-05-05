@@ -214,7 +214,7 @@ export default class Instrumentation {
 }
 
 function now() {
-  return typeof performance !== "undefined" ? performance.now() : new Date().getTime()
+  return typeof performance !== "undefined" ? performance.now() : Date.now()
 }
 
 /* tslint:disable:interface-name */
