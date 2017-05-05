@@ -48,7 +48,7 @@ let inputs = [
   h("label.launchOption", [
     h("span", "WebSocket debugger"),
     h("form", { 
-      attrs: { method: "get", style: "display: flex; pointer-events: none" },
+      attrs: { method: "get", style: "display: flex" },
       on: { submit: (e: Event) => {
         window.location.hash = `#type=ws&url=${(e.target as any).elements.url.value}`
         e.preventDefault();
