@@ -1,7 +1,7 @@
 import * as firebase from "firebase/app"
 import "firebase/auth"
 import "firebase/database"
-import { Observable } from "rxjs"
+import * as Rx from "rxjs"
 
 const config = {
   apiKey: "AIzaSyBLIwYr5nDxSHhdmz-rvSln88RQHMRWHds",
@@ -20,14 +20,14 @@ export function init() {
  * Sign in.
  * Any Error's contain .code and .message fields
  */
-export function signin(): Observable<any> {
-  return new Observable<any>((o: Observer<any>) => firebase.auth().onAuthStateChanged(
+export function signin(): Rx.Observable<any> {
+  return new Rx.Observable<any>((o: Rx.Observer<any>) => firebase.auth().onAuthStateChanged(
       o.next.bind(o),
       o.error.bind(o),
       o.complete.bind(o)
     ))
     .take(1)
-    .flatMap(state => state === null ? Observable.from<void>(firebase.auth().signInAnonymously()) : Observable.empty<any>())
+    .flatMap(state => state === null ? Rx.Observable.from<void>(firebase.auth().signInAnonymously()) : Rx.Observable.empty<any>())
     .do<void>((s: any) => console.log("auth", s), (e: Error) => console.log("auth error", e))
 }
 
@@ -35,35 +35,37 @@ export function signin(): Observable<any> {
  * Sign in.
  * Any Error's contain .code and .message fields
  */
-export function data(ref: string): Observable<firebase.database.DataSnapshot> {
+export function data(ref: string): Rx.Observable<firebase.database.DataSnapshot> {
   let location = firebase.database().ref(ref)
-  return Observable.fromEventPattern<firebase.database.DataSnapshot>(
+  return Rx.Observable.fromEventPattern<firebase.database.DataSnapshot>(
     h => location.on("value", h as any),
     h => location.off("value", h as any)
   )
 }
 
-export function user() {
-  return new Observable(o => firebase.auth().onAuthStateChanged(o.next.bind(o), o.error.bind(o), o.complete.bind(o)))
-    // .do(console.log.bind(console, "user"), console.warn.bind(console, "user"), console.info.bind(console, "user"))
+export function user(): Rx.Observable<any> {
+  return new Rx.Observable(o => firebase.auth().onAuthStateChanged(
+      o.next.bind(o),
+      o.error.bind(o),
+      o.complete.bind(o)
+    ))
     .startWith(firebase.auth().currentUser)
-  // .do(console.log.bind(console, "user"), console.warn.bind(console, "user"), console.info.bind(console, "user"))
 }
-export function uid() {
+export function uid(): Rx.Observable<string> {
   return user().map((_: any) => _ && _.uid)
 }
 
-function userSnippetsById(uid: string) {
-  if (!uid) { return Observable.of({} as SnippetDict) }
+function userSnippetsById(uid: string): Rx.Observable<SnippetDict> {
+  if (!uid) { return Rx.Observable.of({} as SnippetDict) }
   return data(`users/${uid}/snippets`).map(_ => _.val() as SnippetDict)
 }
 
-export let snippets = {
+export let snippets: { latest: () => Rx.Observable<SnippetDict>,  user: () => Rx.Observable<SnippetDict>} = {
   latest: () => data("snippets").map(_ => _.val() as SnippetDict),
   user: () => uid().switchMap(userSnippetsById),
 }
 
-export function personal(ref: string) {
+export function personal(ref: string): Rx.Observable<firebase.database.DataSnapshot> {
   return uid().switchMap(uid => data(`users/${uid}/${ref}`))
 }
 

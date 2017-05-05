@@ -9,7 +9,7 @@ import {
 } from "../../oct/oct"
 import { getPrototype } from "../../prelude"
 import { InstrumentedRx, isObservable, isObserver, isScheduler, isSubject } from "./instrumentation"
-import * as RxType from "rxjs/Rx"
+import * as RxType from "rxjs"
 import { IScheduler } from "rxjs/Scheduler"
 
 let debug = false

@@ -4,7 +4,7 @@ import { ICallRecord, ICallStart } from "../../collector/callrecord"
 import { RxCollector } from "../../collector/ICollector"
 
 // Allow either external scoped Rx or local imported Rx to be used
-import * as RxImported from "rxjs/Rx"
+import * as RxImported from "rxjs"
 import { Scheduler } from "rxjs/Scheduler"
 declare let Rx: any
 

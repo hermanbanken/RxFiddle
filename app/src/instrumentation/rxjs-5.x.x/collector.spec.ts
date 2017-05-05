@@ -9,7 +9,7 @@ import { TreeCollector } from "./collector"
 import Instrumentation, { isInstrumented } from "./instrumentation"
 import { expect } from "chai"
 import { only, suite, test } from "mocha-typescript"
-import * as Rx from "rxjs/Rx"
+import * as Rx from "rxjs"
 // import { HotObservable as hot } from "rxjs/helpers/marbleTesting"
 
 let btoa: Function

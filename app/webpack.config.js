@@ -32,7 +32,6 @@ module.exports = {
   externals: {
     rx: 'Rx',
     rxjs: 'Rx',
-    "rxjs/Rx": 'Rx',
     graphlib: 'graphlib',
     codemirror: 'CodeMirror',
     "codemirror/mode/javascript/javascript": "CodeMirror",
