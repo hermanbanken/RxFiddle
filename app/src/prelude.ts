@@ -7,7 +7,17 @@ declare global {
 export function flatMap<T, R>(f: (t: T, index: number, all: T[]) => R[]): R[] {
   return this.reduce((p: R[], n: T, index: number) => p.concat(f(n, index, this)), [])
 }
-Array.prototype.flatMap = flatMap
+if(Object.defineProperty) {
+  Object.defineProperty(Array.prototype, 'flatMap', {
+    enumerable: false,
+    configurable: false,
+    writable: false,
+    value: flatMap
+  });
+} else {
+  // Beware of dragons...
+  Array.prototype.flatMap = flatMap
+}
 
 /* random */
 export function endsWith(self: string, suffix: string): boolean {
