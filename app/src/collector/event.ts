@@ -15,7 +15,7 @@ export class Event {
   public static fromRecord(record: ICallStart, timing: Timing, source?: string): IEvent | null {
     return Event.fromCall(record.method, record.arguments, timing, source)
   }
-  public static fromCall(method: string, args: IArguments, timing: Timing, source?: string): IEvent {
+  public static fromCall(method: string, args: any[], timing: Timing, source?: string): IEvent {
     switch (method) {
       case "next":
       case "onNext":

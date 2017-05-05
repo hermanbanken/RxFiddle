@@ -7,7 +7,7 @@ export interface ICallStart {
   subject: any
   subjectName: string
   method: string
-  arguments: IArguments
+  arguments: any[]
   stack?: StackFrame | string
   time: number
   parent?: ICallStart

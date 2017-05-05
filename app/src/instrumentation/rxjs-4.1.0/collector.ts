@@ -379,7 +379,7 @@ export class TreeCollector implements RxCollector {
         if (name === "__isSubscriptionWrapper") { return true }
         if (typeof original === "function" && events.indexOf(name) >= 0) {
           function proxy() {
-            collector.addEvent(tree, Event.fromCall(name, arguments, undefined), arguments[0])
+            collector.addEvent(tree, Event.fromCall(name, [].slice.call(arguments, 0), undefined), arguments[0])
             return original.apply(this, arguments)
           }
           return proxy
@@ -404,7 +404,7 @@ export class TreeCollector implements RxCollector {
         if (name === "__isDisposableWrapper") { return true }
         if (typeof original === "function" && name === "dispose") {
           function proxy() {
-            collector.addEvent(tree[0], Event.fromCall(name, arguments, undefined))
+            collector.addEvent(tree[0], Event.fromCall(name, [].slice.call(arguments, 0), undefined))
             return original.apply(this, arguments)
           }
           return proxy
