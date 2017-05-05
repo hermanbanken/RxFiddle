@@ -19,15 +19,19 @@ let experimentProto: any = {
   },
   get bmi() {
     return {
-      height: this.scheduler.createHotObservable([1.76, 1.77, 1.78]
+      height$: this.scheduler.createHotObservable([1.76, 1.77, 1.78]
         .map((v, i) => _.next(i * 100, v)).concat([_.complete(400)])),
-      weight: this.scheduler.createHotObservable([70, 72, 76, 79, 78, 75]
+      weight$: this.scheduler.createHotObservable([70, 72, 76, 79, 78, 75]
         .map((v, i) => _.next(i * 100, v)).concat([_.complete(700)])),
     }
   },
   get lottery() {
+    let start = 2034
+    let year = 1000 * 3600 * 24 * 365.25
     return {
-      start: 2034,
+      newYear$: Rx.Observable
+        .interval(year, survey.scheduler)
+        .map(t => new Date(Date.UTC(t + start, 0, 1))),
       veryOldServer: (date: string) => {
         let unix = new Date(date).getTime() / 1000
         if (unix > Math.pow(2, 31)) {
@@ -67,7 +71,7 @@ let experimentProto: any = {
         "Terminator Genisys",
         "The Titanic",
       ],
-      findMovie: (term: string) => {
+      findMovies: (term: string) => {
         let result = this.imdb._movies.filter((movie: string) => movie.toLowerCase().indexOf(term.toLowerCase()) >= 0)
         let t = 200 * result.length
         return this.scheduler.createHotObservable(
@@ -76,11 +80,14 @@ let experimentProto: any = {
         )
       },
       inputStream,
-      johnsInput: inputStream("the titanic"),
+      johnsInput$: inputStream("the titanic"),
       render: () => { /* would append to DOM here */ },
     }
   },
   get render() {
+    return () => { /* would append to DOM here */ }
+  },
+  get renderSomething() {
     return () => { /* would append to DOM here */ }
   },
   get log() {

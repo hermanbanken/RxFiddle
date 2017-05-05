@@ -304,13 +304,8 @@ let samples: Sample[] = [
     id: "sample_generate",
     checker: (data) => { return true },
     code: `
-Rx.Observable.generate(
-    2, 
-    x => true, 
-    x => x + (x - 1),
-    x => x
-  )
-  .take(10)
+Rx.Observable.range(1, 20)
+  .scan((x, next) => x + (x - 1))
   .subscribe(survey.render)
 `,
     question: ``,
@@ -320,11 +315,15 @@ Rx.Observable.generate(
     id: "sample_bmi",
     checker: () => { return true },
     code: `
-var weight = survey.bmi.weight;
-var height = survey.bmi.height;
-var bmi = weight.combineLatest(height, (w, h) => w / (h * h));
+// Steams of input data 
+var weight$ = survey.bmi.weight$; // : Rx.Observable<number>
+var height$ = survey.bmi.height$; // : Rx.Observable<number>
 
-bmi.subscribe(x => survey.log('BMI is ' + x));
+// BMI
+var bmi$ = weight$
+  .combineLatest(height$, (w, h) => w / (h * h));
+  
+bmi$.subscribe(x => survey.log('BMI is ' + x));
 
 survey.scheduler.advanceTo(10000)`,
     question: ``,
@@ -334,21 +333,21 @@ survey.scheduler.advanceTo(10000)`,
     id: "sample_time",
     checker: () => { return true },
     code: `
-var start = survey.lottery.start
+var start = survey.lottery.start // start of simulation
 var year = 1000 * 3600 * 24 * 365.25
 
-var dates = Rx.Observable
-  .interval(year, survey.scheduler)
-  .map(t => new Date(Date.UTC(t + start, 0, 1)))
+// newYear$ : Rx.Observable<Date> current date, every year
+var newYear$ = survey.lottery.newYear$
   .map(date => date.toUTCString())
 
+// server : Date => Rx.Observable<LotteryResult>
 let server = survey.lottery.veryOldServer
 
-dates
+newYear$
   .flatMap(date => server(date))
   .subscribe(
-    lottery => survey.noop, 
-    e => survey.noop
+    lottery => survey.renderSomething(lottery), 
+    e => survey.showError(e)
   )
 
 survey.scheduler.advanceTo(1e20)`,
@@ -359,10 +358,13 @@ survey.scheduler.advanceTo(1e20)`,
     id: "sample_imdb",
     checker: () => { return true },
     code: `
-survey.imdb.johnsInput
+// input : Rx.Observable<string>
+var input = survey.imdb.johnsInput$
+
+input
   .debounce(50, survey.scheduler)
-  .flatMap(survey.imdb.findMovie)
-  .subscribe(survey.imdb.render)
+  .flatMap(q => survey.imdb.findMovies(q))
+  .subscribe(list => survey.imdb.render(list))
 
 // getting coffee
 survey.scheduler.advanceTo(1e6)`,
