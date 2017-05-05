@@ -227,10 +227,10 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
     return Rx.Observable.of(h("div", { style: { "max-width": "500px" } }, [
       h("p", `The example below is a piece of a movie search website.
               You can enter a movie name and the site looks it up in a database.
-              John - a tester - searches for "The Titanic", however he sees al 
-              kinds of other results too.`),
+              John - a tester - searches for "The Titanic", however he sees all 
+              kinds of other (non relevant) movie results too. What could be wrong?`),
       h("div.control", [
-        h("label", `After he's done typing, grapped a coffee,
+        h("label", `After he's done typing, and all async requests are done,
                     what is the movie at the top of the result list?`),
         h("input", {
           attrs: {
@@ -283,7 +283,9 @@ let samples: Sample[] = [
     code: `
 //// First uncomment the next line and hit "Run":
 // Rx.Observable.of(1, 2, 3).map(x => x * 2).subscribe(x => console.log(x))
-//// Try to find the data in the tool on the right
+//// Try to find the numbers in the tool on the right
+
+//// Recomment/remove the previous lines and continue
 
 //// Then uncomment the next line and hit "Stop" then "Run" again:
 // Rx.Observable.interval(1000).map(x => x * 2).subscribe(x => console.log(x))
@@ -304,9 +306,11 @@ let samples: Sample[] = [
     id: "sample_generate",
     checker: (data) => { return true },
     code: `
-Rx.Observable.range(1, 20)
+Rx.Observable.range(2, 10)
   .scan((x, next) => x + (x - 1))
-  .subscribe(survey.render)
+  .subscribe(value => {
+    survey.render(value)
+  })
 `,
     question: ``,
     timeout: 600,
@@ -315,16 +319,19 @@ Rx.Observable.range(1, 20)
     id: "sample_bmi",
     checker: () => { return true },
     code: `
-// Steams of input data 
+// Steams of input data
 var weight$ = survey.bmi.weight$; // : Rx.Observable<number>
 var height$ = survey.bmi.height$; // : Rx.Observable<number>
 
 // BMI
 var bmi$ = weight$
   .combineLatest(height$, (w, h) => w / (h * h));
-  
-bmi$.subscribe(x => survey.log('BMI is ' + x));
 
+bmi$.subscribe(x => {
+  survey.log('BMI is ' + x)
+});
+
+// Emulate passing of time
 survey.scheduler.advanceTo(10000)`,
     question: ``,
     timeout: 600,
@@ -333,9 +340,6 @@ survey.scheduler.advanceTo(10000)`,
     id: "sample_time",
     checker: () => { return true },
     code: `
-var start = survey.lottery.start // start of simulation
-var year = 1000 * 3600 * 24 * 365.25
-
 // newYear$ : Rx.Observable<Date> current date, every year
 var newYear$ = survey.lottery.newYear$
   .map(date => date.toUTCString())
@@ -346,10 +350,13 @@ let server = survey.lottery.veryOldServer
 newYear$
   .flatMap(date => server(date))
   .subscribe(
-    lottery => survey.renderSomething(lottery), 
-    e => survey.showError(e)
+    lotteryResult => {
+      survey.renderSomething(lotteryResult)
+    },
+    err => survey.showError(err)
   )
 
+// Advance time very far into the future
 survey.scheduler.advanceTo(1e20)`,
     question: ``,
     timeout: 600,
@@ -360,13 +367,14 @@ survey.scheduler.advanceTo(1e20)`,
     code: `
 // input : Rx.Observable<string>
 var input = survey.imdb.johnsInput$
+  .do(x => console.log("input: "+x))
 
 input
   .debounce(50, survey.scheduler)
-  .flatMap(q => survey.imdb.findMovies(q))
+  .flatMap(q => { return survey.imdb.findMoviesAsync(q) })
   .subscribe(list => survey.imdb.render(list))
 
-// getting coffee
+// Advance time very far into the future
 survey.scheduler.advanceTo(1e6)`,
     question: ``,
     timeout: 600,

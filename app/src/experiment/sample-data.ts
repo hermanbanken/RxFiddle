@@ -50,8 +50,9 @@ let experimentProto: any = {
     let inputStream = (text: string) => {
       let t = 0
       let messages = []
+      let random = [29, 82, 45, 59, 70, 87, 43, 61, 42, 71]
       for (let i = 0; i <= text.length; i++) {
-        t += 30 + Math.random() * 100
+        t += random.shift()
         messages.push(_.next(t, text.slice(0, i)))
       }
       return this.scheduler.createHotObservable(...messages)
@@ -71,7 +72,7 @@ let experimentProto: any = {
         "Terminator Genisys",
         "The Titanic",
       ],
-      findMovies: (term: string) => {
+      findMoviesAsync: (term: string) => {
         let result = this.imdb._movies.filter((movie: string) => movie.toLowerCase().indexOf(term.toLowerCase()) >= 0)
         let t = 200 * result.length
         return this.scheduler.createHotObservable(
