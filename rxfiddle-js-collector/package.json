@@ -7,10 +7,11 @@
     "url": "git://github.com/hermanbanken/RxFiddle.git",
     "type": "git"
   },
-  "types": "index.d.ts",
-  "main": "bundle.js",
+  "types": "rxfiddle.d.ts",
+  "main": "rxfiddle.js",
   "scripts": {
-    "build": "tsc -p . && rollup -c"
+    "build": "tsc -p . && rollup -c",
+    "prepublish": "npm run build && cp dist/rxfiddle-js-collector/index.d.ts rxfiddle.d.ts"
   },
   "dependencies": {
     "rollup": "^0.41.6",

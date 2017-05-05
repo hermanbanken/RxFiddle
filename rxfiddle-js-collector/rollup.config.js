@@ -1,8 +1,8 @@
 export default {
   moduleName: "RxFiddle",
   format: "umd",
-  dest: "bundle.js",
-  entry: './index.js',
+  dest: "rxfiddle.js",
+  entry: './dist/rxfiddle-js-collector/index.js',
   globals: {
     "rxjs": "Rx",
     "ws": "WebSocket",
