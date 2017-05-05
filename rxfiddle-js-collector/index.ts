@@ -39,11 +39,16 @@ export class RxFiddle {
   public serve({ port }: { port: number, networkInterface?: string }): TeardownLogic {
     let replayQueue = [] as any[]
     let wss = new WebSocket.Server({ perMessageDeflate: false, port })
-    console.log(`Serving for RxFiddle on ws://127.0.0.1:${port}`)
+    console.log(`RxFiddle server is serving at port ${port}. Surf to https://rxfiddle.net/#type=ws&url=ws://127.0.0.1:${port}.`)
+
+    let first = true
 
     // Subscribe and send to all clients
     let teardown = this.subscribe((m: any) => {
-      console.log("Instrumentation data", m)
+      if(first) {
+        console.log("RxFiddle detected Observables and now publishes the data.")
+        first = false
+      }
       let json = JSON.stringify(m)
       wss.clients.forEach(ws => ws.send(json))
       replayQueue.push(json)
@@ -51,6 +56,7 @@ export class RxFiddle {
 
     // Replay for new connections
     wss.on("connection", (ws) => {
+      console.log("RxFiddle client connected.")
       ws.send(`{ "version": "1.0.0" }`)
       replayQueue.forEach(m => ws.send(m))
     })
@@ -58,7 +64,7 @@ export class RxFiddle {
     // Cleanup
     return () => {
       teardown()
-      wss.close((err) => console.warn("Error while closing RxFiddle WebSocket server", err))
+      wss.close((err) => console.warn("Error while closing RxFiddle WebSocket server.", err))
     }
   }
 
