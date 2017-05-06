@@ -19,8 +19,11 @@ let debugOptions: VNode[] = [
 ]
 
 let brand = [
-  h("h1", [h("img", { attrs: { alt: "ReactiveX", src: "images/RxLogo.png" } }), "RxFiddle"]),
-  h("h2", ["Visualize your Observables."]),
+  h("div.brand", [
+    h("img", { attrs: { alt: "ReactiveX", src: "images/RxLogo.png" } }),
+    h("h1", ["RxFiddle"]),
+    h("h2", ["Visualize your Observables."]),
+  ]),
 ]
 
 let editor = h("label.launchOption", [
@@ -29,40 +32,53 @@ let editor = h("label.launchOption", [
 ])
 
 let inputs = [
-  h("p.launchOption", ["Select an input:"]),
+  h("div.warning", [
+    h("a", { attrs: { href: "experiment.html" } }, "Click here"),
+    " to participate in the RxFiddle experiment, part of my thesis research.",
+  ]),
 
-  h("span.separator", " "),
-
-  h("p", [`Write RxJS code in your browser and see the data flow.`]),
+  h("a", { attrs: { href: "#type=editor" } }, [
+    h("img", {
+      attrs: {
+        height: "268.84px",
+        src: "https://github.com/hermanbanken/RxFiddle/raw/master/rxfiddle-js-collector/screenshot.png",
+        width: "400px",
+      },
+    }),
+  ]),
 
   editor,
 
+  h("p", [`Write RxJS code in your browser and see the data flow.`]),
+
   h("span.separator", "or"),
+
+  h("label.launchOption", [
+    h("span", "WebSocket debugger"),
+    h("form", {
+      attrs: { method: "get", style: "display: flex" },
+      on: {
+        submit: (e: Event) => {
+          window.location.hash = `#type=ws&url=${(e.target as any).elements.url.value}`
+          e.preventDefault();
+          return false;
+        }
+      },
+    }, [
+        h("div.inputbar", [
+          h("input", {
+            attrs: { placeholder: "url, e.g. ws://localhost:1337", type: "text", name: "url" },
+          }),
+        ]),
+        h("input.btn", { attrs: { type: "submit" } }, "Connect"),
+      ]),
+  ]),
 
   h("p", [`Connect any running Rx process by using a collector and attach 
           the WebSocket debugger. `]),
 
   h("p", [`This is a work in progress. You can help by creating collectors 
           for the JVM, Swift, .NET, Chrome DevTools, etc.`]),
-
-  h("label.launchOption", [
-    h("span", "WebSocket debugger"),
-    h("form", { 
-      attrs: { method: "get", style: "display: flex" },
-      on: { submit: (e: Event) => {
-        window.location.hash = `#type=ws&url=${(e.target as any).elements.url.value}`
-        e.preventDefault();
-        return false;
-      } },
-    }, [
-      h("div.inputbar", [
-        h("input", {
-          attrs: { placeholder: "url, e.g. ws://localhost:1337", type: "text", name: "url" },
-        }),
-      ]),
-      h("input.btn", { attrs: { type: "submit" } }, "Connect"),
-    ]),
-  ]),
 
   h("span.separator", "or"),
 
