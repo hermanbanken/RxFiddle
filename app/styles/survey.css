@@ -365,3 +365,14 @@ input.ref {
   width: 100%;
   margin: 5px 0;
 }
+
+form .control input.invalid, form .control input[type="text"].invalid {
+  border: 1px solid red;
+  outline: none;
+  background: #ffc1c1;
+}
+form .control input.valid, form .control input[type="text"].valid {
+  outline: none;
+  border: 1px solid #009688;
+  background: rgb(207, 255, 207);
+}

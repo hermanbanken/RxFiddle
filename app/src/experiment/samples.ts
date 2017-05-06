@@ -78,6 +78,16 @@ class DummySample extends DefaultSample<void> {
   }
 }
 
+function validState(actual: any, expected: any): string {
+  if (typeof actual === "undefined") {
+    return ""
+  } else if (typeof expected === "function" ? expected(actual) : actual === expected) {
+    return "valid"
+  } else {
+    return "invalid"
+  }
+}
+
 class GenerateSample extends DefaultSample<{ value1: number, value2: number }> {
   constructor(data: SampleData<{ value1: number, value2: number }>) {
     super(data)
@@ -94,12 +104,14 @@ class GenerateSample extends DefaultSample<{ value1: number, value2: number }> {
         h("label", `Values:`),
         h("input", {
           attrs: {
+            class: validState(elvis(state, ["data", this.id, "value1"])[0], 257),
             name: "value1", placeholder: "enter a number", type: "number",
             value: elvis(state, ["data", this.id, "value1"])[0],
           },
         }), ",",
         h("input", {
           attrs: {
+            class: validState(elvis(state, ["data", this.id, "value2"])[0], 513),
             name: "value2",
             placeholder: "enter a number",
             step: "any", type: "number",
@@ -140,6 +152,7 @@ class BmiSample extends DefaultSample<{ count: number, last: number }> {
         h("label", `How many BMI values are logged?`),
         h("input", {
           attrs: {
+            class: validState(elvis(state, ["data", this.id, "count"])[0], 8),
             name: "count", placeholder: "enter a number", type: "number",
             value: elvis(state, ["data", this.id, "count"])[0],
           },
@@ -149,6 +162,7 @@ class BmiSample extends DefaultSample<{ count: number, last: number }> {
         h("label", `What is the last value logged?`),
         h("input", {
           attrs: {
+            class: validState(elvis(state, ["data", this.id, "last"])[0], (value: number) => 24 === Math.round(value)),
             name: "last",
             placeholder: "enter nearest integer BMI value",
             step: "any", type: "number",
@@ -189,6 +203,7 @@ class TimeBugSample extends DefaultSample<{ count: number, last: number }> {
         h("label", `In which year does the lottery server fail?`),
         h("input", {
           attrs: {
+            class: validState(elvis(state, ["data", this.id, "year"])[0], 2039),
             name: "year", placeholder: "enter a number", type: "number",
             value: elvis(state, ["data", this.id, "year"])[0],
           },
@@ -220,7 +235,10 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
     return (value: any) =>
       typeof value.firstresult === "string" && value.firstresult.toLowerCase() === "them" &&
       typeof value.firstresult === "string" && value.replaced.toLowerCase() === "flatmap" &&
-      typeof value.firstresult === "string" && value.replaced_with.toLowerCase() === "switchmap"
+      (
+        typeof value.firstresult === "string" && value.replaced_with.toLowerCase() === "switchmap" ||
+        typeof value.firstresult === "string" && value.replaced_with.toLowerCase() === "flatmaplatest"
+      )
   }
 
   public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
@@ -234,6 +252,8 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
                     what is the movie at the top of the result list?`),
         h("input", {
           attrs: {
+            class: validState(elvis(state, ["data", this.id, "firstresult"])[0],
+              (v: string) => v.toLowerCase() === "them"),
             name: "firstresult", placeholder: "", type: "text",
             value: elvis(state, ["data", this.id, "firstresult"])[0],
           },
@@ -243,6 +263,8 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
         h("label", `What operator do you need to replace for correct behaviour?`),
         h("input", {
           attrs: {
+            class: validState(elvis(state, ["data", this.id, "replaced"])[0],
+              (v: string) => v.toLowerCase() === "flatmap"),
             name: "replaced", placeholder: "", type: "text",
             value: elvis(state, ["data", this.id, "replaced"])[0],
           },
@@ -252,6 +274,8 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
         h("label", `What operator should take it's place?`),
         h("input", {
           attrs: {
+            class: validState(elvis(state, ["data", this.id, "replaced_with"])[0],
+              (v: string) => v.toLowerCase() === "switchmap" || v.toLowerCase() === "flatmaplatest"),
             name: "replaced_with", placeholder: "", type: "text",
             value: elvis(state, ["data", this.id, "replaced_with"])[0],
           },
@@ -329,6 +353,8 @@ var bmi$ = weight$
 
 bmi$.subscribe(x => {
   survey.log('BMI is ' + x)
+}, err => {}, () => {
+  console.log("measurements complete")
 });
 
 // Emulate passing of time
