@@ -9,7 +9,7 @@ body {
 }
 
 .width {
-  max-width: 40em;
+  max-width: 60em;
   font-size: 1.2em;
   margin: 0 auto 2em;
   padding: 2em 1em;
@@ -375,4 +375,13 @@ form .control input.valid, form .control input[type="text"].valid {
   outline: none;
   border: 1px solid #009688;
   background: rgb(207, 255, 207);
+}
+
+.sidebyside {
+  display: flex
+}
+
+.sidebyside iframe {
+  margin-left: 10px;
+  min-width: 50%;
 }

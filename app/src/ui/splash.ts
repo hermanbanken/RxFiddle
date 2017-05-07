@@ -80,6 +80,16 @@ let inputs = [
   h("p", [`This is a work in progress. You can help by creating collectors 
           for the JVM, Swift, .NET, Chrome DevTools, etc.`]),
 
+  h("iframe", {
+    attrs: {
+      allowfullscreen: "true",
+      frameborder: 0,
+      height: 350,
+      src: "https://www.youtube.com/embed/BYFMuPOIijw",
+      width: 560,
+    },
+  }),
+
   h("span.separator", "or"),
 
   /* Not yet supported JSON load 

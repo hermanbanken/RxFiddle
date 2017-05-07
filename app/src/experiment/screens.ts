@@ -163,23 +163,34 @@ export let introScreen: Screen = {
     return {
       dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
         h("h1", "Survey on Reactive Programming"),
-        h("p", `This is a survey to test Reactive Program comprehension and debugability.
+        h("div.sidebyside", [
+          h("div", [
+            h("p", `This is a survey to test Reactive Program comprehension and debugability.
                 Please take part, even if you have little experience with Reactive Programming.`),
-        h("ul", [
-          h("li", `What's in it for you: learn a new way of debugging Reactive Programs!`),
-          h("li", `What's in it for me: you help me graduate!`),
-          h("li", `Estimated time required: 30-60 minutes`),
-          h("li", [
-            `Used Reactive Programming implementation: RxJS 4.1`,
-            "(", h("a", { attrs: { href: "faq.html#rxversion" } }, "why"), ")",
-          ]),
-        ]),
-        h("div.mobile-only", [
-          h("p", `This survey works best on Chrome on a laptop/desktop. 
+            h("ul", [
+              h("li", `What's in it for you: learn a new way of debugging Reactive Programs!`),
+              h("li", `What's in it for me: you help me graduate!`),
+              h("li", `Estimated time required: 30-60 minutes`),
+              h("li", [
+                `Used Reactive Programming implementation: RxJS 4.1`,
+                "(", h("a", { attrs: { href: "faq.html#rxversion" } }, "why"), ")",
+              ]),
+            ]),
+            h("div.mobile-only", [
+              h("p", `This survey works best on Chrome on a laptop/desktop. 
                   Please set a reminder to take the survey later.`),
-          h("p", h("a.btn", { attrs: { href: "x-apple-reminder://" } }, "Set a reminder")),
+              h("p", h("a.btn", { attrs: { href: "x-apple-reminder://" } }, "Set a reminder")),
+            ]),
+            ...buttons,
+          ]),
+          h("iframe", {
+            attrs: {
+              width: 560, height: 350,
+              frameborder: 0, allowfullscreen: "true",
+              src: "https://www.youtube.com/embed/noN1GGiet5k",
+            },
+          }),
         ]),
-        ...buttons,
       ])))),
     }
   },
@@ -325,6 +336,15 @@ export let generalRpExperience: Screen = {
         exp_rp_compared.dom,
         exp_rx.dom,
         exp_reactivestreams.dom,
+        h("iframe", {
+          attrs: {
+            width: 560, height: 350,
+            frameborder: 0, allowfullscreen: "true",
+            src: state.mode === "console" ?
+              "https://www.youtube.com/embed/MHaa_Q1KJgo" :
+              "https://www.youtube.com/embed/ZT9P085TC3E",
+          },
+        }),
         h("div.buttons", [prevButton, " ", nextButton]),
       ])))),
     }
