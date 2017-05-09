@@ -319,7 +319,7 @@ let samples: Sample[] = [
 // var a = Rx.Observable.of(1, 2, 3).map(x => x * 2)
 // var b = Rx.Observable.of(1, 2, 3)
 // a.concat(b).subscribe(x => console.log(x))
-//// A structure emerges
+// Examine what is shown. In which way is the data combined?
 
 //// Now continue with the next question (Submit)
 `,
@@ -343,11 +343,11 @@ Rx.Observable.range(2, 10)
     id: "sample_bmi",
     checker: () => { return true },
     code: `
-// Steams of input data
+// Input steams
 var weight$ = survey.bmi.weight$; // : Rx.Observable<number>
 var height$ = survey.bmi.height$; // : Rx.Observable<number>
 
-// BMI
+// BMI Program
 var bmi$ = weight$
   .combineLatest(height$, (w, h) => w / (h * h));
 
@@ -366,12 +366,14 @@ survey.scheduler.advanceTo(10000)`,
     id: "sample_time",
     checker: () => { return true },
     code: `
-// newYear$ : Rx.Observable<Date> current date, every year
-var newYear$ = survey.lottery.newYear$
-  .map(date => date.toUTCString())
+// test inputs:
 
-// server : Date => Rx.Observable<LotteryResult>
+ // newYear$ : Rx.Observable<Date> current date, every year
+var newYear$ = survey.lottery.newYear$.map(date => date.toUTCString())
+ // server : Date => Rx.Observable<LotteryResult>
 let server = survey.lottery.veryOldServer
+
+// program
 
 newYear$
   .flatMap(date => server(date))
@@ -379,10 +381,12 @@ newYear$
     lotteryResult => {
       survey.renderSomething(lotteryResult)
     },
-    err => survey.showError(err)
+    err => {
+      survey.showError(err)
+    }
   )
 
-// Advance time very far into the future
+// Advance test time very far into the future
 survey.scheduler.advanceTo(1e20)`,
     question: ``,
     timeout: 600,
@@ -391,13 +395,18 @@ survey.scheduler.advanceTo(1e20)`,
     id: "sample_imdb",
     checker: () => { return true },
     code: `
-// input : Rx.Observable<string>
-var input = survey.imdb.johnsInput$
+// Test inputs
+// input$ : Rx.Observable<string>
+var input$ = survey.imdb.johnsInput$
   .do(x => console.log("input: "+x))
+// findMoviesAsync : (query: string) => Rx.Observable<string[]>
+var findMoviesAsync = survey.imdb.findMoviesAsync
 
-input
+// Program
+
+input$
   .debounce(50, survey.scheduler)
-  .flatMap(q => { return survey.imdb.findMoviesAsync(q) })
+  .flatMap(q => { return findMoviesAsync(q) })
   .subscribe(list => survey.imdb.render(list))
 
 // Advance time very far into the future
