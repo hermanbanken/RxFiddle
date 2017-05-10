@@ -1,5 +1,6 @@
 import AnalyticsObserver from "./analytics"
 import JsonCollector from "./collector/jsonCollector"
+import LocalStorageCollector, { LocalStorageSender } from "./collector/postMessageCollector"
 import RxRunner from "./collector/runner"
 import patch from "./patch"
 import "./prelude"
@@ -8,11 +9,24 @@ import { hbox, vbox, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
 import { LanguageMenu, Query, errorHandler, shareButton } from "./ui/shared"
 import Splash from "./ui/splash"
+import { UUID } from "./utils"
 import Visualizer, { DataSource } from "./visualization"
 import Grapher from "./visualization/grapher"
 import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
+
+// Inception
+import Logger from "./collector/logger"
+import { TreeCollector } from "./instrumentation/rxjs-5.x.x/collector"
+import Instrumentation from "./instrumentation/rxjs-5.x.x/instrumentation"
+
+// Inception
+if (Query.get("instrument")) {
+  let sender = new LocalStorageSender(UUID())
+  let instrumentation = new Instrumentation(new TreeCollector(new Logger(m => sender.send(m))))
+  instrumentation.setup()
+}
 
 const DataSource$: Rx.Observable<{
   data: DataSource,
@@ -21,7 +35,13 @@ const DataSource$: Rx.Observable<{
   editor?: CodeEditor,
   q: any
 }> = Query.$all.scan((prev, q) => {
-  if (q.type === "demo" && q.source) {
+  if (q.type === "message") {
+    let collector = prev.type === "message" && prev.q.session === q.session ?
+      prev.collector :
+      new LocalStorageCollector(q.session)
+    // doRender = false
+    return { data: collector, q }
+  } else if (q.type === "demo" && q.source) {
     let collector = prev.type === "demo" ? prev.collector : new JsonCollector()
     if (!prev.q || q.source !== prev.q.source) { collector.restart(q.source) }
     return { data: collector, q }

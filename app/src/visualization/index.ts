@@ -346,10 +346,11 @@ function checkChildrenDefined(node: VNode | string, parents: string = "", ...inf
 
 function collectUp(
   graph: TypedGraph<IObserverTree, {}>, node: IObserverTree,
-  hasPref?: (o: IObserverTree, n?: any) => boolean
+  hasPref?: (o: IObserverTree, n?: any) => boolean,
+  remaining: number = 50
 ): IObserverTree[] {
   let inEdges = node && graph.inEdges(node.id)
-  if (inEdges && inEdges.length >= 1) {
+  if (inEdges && inEdges.length >= 1 && remaining > 0) {
     let ups = inEdges.map(e => graph.node(e.v))
     let oneUpHasPref = (n: string) => (graph.inEdges(n) || [])
       .map(e => graph.node(e.v))
@@ -357,16 +358,17 @@ function collectUp(
     let continuation = (hasPref && ups.find(hasPref)) ||
       (hasPref && ups.find(n => oneUpHasPref(n.id))) ||
       ups[0]
-    return [node].concat(collectUp(graph, continuation, hasPref))
+    return [node].concat(collectUp(graph, continuation, hasPref, remaining - 1))
   }
   return [node]
 }
 function collectDown(
   graph: TypedGraph<IObserverTree, {}>, node: IObserverTree,
-  hasPref?: (o: IObserverTree) => boolean
+  hasPref?: (o: IObserverTree) => boolean,
+  remaining: number = 50
 ): IObserverTree[] {
   let outEdges = node && graph.outEdges(node.id)
-  if (outEdges && outEdges.length === 1) {
+  if (outEdges && outEdges.length === 1 && remaining > 0) {
     let downs = outEdges.map(e => graph.node(e.w))
     let oneDownHasPref = (n: string) => (graph.outEdges(n) || [])
       .map(e => graph.node(e.w))
@@ -374,7 +376,7 @@ function collectDown(
     let continuation = (hasPref && downs.find(hasPref)) ||
       (hasPref && downs.find(n => oneDownHasPref(n.id))) ||
       downs[0]
-    return [node].concat(collectDown(graph, continuation, hasPref))
+    return [node].concat(collectDown(graph, continuation, hasPref, remaining - 1))
   }
   return [node]
 }

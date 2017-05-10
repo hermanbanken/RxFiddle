@@ -62,6 +62,9 @@ export let Query = {
       setTimeout(() => setting = false)
     }
   },
+  get(field: string) {
+    return QueryString.parse(hash())[field]
+  },
   update: (object: any) => {
     Query.set(Object.assign(QueryString.parse(hash()), object))
   },
