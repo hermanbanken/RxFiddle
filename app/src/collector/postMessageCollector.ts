@@ -68,13 +68,34 @@ export class LocalStorageSender {
   private count: number = 0
   // tslint:disable-next-line:no-constructor-vars
   public constructor(private topic: string) {
-    let topics = JSON.parse(localStorage.getItem("rxfiddle_topics")) || []
-    localStorage.setItem("rxfiddle_topics", JSON.stringify(topics.concat([topic])))
+    if (!localStorage) {
+      throw new Error("LocalStorage support is required to use this RxFiddle MessageSender")
+    }
+    let topics = this.get("rxfiddle_topics") || []
+    this.set("rxfiddle_topics", topics.concat([topic]))
   }
   public send(message: any) {
     this.count++
-    localStorage.setItem(`rxfiddle_topic_${this.topic}_count`, `${this.count}`)
-    localStorage.setItem(`rxfiddle_topic_${this.topic}_${this.count - 1}`, JSON.stringify(message))
+    try {
+      this.set(`rxfiddle_topic_${this.topic}_count`, this.count)
+      this.set(`rxfiddle_topic_${this.topic}_${this.count - 1}`, message)
+    } catch (e) {
+      this.clear()
+    }
+  }
+  private get(key: string): any {
+    return JSON.parse(localStorage.getItem(key))
+  }
+  private set(key: string, value: any) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value))
+    } catch (e) {
+      console.warn("Cleared LocalStorage as it was full")
+      this.clear()
+    }
+  }
+  private clear() {
+    Object.keys(localStorage).filter(k => k.startsWith("rxfiddle_topic")).forEach(key => localStorage.removeItem(key))
   }
 }
 
