@@ -32,13 +32,14 @@ html {
   color: white;
 }
 .welcome {
-  width: 500px;
-  margin: 0 auto 3em;
+  /* width: 500px; */
+  /* margin: 0 auto 3em; */
 }
 .welcome h1 {
   font-size: 60px;
   font-family: "Signika",Helvetica,sans-serif;
   margin-bottom: 5px;
+  margin-top: 20px;
 }
 .welcome h1 img {
   width: 80px;
@@ -57,8 +58,10 @@ html {
     font-weight: 500;
     text-indent: 4px;
 }
-.welcome .brand {
+.welcome .hero {
   margin-bottom: 25px;
+  margin-left: 120px;
+  position: relative;
 }
 .splash a:not(.btn) {
   color: #1678CA;
@@ -130,6 +133,7 @@ label input[type=file] {
 }
 
 html, body {height: 100%;width: 100%;background: #333;}
+body.white {background: white;}
 .flex { display: flex; }
 .flexy {
   display: flex;
@@ -567,6 +571,9 @@ g.circle:hover text, g.circle:hover rect {
 .ml3 {
   /* margin-left: 2em; */
 }
+.mt1 {
+   margin-top: 0.5em; 
+}
 
 .layered {
   position: relative;
@@ -828,13 +835,15 @@ disable purple highlight border:
 }
 
 .splash .warning {
-  border-color: #f5e79e;
-  background-color: #fcf8e3;
-  color: #8a6d3b;
+  background: white;
+  color: black;
   padding: 15px;
-  border-radius: 4px;
-  margin-bottom: 20px;
+  line-height: 32px;
+  width: 500px;
+  margin: -30px auto 60px;
+  box-shadow: 0 0 5px rgba(0,0,0,.4)
 }
+.splash .warning .btn {color: white; line-height: 1em; }
 
 .splash .warning a {
   color: inherit;
@@ -845,7 +854,49 @@ disable purple highlight border:
   text-decoration: underline;
 }
 
-.splash .brand img {
-  float: left;
+.splash .hero img {
+  position: absolute;
   margin-right: 15px;
+  left: -110px;
+  top: 20px;
 }
+
+.hero-wrapper {
+  background: #222;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 0;
+}
+
+.splash div#menufold-static {
+  box-shadow: 0 0 5px rgba(0,0,0,.4);
+}
+
+.splash .alternatives {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+.splash .alternatives > * {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+.splash h2.border {
+  text-align: center;
+  border-bottom: 2px solid white;
+  margin: 0 1em 2em;
+  padding-bottom: 0.5em;
+}
+
+.welcome .alternatives {
+  margin: 0 1em;
+}
+
+.splash .demo {
+  text-align: center;
+}
+.splash .demo iframe { display: inline-block; }
+
+.splash { margin-bottom: 2em; }

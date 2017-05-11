@@ -18,124 +18,136 @@ let debugOptions: VNode[] = [
   ]),
 ]
 
-let brand = [
-  h("div.brand", [
+let hero = h("div.hero-wrapper", [
+  h("div.brand.hero", [
     h("img", { attrs: { alt: "ReactiveX", src: "images/RxLogo.png" } }),
     h("h1", ["RxFiddle"]),
     h("h2", ["Visualize your Observables."]),
   ]),
-]
-
-let editor = h("label.launchOption", [
-  h("span", "In-browser editor"),
-  h("a.btn", { attrs: { href: "#type=editor" } }, "Start Editor"),
 ])
 
-let inputs = [
-  h("div.warning", [
-    h("a", { attrs: { href: "experiment.html" } }, "Click here"),
-    " to participate in the RxFiddle experiment, part of my thesis research.",
-  ]),
-
-  h("a", { attrs: { href: "#type=editor" } }, [
-    h("img", {
-      attrs: {
-        height: "268.84px",
-        src: "https://github.com/hermanbanken/RxFiddle/raw/master/rxfiddle-js-collector/screenshot.png",
-        width: "400px",
-      },
-    }),
-  ]),
-
-  editor,
-
-  h("p", [`Write RxJS code in your browser and see the data flow.`]),
-
-  h("span.separator", "or"),
-
-  h("label.launchOption", [
-    h("span", "WebSocket debugger"),
-    h("form", {
-      attrs: { method: "get", style: "display: flex" },
-      on: {
-        submit: (e: Event) => {
-          window.location.hash = `#type=ws&url=${(e.target as any).elements.url.value}`
-          e.preventDefault();
-          return false;
-        }
-      },
-    }, [
-        h("div.inputbar", [
-          h("input", {
-            attrs: { placeholder: "url, e.g. ws://localhost:1337", type: "text", name: "url" },
-          }),
-        ]),
-        h("input.btn", { attrs: { type: "submit" } }, "Connect"),
-      ]),
-  ]),
-
-  h("p", [`Connect any running Rx process by using a collector and attach 
-          the WebSocket debugger. `]),
-
-  h("p", [`This is a work in progress. You can help by creating collectors 
-          for the JVM, Swift, .NET, Chrome DevTools, etc.`]),
-
-  h("iframe", {
+let screenshot = h("a", { attrs: { href: "#type=editor" } }, [
+  h("img", {
     attrs: {
-      allowfullscreen: "true",
-      frameborder: 0,
-      height: 350,
-      src: "https://www.youtube.com/embed/BYFMuPOIijw",
-      width: 560,
+      height: "268.84px",
+      src: "https://github.com/hermanbanken/RxFiddle/raw/master/rxfiddle-js-collector/screenshot.png",
+      width: "400px",
     },
   }),
+])
 
-  h("span.separator", "or"),
+let npm = h("svg", { attrs: { viewBox: "0 0 18 7" }, style: { display: "inline-block", width: "50%" } }, [
+  h("path", { attrs: { d: "M0,0v6h5v1h4v-1h9v-6", fill: "#CB3837" } }),
+  h("path", { attrs: { d: "M1,1v4h2v-3h1v3h1v-4h1v5h2v-4h1v2h-1v1h2v-4h1v4h2v-3h1v3h1v-3h1v3h1v-4", fill: "#FFF" } }),
+])
 
-  /* Not yet supported JSON load 
-  h("label.launchOption", [
-    h("span", "Import"),
-    h("form", { attrs: { method: "get", style: "display: flex" } }, [
-      h("div", [h("label.btn.rel", [
-        h("input", { attrs: { type: "file" } }), h("span", "Load a JSON log file")]),
-      ]),
-    ]),
+let twitterIntent = `https://twitter.com/intent/tweet?text=${
+  encodeURIComponent("Check out #RxFiddle for visualizing & debugging #rxjs at https://rxfiddle.net!")}`
+
+let menu = h("div#menufold-static.menufold", [
+  h("a.brand.left", { attrs: { href: "#" } }, [
+    h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
+    "RxFiddle" as any as VNode,
   ]),
-  */
-
-  // ...debugOptions,
-]
+  h("div.left.ml3.flex", [
+    h("a.btn", { attrs: { href: "#type=editor" } }, "Editor"),
+    h("a.btn", { attrs: { href: "/tutorials.html" } }, "Tutorials"),
+    h("a.btn", { attrs: { href: "/experiment.html" } }, "Experiment"),
+  ]),
+  h("div.right.flex", [
+    h("a.btn", { attrs: { href: "https://github.com/hermanbanken/RxFiddle" } }, "Github"),
+    h("a.btn", { attrs: { href: twitterIntent } }, "Twitter"),
+  ]),
+])
 
 export default class Splash {
   public stream() {
     return Observable.combineLatest(
-      Observable.of({ inputs }),
+      Observable.of(0),
       snippets.latest().throttleTime(5000).startWith({} as SnippetDict),
       snippets.user().startWith({} as SnippetDict),
       (staticContent, snippets: SnippetDict, mySnippets: SnippetDict) => {
         return h("div", { attrs: { class: "splash " } }, [h("div", { attrs: { class: "welcome" } }, [
-          ...brand,
-          ...staticContent.inputs,
-          h("h3", ["Shared samples"]),
-          h("div.snippets", Object.keys(snippets || {}).filter(key => validSnippet(snippets[key]))
-            .map(key => h("div.snippet", [
-              h("a",
-                { attrs: { href: `#type=editor&code=${btoa(snippets[key].code)}` } },
-                snippets[key].name
-              ),
-              h("div", snippets[key].description),
-            ]))
-          ),
-          h("h3", ["My samples"]),
-          h("div.snippets", Object.keys(mySnippets || {}).filter(key => validSnippet(mySnippets[key]))
-            .map(key => h("div.snippet", [
-              h("a",
-                { attrs: { href: `#type=editor&code=${btoa(snippets[key].code)}` } },
-                snippets[key].name
-              ),
-              h("div", snippets[key].description),
-            ]))
-          ),
+          menu,
+          hero,
+          h("div.warning", [
+            "Experiment: \"how do you Rx\"? Part of my thesis research.",
+            h("a.btn", { attrs: { href: "experiment.html" }, style: { float: "right" } }, "Participate"),
+          ]),
+
+          h("h2.border", "Getting started"),
+
+          h("div.alternatives", [
+            h("div", [
+              h("h2", "RxJS"),
+              h("div.alternatives", [
+                h("div", [
+                  screenshot,
+                  h("div.mt1", [
+                    h("a.btn", { attrs: { href: "#type=editor" } }, "Start Editor"),
+                  ]),
+                ]),
+              ]),
+            ]),
+            h("div", [
+              h("h2", "RxJS on Node"),
+              h("div.alternatives", [
+                h("div", [
+                  npm,
+                  h("div.mt1", [
+                    h("a.btn", { attrs: { href: "http://npmjs.org/package/rxfiddle" } }, "Read tutorial"),
+                  ]),
+                ]),
+              ]),
+            ]),
+            h("div", [
+              h("h2", "Other Rx"),
+              `This is a work in progress. You can help by creating collectors 
+      for the JVM, Swift, .NET, Chrome DevTools, etc.`,
+              h("div.mt1", [
+                h("a.btn", { attrs: { href: "http://github.com/hermanbanken/RxFiddle/pulls" } }, "Pull Request"),
+              ]),
+            ]),
+            h("div", [
+              h("h2", "Samples"),
+              `View samples from other developers and share your own`,
+              h("div.mt1", [
+                h("h3", ["Shared samples"]),
+                h("div.snippets", Object.keys(snippets || {}).filter(key => validSnippet(snippets[key]))
+                  .map(key => h("div.snippet", [
+                    h("a",
+                      { attrs: { href: `#type=editor&code=${btoa(snippets[key].code)}` } },
+                      snippets[key].name
+                    ),
+                    h("div", snippets[key].description),
+                  ]))
+                ),
+                h("h3", ["My samples"]),
+                h("div.snippets", Object.keys(mySnippets || {}).filter(key => validSnippet(mySnippets[key]))
+                  .map(key => h("div.snippet", [
+                    h("a",
+                      { attrs: { href: `#type=editor&code=${btoa(snippets[key].code)}` } },
+                      snippets[key].name
+                    ),
+                    h("div", snippets[key].description),
+                  ]))
+                ),
+              ]),
+            ]),
+          ]),
+
+          h("h2.border", "Demo"),
+          h("div.demo", [
+            h("iframe", {
+              attrs: {
+                allowfullscreen: "true",
+                frameborder: 0,
+                height: 350,
+                src: "https://www.youtube.com/embed/BYFMuPOIijw",
+                width: 560,
+              },
+            }),
+          ]),
         ])])
       })
   }

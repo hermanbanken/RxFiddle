@@ -139,7 +139,7 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.switchMap(collector => {
         )),
       ])
   } else {
-    return new Splash().stream().map(n => [h("div.flexy", [n])])
+    return new Splash().stream().map(n => [n])
   }
 })
 
