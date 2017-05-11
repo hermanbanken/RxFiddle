@@ -385,3 +385,8 @@ form .control input.valid, form .control input[type="text"].valid {
   margin-left: 10px;
   min-width: 50%;
 }
+
+textarea {
+  width: 100%;
+  font-size: 1.2em;
+}

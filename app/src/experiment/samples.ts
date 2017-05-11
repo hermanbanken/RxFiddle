@@ -242,7 +242,7 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
       h("p", `The example below is a piece of a movie search website.
               You can enter a movie name and the site looks it up in a database.
               John - a tester - searches for "The Titanic", however he sees all 
-              kinds of other (non relevant) movie results too. What could be wrong?`),
+              kinds of other (non relevant) movie results too.`),
       h("div.control", [
         h("label", `After he's done typing, and all async requests are done,
                     what is the movie at the top of the result list?`),
@@ -250,7 +250,7 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
           attrs: {
             class: validState(elvis(state, ["data", this.id, "firstresult"])[0],
               (v: string) => v.toLowerCase() === "them"),
-            name: "firstresult", placeholder: "", type: "text",
+            name: "firstresult", placeholder: "Movie name", type: "text",
             value: elvis(state, ["data", this.id, "firstresult"])[0],
           },
         }),
@@ -261,18 +261,16 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
       h("textarea", {
         attrs: {
           name: "problem",
-          value: elvis(state, ["data", this.id, "problem"])[0],
         },
-      }),
+      }, elvis(state, ["data", this.id, "problem"])[0]),
       h("div.control", [
         h("label", `How you would solve this?`),
       ]),
       h("textarea", {
         attrs: {
           name: "solution", placeholder: "", type: "text",
-          value: elvis(state, ["data", this.id, "solution"])[0],
         },
-      }),
+      }, elvis(state, ["data", this.id, "solution"])[0]),
     ]))
   }
 
