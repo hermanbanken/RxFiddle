@@ -234,11 +234,7 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
   public get checker() {
     return (value: any) =>
       typeof value.firstresult === "string" && value.firstresult.toLowerCase() === "them" &&
-      typeof value.firstresult === "string" && value.replaced.toLowerCase() === "flatmap" &&
-      (
-        typeof value.firstresult === "string" && value.replaced_with.toLowerCase() === "switchmap" ||
-        typeof value.firstresult === "string" && value.replaced_with.toLowerCase() === "flatmaplatest"
-      )
+      value.problem.length > 0 && value.solution.length > 0
   }
 
   public renderQuestion(state: TestState, dispatcher: (event: TestEvent) => void): Rx.Observable<VNode> {
@@ -260,27 +256,23 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
         }),
       ]),
       h("div.control", [
-        h("label", `What operator do you need to replace for correct behaviour?`),
-        h("input", {
-          attrs: {
-            class: validState(elvis(state, ["data", this.id, "replaced"])[0],
-              (v: string) => v.toLowerCase() === "flatmap"),
-            name: "replaced", placeholder: "", type: "text",
-            value: elvis(state, ["data", this.id, "replaced"])[0],
-          },
-        }),
+        h("label", `Explain what is wrong:`),
       ]),
+      h("textarea", {
+        attrs: {
+          name: "problem",
+          value: elvis(state, ["data", this.id, "problem"])[0],
+        },
+      }),
       h("div.control", [
-        h("label", `What operator should take it's place?`),
-        h("input", {
-          attrs: {
-            class: validState(elvis(state, ["data", this.id, "replaced_with"])[0],
-              (v: string) => v.toLowerCase() === "switchmap" || v.toLowerCase() === "flatmaplatest"),
-            name: "replaced_with", placeholder: "", type: "text",
-            value: elvis(state, ["data", this.id, "replaced_with"])[0],
-          },
-        }),
+        h("label", `How you would solve this?`),
       ]),
+      h("textarea", {
+        attrs: {
+          name: "solution", placeholder: "", type: "text",
+          value: elvis(state, ["data", this.id, "solution"])[0],
+        },
+      }),
     ]))
   }
 
@@ -288,8 +280,8 @@ class ImdbSample extends DefaultSample<{ firstresult: string, replaced: string, 
     let value = {
       completed: false,
       firstresult: data.firstresult.value,
-      replaced: data.replaced.value,
-      replaced_with: data.replaced_with.value,
+      problem: data.problem.value,
+      solution: data.solution.value,
     }
     value.completed = this.checker(value)
     dispatcher({

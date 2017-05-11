@@ -51,7 +51,7 @@ let experimentProto: any = {
       let t = 0
       let messages = []
       // let random = new Array(11).fill(1).map(_ => Math.floor(Math.random() * 100))
-      let random = [97, 21, 37, 69, 35, 8, 48, 99, 75, 32, 51, 52, 96, 55, 19, 14, 61, 89,
+      let random = [21, 37, 69, 35, 8, 48, 99, 75, 32, 51, 52, 96, 55, 19, 14, 61, 89,
         70, 44, 69, 21, 19, 87, 64, 52, 96, 12, 41, 33, 69, 28, 35, 23, 82, 94, 73, 79, 24,
         15, 19, 22, 21, 48, 25, 64, 52, 59, 23, 8, 63, 97, 74, 18, 86, 97, 21, 64, 8, 66, 33,
         0, 40, 53, 70, 72, 62, 54, 13, 88, 43, 94, 70, 96, 6, 91, 60, 77, 58, 12, 98, 8, 64,
@@ -76,10 +76,11 @@ let experimentProto: any = {
         "Iron Man",
         "Terminator Genisys",
         "The Titanic",
+        "The Avengers",
       ],
       findMoviesAsync: (term: string) => {
         let result = this.imdb._movies.filter((movie: string) => movie.toLowerCase().indexOf(term.toLowerCase()) >= 0)
-        let t = 200 * result.length
+        let t = 100 * result.length
         return this.scheduler.createHotObservable(
           _.next(t, result),
           _.complete(t + 1)
