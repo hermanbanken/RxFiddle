@@ -300,6 +300,7 @@ path.branch:hover { stroke: darkslategray; }
   flex: 1;
   padding-left: 15px;
   padding-right: 15px;
+  margin-bottom: 85px;
 }
 
 master > * {
