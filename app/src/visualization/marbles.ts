@@ -282,7 +282,9 @@ function eventBody(e: IEvent, coloring?: (node: string) => string) {
           attrs: {
             class: "higher next",
             fill: coloring((e.value as any).id) || "white",
-            height: 24, width: 32, x: -12, y: -12,
+            height: 24,
+            rx: "12px", ry: "12px",
+            width: 32, x: -12, y: -12,
           },
         })]
         break

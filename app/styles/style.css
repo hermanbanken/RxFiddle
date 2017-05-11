@@ -41,14 +41,14 @@ html {
   margin-bottom: 5px;
   margin-top: 20px;
 }
-.welcome h1 img {
+.welcome .brand h1 img {
   width: 80px;
   height: 80px;
   margin-top: -10px;
   margin-right: 15px;
   vertical-align: middle;
 }
-.welcome h2 {
+.welcome .brand h2 {
     line-height: 1.3em;
     margin-bottom: 50px;
     font-size: 28px;
@@ -819,6 +819,7 @@ disable purple highlight border:
     height: auto;
     cursor: ew-resize;
     position: relative;
+    justify-content: center;
 }
 .resizer:after {
   /* Increase click area of 1px wide element */
@@ -839,9 +840,9 @@ disable purple highlight border:
   color: black;
   padding: 15px;
   line-height: 32px;
-  width: 500px;
-  margin: -30px auto 60px;
-  box-shadow: 0 0 5px rgba(0,0,0,.4)
+  max-width: 500px;
+  margin: -30px auto 30px;
+  box-shadow: 0 0 5px rgba(0,0,0,.4);
 }
 .splash .warning .btn {color: white; line-height: 1em; }
 
@@ -871,16 +872,19 @@ disable purple highlight border:
 
 .splash div#menufold-static {
   box-shadow: 0 0 5px rgba(0,0,0,.4);
+  justify-content: flex-start;
 }
 
 .splash .alternatives {
   display: flex;
   flex-direction: row;
   align-items: flex-start;
+  flex-wrap: wrap;
 }
 .splash .alternatives > * {
   flex: 1 1 0;
   text-align: center;
+  min-width: 300px;
 }
 
 .splash h2.border {
@@ -897,6 +901,58 @@ disable purple highlight border:
 .splash .demo {
   text-align: center;
 }
-.splash .demo iframe { display: inline-block; }
+.splash .demo iframe {display: inline-block;/* max-width: 100%; *//* height: auto; */}
 
 .splash { margin-bottom: 2em; }
+
+.splash .screenshot { max-width: 100%; height: auto; }
+
+.flex-fill {
+  flex-basis: 0;
+  flex-grow: 1000;
+  flex-shrink: 1;
+  content: "";
+}
+
+.flex-end {
+  align-self: flex-end;
+}
+
+.flex.wrap {
+  flex-wrap: wrap;
+}
+
+.flex-steady {
+  flex-basis: auto;
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+@media all and (max-width: 600px) {
+  .hero-wrapper { padding: 10px 0 30px; }
+  .welcome .hero h1 { font-size: 30px; }
+  .welcome .hero h2 { font-size: 15px; }
+  .splash .hero img { height: auto; width: 50px; left: -60px; top: 20px }
+  .welcome .hero { margin-left: 60px; }
+  .splash .alternatives > * { min-width: 50%; }
+
+  .resizer { display: none; }
+}
+
+.aspect-ratio {
+    position: relative;
+    max-width: 100%;
+    height: auto;
+}
+
+.aspect-ratio > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.aspect-ratio-16-9 {
+    padding-top: 56.25% !important;
+}

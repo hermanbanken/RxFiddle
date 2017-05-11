@@ -20,14 +20,14 @@ let debugOptions: VNode[] = [
 
 let hero = h("div.hero-wrapper", [
   h("div.brand.hero", [
-    h("img", { attrs: { alt: "ReactiveX", src: "images/RxLogo.png" } }),
+    h("img", { attrs: { alt: "ReactiveX", height: 100, src: "images/RxLogo.png", width: 100 } }),
     h("h1", ["RxFiddle"]),
     h("h2", ["Visualize your Observables."]),
   ]),
 ])
 
 let screenshot = h("a", { attrs: { href: "#type=editor" } }, [
-  h("img", {
+  h("img.screenshot", {
     attrs: {
       height: "268.84px",
       src: "https://github.com/hermanbanken/RxFiddle/raw/master/rxfiddle-js-collector/screenshot.png",
@@ -44,20 +44,17 @@ let npm = h("svg", { attrs: { viewBox: "0 0 18 7" }, style: { display: "inline-b
 let twitterIntent = `https://twitter.com/intent/tweet?text=${
   encodeURIComponent("Check out #RxFiddle for visualizing & debugging #rxjs at https://rxfiddle.net!")}`
 
-let menu = h("div#menufold-static.menufold", [
-  h("a.brand.left", { attrs: { href: "#" } }, [
+let menu = h("div#menufold-static.menufold.flexy.wrap", [
+  h("a.brand.left.flex-steady", { attrs: { href: "#" } }, [
     h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
     "RxFiddle" as any as VNode,
   ]),
-  h("div.left.ml3.flex", [
-    h("a.btn", { attrs: { href: "#type=editor" } }, "Editor"),
-    h("a.btn", { attrs: { href: "/tutorials.html" } }, "Tutorials"),
-    h("a.btn", { attrs: { href: "/experiment.html" } }, "Experiment"),
-  ]),
-  h("div.right.flex", [
-    h("a.btn", { attrs: { href: "https://github.com/hermanbanken/RxFiddle" } }, "Github"),
-    h("a.btn", { attrs: { href: twitterIntent } }, "Twitter"),
-  ]),
+  h("a.btn", { attrs: { href: "#type=editor" } }, "Editor"),
+  h("a.btn", { attrs: { href: "/tutorials.html" } }, "Tutorials"),
+  h("a.btn", { attrs: { href: "/experiment.html" } }, "Experiment"),
+  h("div.flex-fill"),
+  h("a.btn.flex-end", { attrs: { href: "https://github.com/hermanbanken/RxFiddle" } }, "Github"),
+  h("a.btn.flex-end", { attrs: { href: twitterIntent } }, "Twitter"),
 ])
 
 export default class Splash {
@@ -137,16 +134,18 @@ export default class Splash {
           ]),
 
           h("h2.border", "Demo"),
-          h("div.demo", [
-            h("iframe", {
-              attrs: {
-                allowfullscreen: "true",
-                frameborder: 0,
-                height: 350,
-                src: "https://www.youtube.com/embed/BYFMuPOIijw",
-                width: 560,
-              },
-            }),
+          h("div.demo", { style: { "max-width": "560px", margin: "0 auto" } }, [
+            h("div.aspect-ratio.aspect-ratio-16-9", [
+              h("iframe", {
+                attrs: {
+                  allowfullscreen: "true",
+                  frameborder: 0,
+                  height: 350,
+                  src: "https://www.youtube.com/embed/BYFMuPOIijw",
+                  width: 560,
+                },
+              }),
+            ]),
           ]),
         ])])
       })

@@ -558,7 +558,7 @@ function renderMarbles(
     style: {
       height: `${height}px`,
       // "margin-top": `${(offset - heights[0] / 2)}px`,
-      width: "0",
+      // width: "0",
     },
   }, nodes.flatMap((node, i, nodeList) => {
     let clazz = `operator withoutStack 
