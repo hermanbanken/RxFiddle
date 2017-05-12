@@ -203,7 +203,7 @@ export default class Visualizer {
   public get viewState(): Rx.Observable<ViewState> {
     return this.uiEventsInput
       // kick-off
-      .startWith({ type: "selectionGraphNone" })
+      .startWith({})
       .scan<ViewState>(reduce, {
         flowSelection: undefined,
         tick: undefined,
@@ -226,7 +226,7 @@ export default class Visualizer {
     let inp: RenderInput = grapher.graph
       .combineLatest(viewState, (graphs, state) => {
         let filtered = this.filter(graphs, state)
-        let focusNodes = this.focusNodes(graphs, state.flowSelection)
+        let focusNodes = this.focusNodes(graphs, state.flowSelection, true)
         let hooverNodes = this.focusNodes(graphs, state.hooverSelection)
         return ({
           _sequence: graphs._sequence,
@@ -278,8 +278,15 @@ export default class Visualizer {
   }
 
   // tslint:disable-next-line:max-line-length
-  private focusNodes(graphs: Graphs, selection: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick | MarbleHoover): string[] {
-    if (!selection) { return [] }
+  private focusNodes(graphs: Graphs, selection: SelectionGraphEdge | SelectionGraphNode | SelectionGraphNone | MarbleClick | MarbleHoover, initialSelection: boolean = false): string[] {
+    if (!selection) {
+      if (graphs.subscriptions.nodeCount() > 0 && initialSelection) {
+        // Initial selection is first subscribe happening
+        return getFlow(graphs.subscriptions, undefined, graphs.subscriptions.nodes()[0])
+          .map(_ => _.id)
+      }
+      return []
+    }
     switch (selection.type) {
       case "selectionGraphEdge": return getFlow(graphs.subscriptions, undefined, selection.v, selection.w)
         .map(_ => _.id)
