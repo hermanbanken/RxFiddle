@@ -57,8 +57,9 @@ export function onWorkerMessage(instrument: () => void): ((e: MessageEvent) => v
         break
       case "run":
         // Execute user code
-        let result = evalAndRepackageErrors(message.code)
-        if (result.type === "error") {
+        // tslint:disable-next-line:no-eval
+        let result = eval(message.code)
+        if (typeof result === "object" && result.type === "error") {
           (postMessage as (m: any) => void)({
             error: result.error,
             type: "error",

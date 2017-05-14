@@ -956,3 +956,68 @@ disable purple highlight border:
 .aspect-ratio-16-9 {
     padding-top: 56.25% !important;
 }
+
+.rxf-cm-wrapper {
+  overflow-y: scroll;
+}
+.rxf-cm-wrapper .CodeMirror {
+  min-height: 100%;
+}
+.CodeMirror-focussed .CodeMirror-activeline-gutter, .CodeMirror-focussed .CodeMirror-activeline-background {
+  background: rgba(0,0,0,.3)
+}
+
+.editor-info input.toggle { display: none; }
+.editor-info input.toggle:not(:checked) + * > div.collapsed { display: block; }
+.editor-info input.toggle:not(:checked) + * > div.open { display: none; }
+.editor-info input.toggle:checked + * > .collapsed { display: none; }
+.editor-info input.toggle:checked + * > .open { display: block; }
+
+.editor-info label.group {
+    display: block;
+    padding: 10px;
+    text-transform: uppercase;
+    color: gainsboro;
+}
+
+.editor-info label input, .editor-info label textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    line-height: 1em;
+    font-size: 1em;
+    background: none;
+    color: white;
+    border: none;
+    outline: none;
+}
+
+.editor-info label input.inline{
+    display: inline-block;
+    width: auto;
+}
+
+.editor-info {
+    color: white;
+    background: #1678ca;
+}
+
+.editor-info .bar {
+  padding: 8px 10px;
+  line-height: 16px;
+  /* border-bottom: 2px solid white; */
+  /* margin: 10px; */
+  /* padding: 0 0 2px; */
+  font-weight: bold;
+}
+
+/* WebKit, Blink, Edge */
+.editor-info label input::-webkit-input-placeholder  {  opacity: .8; color: white; }
+/* Mozilla Firefox 4 to 18 */
+.editor-info label input:-moz-placeholder {  opacity: .8; color: white; }
+/* Mozilla Firefox 19+ */
+.editor-info label input::-moz-placeholder  {  opacity: .8; color: white; }
+/* Internet Explorer 10-11 */
+.editor-info label input:-ms-input-placeholder  {  opacity: .8; color: white; }
+/* Microsoft Edge */
+.editor-info label input::-ms-input-placeholder {  opacity: .8; color: white; }

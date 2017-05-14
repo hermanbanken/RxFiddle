@@ -62,7 +62,7 @@ const DataSource$: Rx.Observable<{
       }
     } else {
       let config = LanguageMenu.get(q.lib).runnerConfig
-      let editor = new CodeEditor(q.code ? atob(decodeURI(q.code)) : undefined)
+      let editor = new CodeEditor(undefined, q.code ? atob(decodeURI(q.code)) : undefined)
       let code = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
       let runner = new RxRunner(config, code, AnalyticsObserver)
       return {

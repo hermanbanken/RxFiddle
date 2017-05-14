@@ -385,7 +385,7 @@ let testScreen = (scheduler: IScheduler): Screen => ({
 })
 
 function DataSource(state: TestState, sample: Sample) {
-  let editor = new CodeEditor(sample.code.trim(), sample.codeRanges && sample.codeRanges(), sample.lineClasses && sample.lineClasses())
+  let editor = new CodeEditor(sample.id, sample.code.trim(), sample.codeRanges && sample.codeRanges(), sample.lineClasses && sample.lineClasses())
   let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
   let runner: Runner
   if (state.mode === "rxfiddle") {
