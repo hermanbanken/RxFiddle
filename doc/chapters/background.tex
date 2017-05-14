@@ -1,0 +1,49 @@
+\section{Background}
+In this section we give an overview of related work 
+and the context of this research.
+
+\textbf{Debugging for Program Comprehension.}
+Both debugging and comprehension are processes in the work of programmers.
+Initially comprehension was seen as a distinct step programmers had to make
+prior to being able to debug programs~\cite{katz1987debugging}, 
+but this distinction is criticized by Gilmore saying we must view 
+``debugging as a design activity''~\cite{gilmore1991models}, 
+part of creating and comprehending programs. 
+Maalej et al.~\cite{Maalej2014} interviewed professional developers 
+and found that developers require runtime information to understand a program,
+and that debugging is frequently used to gather this runtime information.
+This supports our view that `debugging' is not only used for fault localisation,
+but also for comprehension.
+
+\textbf{Dynamic Analysis.}
+Although interactive debuggers are commonly used for comprehension 
+of the runtime behavior of programs, more specialized tools exist: 
+to study a programs execution is called `dynamic analysis' which has 
+received substantial attention in the research community,
+as surveyed by Cornellissen et al.~\cite{cornelissen2009systematic}.
+They categorise on different facets being the 
+\textit{activity} [goal of analysis],
+\textit{target} [kind of inspected program or system],
+\textit{method} [visualization, metrics, online, querying, etc.],
+\textit{evaluation} [preliminary, case study, quantitative, etc.].
+Most papers apply a post mortem analysis were the program is run,
+and then analyse the trace data to create a visualization. 
+Reis et al. mention the compromises
+that have to be made to make an online analysis: 
+reduced tracing is required to not slow down the 
+system (known as the observer-effect), fast analysis 
+and visualization is required to lower the cost of getting 
+to the visualization, to not discourage the users.
+
+Only X of the surveyed papers apply post mortem analysis.
+
+\textbf{Measuring Debugging.}
+
+\textbf{Debugging for specific fields}
+Most research into debugging focusses on procedural and 
+imperative languages~\cite{cornelissen2009systematic}.
+Other topics of interest are multi-threading and distributed systems.
+and only few focus on other styles, like 
+declarative programming~\cite{nilsson1998declarative}.
+Debugging in reactive programming~\cite{
+	salvaneschi2014empirical,salvaneschi2016debugging}.
