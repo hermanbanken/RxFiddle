@@ -1,8 +1,12 @@
+// tslint:disable:object-literal-sort-keys
 import { UUID } from "../utils"
-import * as Rx from "rxjs"
-import { Doc, Editor } from "codemirror"
+import ReactiveStorage from "./reactiveStorage"
+import { Query } from "./shared"
+import { eventTarget, lensSet, lensView, onChange, onClick, onInput, pipe, redux, setField, textarea } from "./redux"
+import { Editor } from "codemirror"
 import * as CodeMirror from "codemirror"
 import "codemirror/mode/javascript/javascript"
+import * as Rx from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
 
@@ -29,11 +33,11 @@ type CodeEditorMessage = { desiredWidth: number } | { code: string }
 export type EditorInput = { type: "highlight", from: Pos, to: Pos }
 
 type CEState = { code: string }
-type CEAction = { type: "CodeTyped", code: string } | { type: "DesiredWidth", width: number }
+type CEAction = { type: "CodeTyped", code: string } | { type: "DesiredWidth", width: number } | { type: "Save" }
 
 function codeEditor(state: CEState, dispatch: (a: CEAction) => void) {
   return h("div.rxf-cm-wrapper", {
-    code: state.code,
+    code: state.code || "",
     hook: {
       destroy: (n) => n.data.subscription && n.data.subscription.unsubscribe(),
       insert: (node) => {
@@ -41,7 +45,7 @@ function codeEditor(state: CEState, dispatch: (a: CEAction) => void) {
           let editor = node.data.editor = CodeMirror(node.elm as HTMLElement, {
             lineNumbers: true,
             mode: "javascript",
-            value: state.code,
+            value: state.code || "",
           })
           editor.setOption("styleActiveLine", true)
           // Dynamic behaviour
@@ -56,8 +60,9 @@ function codeEditor(state: CEState, dispatch: (a: CEAction) => void) {
         }, 0)
       },
       update: (old, next) => {
-        if (typeof next.data.code === "string" && old.data.editor.getValue() !== next.data.code) {
-          old.data.editor.getDoc().setValue(next.data.code)
+        let editor = old.data.editor
+        if (editor && editor.getValue() !== next.data.code) {
+          editor.getDoc().setValue(next.data.code)
         }
       },
     },
@@ -68,66 +73,98 @@ type CMState = {
   open: boolean,
   props: { title: string, description: string, isPublic: boolean }
 }
-type CMAction = {}
+type CMAction = { type: "Update", field: string, value: any } | { type: "New" } | { type: "Browser" }
 
-function pipe(...fs: Function[]): Function {
-  return (v: any) => fs.reduce((s, f) => f(s), v)
+function nest(path: string, dispatch: (e: CMAction) => void): (e: CMAction) => void {
+  return (e) => {
+    if (e.type === "Update") {
+      dispatch({ field: `${path}.${e.field}`, type: e.type, value: e.value })
+    } else {
+      dispatch(e)
+    }
+  }
 }
-function eventTarget(e: Event): any {
-  return (e.target as HTMLInputElement).value
-}
-function setField(field: string): (data: any) => { type: "Update", field: string, value: any } {
-  return (value) => ({ type: "Update", field, value })
-}
-function onInput(f: Function) {
-  return { input: f }
-}
+
+let star = h("svg", {
+  attrs: { class: "icon", "aria-hidden": "true", height: "16", version: "1.1", viewBox: "0 0 14 16" }
+}, [h("path", {
+  attrs: {
+    d: "M14 6l-4.9-.64L7 1 4.9 5.36 0 6l3.6 3.26L2.67 14 7 11.67 11.33 14l-.93-4.74z",
+    fill: "white",
+    "fill-rule": "evenodd",
+  },
+})])
+
+let runIcon = h("svg", {
+  attrs: { class: "icon", "aria-hidden": "true", height: "16", version: "1.1", viewBox: "0 0 14 16" }
+}, [h("path", {
+  attrs: {
+    d: "M 12 8 L 3 14 L 3 2 z",
+    fill: "white",
+    "fill-rule": "evenodd",
+  },
+})])
 
 function codeMenu(state: CMState, dispatch: (a: CMAction) => void) {
   return h("div.editor-info.noflex", [
-    h("input#editor-info-open.toggle", { attrs: { type: "checkbox" } }),
     h("label", { attrs: { for: "editor-info-open" } }, [
-      h("div.collapsed.bar", [
-        h("span", state.props.title),
-        h("div.right", [h("span", "Star"), " ", h("span", "Save")]),
+      h("div", { attrs: { class: `bar` } }, [
+        h("a", {
+          attrs: { role: "button", class: `btn ${state.open ? "active" : ""}` },
+          on: onClick(pipe(setField("open", !state.open), dispatch)),
+        }, [
+            h("span", "Snippet"),
+          ]),
+        " " as any as VNode,
+        h("a.filename", {
+          attrs: { role: "button", title: "Change file name & description" },
+          on: onClick(pipe(setField("open", !state.open), dispatch)),
+        }, [h("span", state.props.title || "Untitled")]),
+        /*" " as any as VNode,
+        star, " 10" as any as VNode,*/
+        h("div.right", [/*h("a.btn", [star, " Star"]), " ",*/ h("a.btn", [runIcon, " Run"])]),
       ]),
-      h("div.open", [
-        h("div.bar", "Meta"),
+      state.props.description ? h("div", { attrs: { class: `bar ${state.open ? "collapsed" : "open"}` } }, [
+        h("i.group", state.props.description),
+      ]) : h("div"),
+      h("div", { attrs: { class: `${state.open ? "open" : "collapsed"}` } }, [
+        // h("a.btn.active", { attrs: { role: "button" }, on: onClick(pipe(setField("open", false), dispatch)) }, [
+        //   h("span", "File"),
+        // ]),
+        /*" " as any as VNode,
+       star, " 10" as any as VNode,*/
+        // h("div.right", [/*h("a.btn", [star, " Star"]), " ",*/ h("a.btn", [runIcon, " Run"])]),
+        h("a.btn.group", {
+          on: {
+            click: () =>
+              confirm(`Start a new snippet? Your current snippet will be available in Snippet Browser.`) &&
+              dispatch({ type: "New" }),
+          },
+        }, [
+            "New snippet" as any as VNode, h("span.right", "⌘N"),
+          ]),
+        h("a.btn.group", { on: { click: () => dispatch({ type: "Browser" }) } }, [
+          "Browse snippets" as any as VNode, h("span.right", "⌘O"),
+        ]),
+        h("a.btn.group", [
+          "Import file", h("span.right", "⌘I"),
+        ]),
         h("label.group", ["Title", h("input", {
-          attrs: { placeholder: "Untitled" },
-          on: onInput(pipe(eventTarget, setField("props.title"), dispatch))
+          attrs: { placeholder: "Untitled", value: state.props.title },
+          on: onInput(pipe(eventTarget, setField("props.title"), dispatch)),
         })]),
-        h("label.group", ["Description", h("textarea", {
+        h("label.group", ["Description", textarea({
+          key: "cm-description",
           on: onInput(pipe(eventTarget, setField("props.description"), dispatch)),
         }, state.props.description)]),
         h("label.group", [h("input.inline", {
           attrs: { checked: !!state.props.isPublic, type: "checkbox" },
-          on: { input: pipe(eventTarget, setField("props.isPublic"), dispatch) },
+          on: onChange(pipe(eventTarget, setField("props.isPublic"), dispatch)),
         }), "Make public"]),
       ]),
     ]),
   ])
 }
-
-// type EditorData = {
-//   files: EditorFile
-// }
-
-// class TFBProjection {
-
-// }
-
-// class TinyFirebase {
-//   private changes = Rx.Observable.fromEvent(window, "storage")
-//   public get(path: string): TFBProjection {
-//     return
-//   }
-//   private read(path: string) {
-//     return 
-//   }
-// }
-
-// const tfb = new TinyFirebase()
 
 function getOrElseSet(key: string, create: () => string): string {
   let value = localStorage.getItem(key)
@@ -138,329 +175,79 @@ function getOrElseSet(key: string, create: () => string): string {
   return value
 }
 
-class ReactiveStorage extends Rx.Subject<string> {
-  private sub: Rx.Subscription
-  // tslint:disable-next-line:no-constructor-vars
-  constructor(private key: string) {
-    super()
-    Rx.Observable.fromEvent(window, "storage")
-  }
-  public get current() {
-    return localStorage.getItem(this.key)
-  }
-  public next(value: string) {
-    if (localStorage.getItem(this.key) !== value) {
-      localStorage.setItem(this.key, value)
-    }
-    super.next(value)
-  }
-  public unsubscribe() {
-    this.sub.unsubscribe()
-    this.sub = undefined
-    super.unsubscribe()
-  }
-  protected _subscribe(subscriber: Rx.Subscriber<string>) {
-    if (!this.sub) {
-      this.sub = Rx.Observable.fromEvent(window, "storage")
-        .filter((e: StorageEvent) => e.key === this.key)
-        .startWith({ key: this.key, newValue: localStorage.getItem(this.key) })
-        .subscribe((e: StorageEvent) => this.next(e.newValue))
-    }
-    return super._subscribe(subscriber)
-  }
-}
-
-// function val(input: HTMLInputElement, set: string ): string | undefined {
-//   if(input.tagName === "textarea") {
-
-//   } else {
-
-//   }
-// }
-
-function bind(storage: ReactiveStorage, vn: VNode): VNode {
-  let sub = storage.subscribe(v => {
-    if (vn.elm && (vn.elm as HTMLInputElement).type === "checkbox") { (vn.elm as HTMLInputElement).checked = !!v; return }
-    if (vn.elm) { (vn.elm as HTMLInputElement).value = v }
-  })
-  vn.data.attrs = vn.data.attrs || {}
-  vn.data.on = vn.data.on || {}
-  vn.data.hook = vn.data.hook || {}
-
-  vn.data.attrs.value = storage.current
-  vn.data.on.change = (e: Event) => {
-    if (vn.elm && (vn.elm as HTMLInputElement).type === "checkbox") {
-      return storage.next((e.target as HTMLInputElement).checked ? "1" : "0")
-    }
-    storage.next((e.target as HTMLInputElement).value)
-  }
-  vn.data.hook.destroy = () => { sub.unsubscribe() }
-  return vn
-}
-
-function attach(storage: ReactiveStorage, vn: VNode): VNode {
-  let sub = storage.subscribe(v => {
-    if (vn.elm) { (vn.elm as HTMLElement).innerText = v }
-  })
-  vn.text = storage.current
-  vn.data.on = vn.data.on || {}
-  vn.data.hook = vn.data.hook || {}
-  vn.data.hook.destroy = () => { sub.unsubscribe() }
-  return vn
-}
-
 export default class CodeEditor {
   public dom: Rx.Observable<VNode>
+  public code: Rx.Observable<string>
   public inbox: Rx.Observer<EditorInput>
-  private frameWindow: Window = null
-  private editor: Editor
 
   constructor(fixedSession?: string, initialSource?: string, ranges?: Ranges, lineClasses?: LineClasses) {
-    let src: string
-    let session = typeof fixedSession === "undefined" ? getOrElseSet("cm_session", UUID) : fixedSession
+    let sessionId = typeof fixedSession !== "undefined" ? fixedSession : getOrElseSet("cm_session", UUID)
 
-    let code = new ReactiveStorage(`cm_session.${session}.code`)
-    if (typeof initialSource === "string") {
-      code.next(initialSource)
+    type State = { session: string, code: string, file: CMState, desiredWidth: number, dirty?: boolean }
+    let data = new ReactiveStorage<string, string>(`cm_session.${sessionId}`)
+      .project<State>(json => JSON.parse(json) || {}, v => JSON.stringify(v))
+
+    let defaultFile = { open: false, props: { title: "", description: "", isPublic: false } }
+
+    function fix(o: State): State {
+      return {
+        session: o.session || sessionId,
+        code: typeof fixedSession === "undefined" ? o.code : initialSource,
+        desiredWidth: o.desiredWidth || 0,
+        file: o.file || defaultFile,
+      }
     }
 
-    let subject = new Rx.Subject<CodeEditorMessage>()
-
-    let cm = h("div.rxf-cm-wrapper", {
-      hook: {
-        destroy: (n) => n.data.subscription && n.data.subscription.unsubscribe(),
-        insert: (node) => {
-          setTimeout(() => {
-            let editor = this.editor = node.data.editor = CodeMirror(node.elm as HTMLElement, {
-              lineNumbers: true,
-              mode: "javascript",
-              value: code.current,
-            })
-            editor.setOption("styleActiveLine", true)
-            // Dynamic behaviour
-            editor.on("change", () => {
-              code.next(editor.getDoc().getValue())
-              subject.next({
-                desiredWidth: getWidth(editor) * editor.defaultCharWidth() + editor.getGutterElement().clientWidth + 15,
-              })
-            })
-            CodeMirror.signal(editor, "change")
-            node.data.subscription = code.subscribe(value => {
-              if (typeof value === "string" && editor.getValue() !== value) {
-                editor.getDoc().setValue(value)
-              }
-            })
-          }, 0)
-        },
-      },
+    let dux = redux(fix(data.current), (s, e: CEAction | CMAction) => {
+      if (e.type === "CodeTyped") {
+        e = { type: "Update", field: "code", value: e.code }
+      }
+      switch (e.type) {
+        case "New":
+          let uuid = UUID()
+          localStorage.setItem("cm_session", uuid)
+          data = new ReactiveStorage<string, string>(`cm_session.${uuid}`)
+            .project<State>(json => JSON.parse(json) || {}, v => JSON.stringify(v))
+          s = fix(data.current)
+          s.session = uuid
+          return s
+        case "Update":
+          let changed = lensView(e.field)(s) !== e.value
+          s = lensSet(e.field, e.value)(s)
+          if (e.field !== "file.open" && changed) {
+            s = lensSet("dirty", true)(s)
+          }
+          return s
+        case "DesiredWidth":
+          return lensSet("desiredWidth", e.width)(s)
+        case "Browser":
+        case "Save":
+          s = lensSet("dirty", false)(s)
+          let saved = lensSet("file.open", undefined)(s)
+          data.next(saved)
+          if (e.type === "Browser") {
+            Query.set({ type: "samples" })
+          }
+          return s
+        default:
+      }
+      return s
     })
 
-    let title = new ReactiveStorage(`cm_session.${session}.title`)
-    let description = new ReactiveStorage(`cm_session.${session}.description`)
-    let ispublic = new ReactiveStorage(`cm_session.${session}.public`)
+    dux.state.debounceTime(1000).subscribe(state => {
+      if (state.dirty) {
+        dux.dispatch({ type: "Save" })
+      }
+    })
 
-    let info = h("div.editor-info.noflex", [
-      h("input#editor-info-open.toggle", { attrs: { type: "checkbox" } }),
-      h("label", { attrs: { for: "editor-info-open" } }, [
-        h("div.collapsed.bar", [
-          attach(title, h("span", "Title")),
-          h("div.right", [h("span", "Star"), " ", h("span", "Save")]),
-        ]),
-        h("div.open", [
-          h("div.bar", "Meta"),
-          h("label.group", ["Title", bind(title, h("input", { attrs: { placeholder: "Untitled" } }))]),
-          h("label.group", ["Description", bind(description, h("textarea", {}, description.current))]),
-          h("label.group", [bind(ispublic, h("input.inline", {
-            attrs: { checked: !!ispublic.current, type: "checkbox" },
-          })), "Make public"]),
-        ]),
-      ]),
-    ])
-
-    let runbar = h("div.editor-toolbar", [
-
-    ])
-
-    this.dom = subject
-      .startWith({ desiredWidth: 320 })
-      .scan((prev, message) => {
-        return Object.assign({}, prev, message) as CodeEditorMessage & { desiredWidth: number }
-      }, {})
-      .distinctUntilChanged()
-      .map((state: { desiredWidth: number }) => h("div.editor.flexy.flexy-v", {
-        style: {
-          width: `${Math.max(320, state.desiredWidth)}px`,
-        },
-      }, typeof fixedSession === "undefined" ? [info, cm] : [cm]))
-  }
-
-  public send(object: any) {
-    console.log("Send")
-  }
-
-  public withValue(cb: (code: string) => void) {
-    if (this.editor) {
-      return cb(this.editor.getDoc().getValue())
-    }
-  }
-}
-
-const js = {
-  r: (str: string) => str[0] === '"' || str[0] === "{" ? JSON.parse(str) : str,
-  w: (obj: any) => JSON.stringify(obj),
-}
-
-// interface Channel<T,R> extends Rx.Observable<T>, Rx.Subject<R> {
-//   public lift() {}
-// }
-
-class CodeEditorSubject<T> extends Rx.AnonymousSubject<T> {
-  private output: Rx.Subject<T>
-
-  constructor() {
-    super()
-    this.output = new Rx.Subject<T>()
-  }
-
-  public unsubscribe() {
-    // const { source } = this
-    // if (worker && worker.readyState === "ready") {
-    //   worker.terminate()
-    //   this._resetState()
-    // }
-    // super.unsubscribe()
-    // if (!source) {
-    //   this.destination = new Rx.ReplaySubject()
-    // }
-  }
-
-  public next(value: T): void {
-    // let { source } = this
-    // if (source) {
-    //   super.next(value)
-    // } else if (this.worker) {
-    //   this.worker.readyState = "used"
-    //   this.notify("used")
-    //   this.worker.postMessage(value)
-    // }
-  }
-
-  // protected notify(state: RxRunnerState) {
-  //   // if (this.config.stateObserver) {
-  //   //   this.config.stateObserver.next(state)
-  //   // }
-  // }
-
-  protected _resetState() {
-    // if (this.worker) {
-    //   this.worker.readyState = "stopped"
-    // }
-    // this.notify("stopped")
-    // this.worker = null
-    // if (!this.source) {
-    //   this.destination = new Rx.ReplaySubject()
-    // }
-    // this.output = new Rx.Subject<T>()
-  }
-
-  protected connect() {
-    // const config = this.config
-    // const worker = this.worker = new Worker(config.workerFile) as RunnerWorker
-    // const observer = this.output
-    // worker.readyState = "initializing"
-    // this.notify("initializing")
-
-    // let t = worker.terminate
-    // worker.terminate = function () {
-    //   t.bind(worker)()
-    // }
-
-    // const subscription = new Subscription(() => {
-    //   this.worker = null
-    //   if (worker && worker.readyState === "ready") {
-    //     worker.terminate()
-    //   }
-    // })
-
-    // const close = (e: CloseEvent) => {
-    //   this._resetState()
-    //   worker.terminate()
-    //   this.notify("stopped")
-    //   observer.complete()
-    //   if (e.wasClean) {
-    //     observer.complete()
-    //   } else {
-    //     observer.error(e)
-    //   }
-    // }
-
-    // const onOpen = () => {
-    //   const openObserver = config.openObserver
-    //   if (openObserver) {
-    //     openObserver.next({ type: "open" } as Event)
-    //   }
-    //   const queue = this.destination
-    //   this.destination = Subscriber.create(
-    //     (x) => (worker.readyState === "ready") && worker.postMessage(x),
-    //     (e) => close(e),
-    //     () => close({ code: 0, reason: "complete", wasClean: true } as CloseEvent)
-    //   )
-    //   if (queue && queue instanceof Rx.ReplaySubject) {
-    //     subscription.add((queue as Rx.ReplaySubject<T>).subscribe(this.destination))
-    //   }
-    // }
-
-    // worker.onerror = (e: Event) => {
-    //   this._resetState()
-    //   observer.error(e)
-    // }
-    // worker.onmessage = (e: MessageEvent) => {
-    //   if (e.data === "ready") {
-    //     if (config.libraryFile) {
-    //       worker.postMessage({ type: "importScripts", url: config.libraryFile })
-    //     }
-    //     worker.readyState = "ready"
-    //     this.notify("ready")
-    //     return
-    //   }
-    //   let result: T
-    //   let f: (m: MessageEvent) => T = config.resultSelector || ((m: MessageEvent) => m.data as T)
-    //   try {
-    //     result = f(e)
-    //   } catch (error) {
-    //     observer.error(error)
-    //     return
-    //   }
-
-    //   observer.next(result)
-    // }
-
-    // onOpen()
-
-    // return subscription
-  }
-
-  protected _subscribe(subscriber: Rx.Subscriber<T>): Rx.Subscription {
-    // const { source } = this
-    // if (source) {
-    //   return source.subscribe(subscriber)
-    // }
-    // if (!this.worker) {
-    //   this.connect()
-    // }
-    // let subscription = new Subscription()
-    // subscription.add(this.output.subscribe(subscriber))
-    // subscription.add(() => {
-    //   const { worker } = this
-    //   if (this.output.observers.length === 0) {
-    //     if (worker && worker.readyState === "ready") {
-    //       worker.terminate()
-    //     }
-    //     this._resetState()
-    //   }
-    // })
-    // return subscription
-    return
+    this.dom = dux.run((state, dispatch) => {
+      return h("div.editor.flexy.flexy-v", { style: { width: `${Math.max(320, state.desiredWidth || 0)}px` } },
+        typeof fixedSession === "undefined" ?
+          [codeMenu(state.file || defaultFile, nest("file", dispatch)), codeEditor(state, dispatch)] :
+          [codeEditor(state, dispatch)]
+      )
+    })
+    this.code = dux.state.map(s => s.code)
   }
 
 }

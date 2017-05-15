@@ -1,4 +1,5 @@
 import { SnippetDict, snippets, Snippet } from "../firebase"
+import { Query } from "./shared"
 import { Observable } from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
@@ -44,12 +45,13 @@ let npm = h("svg", { attrs: { viewBox: "0 0 18 7" }, style: { display: "inline-b
 let twitterIntent = `https://twitter.com/intent/tweet?text=${
   encodeURIComponent("Check out #RxFiddle for visualizing & debugging #rxjs at https://rxfiddle.net!")}`
 
-let menu = h("div#menufold-static.menufold.flexy.wrap", [
+export let menu = (type: string) => h("div#menufold-static.menufold.flexy.wrap", [
   h("a.brand.left.flex-steady", { attrs: { href: "#" } }, [
     h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
     "RxFiddle" as any as VNode,
   ]),
-  h("a.btn", { attrs: { href: "#type=editor" } }, "Editor"),
+  h("a", { attrs: { class: `btn ${type === "editor" ? "active" : ""}`, href: "#type=editor" } }, "Editor"),
+  h("a", { attrs: { class: `btn ${type === "samples" ? "active" : ""}`, href: "#type=samples" } }, "Samples"),
   h("a.btn", { attrs: { href: "/tutorials.html" } }, "Tutorials"),
   h("a.btn", { attrs: { href: "/experiment.html" } }, "Experiment"),
   h("div.flex-fill"),
@@ -65,7 +67,7 @@ export default class Splash {
       snippets.user().startWith({} as SnippetDict),
       (staticContent, snippets: SnippetDict, mySnippets: SnippetDict) => {
         return h("div", { attrs: { class: "splash " } }, [h("div", { attrs: { class: "welcome" } }, [
-          menu,
+          menu(Query.get("type")),
           hero,
           h("div.warning", [
             "Experiment: \"how do you Rx\"? Part of my thesis research.",
@@ -141,7 +143,7 @@ export default class Splash {
                   allowfullscreen: "true",
                   frameborder: 0,
                   height: 350,
-                  src: "https://www.youtube.com/embed/BYFMuPOIijw",
+                  src: "//www.youtube.com/embed/BYFMuPOIijw",
                   width: 560,
                 },
               }),

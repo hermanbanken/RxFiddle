@@ -1,5 +1,6 @@
 import Languages, { LanguageCombination, RxJS4, RxJS5 } from "../languages"
 import CodeEditor from "./codeEditor"
+import { vbox } from "./flex"
 import * as Rx from "rxjs"
 import { Observable } from "rxjs"
 import h from "snabbdom/h"
@@ -7,7 +8,7 @@ import { VNode } from "snabbdom/vnode"
 
 const hash = () => typeof window !== "undefined" ? window.location.hash.substr(1) : ""
 
-const QueryString = {
+export const QueryString = {
   format: (object: any) => {
     let q = ""
     for (let k in sortSmallFirst(object)) {
@@ -163,14 +164,14 @@ export function shareButton(editor: CodeEditor) {
     attrs: { role: "button" },
     on: {
       click: (e: MouseEvent) => {
-        editor.withValue(v => {
+        editor.code.take(1).subscribe(v => {
           Query.update({ code: btoa(v), type: "editor" });
           (e.target as HTMLAnchorElement).innerText = "Saved state in the url. Copy the url!"
         })
         return false
       },
       mouseenter: (e: MouseEvent) => {
-        editor.withValue(v => {
+        editor.code.take(1).subscribe(v => {
           (e.target as HTMLAnchorElement).href = "#" + QueryString.updated({ code: btoa(v), type: "editor" })
         })
       },
@@ -183,7 +184,7 @@ export function shareButton(editor: CodeEditor) {
 
 function sortSmallFirst(object: any): any {
   return Object.keys(object)
-    .sort((a, b) => object[a].length - object[b].length)
+    .sort((a, b) => (object[a] || "").length - (object[b] || "").length)
     .reduce((o, key) => {
       o[key] = object[key]
       return o

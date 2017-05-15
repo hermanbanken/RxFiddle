@@ -132,9 +132,9 @@ export class MarbleCoordinator {
       let eHooverClass = someHoover ? hooverClass(viewState, e) : ""
 
       return {
-        html: h(`a.marbleevent.${left > 50 ? "rtl" : "ltr"}.${eHooverClass}`, {
-          attrs: { href: "javascript:undefined", role: "button" },
-          key: `marble-${observer.id}-${e.type}@${this.timeSelector(e)}-${index}`,
+        html: h("a", {
+          attrs: { class: `marbleevent ${left > 50 ? "rtl" : "ltr"} ${eHooverClass}`, href: "javascript:undefined", role: "button" },
+          //key: `marble-${observer.id}-${e.type}@${this.timeSelector(e)}-${index}`,
           on: handlers,
           style: { left: `${left}%` },
           tabIndex: { index: this.timeSelector(e) },
@@ -252,7 +252,7 @@ function eventBody(e: IEvent, coloring?: (node: string) => string) {
     },
   })
 
-  let circle = h(`circle`, {
+  let circle = h("circle", {
     attrs: {
       class: `${e.type} source-${e.source}`,
       cx: 0, cy: 0, r: 7,

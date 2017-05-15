@@ -212,7 +212,7 @@ let testLoop = inputData
 
 function menu(runner?: Runner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
-    editor.withValue(v => {
+    editor.code.take(1).subscribe(v => {
       Query.set({ code: btoa(v), type: "editor" })
       runner.trigger()
     })
@@ -386,7 +386,7 @@ let testScreen = (scheduler: IScheduler): Screen => ({
 
 function DataSource(state: TestState, sample: Sample) {
   let editor = new CodeEditor(sample.id, sample.code.trim(), sample.codeRanges && sample.codeRanges(), sample.lineClasses && sample.lineClasses())
-  let editedCode = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
+  let editedCode = editor.code
   let runner: Runner
   if (state.mode === "rxfiddle") {
     runner = new RxRunner(RxJS4.runnerConfig, editedCode.map(c => sample.renderCode ? sample.renderCode(c) : c), AnalyticsObserver)

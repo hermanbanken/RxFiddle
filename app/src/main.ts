@@ -7,7 +7,8 @@ import "./prelude"
 import CodeEditor from "./ui/codeEditor"
 import { hbox, vbox, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
-import { LanguageMenu, Query, errorHandler, shareButton } from "./ui/shared"
+import { LanguageMenu, Query, errorHandlerOperator, shareButton } from "./ui/shared"
+import { SnippetBrowser } from "./ui/snippetBrowser"
 import Splash from "./ui/splash"
 import { UUID } from "./utils"
 import Visualizer, { DataSource } from "./visualization"
@@ -63,8 +64,7 @@ const DataSource$: Rx.Observable<{
     } else {
       let config = LanguageMenu.get(q.lib).runnerConfig
       let editor = new CodeEditor(undefined, q.code ? atob(decodeURI(q.code)) : undefined)
-      let code = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
-      let runner = new RxRunner(config, code, AnalyticsObserver)
+      let runner = new RxRunner(config, editor.code, AnalyticsObserver)
       return {
         data: runner,
         runner,
@@ -76,18 +76,18 @@ const DataSource$: Rx.Observable<{
   } else {
     return { q }
   }
-}, { q: {} }).distinctUntilKeyChanged("data")
+}, { q: {} }).distinctUntilChanged((a, b) => b.data ? b.data === a.data : JSON.stringify(a.q) === JSON.stringify(b.q))
 
 Query.$.map(query => ({ query, type: "query" })).subscribe(AnalyticsObserver)
 
 function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
-    editor.withValue(v => {
+    editor.code.take(1).subscribe(v => {
       Query.update({ code: btoa(v) })
       runner.trigger()
     })
   }
-  return h("div.left.ml3.flex", { attrs: { id: "menu" } }, [
+  return h("div.left.flex", { attrs: { id: "menu" } }, [
     language,
     ...(runner ? [
       h(`button.btn${runner.currentState === "initializing" ? ".disabled" : ""}`, {
@@ -103,7 +103,7 @@ const LanguageMenu$ = new LanguageMenu().stream()
 
 const VNodes$: Rx.Observable<VNode[]> = DataSource$.switchMap(collector => {
   // Attach language menu
-  LanguageMenu$.language.subscribe(lang => collector && collector.editor && collector.editor.withValue(v => {
+  LanguageMenu$.language.subscribe(lang => collector && collector.editor && collector.editor.code.take(1).subscribe(v => {
     Query.update({ lib: lang.id })
   }))
 
@@ -138,6 +138,8 @@ const VNodes$: Rx.Observable<VNode[]> = DataSource$.switchMap(collector => {
           [vbox(/*render.timeSlider,*/ render.dom)]
         )),
       ])
+  } else if (collector.q.type === "samples") {
+    return SnippetBrowser()
   } else {
     return new Splash().stream().map(n => [n])
   }

@@ -75,6 +75,9 @@ export type SnippetDict = { [key: string]: Snippet }
 export interface Snippet {
   name: string
   code: string
+  createdAt: Date
+  updatedAt: Date
   description: string
   uid: string
+  isPublic?: boolean
 }

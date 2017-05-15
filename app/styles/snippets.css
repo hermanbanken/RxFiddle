@@ -1,0 +1,39 @@
+.samples .list {
+  padding: 0 2em;
+}
+
+.samples .snippet {
+    display: block;
+    background: #eee;
+    box-shadow: 0 0 5px rgba(0,0,0,.3);
+    border: 1px solid #ddd;
+    margin-bottom: 1em;
+}
+.samples .snippet .title, 
+.samples .snippet .description { border-bottom: 1px solid #ddd; }
+
+.samples .snippet .title, 
+.samples .snippet .description, 
+.samples .snippet .code {padding: 1em;display: block;}
+
+.samples .snippet .title {
+  font-weight: bold;
+}
+.samples .snippet .title > a {
+  line-height: 32px;
+}
+.samples .snippet .description {
+  font-weight: normal;
+}
+.samples .snippet .code {
+  /**/
+  max-width: 100%;
+  min-width: 100%;
+  width: 0;
+  overflow-x: auto;
+}
+
+.samples ol {
+  margin: 0;
+  padding: 0;
+}
