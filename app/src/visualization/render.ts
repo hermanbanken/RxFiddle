@@ -111,6 +111,8 @@ export type graphType = {
   uievents: Rx.Observable<UIEvent>
 }
 
+let maxWidth = 600
+
 export function graph(
   layout: Layout, viewState: ViewState,
   graphs: Graphs, sequence: number,
@@ -126,7 +128,7 @@ export function graph(
     .flatMap(level => level.nodes)
     .reduce((p: number, n: { y: number }) => Math.max(p, n.y), 0) as number
 
-  let xPos = (x: number) => Math.min((2 + xmax) * mx, 400) - (mx + mx * x)
+  let xPos = (x: number) => Math.min((2 + xmax) * mx, maxWidth) - (mx + mx * x)
   let yPos = (y: number) => (my / 2 + my * y)
 
   // tslint:disable-next-line:no-unused-variable
@@ -367,7 +369,7 @@ export function graph(
       left: 0,
       position: "absolute",
       top: 0,
-      width: Math.min((xmax + 2) * mx, 400),
+      width: Math.min((xmax + 2) * mx, maxWidth),
     },
   }, elements.concat(defs()))
 
@@ -378,7 +380,7 @@ export function graph(
     style: {
       height: `${(ymax + 1) * my + 30}px`,
       position: "relative",
-      width: `${Math.min((xmax + 2) * mx, 400)}px`,
+      width: `${Math.min((xmax + 2) * mx, maxWidth)}px`,
     },
   }, [svg].concat(ns.flatMap(n => n.html)))
 
@@ -431,7 +433,7 @@ export function graph(
       panel,
       layout.length === 0 || layout[0].nodes.length === 0 ?
         undefined :
-        h(`detail.flexy.rel${!flow.length ? ".center" : ""}`, diagram),
+        h("detail", { attrs: { class: `flexy rel ${!flow.length ? "center" : ""}` } }, diagram),
     ])
 
   let timeSlider = slider(graphs.time.min(), graphs.time.max(), currentTick, (v, final) => uievents.next({

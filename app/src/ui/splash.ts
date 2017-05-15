@@ -141,7 +141,7 @@ export default class Splash {
                   allowfullscreen: "true",
                   frameborder: 0,
                   height: 350,
-                  src: "https://www.youtube.com/embed/BYFMuPOIijw",
+                  src: "//www.youtube.com/embed/BYFMuPOIijw",
                   width: 560,
                 },
               }),
