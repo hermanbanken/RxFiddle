@@ -29,6 +29,7 @@ export type TestEvent =
   { type: "next", surveyId: string, fromActive: string[] } |
   { type: "pause" } |
   { type: "pass", question: string } |
+  { type: "back" } |
   { type: "tick", question: string } |
   { type: "reference", ref: string }
 
@@ -40,6 +41,7 @@ export type Progress = {
 export type Dispatcher = (event: TestEvent) => void
 
 export type Screen = {
+  path: string[],
   goto: (state: TestState, dispatcher: Dispatcher) => void
   isActive: (state: TestState) => boolean
   progress: (state: TestState) => Progress
@@ -85,6 +87,10 @@ function mkButton(text: string = "Next", callback: () => void) {
 export function previous(list: Screen[], current: Screen): Screen {
   let index = list.indexOf(current)
   if (index >= 1) { return list[index - 1] } else { return list[0] }
+}
+export function forward(list: Screen[], current: Screen): Screen {
+  let index = list.indexOf(current)
+  if (index < list.length - 1) { return list[index + 1] } else { return list[list.length - 1] }
 }
 
 type QuestionType = "range" | "labels"
@@ -141,8 +147,9 @@ function formatDate(date: Date) {
 
 /* First screen the user sees */
 export let introScreen: Screen = {
+  path: ["pause"],
   goto: (_, dispatch) => { dispatch({ type: "pause" }) },
-  isActive: (state) => !state || state.paused,
+  isActive: (state) => !state || state.paused || state.active && state.active[0] === "pause",
   progress: (state) => ({ max: 2, done: state.paused ? 0 : 2 }),
   render: (state, dispatcher, surveys) => {
     let buttons = surveys.loading ? [h("a.btn", "Connecting to Firebase...")] : surveys.surveys
@@ -198,6 +205,7 @@ export let introScreen: Screen = {
 
 /* Second screen the user sees */
 export let general: Screen = {
+  path: ["general"],
   goto: (state, dispatch) => { dispatch({ path: ["general"], surveyId: state.id, type: "goto" }) },
   isActive: (state) => !state || !state.active || !state.active.length || state.active[0] === "general",
   progress: () => ({ max: 0, done: 0 }),
@@ -216,7 +224,7 @@ export let general: Screen = {
         labels: ["worse", "slightly worse", "equal", "slightly better", "better"],
       }, state, dispatcher)
 
-    let prevButton = mkButton("Prev", () => previous(screens, this).goto(state, dispatcher))
+    let prevButton = mkButton("Prev", () => dispatcher({ type: "back" }))
     let nextButton = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_langs"] }))
 
     let setRef = (val: string) => {
@@ -247,6 +255,7 @@ export let general: Screen = {
 
 /* Second screen the user sees */
 export let generalLangs: Screen = {
+  path: ["general_langs"],
   goto: (state, dispatch) => { dispatch({ path: ["general_langs"], surveyId: state.id, type: "goto" }) },
   isActive: (state) => !state.active || state.active[0] === "general_langs",
   progress: () => ({ max: 0, done: 0 }),
@@ -272,7 +281,7 @@ export let generalLangs: Screen = {
       labels: ["none", "beginner", "medium", "senior", "expert"],
     }, state, dispatcher)
 
-    let prevButton = mkButton("Prev", () => previous(screens, this).goto(state, dispatcher))
+    let prevButton = mkButton("Prev", () => dispatcher({ type: "back" }))
     let nextButton = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["general_rp"] }))
 
     return {
@@ -293,6 +302,7 @@ export let generalLangs: Screen = {
 
 /* Thirds screen the user sees */
 export let generalRpExperience: Screen = {
+  path: ["general_rp"],
   goto: (state, dispatch) => { dispatch({ path: ["general_rp"], surveyId: state.id, type: "goto" }) },
   isActive: (state) => state.active[0] === "general_rp",
   progress: () => ({ max: 0, done: 0 }),
@@ -323,7 +333,7 @@ export let generalRpExperience: Screen = {
         labels: ["none", "beginner", "medium", "senior", "expert"],
       }, state, dispatcher)
 
-    let prevButton = mkButton("Prev", () => previous(screens, this).goto(state, dispatcher))
+    let prevButton = mkButton("Prev", () => dispatcher({ type: "back" }))
     let nextButton = mkButton("Next", () => dispatcher({ type: "goto", surveyId: state.id, path: ["test"] }))
 
     return {
@@ -349,4 +359,32 @@ export let generalRpExperience: Screen = {
       ])))),
     }
   },
+}
+
+export let doneScreen: Screen = {
+  path: ["done"],
+  goto: () => { },
+  isActive: (state) => true,
+  progress: () => ({ max: 0, done: 0 }),
+  render: (state, dispatcher) => ({
+    dom: Rx.Observable.of(h("div.flexy", h("div.scrolly.flexy", h("div.width", [
+      h("h2", "Done"),
+      h("p", "Thank you very much for filling in this survey."),
+      h("p", [
+        "RxFiddle is live at ",
+        h("a", { attrs: { href: "http://rxfiddle.net" } }, "rxfiddle.net"),
+        ". If you like this survey or RxFiddle please Star ",
+        h("a", { attrs: { href: "https://github.com/hermanbanken/RxFiddle" } }, "the project on Github"),
+        ". For any issues you can make an Issue on the Github page.",
+      ]),
+      h("a.btn", {
+        on: { click: () => dispatcher({ type: "back" }) },
+      }, "Back to last question"), " ",
+      h("a.btn", {
+        on: { click: () => dispatcher({ type: "pause" }) },
+      }, "Back to first screen"),
+      h("p", "Your data (sorry, no neat view yet):"),
+      h("pre", JSON.stringify(state, null, 2)),
+    ])))),
+  }),
 }
