@@ -30,7 +30,7 @@ let screenshot = h("a", { attrs: { href: "#type=editor" } }, [
   h("img.screenshot", {
     attrs: {
       height: "268.84px",
-      src: "https://github.com/hermanbanken/RxFiddle/raw/master/rxfiddle-js-collector/screenshot.png",
+      src: "https://raw.githubusercontent.com/hermanbanken/RxFiddle/master/screenshots/mergeAll.png",
       width: "400px",
     },
   }),
