@@ -5,8 +5,9 @@ touch building.txt # ensure stash is created
 git stash -u
 git branch -D gh-pages-tmp || true
 DEPLOYHEAD=`git name-rev --name-only HEAD`
-git checkout -b gh-pages-tmp
-git reset $DEPLOYHEAD --hard
+SHA=`git rev-parse HEAD`
+git checkout --orphan gh-pages-tmp
+git commit -m "Copy of $SHA"
 
 # Build
 tsc -p .
