@@ -8,7 +8,7 @@ export function vboxo(options: any, ...nodes: VNode[]) {
   return h("div", { attrs: { class: `flexy flexy-v ${options.class}` } }, nodes.filter(n => typeof n !== "undefined"))
 }
 export function hboxo(options: any, ...nodes: VNode[]) {
-  return h("div", { attrs: { class: `flexy flexy-v ${options.class}` } }, nodes.filter(n => typeof n !== "undefined"))
+  return h("div", { attrs: { class: `flexy ${options.class}` } }, nodes.filter(n => typeof n !== "undefined"))
 }
 export function hbox(...nodes: VNode[]) {
   return h("div.flexy", nodes.filter(n => typeof n !== "undefined"))

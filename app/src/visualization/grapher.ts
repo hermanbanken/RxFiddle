@@ -47,6 +47,7 @@ function readerToGraph(reader: TreeReader): Graphs {
   graph = contractSubjectObservables(graph)
   graph = stripEndPointSafeSubscribers(graph)
   graph = moveOuterSubscribersDown(graph)
+  graph = combineSubgraphs(graph)
 
   return ({
     _sequence: Grapher.sequence++,
@@ -54,7 +55,8 @@ function readerToGraph(reader: TreeReader): Graphs {
     main: graph
       .filterNodes(n => true),
     subscriptions: graph
-      .filterNodes((n, l) => !(l instanceof ObservableTree)) /* .filterEdges((e, l) => l.type === "addObserverDestination")*/ as TypedGraph<IObserverTree, {}>,
+      .filterNodes((n, l) => !(l instanceof ObservableTree))
+      .filterEdges((e, l) => l.type === "addObserverDestination") as TypedGraph<IObserverTree, {}>,
     time: reader.treeGrapher.time,
     toDot: () => dotGraph(graph),
     isStopped: reader.isStopped
@@ -140,6 +142,11 @@ function contractSubjectObservables(graph: TG): TG {
     .reduce((prev, edge) => prev.contractEdge(edge, e => graph.edge(e).type === "addObserverDestination"), graph)
 }
 
+function combineSubgraphs(graph: TG): TG {
+  // alg.
+  return graph
+}
+
 function isObservableEdge(edge: { type: EdgeType }) {
   return edge.type === "addSource" || edge.type === "setObserverSource"
 }
@@ -151,4 +158,23 @@ function asObservableTree(subjectTree: SubjectTree): ObservableTree {
   tree.scheduler = subjectTree.scheduler
   tree.calls = (subjectTree as ObservableTree).calls
   return tree
+}
+
+function isSameShape<V, E>(
+  a: string, b: string, graph: TypedGraph<V, E>,
+  nodeEqual: (a: V, b: V) => boolean = () => true,
+  edgeEqual: (a: E, b: E) => boolean = () => true
+): boolean {
+  let aIn = graph.inEdges(a)
+  let bIn = graph.inEdges(b)
+  if (!aIn && !bIn) {
+    return nodeEqual(graph.node(a), graph.node(b))
+  } else if (aIn && bIn && aIn.length === bIn.length) {
+    return aIn.every((aE, i) =>
+      edgeEqual(graph.edge(aE), graph.edge(bIn[i])) &&
+      isSameShape(aE.v, bIn[i].v, graph, nodeEqual, edgeEqual)
+    )
+  } else {
+    return false
+  }
 }

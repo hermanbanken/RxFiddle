@@ -923,7 +923,7 @@ disable purple highlight border:
   align-self: flex-end;
 }
 
-.flex.wrap {
+.wrap {
   flex-wrap: wrap;
 }
 

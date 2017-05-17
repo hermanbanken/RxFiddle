@@ -1,9 +1,9 @@
 import { UUID } from "../utils"
-import { hbox } from "./flex"
+import { hboxo } from "./flex"
 import ReactiveStorage from "./reactiveStorage"
 import { Query, QueryString } from "./shared"
 import { menu } from "./splash"
-import { Snippet, SnippetDict } from "../firebase"
+import { Snippet, SnippetDict, snippets } from "../firebase"
 import { eventTarget, lensSet, lensView, onChange, onClick, onInput, pipe, redux, setField, textarea } from "./redux"
 import { Editor } from "codemirror"
 import * as CodeMirror from "codemirror"
@@ -34,9 +34,9 @@ function localSnippets(): Rx.Observable<Snippet[]> {
           if ("file" in parsed && "session" in parsed) {
             return [{
               code: parsed.code,
-              description: parsed.file.props.description,
-              isPublic: parsed.file.props.isPublic,
-              name: parsed.file.props.title,
+              description: parsed.file.description,
+              isPublic: parsed.file.isPublic,
+              name: parsed.file.title,
               uid: parsed.session,
             } as Snippet]
           }
@@ -52,14 +52,16 @@ function localSnippets(): Rx.Observable<Snippet[]> {
 export function SnippetBrowser(): Rx.Observable<VNode[]> {
   return Rx.Observable.combineLatest(
     localSnippets(),
+    snippets.user().startWith({} as SnippetDict),
+    snippets.latest().throttleTime(5000).startWith({} as SnippetDict),
     Rx.Observable.of([] as Snippet[]),
-  ).map(([local, remote]) => {
+  ).map(([local, firebase, publicFirebase]) => {
     return [h("div", { attrs: { class: "samples" } }, [
       menu(Query.get("type")),
-      hbox(
-        List("Your snippets", local),
-        List("Popular samples", local),
-        List("Latest samples", local),
+      hboxo({ class: "wrap" },
+        List("Your snippets", local.concat(Object.values(firebase))),
+        // List("Popular samples", Object.values(publicFirebase)),
+        List("Public samples", Object.values(publicFirebase)),
       ),
     ])]
   })
@@ -96,7 +98,9 @@ function List(title: string, list: any[]): VNode {
               h("a.btn", { attrs: { href } }, "Open"),
             ]),
             h("a", { attrs: { href } }, [h("b", snippet.name || "Untitled")]),
-            h("span.gray", snippet.isPublic ? " - public" : " - private"),
+            typeof snippet.isPublic === "undefined" ?
+              h("span") :
+              h("span.gray", snippet.isPublic ? " - public" : " - private"),
           ]),
           h("div.description", [snippet.description || h("i.gray", "No description provided.")]),
           codeExcerpt,

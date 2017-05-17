@@ -131,10 +131,31 @@ const rxErrorHelp = [
   )`
   )]
 
+export function errorHandlerOperator<T>(inp: Rx.Observable<T>): Rx.Observable<T> {
+  let wrapError = (notification: Rx.Notification<T>, prev: Rx.Notification<T>) => {
+    notification.error.previous = prev.value
+    return notification
+  }
+  return inp
+    .materialize()
+    .scan((prev: Rx.Notification<T>, next: Rx.Notification<T>) => next.kind === "E" ? wrapError(next, prev) : next, {})
+    .dematerialize()
+    .catch(errorHandler)
+    .retry()
+}
+
 export function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
   if (e instanceof Error) {
     console.error(e)
   }
+  let representation: string
+  if (e instanceof ErrorEvent) {
+    representation = `${e.message}`
+  } else if (e instanceof Error || true) {
+    representation = e.stack || `${e.name}: ${e.message}`
+  }
+
+  (window as any).e = e;
   return new Rx.Observable<{ dom: VNode, timeSlider: VNode }>(observer => {
     observer.next({
       dom: h("div.error", [
@@ -151,7 +172,7 @@ export function errorHandler(e: Error): Rx.Observable<{ dom: VNode, timeSlider: 
         ]),
         h("pre.user-select",
           { style: { width: "100%" } },
-          e.stack || `${e.name}: ${e.message}`
+          representation
         ),
         ...(e.name !== "SyntaxError" ? rxErrorHelp : []),
       ]), timeSlider: undefined,

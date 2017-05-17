@@ -32,12 +32,15 @@ type CodeEditorMessage = { desiredWidth: number } | { code: string }
 // Defines possible input to the CodeEditor
 export type EditorInput = { type: "highlight", from: Pos, to: Pos }
 
-type CEState = { code: string }
-type CEAction = { type: "CodeTyped", code: string } | { type: "DesiredWidth", width: number } | { type: "Save" }
+type CEAction =
+  { type: "CodeTyped", code: string } |
+  { type: "DesiredWidth", width: number } |
+  { type: "Save" } |
+  { type: "External", state: CodeEditorState }
 
-function codeEditor(state: CEState, dispatch: (a: CEAction) => void) {
+function codeEditor(state: InternalState, dispatch: (a: CEAction) => void) {
   return h("div.rxf-cm-wrapper", {
-    code: state.code || "",
+    code: state.file.code || "",
     hook: {
       destroy: (n) => n.data.subscription && n.data.subscription.unsubscribe(),
       insert: (node) => {
@@ -45,7 +48,7 @@ function codeEditor(state: CEState, dispatch: (a: CEAction) => void) {
           let editor = node.data.editor = CodeMirror(node.elm as HTMLElement, {
             lineNumbers: true,
             mode: "javascript",
-            value: state.code || "",
+            value: state.file.code || "",
           })
           editor.setOption("styleActiveLine", true)
           // Dynamic behaviour
@@ -69,9 +72,8 @@ function codeEditor(state: CEState, dispatch: (a: CEAction) => void) {
   })
 }
 
-type CMState = {
-  open: boolean,
-  props: { title: string, description: string, isPublic: boolean }
+type FileState = {
+  title: string, description: string, isPublic: boolean, code: string
 }
 type CMAction = { type: "Update", field: string, value: any } | { type: "New" } | { type: "Browser" }
 
@@ -105,29 +107,42 @@ let runIcon = h("svg", {
   },
 })])
 
-function codeMenu(state: CMState, dispatch: (a: CMAction) => void) {
+function runButton(state: InternalState, dispatch: (a: CMAction) => void) {
+  switch (state.externalState && state.externalState.type) {
+    case "running": return h("a.btn", {
+      on: onClick(pipe(() => ({ type: "External", state: { type: "stopped" } }), dispatch)),
+    }, [runIcon, " Stop" as any as VNode])
+    case "stopped":
+    case "error":
+    default: return h("a.btn", {
+      on: onClick(pipe(() => ({ type: "External", state: { type: "running" } }), dispatch)),
+    }, [runIcon, " Run" as any as VNode])
+  }
+}
+
+function codeMenu(state: InternalState, dispatch: (a: CMAction) => void) {
   return h("div.editor-info.noflex", [
     h("label", { attrs: { for: "editor-info-open" } }, [
       h("div", { attrs: { class: `bar` } }, [
         h("a", {
-          attrs: { role: "button", class: `btn ${state.open ? "active" : ""}` },
-          on: onClick(pipe(setField("open", !state.open), dispatch)),
+          attrs: { role: "button", class: `btn ${state.menuOpen ? "active" : ""}` },
+          on: onClick(pipe(setField("menuOpen", !state.menuOpen), dispatch)),
         }, [
             h("span", "Snippet"),
           ]),
         " " as any as VNode,
         h("a.filename", {
           attrs: { role: "button", title: "Change file name & description" },
-          on: onClick(pipe(setField("open", !state.open), dispatch)),
-        }, [h("span", state.props.title || "Untitled")]),
+          on: onClick(pipe(setField("menuOpen", !state.menuOpen), dispatch)),
+        }, [h("span", state.file.title || "Untitled")]),
         /*" " as any as VNode,
         star, " 10" as any as VNode,*/
-        h("div.right", [/*h("a.btn", [star, " Star"]), " ",*/ h("a.btn", [runIcon, " Run"])]),
+        h("div.right", [/*h("a.btn", [star, " Star"]), " ",*/ runButton(state, dispatch)]),
       ]),
-      state.props.description ? h("div", { attrs: { class: `bar ${state.open ? "collapsed" : "open"}` } }, [
-        h("i.group", state.props.description),
+      state.file.description ? h("div", { attrs: { class: `bar ${state.menuOpen ? "collapsed" : "open"}` } }, [
+        h("i.group", state.file.description),
       ]) : h("div"),
-      h("div", { attrs: { class: `${state.open ? "open" : "collapsed"}` } }, [
+      h("div", { attrs: { class: `${state.menuOpen ? "open" : "collapsed"}` } }, [
         // h("a.btn.active", { attrs: { role: "button" }, on: onClick(pipe(setField("open", false), dispatch)) }, [
         //   h("span", "File"),
         // ]),
@@ -150,17 +165,28 @@ function codeMenu(state: CMState, dispatch: (a: CMAction) => void) {
           "Import file", h("span.right", "⌘I"),
         ]),
         h("label.group", ["Title", h("input", {
-          attrs: { placeholder: "Untitled", value: state.props.title },
-          on: onInput(pipe(eventTarget, setField("props.title"), dispatch)),
+          attrs: { placeholder: "Untitled", value: state.file.title },
+          on: onInput(pipe(eventTarget, setField("file.title"), dispatch)),
         })]),
         h("label.group", ["Description", textarea({
           key: "cm-description",
-          on: onInput(pipe(eventTarget, setField("props.description"), dispatch)),
-        }, state.props.description)]),
+          on: onInput(pipe(eventTarget, setField("file.description"), dispatch)),
+        }, state.file.description)]),
         h("label.group", [h("input.inline", {
-          attrs: { checked: !!state.props.isPublic, type: "checkbox" },
-          on: onChange(pipe(eventTarget, setField("props.isPublic"), dispatch)),
+          attrs: { checked: !!state.file.isPublic, type: "checkbox" },
+          on: onChange(pipe(eventTarget, setField("file.isPublic"), dispatch)),
         }), "Make public"]),
+      ]),
+    ]),
+  ])
+}
+
+function runMenu(state: InternalState, dispatch: (a: CMAction) => void) {
+  return h("div.editor-info.noflex", [
+    h("label", { attrs: { for: "editor-info-open" } }, [
+      h("div", { attrs: { class: `bar` } }, [
+        h("div", { style: { flex: "1" } }),
+        h("div.right", [runButton(state, dispatch)]),
       ]),
     ]),
   ])
@@ -175,46 +201,72 @@ function getOrElseSet(key: string, create: () => string): string {
   return value
 }
 
+type InternalState = {
+  session: string,
+  file: FileState,
+  desiredWidth: number,
+  dirty?: boolean,
+  menuOpen?: boolean,
+  externalState?: CodeEditorState
+}
+export type CodeEditorState = { type: "stopped" } | { type: "running" } | { type: "error", position: Pos, error: Error }
+
 export default class CodeEditor {
   public dom: Rx.Observable<VNode>
   public code: Rx.Observable<string>
   public inbox: Rx.Observer<EditorInput>
+  public externalState: Rx.Observable<CodeEditorState>
+  private loop: {
+    dispatch: (e: CEAction | CMAction) => void,
+    run: (render: (state: InternalState, dispatch: (e: CEAction | CMAction) => void) => VNode) => Rx.Observable<VNode>
+    state: Rx.Observable<InternalState>,
+  }
 
-  constructor(fixedSession?: string, initialSource?: string, ranges?: Ranges, lineClasses?: LineClasses) {
+  constructor(
+    fixedSession?: string, initialSource?: string,
+    ranges?: Ranges, lineClasses?: LineClasses,
+    hideMenu?: boolean
+  ) {
     let sessionId = typeof fixedSession !== "undefined" ? fixedSession : getOrElseSet("cm_session", UUID)
 
-    type State = { session: string, code: string, file: CMState, desiredWidth: number, dirty?: boolean }
     let data = new ReactiveStorage<string, string>(`cm_session.${sessionId}`)
-      .project<State>(json => JSON.parse(json) || {}, v => JSON.stringify(v))
+      .project<InternalState>(json => JSON.parse(json) || {}, v => JSON.stringify(v))
 
-    let defaultFile = { open: false, props: { title: "", description: "", isPublic: false } }
+    let defaultFile = {
+      title: "", description: "", isPublic: false,
+      code: "",
+    }
 
-    function fix(o: State): State {
+    function fix(o: InternalState): InternalState {
       return {
         session: o.session || sessionId,
-        code: typeof fixedSession === "undefined" ? o.code : initialSource,
         desiredWidth: o.desiredWidth || 0,
-        file: o.file || defaultFile,
+        menuOpen: false,
+        file: Object.assign(o.file || defaultFile, {
+          code: typeof fixedSession === "undefined" ? o.file && o.file.code || initialSource : initialSource,
+        }),
       }
     }
 
-    let dux = redux(fix(data.current), (s, e: CEAction | CMAction) => {
+    let loop = this.loop = redux(fix(data.current), (s, e: CEAction | CMAction) => {
       if (e.type === "CodeTyped") {
         e = { type: "Update", field: "code", value: e.code }
       }
       switch (e.type) {
+        case "External":
+          return lensSet("externalState", e.state)(s)
         case "New":
           let uuid = UUID()
           localStorage.setItem("cm_session", uuid)
           data = new ReactiveStorage<string, string>(`cm_session.${uuid}`)
-            .project<State>(json => JSON.parse(json) || {}, v => JSON.stringify(v))
+            .project<InternalState>(json => JSON.parse(json) || {}, v => JSON.stringify(v))
           s = fix(data.current)
           s.session = uuid
           return s
         case "Update":
           let changed = lensView(e.field)(s) !== e.value
           s = lensSet(e.field, e.value)(s)
-          if (e.field !== "file.open" && changed) {
+          if (e.field !== "menuOpen" && changed) {
             s = lensSet("dirty", true)(s)
           }
           return s
@@ -223,7 +275,7 @@ export default class CodeEditor {
         case "Browser":
         case "Save":
           s = lensSet("dirty", false)(s)
-          let saved = lensSet("file.open", undefined)(s)
+          let saved = lensSet("menuOpen", undefined)(s)
           data.next(saved)
           if (e.type === "Browser") {
             Query.set({ type: "samples" })
@@ -234,20 +286,26 @@ export default class CodeEditor {
       return s
     })
 
-    dux.state.debounceTime(1000).subscribe(state => {
+    loop.state.debounceTime(1000).subscribe(state => {
       if (state.dirty) {
-        dux.dispatch({ type: "Save" })
+        loop.dispatch({ type: "Save" })
       }
     })
 
-    this.dom = dux.run((state, dispatch) => {
+    this.externalState = loop.state.map(_ => _.externalState)
+
+    this.dom = loop.run((state, dispatch) => {
       return h("div.editor.flexy.flexy-v", { style: { width: `${Math.max(320, state.desiredWidth || 0)}px` } },
-        typeof fixedSession === "undefined" ?
-          [codeMenu(state.file || defaultFile, nest("file", dispatch)), codeEditor(state, dispatch)] :
-          [codeEditor(state, dispatch)]
+        typeof hideMenu !== "undefined" && !hideMenu ?
+          [codeMenu(state, dispatch), codeEditor(state, dispatch)] :
+          [runMenu(state, dispatch), codeEditor(state, dispatch)]
       )
     })
-    this.code = dux.state.map(s => s.code)
+    this.code = loop.state.map(s => s.file.code)
+  }
+
+  public setState(externalState: CodeEditorState) {
+    this.loop.dispatch({ type: "External", state: externalState })
   }
 
 }

@@ -63,7 +63,9 @@ const DataSource$: Rx.Observable<{
       }
     } else {
       let config = LanguageMenu.get(q.lib).runnerConfig
-      let editor = new CodeEditor(undefined, q.code ? atob(decodeURI(q.code)) : undefined)
+      let editor = new CodeEditor(q.session || undefined,
+        q.code ? atob(decodeURI(q.code)) : undefined,
+        undefined, undefined, false)
       let runner = new RxRunner(config, editor.code, AnalyticsObserver)
       return {
         data: runner,
@@ -99,22 +101,33 @@ function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
   ])
 }
 
-const LanguageMenu$ = new LanguageMenu().stream()
-
 const VNodes$: Rx.Observable<VNode[]> = DataSource$.switchMap(collector => {
-  // Attach language menu
-  LanguageMenu$.language.subscribe(lang => collector && collector.editor && collector.editor.code.take(1).subscribe(v => {
-    Query.update({ lib: lang.id })
-  }))
-
   if (collector && collector.data) {
+
+    // Attach language menu
+    const LanguageMenu$ = new LanguageMenu().stream()
+    let langObs = LanguageMenu$.language
+      .skip(1)
+      .do(lang => Query.update({ lib: lang.id }))
+
+    // Attach run button
+    let runObs = collector.editor.externalState.do(() => collector.runner.trigger())
+    let stateObs = collector.runner.state.do(
+      d => collector.editor.setState(d === "used" ? { type: "running" } : { type: "stopped" }),
+      (e: ErrorEvent) => collector.editor.setState({
+        error: e.error, position: { ch: e.colno, line: e.lineno }, type: "error",
+      })
+    )
+
     return Rx.Observable.of(0)
+      .merge(langObs.ignoreElements())
+      .merge(runObs.ignoreElements())
+      .merge(stateObs.ignoreElements())
       .flatMap(_ => {
         let vis = new Visualizer(new Grapher(collector.data))
         return vis.stream(AnalyticsObserver)
       })
-      .catch(errorHandler)
-      .retry()
+      .let(errorHandlerOperator)
       .startWith({ dom: h("span.rxfiddle-waiting", "Waiting for Rx activity..."), timeSlider: h("div") })
       .combineLatest(
       collector.vnode || Rx.Observable.of(undefined),

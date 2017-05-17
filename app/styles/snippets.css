@@ -1,11 +1,12 @@
 .samples .list {
   padding: 0 2em;
+  min-width: 400px;
 }
 
 .samples .snippet {
     display: block;
     background: #eee;
-    box-shadow: 0 0 5px rgba(0,0,0,.3);
+    box-shadow: 1px 3px 3px 0px rgba(0,0,0,.2);
     border: 1px solid #ddd;
     margin-bottom: 1em;
 }
