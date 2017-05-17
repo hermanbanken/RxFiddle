@@ -263,7 +263,7 @@ export default class Visualizer {
     this.uiEventsOutput = uievents.merge(timeComponent.uievent)
   }
 
-  public stream(uiEvents?: Rx.Subscriber<UIEvent>): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
+  public stream(uiEvents?: Rx.Observer<UIEvent>): Rx.Observable<{ dom: VNode, timeSlider: VNode }> {
     return new Rx.Observable<{ dom: VNode, timeSlider: VNode }>(subscriber => {
       let subscription = new Rx.Subscription()
       subscription.add(this.DOM

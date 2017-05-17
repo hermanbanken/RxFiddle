@@ -42,9 +42,9 @@ export default class RxRunner implements DataSource, Runner {
   private code: Rx.Observable<Code>
   private stateSubject = new Rx.BehaviorSubject<RxRunnerState>("ready")
   private subject: RxRunnerSubject<any>
-  private analyticsObserver?: Rx.Subscriber<any>
+  private analyticsObserver?: Rx.Observer<any>
 
-  constructor(config: RunnerConfig | undefined, code: Rx.Observable<Code>, analyticsObserver?: Rx.Subscriber<any>) {
+  constructor(config: RunnerConfig | undefined, code: Rx.Observable<Code>, analyticsObserver?: Rx.Observer<any>) {
     this.code = code
     let settings = Object.assign(this.defaultConfig, config || {}, { stateObserver: this.stateSubject })
     this.subject = new RxRunnerSubject<any>(settings)
