@@ -1,0 +1,42 @@
+\section{Design}
+In this section we describe the design of a visualizer for the ReactiveX (Rx) family of RP libraries. 
+
+\subsection{Rx in a nutshell}
+Figure \ref{sample1} shows a very basic example of a in situ data flow in Rx. First an \textit{Observable} is created, here using the static \code{from} method, then dependent Observables are created using the \code{map} and \code{filter} methods on the Observable instance. Finally we \code{subscribe} to start the data flow and send the data in the flow to the console (eg. JavaScript's stdout).
+
+\begin{figure}
+\inputminted[tabsize=2]{javascript}{listings/sample1.js}	
+\caption{Creation and transform of Observables}
+\label{sample1}
+\end{figure}
+
+It is important to note that the core abstraction - Observable - does not represent (an instance of a) data flow, but rather the blueprint of a data flow. Only when you \code{subscribe} to an Observable the data flow is created by recursively subscribing up the stream, \textit{Observer}s are subscribed to each Observable until the source Observable is reached.
+ This is illustrated in figure \ref{dualgraphs}. Creating the Observable we will call the \textit{setup} phase, while the subscribe happens and data flows in the \textit{active} phase. The two phases can be interleaved when dealing with higher order Observables, meaning that one could use Observables as values inside the data flow.
+
+\begin{figure}
+\begin{verbatim}
+TODO nice figure with Graph & 2 lines (1 up, 1 down)
+^ from(1, 2, 3)   			
+^ .map(x => x * 2)       v
+^ .filter(x => x > 2)    v
+  .subscribe()           v
+\end{verbatim}
+\caption{Observable \& Observer dependencies}
+\label{dualgraphs}
+\end{figure}
+
+\subsection{Observable \& Observer Graph}
+Two dependency graphs can be created, one for the Observables and one for the Observers. In the most basic situations the graphs are equal in shape: there is a one-to-one mapping between Observables and their Observer. However, with higher order Observables a new type of edge is created in the Observer graph: .
+
+ The code relates to the setup phase, while the implementation of Rx leads to
+
+RP in general and Rx in particular allow for data flows to be composited into new data flows. 
+
+
+One can see that every composition from one or more input flows to one or more output flows can be visualized in the form of a graph, very node representing 
+The visualizer focusses 
+
+\subsection{Marble Diagrams}
+
+
+\section{Implementation}

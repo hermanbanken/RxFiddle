@@ -14,6 +14,13 @@ and found that developers require runtime information to understand a program,
 and that debugging is frequently used to gather this runtime information.
 This supports our view that `debugging' is not only used for fault localisation,
 but also for comprehension.
+{\color{red}
+\begin{enumerate}
+ \item Gilmore, comprehension + debugging == linked
+ \item Maalej: professionals, avoid deep comprehension, sharing knowlegde
+ \item Maybe Zeller / Spinellis?
+\end{enumerate}
+}
 
 \textbf{Dynamic Analysis.}
 Although interactive debuggers are commonly used for comprehension 
@@ -35,15 +42,50 @@ system (known as the observer-effect), fast analysis
 and visualization is required to lower the cost of getting 
 to the visualization, to not discourage the users.
 
-Only X of the surveyed papers apply post mortem analysis.
+Only X of the surveyed papers apply online analysis, rest post mortem.
+
+{\color{red}
+\begin{enumerate}
+ \item Cornelissen, TU Delft, survey on Program Compr. through Dynamic Analysis
+ 		lists limitations: 
+		   - incompleteness, only part of domain
+			 - which scenarios to analyse
+			 - scalability (wrt human cognitive load) 
+		 	 - observer effect (multi-threaded, realtime) changes execution
+\end{enumerate}
+}
 
 \textbf{Measuring Debugging.}
+{\color{red}
+\begin{enumerate}
+	\item Minelli (know what you did last summer)
+	\item Petrillo, "Towards Understanding..." e.g. Swarm debugging
+  \item Moritz (watchdog 2.0)
+\end{enumerate}
+}
 
 \textbf{Debugging for specific fields}
 Most research into debugging focusses on procedural and 
 imperative languages~\cite{cornelissen2009systematic}.
 Other topics of interest are multi-threading and distributed systems.
-and only few focus on other styles, like 
+Only few focus on other styles, like 
 declarative programming~\cite{nilsson1998declarative}.
 Debugging in reactive programming~\cite{
 	salvaneschi2014empirical,salvaneschi2016debugging}.
+	
+{\color{red}
+\begin{enumerate}
+	\item Atlas (2014): rich graph representation, can be used to build call graphs, dataflow graphs, dependency graphs
+	\item RP debugging (2016, Guido): REScala, data flow graph, breakpoints
+	\item BIGDEBUG Spark debugging (2017): data flow graph, non-pausing simulated breakpoints, data provenance
+\end{enumerate}
+}
+
+\textbf{Tracing \& Automated visualization for comprehension}
+\begin{enumerate}\color{red}
+ \item Lange 1995, Program Visualizer for C++
+ \item story flow: visualize stories over time, comprehending relations, interactive visualization
+ \item Weck \& Tichy, Visualizing Data-Flows in Functional Programs
+ \item Srinivasan, ICPC16, "Case Studies of Optimized Sequence Diagram for Program Comprehension", Texas A\&M Univerity
+ \item Misha Moroshko (Facebook) Rx visualization
+\end{enumerate}
