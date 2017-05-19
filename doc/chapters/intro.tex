@@ -12,6 +12,7 @@ Software often needs to respond to external events and data flows. Consider soft
 
 While reactive programs might be more declarative and concise, improving the readability of code, RP does not work well with traditional interactive debuggers, shipped with most IDE's. RP borrows from Functional Programming (FP) for it's abstractions, its laziness and advocating the use of clean input/output (lambda) functions. All those features contribute to an execution flow that is mostly inside the RP implementation library, non-linear and frequently breakpoints can not be set. Furthermore, using a low level debugger makes it harder to see the high level relations and overview that the high-level RP abstraction provides.
 
+
 %In this paper we will first analyse
 %
 %Current debuggers are optimized for imperative programs, where statements are executed sequentially and control flow can be analyzed. 
@@ -31,24 +32,31 @@ While reactive programs might be more declarative and concise, improving the rea
 %Specialized debuggers for reactive programming exist, although not as a result from academic research or with scientific validation. Examples are the Time Traveling Debugger (TTD) for Elm, a functional reactive programming (FRP) framework, and tools like RxVision and RxMarbles, which show that visualization is aids comprehension and debugging. Those tools fall short however: TTD is restricted to the Elm platform, RxVision is a mere proof of concept and restricted to the browser, and RxMarbles only visualizes a given set of operators, using fixed inputs.
 %
 %**Intended contributions.** In this thesis we will evaluate whether data or control flow graphs aid reactive program comprehension and debugging. Furthermore we present a tool which generates complete and interactive Marble Diagrams for full data flows, automatically, from sources and from running applications.
-%
 
 {\color{red}comprehension \& debugging}
 
 We formulate the following research questions to steer the research: 
-\begin{enumerate}
-	\item[RQ1] How do developers comprehend and debug RP?
+
+\textbf{RQ1} How do developers comprehend and debug RP? \linebreak
+Before we design tools it is important to understand the problems arising in the the current state~\cite{singer2010examination}. Anecdotal evidence by a the large number of resources (to insert here: Contrib. Days, Stalz' article, other posts) suggests that the current state is non-optimal.
+
 %	\begin{enumerate}
 %		\item[RQ1.1] What strategies do developers use to comprehend RP?
 %		\item[RQ1.2] What debug tools do developers use to comprehend \& debug RP?
 %		\item[RQ1.3] {\color{orange}Do experienced developers debug RP faster?}
 %	\end{enumerate}
 %
-	\item[RQ2] How can we design a tool that help developers debug RP?
+
+\textbf{RQ2} How can we design a tool that helps developers debug RP? \linebreak
+Examining the limitations of traditional debuggers and the opportunities that RP programs offer in terms of structure and explicit dependencies between data flows we design a RP debugger.
+
 %	\begin{enumerate}
 %		\item[RQ2.1] Can run-time behavior be extracted such that it is appropriate input to a visualizer?
 %		\item[RQ2.2] Can Rx programs be represented as graphs?
 %		\item[RQ2.3] Can Marble Diagrams effectively convey structures containing more than 1 operator?
 %	\end{enumerate}
-	\item[RQ3] Can specialized debuggers speed up comprehension \& debugging?
-\end{enumerate}
+
+\textbf{RQ3} Can specialized debuggers speed up comprehension \& debugging?\linebreak
+To validate if specialized tooling can improve the experience we measure the speed and correctness of comprehension in both a controlled and in an online experiment.
+
+%\end{enumerate}

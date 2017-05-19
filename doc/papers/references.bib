@@ -572,6 +572,11 @@ debugging is closing the gap between actual code and the required specifications
   pages        = {796--807},
   organization = {ACM},
   file         = {:Salvaneschi, Mezini - 2016 - Debugging for Reactive Programming - ieeexplore.pdf:PDF},
+  review       = {Has a chapter "Debugging Reactive Extensions":
+this chapter mentions tracing as the main tool
+explains Materialize / Dematerialize as a way to view the type of message (Next/Error/Complete); mentiones the overhead
+explains TimeInterval / Throttle as means to limit output
+explains Do as a way to add in stream logs but warns about running sequentially as part of the actual data pipeline},
 }
 
 @InProceedings{quante2007dynamic,
@@ -669,6 +674,20 @@ debugging is closing the gap between actual code and the required specifications
   number       = {8},
   pages        = {263--273},
   organization = {ACM},
+}
+
+@InProceedings{meijer2010subject,
+  author    = {Meijer, E},
+  title     = {Subject/Observer is dual to iterator},
+  booktitle = {FIT: Fun Ideas and Thoughts at the Conference on Programming Language Design and Implementation},
+  year      = {2010},
+}
+
+@Book{esposito2016reactive,
+  title     = {Reactive Programming for. NET Developers},
+  publisher = {Packt Publishing Ltd},
+  year      = {2016},
+  author    = {Esposito, Antonio and Ciceri, Michael},
 }
 
 @Comment{jabref-meta: databaseType:bibtex;}
