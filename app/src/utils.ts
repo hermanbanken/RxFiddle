@@ -1,6 +1,39 @@
 /* tslint:disable:no-namespace */
 /* tslint:disable:interface-name */
 
+// ucs-2 string to base64 encoded ascii
+export function utoa(str: string) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) => {
+    return String.fromCharCode("0x" + p1 as any)
+  }))
+}
+// base64 encoded ascii to ucs-2 string
+export function atou(str: string) {
+  return decodeURIComponent(Array.prototype.map.call(atob(str), (c: string) => {
+    return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(""))
+}
+
+export declare let btoa: (inp: string) => string
+if (typeof btoa !== "function") {
+  btoa = function node_btoa(str: any) {
+    let buffer
+    if (str instanceof Buffer) {
+      buffer = str
+    } else {
+      buffer = new Buffer(str.toString(), "binary")
+    }
+    return buffer.toString("base64")
+  }
+}
+
+export declare let atob: (inp: string) => string
+if (typeof atob !== "function") {
+  atob = function node_atob(str: string) {
+    return new Buffer(str, "base64").toString("binary")
+  }
+}
+
 /* Extension of Rx */
 declare global {
   namespace Rx {
