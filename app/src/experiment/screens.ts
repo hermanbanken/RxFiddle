@@ -174,6 +174,11 @@ export let introScreen: Screen = {
           h("div", [
             h("p", `This is a survey to test Reactive Program comprehension and debugability.
                 Please take part, even if you have little experience with Reactive Programming.`),
+            h("div.mobile-only", [
+              h("p", `This survey works best on Chrome on a laptop/desktop. 
+                  Please set a reminder to take the survey later.`),
+              h("p", h("a.btn", { attrs: { href: "x-apple-reminder://" } }, "Set a reminder")),
+            ]),
             h("ul", [
               h("li", `What's in it for you: learn a new way of debugging Reactive Programs!`),
               h("li", `What's in it for me: you help me graduate!`),
@@ -182,11 +187,6 @@ export let introScreen: Screen = {
                 `Used Reactive Programming implementation: RxJS 4.1`,
                 "(", h("a", { attrs: { href: "faq.html#rxversion" } }, "why"), ")",
               ]),
-            ]),
-            h("div.mobile-only", [
-              h("p", `This survey works best on Chrome on a laptop/desktop. 
-                  Please set a reminder to take the survey later.`),
-              h("p", h("a.btn", { attrs: { href: "x-apple-reminder://" } }, "Set a reminder")),
             ]),
             ...buttons,
           ]),

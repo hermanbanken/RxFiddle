@@ -213,15 +213,15 @@ let testLoop = inputData
     if (!screen.hasMenu) {
       return dom.map(nodes => h("div.tool.flexy.flexy-v.rel", [
         h("div#menufold-static.menufold", [
-          h("a.brand.left", {
+          h("a.brand.left.flex-static", {
             attrs: { href: "#" },
             on: { click: () => dispatcher({ type: "pause" }) },
           }, [
               h("img", { attrs: { alt: "ReactiveX", src: "images/RxIconXs.png" } }),
               "RxFiddle" as any as VNode,
             ]),
-          h("div", { style: { flex: "1" } }),
-          h("div.right", [
+          h("div.flex-fill"),
+          h("div.flex-end", [
             ...rightMenuLinks,
             h("button.btn.helpbutton", "Help"),
             overlay(),

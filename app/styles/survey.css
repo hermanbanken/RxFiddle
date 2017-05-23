@@ -390,3 +390,7 @@ textarea {
   width: 100%;
   font-size: 1.2em;
 }
+
+#screens div#menufold-static {
+    flex: 0 1 auto;
+}
