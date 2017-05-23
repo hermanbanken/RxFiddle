@@ -1,3 +1,4 @@
+import { atou } from "./utils"
 import { Doc, Editor } from "codemirror"
 import * as CodeMirror from "codemirror"
 import "codemirror/mode/javascript/javascript"
@@ -23,7 +24,7 @@ function setup() {
   // Initialize with messages in uri / localStorage
   let hash = window.location.hash
   if (hash.indexOf("blob=") >= 0) {
-    let json = atob(decodeURI(hash.substr(hash.indexOf("blob=") + "blob=".length)))
+    let json = atou(decodeURI(hash.substr(hash.indexOf("blob=") + "blob=".length)))
     JSON.parse(json).forEach((data: any) => handleMessage({ data }))
   } else if (localStorage && localStorage.getItem("code")) {
     editor.setValue(localStorage.getItem("code"))

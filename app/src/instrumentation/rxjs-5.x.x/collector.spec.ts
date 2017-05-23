@@ -5,19 +5,13 @@ import TreeReader from "../../collector/treeReader"
 import TreeWriter from "../../collector/treeWriter"
 import TypedGraph from "../../collector/typedgraph"
 import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../../oct/oct"
+import { utoa } from "../../utils"
 import { TreeCollector } from "./collector"
 import Instrumentation, { isInstrumented } from "./instrumentation"
 import { expect } from "chai"
 import { only, suite, test } from "mocha-typescript"
 import * as Rx from "rxjs"
 // import { HotObservable as hot } from "rxjs/helpers/marbleTesting"
-
-let btoa: Function
-if (typeof btoa !== "function") {
-  btoa = (str: string | Buffer) => {
-    return (str instanceof Buffer ? str : new Buffer(str.toString(), "binary")).toString("base64")
-  }
-}
 
 @suite
 export class TreeCollectorRx5Test {
@@ -58,7 +52,7 @@ export class TreeCollectorRx5Test {
       n => n instanceof ObserverTree ? "red" : "blue",
       () => ["rankdir=TB"]
     )
-    return "https://rxfiddle.net/graphviz.html#" + btoa(viz)
+    return "https://rxfiddle.net/graphviz.html#" + utoa(viz)
   }
 
   public write(name: string) {

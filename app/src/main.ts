@@ -9,7 +9,7 @@ import { hbox, vbox, vboxo } from "./ui/flex"
 import Resizer from "./ui/resizer"
 import { LanguageMenu, Query, errorHandler, shareButton } from "./ui/shared"
 import Splash from "./ui/splash"
-import { UUID } from "./utils"
+import { UUID, atou, utoa } from "./utils"
 import Visualizer, { DataSource } from "./visualization"
 import Grapher from "./visualization/grapher"
 import * as Rx from "rxjs"
@@ -62,7 +62,7 @@ const DataSource$: Rx.Observable<{
       }
     } else {
       let config = LanguageMenu.get(q.lib).runnerConfig
-      let editor = new CodeEditor(q.code ? atob(decodeURI(q.code)) : undefined)
+      let editor = new CodeEditor(q.code ? atou(decodeURI(q.code)) : undefined)
       let code = Rx.Observable.fromEventPattern<string>(h => editor.withValue(h as any), h => void (0))
       let runner = new RxRunner(config, code, AnalyticsObserver)
       return {
@@ -83,7 +83,7 @@ Query.$.map(query => ({ query, type: "query" })).subscribe(AnalyticsObserver)
 function menu(language: VNode, runner?: RxRunner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
     editor.withValue(v => {
-      Query.update({ code: btoa(v) })
+      Query.update({ code: utoa(v) })
       runner.trigger()
     })
   }

@@ -3,18 +3,12 @@ import TreeReader from "../../collector/treeReader"
 import TreeWriter from "../../collector/treeWriter"
 import TypedGraph from "../../collector/typedgraph"
 import { IObservableTree, IObserverTree, ObserverTree, SubjectTree } from "../../oct/oct"
+import { utoa } from "../../utils"
 import { TreeCollector } from "./collector"
 import Instrumentation, { defaultSubjects } from "./instrumentation"
 import { expect } from "chai"
 import { suite, test } from "mocha-typescript"
 import * as Rx from "rx"
-
-let btoa: Function
-if (typeof btoa !== "function") {
-  btoa = (str: string | Buffer) => {
-    return (str instanceof Buffer ? str : new Buffer(str.toString(), "binary")).toString("base64")
-  }
-}
 
 const onNext = Rx.ReactiveTest.onNext
 const onCompleted = Rx.ReactiveTest.onCompleted
@@ -58,7 +52,7 @@ export class TreeCollectorRx4Test {
       n => n instanceof ObserverTree ? "red" : "blue",
       () => ["rankdir=TB"]
     )
-    return "https://rxfiddle.net/graphviz.html#" + btoa(viz)
+    return "https://rxfiddle.net/graphviz.html#" + utoa(viz)
   }
 
   public write(name: string) {

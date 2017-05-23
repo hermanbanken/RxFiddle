@@ -1,3 +1,4 @@
+import { utoa } from "../utils"
 import Languages, { LanguageCombination, RxJS4, RxJS5 } from "../languages"
 import CodeEditor from "./codeEditor"
 import * as Rx from "rxjs"
@@ -164,14 +165,14 @@ export function shareButton(editor: CodeEditor) {
     on: {
       click: (e: MouseEvent) => {
         editor.withValue(v => {
-          Query.update({ code: btoa(v), type: "editor" });
+          Query.update({ code: utoa(v), type: "editor" });
           (e.target as HTMLAnchorElement).innerText = "Saved state in the url. Copy the url!"
         })
         return false
       },
       mouseenter: (e: MouseEvent) => {
         editor.withValue(v => {
-          (e.target as HTMLAnchorElement).href = "#" + QueryString.updated({ code: btoa(v), type: "editor" })
+          (e.target as HTMLAnchorElement).href = "#" + QueryString.updated({ code: utoa(v), type: "editor" })
         })
       },
       mouseout: (e: MouseEvent) => {

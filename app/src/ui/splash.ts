@@ -1,4 +1,5 @@
-import { SnippetDict, snippets, Snippet } from "../firebase"
+import { Snippet, SnippetDict, snippets } from "../firebase"
+import { utoa } from "../utils"
 import { Observable } from "rxjs"
 import h from "snabbdom/h"
 import { VNode } from "snabbdom/vnode"
@@ -113,7 +114,7 @@ export default class Splash {
                 h("div.snippets", Object.keys(snippets || {}).filter(key => validSnippet(snippets[key]))
                   .map(key => h("div.snippet", [
                     h("a",
-                      { attrs: { href: `#type=editor&code=${btoa(snippets[key].code)}` } },
+                      { attrs: { href: `#type=editor&code=${utoa(snippets[key].code)}` } },
                       snippets[key].name
                     ),
                     h("div", snippets[key].description),
@@ -123,7 +124,7 @@ export default class Splash {
                 h("div.snippets", Object.keys(mySnippets || {}).filter(key => validSnippet(mySnippets[key]))
                   .map(key => h("div.snippet", [
                     h("a",
-                      { attrs: { href: `#type=editor&code=${btoa(snippets[key].code)}` } },
+                      { attrs: { href: `#type=editor&code=${utoa(snippets[key].code)}` } },
                       snippets[key].name
                     ),
                     h("div", snippets[key].description),

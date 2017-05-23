@@ -14,7 +14,7 @@ import CodeEditor from "../ui/codeEditor"
 import { hboxo, vboxo } from "../ui/flex"
 import Resizer from "../ui/resizer"
 import { Query, errorHandler } from "../ui/shared"
-import { UUID } from "../utils"
+import { UUID, utoa } from "../utils"
 import RxFiddleVisualizer from "../visualization"
 import Grapher from "../visualization/grapher"
 import { database } from "firebase"
@@ -32,7 +32,7 @@ export let rightMenuLinks = [
 export function menu(runner?: Runner, editor?: CodeEditor): VNode {
   let clickHandler = () => {
     editor.withValue(v => {
-      Query.set({ code: btoa(v), type: "editor" })
+      Query.set({ code: utoa(v), type: "editor" })
       runner.trigger()
     })
   }

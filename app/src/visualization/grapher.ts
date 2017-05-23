@@ -2,6 +2,7 @@ import { Message } from "../collector/logger"
 import TreeReader from "../collector/treeReader"
 import TypedGraph from "../collector/typedgraph"
 import { EdgeType, IObserverTree, ObservableTree, ObserverTree, SubjectTree } from "../oct/oct"
+import { utoa } from "../utils"
 import { DataSource, Graphs } from "./index"
 import * as Rx from "rxjs"
 
@@ -75,7 +76,7 @@ function dotGraph(graph: TG) {
     () => ["rankdir=TB"]
   )
   if (typeof window !== "undefined") {
-    window.open("graphviz.html#" + btoa(dot))
+    window.open("graphviz.html#" + utoa(dot))
   }
   return dot
 }

@@ -1,3 +1,4 @@
+import { utoa } from "../utils"
 import { sameOriginWindowMessages } from "./shared"
 import * as Rx from "rxjs"
 import h from "snabbdom/h"
@@ -34,7 +35,7 @@ export default class CodeEditor {
 
     if (typeof initialSource === "string" && initialSource) {
       let data = JSON.stringify([{ code: initialSource, ranges, lineClasses }])
-      src = "editor.html#blob=" + encodeURI(btoa(data))
+      src = "editor.html#blob=" + encodeURI(utoa(data))
     } else {
       src = "editor.html"
     }
