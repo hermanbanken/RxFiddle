@@ -1,20 +1,18 @@
 \begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=1.5cm,
                     semithick,scale=0.8, every node/.style={scale=0.8}]
 \tikzstyle{every state}=[]
+\tikzset{
+  block/.style = {draw, minimum width=8cm, minimum height=0.6cm}
+}
 
-\draw arrow;
-%
-%\filldraw 
-%  (0,2) circle (2pt) node[right] {of(1,2,3)}    --
-%  (0,1) circle (2pt) node[right] {skip(1)}  -- 
-%  (0,0) circle (2pt) node[right] {flatMap(() => inner)};
-%
-%\filldraw 
-%  (-1,1) circle (2pt) node[left] {of(`A', `B')} --
-%  (0,0)  circle (2pt) node[right] {};
-%
-%\filldraw 
-%  (-0.7,1) circle (2pt) node[left] {} --
-%  (0,0)    circle (2pt) node[right] {};
+\node[minimum width=8cm, minimum height=0.6cm] (T) at (0cm, 0cm) {};
+\node[below=0cm of T.west] (ULS) {};
+\node[below=0cm of T.east] (ULE) {};
+\node[block,below=0.3cm of T] (B) {\color{red}TODO replace with PDF/SVG diagram};
+\node[below=0.5cm of B.west] (DLS) {};
+\node[below=0.5cm of B.east] (DLE) {};
+
+\draw[->] (ULS.west) -- (ULE.east);
+\draw[->] (DLS.west) -- (DLE.east);
 
 \end{tikzpicture}
