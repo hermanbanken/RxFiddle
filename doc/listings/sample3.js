@@ -1,0 +1,5 @@
+let inner = Rx.Observable.of("A", "B")
+let outer = Rx.Observable.of(1, 2, 3)
+  .skip(1)
+  .flatMap(() => inner)
+  .subscribe()

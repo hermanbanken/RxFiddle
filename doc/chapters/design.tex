@@ -1,5 +1,36 @@
 \section{Debugger Design}
-In this section we describe the design of a visualizer for the ReactiveX (Rx) family of RP libraries to answer RQ2.
+In this section we describe the design of a visualizer for the ReactiveX (Rx) family of RP libraries to answer RQ2. We propose a visualizer consisting of two parts: a data flow graph and a marble diagram. The data flow graph provides overview, showing how different flows are created and used, while the marble diagram offers a more in-depth look into one selected data flow showing the contents of the flows.
+
+\subsection{Data Flow Graph}
+\textbf{Simplified graphs.} When running an RP program Observables are created that depend on other Observables (their \textit{source}) and Observers are created to send their values to a defined set of Observers (their \textit{destination}). Figure \ref{chaincreate} shows these relations in a graph. For the simplest of programs the relations between the Observables ($O = {o_1, o_2, o_3}$) and those between Observers ($S = {s_1, s_2, s_3}$) share an equally shaped sub-graph after a reversal of the Observer-edges. To provide more overview we process the graph to merge the two Observable and Observer sequences together, simplifying it in the process, as in Figure \ref{fiddlesimple}. Higher order relations are retained as shown in \ref{fiddlehigher}.
+
+\begin{figure}
+	\centering
+	\input{images/chainsimple}
+	\caption{Simplified graph of Figure \ref{chaincreate}}
+	\label{fiddlesimple}
+\end{figure}
+
+\begin{figure}
+	\centering
+	\input{images/fiddlehigher}
+	\caption{Simplified graph of Figure \ref{chainhigher}}
+	\label{fiddlehigher}
+\end{figure}
+
+\textbf{Layout} is used to add extra meaning to the graph. If multiple subscriptions on the same Observable are created, multiple flows are kept in the graph and they are layout together. This helps developers find related flows. Also it is easy to see when a Observable is reused many times, hinting a possible performance improvement by sharing the computation (Rx has special \code{share}-operators to multicast). The layout is based on StoryFlow~\cite{liu2013storyflow} which employs a hierarchical clustering before ordering the graph in a way to reduce crossings.
+
+\textbf{Coloring} the nodes can be used to identify the same Observable in multiple places in the graph, as Observables can be reused in different places of the stream.
+
+\subsection{Marble Diagram}
+The term \textit{Marble Diagram} comes from the shape of the glyps in the images used to explain Rx in the official documentation. Different from the original diagrams we use dynamic diagrams which update live when new events occur and are stacked to show the data in the complete flow. Handcrafted marble diagrams can use custom shapes and colors to represent events, but for the generic debugger we use only three shapes: next events are a green dot, errors a black cross, completes a vertical line, as shown in Figure~\cite{marblediagram}.
+
+ \begin{figure}
+	\centering
+	\input{images/marblediagram}
+	\caption{Marble Diagram}
+	\label{marblediagram}
+\end{figure} 
 
 {\color{red}
 \begin{verbatim}
@@ -28,9 +59,7 @@ architecture of 3 components:
 }
 
 
-\subsection{Observable \& Observer Graph}
-Two dependency graphs can be created, one for the Observables and one for the Observers. In the most basic situations the graphs are equal in shape: there is a mapping between Observers and their Observable. However, with higher order Observables a new type of edge is created in the Observer graph: the 
-
+{\color{red}
  The code relates to the setup phase, while the implementation of Rx leads to
 
 RP in general and Rx in particular allow for data flows to be composited into new data flows. 
@@ -38,6 +67,7 @@ RP in general and Rx in particular allow for data flows to be composited into ne
 
 One can see that every composition from one or more input flows to one or more output flows can be visualized in the form of a graph, very node representing 
 The visualizer focusses 
+}
 
 \subsection{Marble Diagrams}
 
