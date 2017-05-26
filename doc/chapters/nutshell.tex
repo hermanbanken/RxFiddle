@@ -1,6 +1,5 @@
 \subsection{Rx in a nutshell}
 \label{nutshell}
-
 To understand how we create the visualization a minimal understanding of RP and the chosen implementation is required. Many RP implementations share a notion of a \textit{Observable}~\cite{meijer2010subject}, Signal~\cite{czaplicki2012elm} or Behaviour/Event~\cite{elliott1997functional},  which is a collection which abstracts over \textit{time}, in contrast to \textit{space} like standard collections. In this paper we do not aim to fully explain RP, for this above mentioned papers would be great starting points for the interested reader.
 
 Figure \ref{sample1} shows a very basic example of a in situ data flow in Rx. First an \textit{Observable} is created, here using the static \code{of} method, then dependent Observables are created using the \code{map} and \code{filter} methods on the Observable instance. Finally we \code{subscribe} to start the data flow and send the data in the flow to the console (eg. JavaScript's stdout).

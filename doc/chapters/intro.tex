@@ -1,9 +1,4 @@
 \section{Introduction}
-%{\color{red}
-%problems with comprehension \& debugging in Reactive Programming \\
-%in recent Rx Contributor Days, paper Guido, experience
-%}
-
 Software often needs to respond to external events and data flows. Consider software for example in interactive applications, for desktop, web and mobile phones, in graphics and in processing sensor data from phones or IoT-devices. We can use Reactive Programming (RP) to express the complex reactive behavior of these applications. RP offers declarative and concise syntax for composing streams of data. As a result programs are generally more comprehensible, when created using RP compared to an equal implementation using the Observer design pattern~\cite{johnson1995design, salvaneschi2014empirical}.
 
 After receiving mostly academic interest for a long time in the form of FRP~\cite{elliott1997functional,elliott2009push,czaplicki2013asynchronous,maier2010deprecating} recent years brought RP to the developer community in the form of Flapjax~\cite{meyerovich2009flapjax}, Elm~\cite{czaplicki2012elm}, RxJS~\cite{meijer2010subject}, Angular (RxJS), React, Spring/Reactor and Akka Streams. Large companies like Netflix, Microsoft, Google and Facebook are betting on RP by working on these frameworks and libraries. As a result many developers are now starting to use RP.
@@ -35,13 +30,14 @@ While reactive programs might be more declarative and concise, improving the rea
 %
 %**Intended contributions.** In this thesis we will evaluate whether data or control flow graphs aid reactive program comprehension and debugging. Furthermore we present a tool which generates complete and interactive Marble Diagrams for full data flows, automatically, from sources and from running applications.
 
-{\color{red}comprehension \& debugging}
+\todo{comprehension \& debugging}
 
 We formulate the following research questions to steer the research: 
 
 \begin{description}
 \item[RQ1] How do developers comprehend and debug RP? \\
-Before we design tools it is important to understand the problems arising in the the current state~\cite{singer2010examination}. Anecdotal evidence by a the large number of resources ({\color{red}to insert here: Contrib. Days, Stalz' article, other posts}) suggests that the current state is non-optimal.
+Before we design tools it is important to understand the problems arising in the the current state~\cite{singer2010examination}. Anecdotal evidence by a the large number of resources 
+\todo{(to insert here: Contrib. Days, Stalz' article, other posts)} suggests that the current state is non-optimal.
 
 %	\begin{enumerate}
 %		\item[RQ1.1] What strategies do developers use to comprehend RP?
