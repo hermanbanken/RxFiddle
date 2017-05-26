@@ -3,3 +3,5 @@
 *.blg
 *.dvi
 *.out
+*.fmt
+_minted-paper
