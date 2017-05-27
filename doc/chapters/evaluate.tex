@@ -1,9 +1,27 @@
 \section{Evaluation}
-For our RQ3, to validate our ideas about the debugger we designed an experiment to measure the (potential) speed up achieved with RxFiddle compared to the alternative of using the built-in Chrome Debugger.
+In this section we evaluate our ideas about the debugger which we designed by answering RQ3. First we present the experiment that we designed, then explain the context in which we organized the experiment and finally we present the results.
 
-\subsection{Experimental setup}
+\subsection{Object and Methodology}
+The goal of the experiment is to measure the \textit{time} required to solve programming problems. We assume time is a measurement for ease of debugging. Participants use either the built-in Chrome debugger or - the threatment - our RxFiddle debugger. This single alternative debugger together with the experiment UI (which acts as a small IDE) offers all the debugging capabilities subject reported to use in our preliminary interviews. 
 
-\todov{
+The experiment consists of a questionaire, a warm-up program and 4 programming problems, all available in a single in-browser application. The questionaire contains questions regarding age, experience in several programming languages and several reactive programming frameworks. We use this self estimation as  a measurement of skill instead of a pretest, since it provides ~\cite{kleinschmager2011rate,feigenspan2012measuring,siegmund2014measuring}. The warm-up program is situated in the same environment as the programming problems and contains several tasks designed to let the participants use every control of the test environment. The first 2 programming problems require the participants to gain some knowlegde about the behavior of the program and report the findings. The last 2 programming problems contain a program with a bug. The participants are asked to find the event that lead to the bug in the third problem and to identify and propose a solution in the fourth problem. The first 2 problems are synthetic examples of two simple data flows, while the latter contain some mocked (otherwise remote) service which behaves like a real world example.
+
+We use a between-subjects design for our setup. While this complicates the results - subjects have different experience and skills - we can not use a within-subjects design as it would be impossible to control for the learning effect incurred when asking subjects to perform survey questions with and without the tool. This also allows us to restrict the amount of tasks to incorporate in the experiment, requiring less time of our busy subjects.
+
+\todo{Discuss guidelines defined in ko2015practical~\cite{ko2015practical}}
+
+\subsection{Context}
+The experiment was run in a controlled and a online setting.
+The controlled experiment was conducted at a Dutch software engineering company. Subjects are developers with several years of programming experience, and range from little to no experience with RP to many years of experience. Some of the subject had already used RxFiddle, forming a potiential threath to validity. As we do not try to measure the effect of learning a new tool, but rather using a tool after learning to use it, we explained RxFiddle in the introductory talk and added the warm-up question to get every participant to a minimum amount of knowlegde about the debugger at hand.
+
+The online experiment was announced by several core contributors to RP libraries on Twitter and via various other communication channels. Subjects to the online experiment took the test at their own preferred location and have possibly very different backgrounds. Several short video tutorials were created and included in the online experiment to introduce the participants to the debug tool available to them and the tasks they needed to fullfill.
+
+\subsection{Results}
+\todo{results here}
+
+{
+\color{red}
+\begin{verbatim}
 controlled experiment at company
 uncontrolled experiment online at RxFiddle.net
 experiment includes:
@@ -12,17 +30,17 @@ experiment includes:
 - instruction video's
 - non-question in question setting to familiarize with tooling
 - warm-up question
-- 3 questions involving different understanding/bugs:
+- 4 questions involving different understanding/bugs:
+  1. extracting program behavior (generate sample)
   1. learning operator behavior (BMI sample)
-  2. root cause analysis of crash
-  3. analysis of timing bug, caused by wrong operator usage
+  2. root cause analysis of crash (time sample)
+  3. analysis of timing bug, caused by wrong operator usage (imdb sample)
 }
-
-\subsection{Results}
-
-\todov{
+\end{verbatim}
+\begin{verbatim}
 techniques to look into:
 Wilcoxon
 Cohen delta (normal) / Cliffs delta (non-normal)
 check if normal distribution: Shapiro Wilks
+\end{verbatim}
 }
