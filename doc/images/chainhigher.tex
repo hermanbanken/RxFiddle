@@ -1,0 +1,45 @@
+\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=2.8cm,
+                    semithick,scale=0.8, every node/.style={scale=0.8}]
+  \tikzstyle{every state}=[]
+
+  \node[state] (A)                    {$o_2$};
+  \node[state] (B) [right of=A]       {$o_3$};
+  \node[state] (C) [right of=B]       {$o_4$};
+
+  \node[state] (X) [below right =1cm of A] {$s_3$};
+  \node[state] (Y) [right of=X]            {$s_2$};
+  \node[state] (Z) [right of=Y]            {$s_1$};
+  
+  \node[state] (F) [below =2cm of B]              {$o_1$};
+  \node[state] (P) [below =1.8cm of Y] {$s_{4,n}$};
+  \node[state] (Q) [below =0.3cm of P]       {$s_{4,m}$};
+
+  \path (B) edge   node {source}                   (A)
+        (C) edge   node {source}                   (B)
+        (A) edge [bend left] node {skip(1)}    (B)
+        (B) edge [bend left] node {flatMap(() => inner)} (C)
+        (X) edge   node[below] {destination}       (Y)
+        (Y) edge   node[below] {destination}       (Z)
+        (Z) edge   node {subscribe}                (C)
+        (Y) edge   node {subscribe}                (B)
+        (X) edge   node {subscribe}                (A)
+        
+        (P) edge [bend right]  node[sloped,above] {subscribe}   (F)
+        (P) edge   node[sloped,below] {destination} (Z)
+        (Q) edge [bend left]  node[sloped,above] {subscribe}   (F)
+        (Q) edge   node[sloped,below] {destination} (Z);
+  
+%  \node[draw=none] (K) at ($ (P) + (-4:-3) $){$\cdots$};
+%  \node[draw=none] (M) at ($ (Q) + (-4:-3) $){$\cdots$};  
+        
+  % https://tex.stackexchange.com/questions/75497/automata-container-box
+  \node [draw=red, label={\color{red}inner}, fit=(F) (P) (Q), inner sep=0.5cm,dashed, ultra thick, fill=red!10, fill opacity=0.2] {};
+  %\node [draw=blue, fit= (G) (Q) (M), inner sep=0.5cm,dashed, ultra thick, fill=blue!10, fill opacity=0.2] {};
+
+  % https://tex.stackexchange.com/questions/160643/ellipsis
+  \draw[<-] (A) -- node[above] {of(1,2,3)} ++(-2cm,0);
+  \draw[->] (F) -- node[above] {$\cdots$} ++(-2cm,0);
+  \draw[<-] (P) -- node[above] {$\cdots$} ++(-3cm,0);
+  \draw[<-] (Q) -- node[above] {$\cdots$} ++(-3cm,0);
+
+\end{tikzpicture}

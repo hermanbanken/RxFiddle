@@ -1,0 +1,18 @@
+\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=1.5cm,
+                    semithick,scale=0.8, every node/.style={scale=0.8}]
+\tikzstyle{every state}=[]
+\tikzset{
+  block/.style = {draw, minimum width=8cm, minimum height=0.6cm}
+}
+
+\node[minimum width=8cm, minimum height=0.6cm] (T) at (0cm, 0cm) {};
+\node[below=0cm of T.west] (ULS) {};
+\node[below=0cm of T.east] (ULE) {};
+\node[block,below=0.3cm of T] (B) {\todo{TODO replace with PDF/SVG diagram}};
+\node[below=0.5cm of B.west] (DLS) {};
+\node[below=0.5cm of B.east] (DLE) {};
+
+\draw[->] (ULS.west) -- (ULE.east);
+\draw[->] (DLS.west) -- (DLE.east);
+
+\end{tikzpicture}

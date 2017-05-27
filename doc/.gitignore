@@ -1,1 +1,7 @@
 *.pdf
+*.bbl
+*.blg
+*.dvi
+*.out
+*.fmt
+_minted-paper

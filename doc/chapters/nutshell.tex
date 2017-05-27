@@ -1,0 +1,51 @@
+\subsection{Rx in a nutshell}
+\label{nutshell}
+To understand how we create the visualization a minimal understanding of RP and the chosen implementation is required. Many RP implementations share a notion of a \textit{Observable}~\cite{meijer2010subject}, Signal~\cite{czaplicki2012elm} or Behaviour/Event~\cite{elliott1997functional},  which is a collection which abstracts over \textit{time}, in contrast to \textit{space} like standard collections. In this paper we do not aim to fully explain RP, for this above mentioned papers would be great starting points for the interested reader.
+
+Figure \ref{sample1} shows a very basic example of a in situ data flow in Rx. First an \textit{Observable} is created, here using the static \code{of} method, then dependent Observables are created using the \code{map} and \code{filter} methods on the Observable instance. Finally we \code{subscribe} to start the data flow and send the data in the flow to the console (eg. JavaScript's stdout).
+
+\begin{figure}
+
+\begin{subfigure}[a]{\columnwidth}
+\inputminted[tabsize=2]{javascript}{listings/sample1.js}	
+\caption{Rx code example}
+\label{sample1}
+\end{subfigure}
+
+\begin{subfigure}[b]{\columnwidth}
+\centering
+\input{images/chaincreate}
+\caption{Rx graph example}
+\label{chaincreate}
+\end{subfigure}
+
+\caption{Creation and transform of Observables}
+
+\end{figure}
+
+It is important to note that Observables are lazy, they are the blueprint of a data flow. Only when you \code{subscribe} to an Observable the data flow is created by recursively subscribing up the stream. \textit{Observer}s are subscribed to each Observable until the source Observable is reached.
+This is illustrated in figure \ref{chaincreate}. Here $o_1$, $o_2$ and $o_3$ represent Observables defined in Figure \ref{sample1}. Inside the \code{subscribe} call $s_1$ is created and passed to $o_3$, which in turn will recursively subscribe to $o_2$ with a new Observer $s_2$ with destination $s_1$, until the full chain is subscribed.
+The origin of this design is the duality between Observables and \textit{Iterables} - as first described by Erik Meijer, where Observers are dual to \textit{Iterators}.
+
+\begin{figure}
+
+\begin{subfigure}[a]{\columnwidth}
+\inputminted[tabsize=2]{javascript}{listings/sample3.js}	
+\caption{Higher order flatMap operation}
+\label{sample3}
+\end{subfigure}
+
+\begin{subfigure}[b]{\columnwidth}
+\centering
+\input{images/chainhigher}
+\caption{Higher order visualization}
+\label{chainhigher}
+\end{subfigure}
+
+\caption{Higher order Observables}
+
+\end{figure}
+
+More complex programs feature operators that merge Observables, split Observables or handles higher order Observables, resulting in more complex graphs. While merging and splitting happens on an Observable level (the \code{source} property still points to the dependency) higher order Observable flattening manifests only in Observer structure, as shown in Figure \ref{chainhigher}.
+
+Creating the Observable we will call the \textit{assembly} phase, the phase where the subscribe happens the \textit{subscription} phase and data flows in the \textit{runtime} phase. The three phases can be interleaved for different streams, for example when dealing with higher order Observables,  meaning one could use Observables as values inside the data flow. The Observables used as values have yet to start the second phase while the outer stream is in the runtime phase.

@@ -1,0 +1,94 @@
+% THIS IS SIGPROC-SP.TEX - VERSION 3.1
+% WORKS WITH V3.2SP OF ACM_PROC_ARTICLE-SP.CLS
+% APRIL 2009
+\documentclass{acm_proc_article-sp}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{minted}
+\usepackage{lineno}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{subcaption}
+
+%\usepackage{todonotes}
+%\usepackage{marginnote} 
+%\let\marginpar\marginnote
+
+\usetikzlibrary{automata,arrows,positioning,calc,fit}
+%\linenumbers
+
+\begin{document}
+
+\title{Visualizing Data-Flows in Reactive Programs}
+%\subtitle{[Extended Abstract]}
+
+\numberofauthors{2}
+\author{
+\alignauthor
+Herman Banken\\
+       \affaddr{Delft University of Technology, The Netherlands}\\
+       \email{h.j.banken@student.tudelft.nl}
+\alignauthor
+Georgios Gousios\\
+       \affaddr{Delft University of Technology, The Netherlands}\\
+       \email{g.gousios@tudelft.nl}
+}
+
+\date{\today} %10 Juli 2017}
+
+
+\maketitle
+\begin{abstract}
+\input{chapters/abstract}
+\end{abstract}
+
+% A category with the (minimum) three required fields
+%\category{H.4}{Information Systems Applications}{Miscellaneous}
+%A category including the fourth, optional field follows...
+%\category{D.2.8}{Software Engineering}{Metrics}[complexity measures, performance measures]
+
+%\terms{Theory}
+
+\keywords{reactive programming, debugging, visualization, program comprehension} % NOT required for Proceedings
+
+
+% \documentclass{acm_proc_article-sp}
+% \usepackage{graphicx}
+% \usepackage{url}
+% \usepackage{hyperref}
+% \usepackage[top=1.25in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+
+% \hypersetup{ colorlinks=true, linkcolor=cyan, filecolor=cyan,
+% urlcolor=cyan, citecolor=cyan, } \urlstyle{same}
+
+% \def\sectionautorefname{section}
+
+% \begin{document}
+
+% \title{Visualizing Data-Flows in Reactive Programs}
+% \author{ Herman Banken - 4078624
+% \vspace{1cm} \\
+% TU Delft, Department of Electrical Engineering, \\
+% Mathematics and Computer Science }
+% \date{\today}
+
+% \vfill
+
+% \begin{figure}[!bp]
+%     \centering
+%     \begin{minipage}[b]
+%         {0.4\textwidth} \includegraphics[width=\textwidth,trim={0 12cm 0
+%         10cm 0},clip]{images/tudelft.pdf}
+%     \end{minipage}
+%     \hfill
+%     \begin{minipage}[b]
+%         {0.4\textwidth} \includegraphics[width=\textwidth]{images/ordina.png}
+%     \end{minipage}
+% \end{figure}
+
+% \maketitle
+
+% \clearpage
