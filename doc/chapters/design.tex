@@ -4,14 +4,14 @@ In this section we describe the design of a visualizer for the ReactiveX (Rx) fa
 \subsection{Data Flow Graph}
 \textbf{Simplified graphs.} When running an RP program Observables are created that depend on other Observables (their \textit{source}) and Observers are created to send their values to a defined set of Observers (their \textit{destination}). Figure \ref{chaincreate} shows these relations in a graph. For the simplest of programs the relations between the Observables ($O = {o_1, o_2, o_3}$) and those between Observers ($S = {s_1, s_2, s_3}$) share an equally shaped sub-graph after a reversal of the Observer-edges. To provide more overview we process the graph to merge the two Observable and Observer sequences together, simplifying it in the process, as in Figure \ref{fiddlesimple}. Higher order relations are retained as shown in \ref{fiddlehigher}.
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
 	\input{images/chainsimple}
 	\caption{Simplified graph of Figure \ref{chaincreate}}
 	\label{fiddlesimple}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
 	\input{images/fiddlehigher}
 	\caption{Simplified graph of Figure \ref{chainhigher}}
@@ -27,7 +27,7 @@ The term \textit{Marble Diagram} comes from the shape of the glyps in the images
 
 Different from the original diagrams we use dynamic diagrams which update live when new events occur and are stacked to show the data in the complete flow. This allows the developer to trace a value back through the flow, a debug operation which is impossible using a classic debugger. Handcrafted marble diagrams can use custom shapes and colors to represent events, but for the generic debugger we use only three shapes: next events are a green dot, errors a black cross, completes a vertical line, as shown in Figure~\ref{marblediagram}. For our generic debugger it is unfeasible to automatically decide which properties (content, shape and color) to apply to events, as the amount of events and distinguishing features might be unbounded. Instead the event values are shown upon hovering.
 
-\begin{figure}
+\begin{figure}[ht]
 	\centering
 	\input{images/marblediagram}
 	\caption{Marble Diagram}
@@ -57,7 +57,7 @@ our reactive debugger design. Besides the visualizer it also contains a code edi
 
 RxFiddle is Open Source\footnote{\url{http://github.com/hermanbanken/RxFiddle}} and developers are encouraged to add support for more languages. Researchers could use the instrumentation to infer usage information from RP programs or explore new possibilities regarding the visualization.
 
-\begin{table}[]
+\begin{table}[ht]
 \centering
 \caption{My caption}
 \label{my-label}
