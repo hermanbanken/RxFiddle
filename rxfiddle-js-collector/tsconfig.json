@@ -4,13 +4,17 @@
     "sourceMap": true,
     "outDir": "dist",
     "module": "es2015",
-    "target": "ES6",
+    "target": "ES5",
     "strictNullChecks": false,
     "removeComments": true,
     "noImplicitAny": true,
+    "noImplicitThis": true,
     "declaration": true,
     "preserveConstEnums": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "lib": [
+      "es2015", "dom", "es2015.proxy"
+    ]
   },
   "include": [
     "index.ts"

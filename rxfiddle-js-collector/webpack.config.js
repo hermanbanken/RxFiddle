@@ -1,4 +1,5 @@
 let path = require("path")
+let webpack = require('webpack');
 
 module.exports = {
   entry: {
@@ -21,10 +22,22 @@ module.exports = {
         use: 'babel-loader?presets[]=es2015',
       },
     ],
+    noParse: /(\/(ws)\/|^ws$)/
   },
+<<<<<<< Updated upstream
+  plugins: [
+    new webpack.optimize.UglifyJsPlugin({
+      sourceMap: true
+    })
+  ],
   externals: {
     rx: 'Rx',
     rxjs: 'Rx',
     "rxjs/Rx": 'Rx',
   },
+=======
+  externals: [{
+    "rxjs": "Rx"
+  },/^[^.]/],
+>>>>>>> Stashed changes
 }
