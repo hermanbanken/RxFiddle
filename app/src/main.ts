@@ -1,6 +1,7 @@
 import AnalyticsObserver from "./analytics"
 import JsonCollector from "./collector/jsonCollector"
-import LocalStorageCollector, { LocalStorageSender } from "./collector/postMessageCollector"
+import LocalStorageCollector, { LocalStorageSender } from "./collector/localStorageCollector"
+import PostMessageCollector from "./collector/postMessageCollector"
 import RxRunner from "./collector/runner"
 import patch from "./patch"
 import "./prelude"
@@ -35,7 +36,12 @@ const DataSource$: Rx.Observable<{
   editor?: CodeEditor,
   q: any
 }> = Query.$all.scan((prev, q) => {
-  if (q.type === "message") {
+  if (q.type === "postMessage") {
+    let collector = prev.type === "postMessage" ?
+      prev.collector :
+      new PostMessageCollector()
+    return { data: collector, q }
+  } else if (q.type === "message") {
     let collector = prev.type === "message" && prev.q.session === q.session ?
       prev.collector :
       new LocalStorageCollector(q.session)

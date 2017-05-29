@@ -4,9 +4,19 @@ RxFiddle is a debugger for Reactive Extensions (Rx).
 Add this (rxfiddle) module to your applications repository to inspect your
 Observable data flow on [RxFiddle.net](https://rxfiddle.net).
 
-<img src="https://github.com/hermanbanken/RxFiddle/raw/master/screenshots/mergeAll.png" width="400" alt="Screenshot of RxFiddle.net" />
+<img src="https://raw.githubusercontent.com/hermanbanken/RxFiddle/08609509012fc01ae51a44e84b8c81251236e684/screenshots/mergeAll.png" width="400" alt="Screenshot of RxFiddle.net" />
 
 ## Getting started
+
+You can use this RxFiddle npm plugin in 2 different environments:
+
+- Browser: instrument and then use `RxFiddle.openWindow()`
+- Node: instrument and then use `RxFiddle.serve()`
+
+Or you can use auto detect: instrument and then use `RxFiddle.auto()`
+
+### Instrumenting
+You instrument Rx by providing the reference to RxFiddle. Since you can import, require or include Rx in different ways, RxFiddle accepts references to Rx in multiple ways. For example if you use the ES6 modular imports:
 
 ````javascript
 /* File: your-application.js */
@@ -19,7 +29,7 @@ import RxFiddle from "rxfiddle"
 new RxFiddle({
   Observable: Observable,
   Subscriber: Subscriber,
-}).serve({ port: 8080 })
+}).serve({ port: 8080 }) // or openWindow for web environments
 
 /* Rest of your application here */
 Observable.of(1, 2, 3)

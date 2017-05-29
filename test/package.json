@@ -8,8 +8,13 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "rxfiddle": "^1.0.0",
     "rxjs": "^5.3.1",
-    "typescript": "^2.3.2",
-    "rxfiddle": "^1.0.0"
+    "typescript": "^2.3.2"
+  },
+  "devDependencies": {
+    "ts-loader": "^2.1.0",
+    "webpack": "^2.6.1",
+    "webpack-dev-server": "^2.4.5"
   }
 }

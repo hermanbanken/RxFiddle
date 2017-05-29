@@ -1,6 +1,6 @@
 {
   "name": "rxfiddle",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Visualize your Observables",
   "author": "Herman Banken",
   "repository": {
@@ -13,7 +13,7 @@
     "build": "tsc -p . && rollup -c",
     "prepublish": "npm run build && cp dist/rxfiddle-js-collector/index.d.ts rxfiddle.d.ts"
   },
-  "dependencies": {
+  "optionalDependencies": {
     "ws": "^2.3.1"
   },
   "devDependencies": {
