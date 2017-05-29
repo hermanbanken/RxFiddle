@@ -10,7 +10,7 @@ import RxFiddle from "rxfiddle"
 new RxFiddle({ 
   Observable: Observable,
   Subscriber: Subscriber,
-}).openWindow({ address: "http://localhost:8085#type=postMessage", origin: "http://localhost:8085" })
+}).auto()
 
 /* Rest of your application here */
 Observable.of(1, 2, 3)

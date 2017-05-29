@@ -55,12 +55,12 @@ export default class RxFiddle {
    * @param param Optional, options to pass to openWindow or serve.
    */
   public auto(options?: any): TeardownLogic {
-    if(typeof process === "object") {
-      console.log("RxFiddle detected Node.")
-      return this.serve(options)
-    } else if(typeof window !== "object") {
+    if(typeof window === "object") {
       console.log("RxFiddle detected a web browser.")
       return this.openWindow(options)
+    } else if(typeof process === "object") {
+      console.log("RxFiddle detected Node.")
+      return this.serve(options)
     } else {
       console.log("RxFiddle could not detect the JavaScript environment. Please use either RxFiddle.serve or RxFiddle.openWindow.")
     }
@@ -71,7 +71,7 @@ export default class RxFiddle {
    * @param param Optional, specify which RxFiddle instance to use. Defaults to rxfiddle.net,
    *              but you can also run your own RxFiddle on your own localhost.
    */
-  public openWindow({ address, origin }: { address?: string, origin?: string }) {
+  public openWindow({ address, origin }: { address?: string, origin?: string } = {}): TeardownLogic {
     if(typeof window !== "object") {
       if(typeof process === "object") {
         console.warn("To use RxFiddle.openWindow, you need to run your app in the web browser. Consider using RxFiddle.serve since you're running in NodeJS.")
@@ -79,17 +79,21 @@ export default class RxFiddle {
         console.warn("To use RxFiddle.openWindow, you need to run your app in the web browser.")
       }
     }
+
     if(!address) {
       address = `https://rxfiddle.net/#type=postMessage`
       origin = "https://rxfiddle.net"
     }
+
+    // Open RxFiddle window and prepare to clean it up on reload or unload
     let w = window.open(address, '_blank', 'toolbar=0,location=0,menubar=0')
     window.addEventListener("unload", () => !w.closed && w.close())
 
     let first = true
     let replayQueue = [] as any[]
-    let interval = setInterval(() => w.postMessage({ type: "ping" }, origin), 100)
 
+    // Ping until the RxFiddle window replies
+    let interval = setInterval(() => w.postMessage({ type: "ping" }, origin), 100)
     function ready() {
       clearInterval(interval)
       window.removeEventListener("message", detectPong)
@@ -120,7 +124,7 @@ export default class RxFiddle {
    * Setup instrumentation and a WebSocketServer and publish all messages there
    * @param param Specify a port
    */
-  public serve({ port }: { port?: number, networkInterface?: string }): TeardownLogic {
+  public serve({ port }: { port?: number, networkInterface?: string } = {}): TeardownLogic {
     if(!WebSocket) {
       console.warn("To use RxFiddle.serve, install the websocket library ws using:\n  npm i ws")
       return () => {}
