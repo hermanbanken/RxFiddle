@@ -8,6 +8,7 @@
     "type": "git"
   },
   "types": "rxfiddle.d.ts",
+  "module": "rxfiddle.js",
   "main": "rxfiddle.js",
   "scripts": {
     "build": "tsc -p . && rollup -c",

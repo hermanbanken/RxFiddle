@@ -4,11 +4,11 @@ import { ICallRecord, ICallStart } from "../../collector/callrecord"
 import { RxCollector } from "../../collector/ICollector"
 
 // Allow either external scoped Rx or local imported Rx to be used
-import * as RxImported from "rxjs"
+import * as RxType from "rxjs"
 import { Scheduler } from "rxjs/Scheduler"
 declare let Rx: any
 
-export let InstrumentedRx: typeof RxImported = typeof Rx === "undefined" ? RxImported : Rx
+export let InstrumentedRx: typeof RxType = typeof Rx === "undefined" ? RxType : Rx
 
 let i = 0
 export default class Instrumentation {
@@ -17,15 +17,15 @@ export default class Instrumentation {
   private open: any[] = []
   private calls: (ICallStart | ICallRecord)[] = []
 
-  constructor(private collector: RxCollector) {
+  constructor(private collector: RxCollector, private Rx: typeof RxType) {
     this.collector = collector
     this.subjects = {
-      "Observable": InstrumentedRx.Observable.prototype,
-      "Subscriber": InstrumentedRx.Subscriber.prototype,
-      "ObservableStatic": InstrumentedRx.Observable,
-      "SubjectStatic": InstrumentedRx.Subject,
-      "Subject": InstrumentedRx.Subject.prototype,
-      "Scheduler": (InstrumentedRx.Scheduler.async as any).__proto__.__proto__,
+      "Observable": Rx.Observable.prototype,
+      "Subscriber": Rx.Subscriber.prototype,
+      "ObservableStatic": Rx.Observable,
+      "SubjectStatic": Rx.Subject,
+      "Subject": Rx.Subject.prototype,
+      "Scheduler": (Rx.Scheduler.async as any).__proto__.__proto__,
     }
   }
 
@@ -183,13 +183,13 @@ export default class Instrumentation {
   }
 
   private wrap<T>(input: T): T {
-    if (isObservable(input) && !prototypeIsInstrumented((input as any).prototype)) {
+    if (isObservable(this.Rx, input) && !prototypeIsInstrumented((input as any).prototype)) {
       this.setupPrototype((input as any).prototype, input.constructor.name)
       return input as any
     }
     if (
-      isScheduler(input) && !isInstrumented((input as any).schedule) ||
-      isObserver(input) && !isInstrumented((input as any).next)
+      isScheduler(this.Rx, input) && !isInstrumented((input as any).schedule) ||
+      isObserver(this.Rx, input) && !isInstrumented((input as any).next)
     ) {
       return new Proxy(input, {
         get: (thisArg: any, name: string) => {
@@ -224,8 +224,8 @@ export interface Function {
   apply(subject: any, args: any[] | IArguments): any
 }
 
-function hasRxObservablePrototype(input: any): boolean {
-  return typeof input === "object" && InstrumentedRx.Observable.prototype.isPrototypeOf(input)
+function hasRxObservablePrototype(Rx: typeof RxType, input: any): boolean {
+  return typeof input === "object" && Rx.Observable.prototype.isPrototypeOf(input)
 }
 
 export function isInstrumented(fn: Function, by?: Instrumentation): boolean {
@@ -245,25 +245,25 @@ function prototypeIsInstrumented(input: any): boolean {
   return typeof input === "object" && input !== null && input.hasOwnProperty("__dynamicallyInstrumented")
 }
 
-export function isObservable<T>(v: any): v is RxImported.Observable<T> {
+export function isObservable<T>(Rx: typeof RxType, v: any): v is RxType.Observable<T> {
   return typeof v === "object" && (
-    v instanceof InstrumentedRx.Observable || v !== null && typeof v.subscribe === "function"
+    v instanceof Rx.Observable || v !== null && typeof v.subscribe === "function"
   )
 }
-export function isSubscription(v: any): v is RxImported.Subscription & any {
-  return typeof v === "object" && v instanceof InstrumentedRx.Subscriber
+export function isSubscription(Rx: typeof RxType, v: any): v is RxType.Subscription & any {
+  return typeof v === "object" && v instanceof Rx.Subscriber
 }
-export function isObserver(v: any): v is RxImported.Subscriber<any> {
+export function isObserver(Rx: typeof RxType, v: any): v is RxType.Subscriber<any> {
   return typeof v === "object" &&
-    (v instanceof InstrumentedRx.Subscriber || v !== null && typeof v.next === "function") &&
+    (v instanceof Rx.Subscriber || v !== null && typeof v.next === "function") &&
     /* Prevent emptyObserver as a subscriber 
      * (since it is statically used everywhere,  effectively linking all streams...) 
      */
     v.constructor !== Object
 }
-export function isSubject(v: any): v is RxImported.Subject<any> {
-  return typeof v === "object" && (v instanceof InstrumentedRx.Subject || v !== null && typeof v.next === "function" && typeof v.subscribe === "function")
+export function isSubject(Rx: typeof RxType, v: any): v is RxType.Subject<any> {
+  return typeof v === "object" && (v instanceof Rx.Subject || v !== null && typeof v.next === "function" && typeof v.subscribe === "function")
 }
-export function isScheduler(v: any): v is Scheduler & any {
+export function isScheduler(Rx: typeof RxType, v: any): v is Scheduler & any {
   return typeof v === "object" && v !== null && "now" in v && "schedule" in v
 }

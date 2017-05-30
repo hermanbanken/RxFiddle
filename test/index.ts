@@ -4,7 +4,7 @@ import "rxjs/add/observable/of"
 import "rxjs/add/operator/map"
 import RxFiddle from "rxfiddle"
 
-new RxFiddle({ 
+new RxFiddle({
   Observable: Observable,
   Subscriber: Subscriber,
 }).serve({ port: 8080 })

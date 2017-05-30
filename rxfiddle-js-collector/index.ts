@@ -165,7 +165,7 @@ export default class RxFiddle {
 
   private instrumentRx5(logger: Logger): TeardownLogic {
     // Attach intrumentation
-    let instrumentation = new Instrumentation(new TreeCollector(logger))
+    let instrumentation = new Instrumentation(new TreeCollector(logger, this.targets as any), this.targets as any)
     instrumentation.setup()
     Object.keys(this.targets).forEach(name =>
       instrumentation.setup(this.targets[name], name)

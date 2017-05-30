@@ -1,8 +1,8 @@
 {
   "compileOnSave": true,
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "ES6",
+    "module": "umd",
+    "target": "ES5",
     "skipLibCheck": true
   },
   "include": [

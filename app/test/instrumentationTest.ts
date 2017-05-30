@@ -14,7 +14,7 @@ export class InstrumentationTest {
 
   public before() {
     this.logger = new MessageLogger()
-    this.collector = new Collector(this.logger)
+    this.collector = new Collector(this.logger, Rx)
     this.instrumentation = new Instrumentation(defaultSubjects, this.collector)
     this.instrumentation.setup()
   }

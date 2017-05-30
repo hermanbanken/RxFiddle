@@ -7,8 +7,8 @@ import Instrumentation from "./instrumentation"
 
 onmessage = onWorkerMessage(() => {
   let poster = new TreePoster(m => (postMessage as (m: any) => void)(m))
-  let collector = new TreeCollector(poster)
-  let instrumentation: Instrumentation = new Instrumentation(collector)
+  let collector = new TreeCollector(poster, Rx as any)
+  let instrumentation: Instrumentation = new Instrumentation(collector, Rx as any)
   instrumentation.setup()
   console.info("Ready for RxJS 5 instrumentation");
   (Rx as any).version = "5.3.0"

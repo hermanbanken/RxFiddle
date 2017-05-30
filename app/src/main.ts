@@ -25,7 +25,7 @@ import Instrumentation from "./instrumentation/rxjs-5.x.x/instrumentation"
 // Inception
 if (Query.get("instrument")) {
   let sender = new LocalStorageSender(UUID())
-  let instrumentation = new Instrumentation(new TreeCollector(new Logger(m => sender.send(m))))
+  let instrumentation = new Instrumentation(new TreeCollector(new Logger(m => sender.send(m)), Rx), Rx)
   instrumentation.setup()
 }
 

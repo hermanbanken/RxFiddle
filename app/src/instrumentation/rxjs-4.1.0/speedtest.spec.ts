@@ -13,7 +13,7 @@ export default class SpeedTest {
 
   public runBefore() {
     this.writer = new TreeWriter()
-    this.collector = new TreeCollector(this.writer)
+    this.collector = new TreeCollector(this.writer, Rx)
     this.instrumentation = new Instrumentation(defaultSubjects, this.collector)
     this.instrumentation.setup()
   }

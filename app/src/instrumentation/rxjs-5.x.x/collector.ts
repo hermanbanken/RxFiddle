@@ -8,7 +8,7 @@ import {
 
 } from "../../oct/oct"
 import { getPrototype } from "../../prelude"
-import { InstrumentedRx, isObservable, isObserver, isScheduler, isSubject } from "./instrumentation"
+import { isObservable, isObserver, isScheduler, isSubject } from "./instrumentation"
 import * as RxType from "rxjs"
 import { IScheduler } from "rxjs/Scheduler"
 
@@ -56,7 +56,7 @@ export class TreeCollector implements RxCollector {
   private schedulers: { scheduler: IScheduler, info: ISchedulerInfo }[] = []
   private scheduler?: { scheduler: IScheduler, info: ISchedulerInfo }
 
-  public constructor(logger: ITreeLogger) {
+  public constructor(logger: ITreeLogger, private Rx: typeof RxType) {
     this.logger = logger
     this.symbol = Symbol("tree")
     this.subSymbol = Symbol("tree2")
@@ -74,7 +74,7 @@ export class TreeCollector implements RxCollector {
       this.schedule(record.subject, record.method, undefined, undefined)
     }
 
-    if (callRecordType(record) === "event" && isObserver(record.subject)) {
+    if (callRecordType(record) === "event" && isObserver(this.Rx, record.subject)) {
       let event = Event.fromRecord(record, this.getTiming())
       if (event) {
         let observer = this.tag("observer", record.subject)
@@ -89,14 +89,14 @@ export class TreeCollector implements RxCollector {
     // tag all encountered Observables & Subscribers
     [record.returned].forEach(t => this.tag(undefined, t, record))
 
-    if (isObservable(record.returned)) {
+    if (isObservable(this.Rx, record.returned)) {
       this.linkSources(record.returned)
 
       let shouldName = isFirstOpOntoSubject(record) && (
         // b = a.map(lambda) => linked by source property
         isSource(record.subject, record.returned) ||
         // Observable.of() has record.subject == static Observable
-        !isObservable(record.subject) && !hasSource(record.returned)
+        !isObservable(this.Rx, record.subject) && !hasSource(record.returned)
       )
 
       if (shouldName) {
@@ -115,10 +115,10 @@ export class TreeCollector implements RxCollector {
     }
 
     if (callRecordType(record) === "subscribe") {
-      if (isObserver(record.arguments[0])) {
+      if (isObserver(this.Rx, record.arguments[0])) {
         this.linkSubscribeSource(record.arguments[0], record.subject)
         this.linkSinks(record.arguments[0])
-      } else if (isObserver(record.returned)) {
+      } else if (isObserver(this.Rx, record.returned)) {
         this.linkSubscribeSource(record.returned, record.subject)
         this.linkSinks(record.returned)
       }
@@ -135,7 +135,7 @@ export class TreeCollector implements RxCollector {
   public addEvent(observer: IObserverTree, event: IEvent, value?: any) {
     if (typeof event === "undefined") { return }
     // Enrich higher order events
-    if (event.type === "next" && isObservable(value)) {
+    if (event.type === "next" && isObservable(this.Rx, value)) {
       event.value = {
         id: this.tag("observable", value).id,
         type: value.constructor.name,
@@ -165,7 +165,7 @@ export class TreeCollector implements RxCollector {
     }
 
     let symbol = this.symbol
-    if (isSubject(input) && role === "observer") {
+    if (isSubject(this.Rx, input) && role === "observer") {
       symbol = this.subSymbol
     }
 
@@ -173,7 +173,7 @@ export class TreeCollector implements RxCollector {
       return input[symbol]
     }
 
-    if (isSubject(input)) {
+    if (isSubject(this.Rx, input)) {
       if (role === "observable") {
         let tree = (input as any)[this.symbol] = new ObservableTree(`${this.nextId++}`,
           input.constructor.name, this.logger, this.getScheduler(input))
@@ -190,7 +190,7 @@ export class TreeCollector implements RxCollector {
         return tree
       }
     }
-    if (isObservable(input)) {
+    if (isObservable(this.Rx, input)) {
       /* this hack is neccessary since subscribeToResult does not call subscribe on ScalarObservables */
       if (input && input.constructor && input.constructor.name === "ScalarObservable") {
         input._isScalar = false
@@ -203,17 +203,17 @@ export class TreeCollector implements RxCollector {
       this.addo(tree)
       return tree
     }
-    if (isObserver(input)) {
+    if (isObserver(this.Rx, input)) {
       let tree = (input as any)[symbol] = new ObserverTree(`${this.nextId++}`,
         input.constructor.name, this.logger)
       this.linkSinks(input)
       this.adds(tree)
       return tree
     }
-    if (isScheduler(input)) {
+    if (isScheduler(this.Rx, input)) {
       let scheduler = input as IScheduler
       let clock = scheduler.now()
-      let type = schedulerType(input)
+      let type = schedulerType(this.Rx, input)
       let info = new SchedulerInfo(
         `${this.nextId++}`, getPrototype(scheduler).constructor.name,
         type, clock, this.logger
@@ -234,7 +234,7 @@ export class TreeCollector implements RxCollector {
   }
 
   private getScheduler<T>(input: RxType.Observable<T>, record?: ICallStart): ISchedulerInfo {
-    if (isObservable(input) && getScheduler(input, record)) {
+    if (isObservable(this.Rx, input) && getScheduler(input, record)) {
       return this.tag("scheduler", getScheduler(input, record))
     }
     return
@@ -266,11 +266,11 @@ export class TreeCollector implements RxCollector {
   }
 
   private linkSinks<T>(observer: RxType.Observer<T>) {
-    if (isObservable(observer)) {
+    if (isObservable(this.Rx, observer)) {
       return
     }
     let sinkOpt = [(observer as any).destination]
-      .filter(o => isObserver(o) || isSubject(o))
+      .filter(o => isObserver(this.Rx, o) || isSubject(this.Rx, o))
       .map(o => this.tag("observer", o))
     this.tag("observer", observer).setSink(sinkOpt)
     let parentOpt = [(observer as any).parent]
@@ -280,7 +280,7 @@ export class TreeCollector implements RxCollector {
   }
 
   private linkSubscribeSource<T>(observer: RxType.Observer<T>, observable: RxType.Observable<T>) {
-    if (isSubject(observable)) {
+    if (isSubject(this.Rx, observable)) {
       let subjectAsObs = this.tag("observable", observable) as IObservableTree
       let subject = this.tag("observer", observable) as SubjectTree
       if (subjectAsObs.sources.length === 0) {
@@ -385,21 +385,22 @@ function isFirstOpOntoSubject(record: ICallRecord): boolean {
 }
 
 function schedulerType(
+  Rx: typeof RxType, 
   scheduler: RxType.VirtualTimeScheduler |
     RxType.TestScheduler |
     typeof RxType.Scheduler.asap | typeof RxType.Scheduler.animationFrame |
     typeof RxType.Scheduler.async |
     typeof RxType.Scheduler.queue
 ): SchedulerType {
-  if (scheduler instanceof InstrumentedRx.VirtualTimeScheduler || scheduler instanceof InstrumentedRx.TestScheduler) {
+  if (scheduler instanceof Rx.VirtualTimeScheduler || scheduler instanceof Rx.TestScheduler) {
     return "virtual"
-  } else if (scheduler === InstrumentedRx.Scheduler.asap) {
+  } else if (scheduler === Rx.Scheduler.asap) {
     return "recursive"
-  } else if (scheduler === InstrumentedRx.Scheduler.async) {
+  } else if (scheduler === Rx.Scheduler.async) {
     return "timeout"
-  } else if (scheduler === InstrumentedRx.Scheduler.animationFrame) {
+  } else if (scheduler === Rx.Scheduler.animationFrame) {
     return "timeout"
-  } else if (scheduler === InstrumentedRx.Scheduler.queue) {
+  } else if (scheduler === Rx.Scheduler.queue) {
     return "recursive"
   }
 }

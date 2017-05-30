@@ -7,7 +7,7 @@ import Instrumentation, { defaultSubjects } from "./instrumentation"
 
 onmessage = onWorkerMessage(() => {
   let poster = new TreePoster(m => (postMessage as (m: any) => void)(m))
-  let collector = new TreeCollector(poster)
+  let collector = new TreeCollector(poster, Rx)
   let instrumentation: Instrumentation = new Instrumentation(defaultSubjects(Rx), collector)
   instrumentation.setup()
   console.info("Ready for RxJS 4 instrumentation");

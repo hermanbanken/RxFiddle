@@ -8,6 +8,7 @@ import {
 } from "../../oct/oct"
 import { getPrototype } from "../../prelude"
 import * as Rx from "rx"
+import * as RxType from "rx"
 
 let debug = false
 
@@ -44,7 +45,7 @@ export class TreeCollector implements RxCollector {
   private schedulers: { scheduler: Rx.IScheduler, info: ISchedulerInfo }[] = []
   private scheduler?: { scheduler: Rx.IScheduler, info: ISchedulerInfo }
 
-  public constructor(logger: ITreeLogger) {
+  public constructor(logger: ITreeLogger, private Rx: typeof RxType) {
     this.collectorId = TreeCollector.collectorId++
     this.hash = this.collectorId ? `__thash${this.collectorId}` : "__thash"
     this.logger = logger

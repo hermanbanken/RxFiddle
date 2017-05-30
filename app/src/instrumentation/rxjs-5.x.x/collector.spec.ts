@@ -22,8 +22,8 @@ export class TreeCollectorRx5Test {
 
   public before() {
     this.writer = new TreeWriter()
-    this.collector = new TreeCollector(this.writer)
-    this.instrumentation = new Instrumentation(this.collector)
+    this.collector = new TreeCollector(this.writer, Rx)
+    this.instrumentation = new Instrumentation(this.collector, Rx)
     this.instrumentation.setup()
   }
 

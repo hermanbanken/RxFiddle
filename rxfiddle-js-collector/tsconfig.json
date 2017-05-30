@@ -8,7 +8,6 @@
     "strictNullChecks": false,
     "removeComments": true,
     "noImplicitAny": true,
-    "noImplicitThis": true,
     "declaration": true,
     "preserveConstEnums": true,
     "moduleResolution": "node",
