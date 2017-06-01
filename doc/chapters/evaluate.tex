@@ -1,10 +1,10 @@
 \section{Evaluation}
 In this section we evaluate our ideas about the debugger which we designed by answering RQ3. First we present the experiment that we designed, then explain the context in which we organized the experiment and finally we present the results.
 
-\subsection{Object and Methodology}
-The goal of the experiment is to measure the \textit{time} required to solve programming problems. We assume time is a measurement for ease of debugging. Participants use either the built-in Chrome debugger or - the threatment - our RxFiddle debugger. This single alternative debugger together with the experiment UI (which acts as a small IDE) offers all the debugging capabilities subject reported to use in our preliminary interviews. 
+\subsection{Object and Method}
+The goal of the experiment is to measure the \textit{time} required to solve programming problems. We assume time is a measurement for ease of debugging. Participants use either the built-in Chrome debugger (group `Console') or - the treatment - our RxFiddle debugger (group `RxFiddle'). This single alternative debugger together with the experiment UI (which acts as a small IDE) offers all the debugging capabilities subject reported to use in our preliminary interviews.
 
-The experiment consists of a questionaire, a warm-up program and 4 programming problems, all available in a single in-browser application. The questionaire contains questions regarding age, experience in several programming languages and several reactive programming frameworks. We use this self estimation as  a measurement of skill instead of a pretest, since it provides ~\cite{kleinschmager2011rate,feigenspan2012measuring,siegmund2014measuring}. The warm-up program is situated in the same environment as the programming problems and contains several tasks designed to let the participants use every control of the test environment. The first 2 programming problems require the participants to gain some knowlegde about the behavior of the program and report the findings. The last 2 programming problems contain a program with a bug. The participants are asked to find the event that lead to the bug in the third problem and to identify and propose a solution in the fourth problem. The first 2 problems are synthetic examples of two simple data flows, while the latter contain some mocked (otherwise remote) service which behaves like a real world example.
+The experiment consists of a questionnaire, a warm-up program and 4 programming problems, all available in a single in-browser application. The questionnaire contains questions regarding age, experience in several programming languages and several reactive programming frameworks. We use this self estimation as  a measurement of skill instead of a pretest, since it provides ~\cite{kleinschmager2011rate,feigenspan2012measuring,siegmund2014measuring}. The warm-up program is situated in the same environment as the programming problems and contains several tasks designed to let the participants use every control of the test environment. The first 2 programming problems require the participants to gain some knowledge about the behavior of the program and report the findings. The last 2 programming problems contain a program with a bug. The participants are asked to find the event that lead to the bug in the third problem and to identify and propose a solution in the fourth problem. The first 2 problems are synthetic examples of two simple data flows, while the latter contain some mocked (otherwise remote) service which behaves like a real world example.
 
 We use a between-subjects design for our setup. While this complicates the results - subjects have different experience and skills - we can not use a within-subjects design as it would be impossible to control for the learning effect incurred when asking subjects to perform survey questions with and without the tool. This also allows us to restrict the amount of tasks to incorporate in the experiment, requiring less time of our busy subjects.
 
@@ -12,50 +12,28 @@ We use a between-subjects design for our setup. While this complicates the resul
 
 \subsection{Context}
 The experiment was run in a controlled and an online setting.
-The controlled experiment was conducted at a Dutch software engineering company. Subjects are developers with several years of programming experience, and range from little to no experience with RP to many years of experience (Figure \ref{fig-experience}). Some of the subject had already used RxFiddle, forming a potential threat to validity. As we do not try to measure the effect of learning a new tool, but rather using a tool after learning to use it, we explained RxFiddle in the introductory talk and added the warm-up question to get every participant to a minimum amount of knowlegde about the debugger at hand.
+The controlled experiment was conducted at a Dutch software engineering company. Subjects are developers with several years of programming experience, and range from little to no experience with RP to many years of experience (Figure \ref{fig-experience}). Some of the subjects had already used RxFiddle, forming a potential threat to validity. As we do not try to measure the effect of learning a new tool, but rather using a tool after learning to use it, we explained RxFiddle in the introductory talk and added the warm-up question to get every participant to a minimum amount of knowledge about the debugger at hand.
 
 The online experiment was announced by several core contributors to RP libraries on Twitter and via various other communication channels. Subjects to the online experiment took the test at their own preferred location and have possibly very different backgrounds. Several short video tutorials were created and included in the online experiment to introduce the participants to the debug tool available to them and the tasks they needed to fulfill.
 
-\begin{figure}
-Box plots per language
-\caption{Experience in various programming languages}
+\begin{figure}[h]
+\includegraphics[width=\columnwidth]{images/experience.pdf}
+\caption{Experience in various programming languages, 9-point Likert scale}
 \label{fig-experience}
 \end{figure}
 
 \subsection{Results}
-Figure \ref{fig-timePerTask} shows the results of the experiment.
+Figure \ref{fig-timePerTask} shows the time until the correct answer was given per task. Here we consider both the results from the controlled experiment as the online experiment, to remedy the small set of subjects available for the controlled experiment. We immediately see some interesting result for task 3. We do not know the underlying distribution so we perform a non-parametric Wilcoxon Mann-Whitney U test (\textit{$H_0$: times for the Console group and RxFiddle group are drawn from the same population}) to see if the differences are significant, and a Cliffs delta test for ordinal data to determine the effect size.
 
-\begin{figure}
-Box plots per time / tasks per group
+\begin{centering}
+\input{tables/wilcoxonPerTask}
+\end{centering}
+
+For tasks T3 we can reject $H_0$ with high significance ($p < 0.05$), the RxFiddle group is faster.
+For the tasks T1, T2 and T4 we can not reject $H_0$ ($p > 0.05$), and for T2 the U test indicates no difference at all, meaning the RxFiddle group and Console group perform or could perform equally. While this could be observed as a negative result, RxFiddle is a new tool, and the users have only just been exposed to the tool and received only a short training. Of course it could also be the case  that RxFiddle might be more suitable to replace some tasks than others. From the results of the experiment we can not give a definitive explanation for the comparable results.
+
+\begin{figure}[h]
+\includegraphics[width=\columnwidth]{images/timePerTask.pdf}
 \caption{Time until correct answer per task}
 \label{fig-timePerTask}
 \end{figure}
-
-
-\todo{results here}
-
-{
-\color{red}
-\begin{verbatim}
-controlled experiment at company
-uncontrolled experiment online at RxFiddle.net
-experiment includes:
-- self assessment of programming skill
-- self assessment of RP skill
-- instruction video's
-- non-question in question setting to familiarize with tooling
-- warm-up question
-- 4 questions involving different understanding/bugs:
-  1. extracting program behavior (generate sample)
-  1. learning operator behavior (BMI sample)
-  2. root cause analysis of crash (time sample)
-  3. analysis of timing bug, caused by wrong operator usage (imdb sample)
-}
-\end{verbatim}
-\begin{verbatim}
-techniques to look into:
-Wilcoxon
-Cohen delta (normal) / Cliffs delta (non-normal)
-check if normal distribution: Shapiro Wilks
-\end{verbatim}
-}
