@@ -7,8 +7,11 @@ After receiving mostly academic interest for a long time in the form of FRP~\cit
 
 %, compared to traditional programming approaches. As a result programs are generally more comprehensible, when created using RP compared to an equal implementation using the Observer design pattern~\cite{johnson1995design, salvaneschi2014empirical}.
 
-While reactive programs might be more declarative and concise, improving the readability of code, RP does not work well with traditional interactive debuggers, shipped with most IDE's. RP borrows from Functional Programming (FP) for it's abstractions, its laziness and advocating the use of clean input/output (lambda) functions. All those features contribute to an execution flow that is mostly inside the RP implementation library, non-linear, resulting in mostly useless stack traces and frequently breakpoints don't help as relevant variables are not in scope. Furthermore, using a low level debugger makes it harder to see the high level relations and overview that the high-level RP abstraction provides.
+While reactive programs might be more declarative and concise, RP does not work well with traditional interactive debuggers, shipped with most IDE's. RP borrows from Functional Programming (FP) for it's abstractions, its laziness and advocating the use of clean input/output (lambda) functions. All those features contribute to an execution flow that is mostly inside the RP implementation library, non-linear, resulting in not useful stack traces and frequently breakpoints don't help as relevant variables are not in scope. Furthermore, using a low level debugger makes it harder to see the high level relations and overview that the high-level RP abstraction provides.
 
+\subsection{Motivation}
+Understanding code is an important part of the daily life of a programmer. However, compared to programming in general, little is known about program comprehension and debugging practices for Reactive Programming. Existing knowledge about traditional imperative programs might not apply to RP. Many concepts of FP are borrowed by the RP libraries, about which Weck and Tichy say that ``higher-level abstractions like monads [...] can be a barrier for code comprehension"~\cite{weck2016visualizing}. Furthermore it is reiterated that there is a large gap between developers new to RP and experienced RP developers, at different occasions, including the recent Rx Contributor Days~\footnote{http://contributordays.com/contributor-days/rxjs}. To ``think in the reactive way'' requires comprehension of the core concepts that RP offers. As debugging is a fundamental part of comprehension, any improvements made to ease the debugging experience and capabilities in this area might improve how RP is comprehended.
+The impact of any improvements on the developer community can be substantial, as recent reactive front-end frameworks like Angular and React grow in usage, and increasingly many developers are exposed to some form of RP. Doing something practically useful for this community is what lead us to create RxFiddle.
 
 %In this paper we will first analyse
 %
@@ -30,14 +33,13 @@ While reactive programs might be more declarative and concise, improving the rea
 %
 %**Intended contributions.** In this thesis we will evaluate whether data or control flow graphs aid reactive program comprehension and debugging. Furthermore we present a tool which generates complete and interactive Marble Diagrams for full data flows, automatically, from sources and from running applications.
 
-\todo{comprehension \& debugging}
-
+\subsection{Research Questions}
 We formulate the following research questions to steer the research: 
 
 \begin{description}
-\item[RQ1] How do developers comprehend and debug RP? \\
-Before we design tools it is important to understand the problems arising in the the current state~\cite{singer2010examination}. Anecdotal evidence by a the large number of resources 
-\todo{(to insert here: Contrib. Days, Stalz' article, other posts)} suggests that the current state is non-optimal.
+\item[RQ1] How do developers debug RP? \\
+Before we design tools it is important to understand the problems arising in the the current state~\cite{singer2010examination}. Anecdotal evidence by a number of resources\footnote{http://contributordays.com/contributor-days/rxjs}\footnote{https://staltz.com/how-to-debug-rxjs-code.html}
+suggests that the current state is non-optimal.
 
 %	\begin{enumerate}
 %		\item[RQ1.1] What strategies do developers use to comprehend RP?
@@ -47,7 +49,7 @@ Before we design tools it is important to understand the problems arising in the
 %
 
 \item[RQ2] How can we design a tool that helps developers debug RP? \\
-Examining the limitations of traditional debuggers and the opportunities that RP programs offer in terms of structure and explicit dependencies between data flows we design a RP debugger.
+Examining the limitations of traditional debuggers and the opportunities that RP programs offer in terms of structure and explicit dependencies between data flows, we design an RP debugger.
 
 %	\begin{enumerate}
 %		\item[RQ2.1] Can run-time behavior be extracted such that it is appropriate input to a visualizer?
@@ -55,7 +57,7 @@ Examining the limitations of traditional debuggers and the opportunities that RP
 %		\item[RQ2.3] Can Marble Diagrams effectively convey structures containing more than 1 operator?
 %	\end{enumerate}
 
-\item[RQ3] Can specialized debuggers speed up comprehension \& debugging?
+\item[RQ3] Can specialized debuggers speed up comprehension \& debugging? \\
 To validate if specialized tooling can improve the experience we measure the speed and correctness of comprehension in both a controlled and in an online experiment.
 
 %\end{enumerate}
