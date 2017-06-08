@@ -1,13 +1,15 @@
 \subsection{Reactive Programming}
 \label{nutshell}
-
-\epigraph{Reactive programs [..] maintain a continuous interaction with their environment, at a speed which is determined by the environment, not the program itself.}{Gérard Berry, 1989~\cite{berry1989real}}
-
-Given this definition we can form some idea about what Reactive Programming is. If a program must interact with the environment at the speed of the environment it must be ready to handle input from the environment. Therefore programs need to declare how the input is handled and how to respond upfront. Reactive Programming languages and libraries provide developers with the appropriate abstractions and methods to create such programs.
+Reactive Programming (RP) is a declarative programming paradigm for working with streams of input data. 
+According to the original definition\footnote{
+``Reactive programs [..] maintain a continuous interaction with their environment, at a speed which is determined by the environment, not the program itself.''~\cite{berry1989real}
+} a reactive program must interact with the environment `at a speed which is determined by the environment'.
+This means that when a reactive program is run it sets up the data pipeline declared in the code and waits until input arrives c.q. the environment changes.
+Reactive Programming languages and libraries provide developers with the appropriate abstractions and methods to create such programs.
 
 The programming paradigm of Reactive Programming is implemented by multiple languages and libraries. Many RP implementations share a notion of a collection that abstracts over \textit{time}, in contrast to \textit{space} like standard collections, be it \textit{Observable} (Rx~\cite{meijer2010subject}), Signal (Elm~\cite{czaplicki2012elm}), Signal/Event (REScala~\cite{salvaneschi2014rescala}) or Behavior/Event (FRP~\cite{elliott1997functional}). In this paper we focus on the Rx formulation, but our work is applicable to other RP implementations to some extend. 
 
-Understanding how we, given the Rx language, arrive at our visualization requires a minimal understanding of Rx.
+Understanding how we, given the Rx language, arrive at our visualization requires at least minimal understanding of Rx.
 Rx introduces two types \textit{Observable} and \textit{Observer}, derived by dualizing the Iterable and Iterator types. Observables define the data flow and Observers receive the data, possibly moving the data further down the stream. Figure \ref{sample1} shows a very basic example of a in situ data flow in Rx. First an Observable is created, here using the static \code{of} method, then dependent Observables are created using the \code{map} and \code{filter} methods on the Observable instance. Finally we \code{subscribe} to start the data flow and send the data in the flow to the console (eg. JavaScript's stdout).
 
 \begin{figure}
@@ -25,13 +27,13 @@ Rx introduces two types \textit{Observable} and \textit{Observer}, derived by du
 \label{chaincreate}
 \end{subfigure}
 
-\caption{Creation and transform of Observables}
+\caption{Basic Rx  Observables}
 
 \end{figure}
 
 It is important to note that Observables are lazy, they are the blueprint of a data flow. Only when the \code{subscribe} method of Observable is called the data flow is created by recursively subscribing up the stream. \textit{Observer}s are subscribed to each Observable until the source Observables are reached which then are setup and can start emitting the data.
 This is illustrated in figure \ref{chaincreate}. Here $o_1$, $o_2$ and $o_3$ represent Observables defined in Figure \ref{sample1}. Inside the \code{subscribe} call $s_1$ is created and passed to $o_3$, which in turn will recursively subscribe to $o_2$ with a new Observer $s_2$ with destination $s_1$, until the full chain is subscribed.
-The origin of this design is the duality between Observables and \textit{Iterables} - as first described by Erik Meijer, where Observers are dual to \textit{Iterators}.
+The origin of this design is the duality between Observables and \textit{Iterables} - as first described by Meijer~\cite{meijer2010subject}, where Observers are dual to \textit{Iterators}.
 
 \begin{figure}
 

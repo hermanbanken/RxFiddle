@@ -3,24 +3,24 @@
 In this section we give an overview of prior work 
 and the context of this research.
 
-\textbf{Debugging for Program Comprehension.}
-Both debugging and comprehension are processes in the work of programmers.
-Initially comprehension was seen as a distinct step programmers had to make
-prior to being able to debug programs~\cite{katz1987debugging}, 
-but this distinction is criticized by Gilmore saying we must view 
-``debugging as a design activity''~\cite{gilmore1991models}, 
-part of creating and comprehending programs. 
-Maalej et al.~\cite{Maalej2014} interviewed professional developers 
-and found that developers require runtime information to understand a program,
-and that debugging is frequently used to gather this runtime information.
-This supports our view that `debugging' is not only used for fault localization,
-but also for comprehension.
+\input{chapters/nutshell}
 
-% \item Katz, distinct step
-% \item Gilmore, comprehension + debugging == linked
-% \item Maalej: professionals, avoid deep comprehension, sharing knowlegde
+\subsubsection{Marble Diagram}
+\label{marblediagram}
+The term \textit{Marble Diagram} comes from the shape of the glyps in the images used to explain Rx in the official documentation. 
+The diagrams contain one or more timelines containing the events that enter and leave Observables. 
+Developers can see from the diagram how operators work by inspecting the difference between the timelines, 
+where events might be skipped, added, transformed or delayed. 
+Mapping time on the x-axis provides insight that is missing when inspecting only a single time slice, like with traditional debuggers.
 
-\textbf{Debugging.}
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\columnwidth]{images/marble-diagram.pdf}
+\caption{Marble Diagram}
+\label{marblediagram-image}
+\end{figure}
+
+\subsection{Debugging}
 Debugging for general purpose languages revolves around 
 attaching a debugger, 
 stepping through the code, 
@@ -43,4 +43,20 @@ but the observation that printf debugging is common matches our experience with 
 % \item Minelli (know what you did last summer)
 % \item Moritz (watchdog 2.0)
 
-\input{chapters/nutshell}
+\subsection{Debugging for Program Comprehension}
+Both debugging and comprehension are processes in the work of programmers.
+Initially comprehension was seen as a distinct step programmers had to make
+prior to being able to debug programs~\cite{katz1987debugging}, 
+but this distinction is criticized by Gilmore saying we must view 
+``debugging as a design activity''~\cite{gilmore1991models}, 
+part of creating and comprehending programs. 
+Maalej et al.~\cite{Maalej2014} interviewed professional developers 
+and found that developers require runtime information to understand a program,
+and that debugging is frequently used to gather this runtime information.
+This supports our view that `debugging' is not only used for fault localization,
+but also for comprehension.
+
+% \item Katz, distinct step
+% \item Gilmore, comprehension + debugging == linked
+% \item Maalej: professionals, avoid deep comprehension, sharing knowlegde
+

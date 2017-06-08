@@ -36,9 +36,10 @@ lout <- likert(sequential[,"state",drop=FALSE],grouping=paste(sequential[,c("tas
 plot(lout,
      include.histogram=TRUE, 
     # group.order=c('T1', 'T2', 'T3', 'T4'), 
-     centered=FALSE) + guides(
-       fill = guide_legend(title = "Translated")
-       ) + labs(y = "Translated")
+     centered=FALSE) 
+#+ guides(fill = guide_legend(title = "Translated")
+#       )
++ ggtitle("Translated")
 
 
 

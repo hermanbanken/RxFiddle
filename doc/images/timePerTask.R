@@ -31,8 +31,15 @@ for (i in 1:length(samples)) {
 }
 
 # Plot
-plot <- ggplot2.boxplot(data=sequential, yName="t_correct", xName="task", main="t_correct", xlab="Task",ylab="Time", groupName="mode", outline=FALSE)
-pdf("~/Documents/thesis/doc/images/timePerTask.pdf", width=6, height=3)
+#plot <- 
+ggplot2.boxplot(data=sequential,
+                yName="t_correct",
+                xName="task", 
+                main="t_correct",
+                groupName="mode",
+                outline=FALSE
+                ) + ylab("Time") + xlab("Task")
+pdf("~/Documents/thesis/doc/images/timePerTask.pdf", width=6, height=3) 
 plot
 dev.off()
 
