@@ -22,18 +22,18 @@ Mapping time on the x-axis provides insight that is missing when inspecting only
 
 \subsection{Debugging}
 Debugging for general purpose languages revolves around 
-attaching a debugger, 
+attaching a debugger,
 stepping through the code, 
 attaching code or data breakpoints, 
 navigating along different calls in the call stack and 
 examining variables and results of expressions~\cite{Spinellis2017}.
-Existing research measuring how these different tasks are part of the developers work day found that 
+However, existing research measuring how these different tasks are part of the developers work day found that 
 while developers spend much time on comprehending code they do not spend much time inside the debugger~\cite{minelli2015know}.
-Beller et al.~\cite{beller2017behavior} found that only 23\% of their subjects actively use the debugger,
+Beller et al.~\cite{beller2017behavior} found that only 23\% of their subjects actively use the IDE's debugger,
 with the most common action being adding breakpoints, followed by stepping through code.
 The automated tooling of these studies did not measure different kinds of debugging other than using the IDE provided tools, 
-however Beller's survey indicates that 71\% also uses printf statements for debugging.  
-No indication was given of the language and libraries used by the subjects in the study, 
+however Beller's survey indicates that 71\% also uses printf statements for debugging.
+No indication was given of any RP language and libraries used by the subjects in the study, 
 but the observation that printf debugging is common matches our experience with debugging reactive programs.
 
 % What comprises debugging?

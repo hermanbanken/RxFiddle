@@ -1,19 +1,35 @@
-\section{Study Design}
-\todo{
-qualitive data
-quantitive
-design, implemented, tested with real developers
-buzz words: mixed methods, grounded theory
-
-Design:
-- split Marble Diagram to nutshell and updated methods
-}
 \section{RP Debugging practices}
-\todo{alternative section titles: Evaluating motivation / collecting empirical evidence / case study}
-
+%\todo{alternative section titles: Evaluating motivation / collecting empirical evidence / case study}
 To validate the need for better tools we must first understand what existing tools are used (RQ1).
+We interview developers as we want to explore and understand the current practices, instead of using an experiment or survey to test a particular hypothesis.
+A controlled experiment to verify some hypothesis formed from literature could fail to include any practices employed that we did not consider.
+The questions were semi-structured and first established a general understanding of the experience of the subject. 
+Then we asked several open questions regarding use of RP, how subjects debug RP and test RP. Table \ref{interview-questions} lists the questions used a guideline for the interviews.
+
+\begin{table*}[]
+\centering
+\caption{Interview questions}
+\label{interview-questions}
+\begin{tabular}{ll}
+    & \textbf{Question}                                               \\ \hline
+Q1  & Explain your (professional) experience.                         \\ \hline
+Q2  & Assess your experience on a scale from beginner to expert.      \\ \hline
+Q3  & Explain your (professional) reactive programming experience.    \\ \hline
+Q4  & Assess your RP experience on a scale from beginner to expert.   \\ \hline
+Q5  & Did you refactor or rework RP code?                             \\ \hline
+Q6  & Did you and how did you test or verify the workings of RP code? \\ \hline
+Q7  & Did you and how did you debug RP code?                          \\ \hline
+Q8  & Did you and how did you use documentation on RP?                \\ \hline
+Q9  & What difficulties did you experience with RP?                   \\ \hline
+Q10 & What is your general approach to understand a piece of Rx?      \\ \hline
+\end{tabular}
+\end{table*}
+
+\subsection{Interview results}
+Six developers with 
 
 \subsection{Literature and written work}
+By examining resources available to developers we explore what are recommended debugging practices and compare this to what we found during the interviews.
 \todo{
 \begin{itemize}
 	\item clues in books: recent book (2016) on RP by Esposito and Ciceri~\cite{esposito2016reactive}, has chapter `Debugging' which solely consists of ways to print to the console and how to transform streams (by writing code) that are more easily printed.
