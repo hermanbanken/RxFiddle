@@ -1,9 +1,11 @@
 \section{RP Debugging practices}
+\label{section-practices}
+
 %\todo{alternative section titles: Evaluating motivation / collecting empirical evidence / case study}
 To validate the need for better tools we must first understand what existing tools are used (RQ1).
 We interview developers as we want to explore and understand the current practices, instead of using an experiment or survey to test a particular hypothesis.
 A controlled experiment to verify some hypothesis formed from literature could fail to include any practices employed that we did not consider.
-The questions were semi-structured and first established a general understanding of the experience of the subject. 
+The questions were semi-structured. We first established a general understanding of the experience of the subjects.
 Then we asked several open questions regarding use of RP, how subjects debug RP and test RP. Table \ref{interview-questions} lists the questions used a guideline for the interviews.
 
 \begin{table*}[]
@@ -25,41 +27,24 @@ Q10 & What is your general approach to understand a piece of Rx?      \\ \hline
 \end{tabular}
 \end{table*}
 
+Five developers with professional programming experience ranging from 4 to 12 years where interviewed. 
+Those developers work in a company building mostly reactive systems~\footnote{\url{http://www.reactivemanifesto.org/}} using various RP solutions,
+and range from personal experience to over a year of Rx experience.
+Furthermore we interviewed one subject from our university with 4 years of occasional Rx experience.
+
 \subsection{Interview results}
-Six developers with 
+Of the 6 subjects only the subject without professional experience did not debug Rx. 
+The other 5 subjects all independently mentioned using println-debugging in several forms (println, logging, console log).
+One subject mentioned that while adding log statements is easy it required him to recompile the project which could take several minutes, 
+which caused him to rely more on breakpoints using the Chrome debugger.
+Another subject - which experience was mostly with RxScala - mentioned that he did not use breakpoints as those `are difficult to use with asynchronous computations'.
+A third subject used the NodeJs debugger but describes using it as `painful' as he stepped through the inners of Rx.
+
 
 \subsection{Literature and written work}
-By examining resources available to developers we explore what are recommended debugging practices and compare this to what we found during the interviews.
-\todo{
-\begin{itemize}
-	\item clues in books: recent book (2016) on RP by Esposito and Ciceri~\cite{esposito2016reactive}, has chapter `Debugging' which solely consists of ways to print to the console and how to transform streams (by writing code) that are more easily printed.
-	\item article by Stalz on how to debug\footnote{http://staltz.com/how-to-debug-rxjs-code.html}: iterates that there are 3 main ways: drawing the dependency graph, drawing marble diagrams, tracing to the console.
-	\item Official documentation\footnote{\url{https://github.com/Reactive-Extensions/RxJS/blob/master/doc/gettingstarted/testing.md\#debugging-your-rx-application}}: use \code{do}-operator to add tracing to console.
-\end{itemize}
-}
+Developers can learn Rx through several sources such as the official documentation at \href{http://reactivex.io}{reactivex.io}, books, online courses and from the many blog posts available. The official documentation\footnote{
+	\url{https://github.com/Reactive-Extensions/RxJS/blob/master/doc/gettingstarted/testing.md\#debugging-your-rx-application}
+} mentions the use of the \code{do}-operator to add tracing to console. Five books we reviewed on different versions of Rx contained a debugging chapter with tips like adding the Rx version specific \code{do}-like operators~\cite{esposito2016reactive,rxjavabook2016} or do not have a debugging chapter at all~\cite{introtorx, rxjavabook2015, rxswiftbook2017}. Esposito and Ciceri~\cite{esposito2016reactive} further explain how to best format the log statements and introduce ways to limit the logging by modifying the Observable through means of throttling and sampling. The RxJava book~\cite{rxjavabook2016} also contains tips to use the various \code{do} operators to integrate with existing metric tools.
+To our knowledge the only article addressing issues of debugging Rx is by Staltz, one of the contributors of RxJS\footnote{\url{http://staltz.com/how-to-debug-rxjs-code.html}}, noting that conventional debuggers are not suitable for the higher level of abstraction of Observables. Staltz explains three current ways to debug Rx, being (1) tracing to the console, (2) manually drawing the dependency graph, (3) manually drawing marble diagrams.
 
-\subsection{Interviews}
-\todo{
-Performed interviews in a professional setting. Questions asked include `how do you debug Rx', `how do you test Rx'. Answers gathered, using cards method, categorized to concepts.
-}
-
-%\todo{problem, solution, why choices made, motivate the choices}
-%As discussed in Section ref{background}, much has been written about comprehension \& debugging programs in traditional settings, but little is known specific to RP. The fact that tooling like debuggers were designed for imperative languages suggests that the current debuggers might not be optimal for RP.
-%
-%Salvaneschi et al.~\cite{salvaneschi2016debugging} report that students use . This suggestion is strengthened by the experience of the first author in a professional setting that developers struggle with debugging Rx, sprinkling the code with \code{println}-statements in order to gain insight in the runtime behavior, instead of using standard features like breakpoints and stepping.
-
-%The research is motivated by multiple factors. 
-%
-% Initially, the first author experienced existing debugging practices in a professional setting.  
-%  anecdotal experience
-%  
-%  
-%debugging practices RP unknown;
-%
-%Salvaneshi; professional experience; RQ1
-%
-%
-%how to visualize RP?
-
-
-
+The available literature matches the results of the interviews. \code{printf}-debugging is commonly advised and used. While the conventional debugger works in some cases this is mostly for the procedural logic that interleaves Rx logic. Automated tooling is suggested, but is not implemented.  

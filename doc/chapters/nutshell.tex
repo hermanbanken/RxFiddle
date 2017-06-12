@@ -32,7 +32,7 @@ Rx introduces two types \textit{Observable} and \textit{Observer}, derived by du
 \end{figure}
 
 It is important to note that Observables are lazy, they are the blueprint of a data flow. Only when the \code{subscribe} method of Observable is called the data flow is created by recursively subscribing up the stream. \textit{Observer}s are subscribed to each Observable until the source Observables are reached which then are setup and can start emitting the data.
-This is illustrated in figure \ref{chaincreate}. Here $o_1$, $o_2$ and $o_3$ represent Observables defined in Figure \ref{sample1}. Inside the \code{subscribe} call $s_1$ is created and passed to $o_3$, which in turn will recursively subscribe to $o_2$ with a new Observer $s_2$ with destination $s_1$, until the full chain is subscribed.
+This is illustrated in figure \ref{chaincreate}. Here $o_1$, $o_2$ and $o_3$ represent Observables defined in Figure \ref{sample1}. Inside the \code{subscribe} call Observer $s_1$ is created and passed to $o_3$, which in turn will recursively subscribe to $o_2$ with a new Observer $s_2$ with destination $s_1$, until the full chain is subscribed.
 The origin of this design is the duality between Observables and \textit{Iterables} - as first described by Meijer~\cite{meijer2010subject}, where Observers are dual to \textit{Iterators}.
 
 \begin{figure}
@@ -54,6 +54,6 @@ The origin of this design is the duality between Observables and \textit{Iterabl
 
 \end{figure}
 
-More complex programs feature operators that merge Observables, split Observables or handles higher order Observables, resulting in more complex graphs. While merging and splitting happens on an Observable level (the \code{source} property still points to the dependency) higher order Observable flattening manifests only in Observer structure, as shown in Figure \ref{chainhigher}.
+More complex programs feature operators that merge Observables, split Observables or handle higher order Observables, resulting in more complex graphs. While merging and splitting happens on an Observable level (the \code{source} property still points to the dependency) higher order Observable flattening manifests only in Observer structure, as shown in Figure \ref{chainhigher}.
 
 Creating the Observable we will call the \textit{assembly} phase, the phase where the subscribe happens the \textit{subscription} phase and data flows in the \textit{runtime} phase. The three phases can be interleaved for different streams, for example when dealing with higher order Observables,  meaning one could use Observables as values inside the data flow. The Observables used as values have yet to start the second phase while the outer stream is in the runtime phase.
