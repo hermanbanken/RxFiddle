@@ -7,6 +7,9 @@ FILE = paper
 
 all : $(FILE).pdf
 
+clean :
+	rm paper.aux paper.bbl paper.blg paper.dvi paper.log paper.out
+
 view :
 	open $(FILE).pdf
 

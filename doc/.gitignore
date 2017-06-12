@@ -4,4 +4,5 @@
 *.dvi
 *.out
 *.fmt
+*.bak
 _minted-paper
