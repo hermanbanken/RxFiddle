@@ -29,20 +29,18 @@ In our design we found similar compromises relevant for RP debugging.
 % \end{enumerate}
 % }
 
-\textbf{Debugging for specific fields.}
+\textbf{Specialized debuggers.}
 Most research into debugging focusses on procedural and 
 imperative languages~\cite{cornelissen2009systematic}.
-Other topics of interest are multi-threading and distributed systems.
-Only few focus on other styles, like 
-declarative programming~\cite{nilsson1998declarative}.
-Debugging in reactive programming~\cite{
-	salvaneschi2014empirical,salvaneschi2016debugging}.
-	
+Other topics of interest are multi-threading and distributed systems and 
+only few focus on other styles, like declarative programming~\cite{nilsson1998declarative}.
+Debugging specifically for Reactive Programming was only first mentioned and tried by Salvaneshi et al. for REScala~\cite{salvaneschi2014empirical,salvaneschi2016debugging}.
+
 \todo{
 \begin{enumerate}
 	\item Atlas (2014): rich graph representation, can be used to build call graphs, dataflow graphs, dependency graphs
-	\item RP debugging (2016, Guido): REScala, data flow graph, breakpoints
-	\item BIGDEBUG Spark debugging (2017): data flow graph, non-pausing simulated breakpoints, data provenance
+%	\item RP debugging (2016, Guido): REScala, data flow graph, breakpoints
+%	\item BIGDEBUG Spark debugging (2017): data flow graph, non-pausing simulated breakpoints, data provenance
 \end{enumerate}
 }
 
@@ -53,6 +51,6 @@ Debugging in reactive programming~\cite{
  \item story flow: visualize stories over time, comprehending relations, interactive visualization
  \item Weck \& Tichy, Visualizing Data-Flows in Functional Programs
  \item Srinivasan, ICPC16, ``Case Studies of Optimized Sequence Diagram for Program Comprehension", Texas A\&M Univerity
- \item Misha Moroshko (Facebook) Rx visualization
+%  \item Misha Moroshko (Facebook) Rx visualization
 \end{enumerate}
 }
