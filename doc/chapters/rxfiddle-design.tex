@@ -34,9 +34,15 @@ The \textbf{Visualizer} takes the initial graph and simplifies it into a Data Fl
 
 The components can run in their own environment. The instrumentation must run inside the host language, while the Visualizer can use a different language and platform.
 
+\begin{figure}
+\includegraphics[width=\columnwidth]{{images/screenshot.mergeAll}.png}
+\caption{Screenshot of \href{http://rxfiddle.net/\#type=editor&code=Y29uc3Qgc291cmNlMSA9IFJ4Lk9ic2VydmFibGUKICAub2YoMSwgMiwgMywgNCkKCmNvbnN0IHNvdXJjZTIgPSBSeC5PYnNlcnZhYmxlCiAgLm9mKCJhIiwgImIiLCAiYyIsICJkIikKClJ4Lk9ic2VydmFibGUKICAub2Yoc291cmNlMSwgc291cmNlMikKICAubWVyZ2VBbGwoKQogIC5za2lwKDIpCiAgLnN1YnNjcmliZSgp}{RxFiddle.net}}
+\label{screenshot-mergeAll}
+\end{figure}
+
 \subsection{Implementation}
 To validate the design and to provide an implementation to the developer community we created \url{RxFiddle.net}. The RxFiddle project is a reference implementation of 
-our reactive debugger design. Besides the visualizer the website it also contains a code editor for JavaScript code with sharing functionality, for developers to share snippets with their peers. In this section we will explain different parts of the implementation. For RxFiddle we initially focussed on RxJS (JavaScript).
+our reactive debugger design. Besides the visualizer the website it also contains a code editor for JavaScript code with sharing functionality, for developers to share snippets with their peers, shown in Figure \ref{screenshot-mergeAll}. In this section we will explain different parts of the implementation. For RxFiddle we initially focused on RxJS (JavaScript).
 
 \textbf{Instrumentation}. With JavaScript being a dynamic language we use a combination of prototype patching and Proxies\footnote{\url{https://developer.mozilla.org/nl/docs/Web/JavaScript/Reference/Global_Objects/Proxy}} to instrument the RxJS library: the Observable and Observer prototypes are patched to return Proxies wrapping the API method calls. The instrumentation passes every method entry and method exit to the next step.
 
