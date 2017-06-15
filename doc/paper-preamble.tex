@@ -14,6 +14,7 @@
 \usepackage{subcaption}
 \usepackage{epigraph}
 \usepackage{multirow}
+\usepackage{tabularx}
 
 %\usepackage{todonotes}
 %\usepackage{marginnote} 
@@ -23,6 +24,10 @@
 \linenumbers
 
 \newcommand{\thesistitle}{Debugging Data-Flows in Reactive Programs}
+
+\makeatletter
+\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{\ref{#1}}\@footnotemark}
+\makeatother
 
 \begin{document}
 

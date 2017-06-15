@@ -1,23 +1,23 @@
 \section{Research Design}
 To answer our research questions we employ a mixed methods research approach as shown in Table~\ref{research-methods}.
-First we interview professional developers and review available documentation (RQ1) to form a understanding about current debugging practices in Section \ref{section-practices},
-then we apply this understanding to design a debugger and implement it to test its feasibility (RQ2) in Section \ref{section-design},
-finally we validate the debugger using an experiment (RQ3) in Section \ref{section-evaluation}.
+First we interview professional developers and review available documentation (RQ1) to form a understanding about current debugging practices,
+then we apply this understanding to design a debugger and implement it to test its feasibility (RQ2),
+finally we validate the debugger using an experiment (RQ3).
 
-\begin{table*}[b]
+\begin{table}[t]{\columnwidth}
 \centering
 \caption{Research Methods used in the study}
 \label{research-methods}
-\begin{tabular}{llll}
+\begin{tabularx}{\columnwidth}{lllX}
 \hline
-\textbf{}            & \textbf{Method} & \textbf{Type} & \textbf{Focus}                               \\ \hline
-\multirow{2}{*}{RQ1} & Interview       & Qualitative   & What are current practices                   \\ \cline{2-4} 
-                     & Literature      & Qualitative   & What is recommended                          \\ \hline
-\multirow{2}{*}{RQ2} & Design          & Model         & What can a RP debugger show                  \\ \cline{2-4} 
-                     & Implement       & Tool          & Collect the required meta information        \\ \hline
-RQ3                  & Experiment      & Quantitative  & Quantification of effect on debug time       \\ \hline
-\end{tabular}
-\end{table*}
+\textbf{}            & \textbf{Method} & \textbf{Focus}                               \\ \hline
+\multirow{2}{*}{RQ1} & Interview       & What are current practices                   \\ 
+                     & Literature      & What is recommended                          \\
+\multirow{2}{*}{RQ2} & Design          & What can a RP debugger show                  \\ 
+                     & Implement       & Extract meta information from Rx             \\ 
+RQ3                  & Experiment      & Quantification of effect on debugging        \\ \hline
+\end{tabularx}
+\end{table}
 
 \iffalse
 \todo{

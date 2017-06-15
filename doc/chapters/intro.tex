@@ -5,7 +5,7 @@ After receiving mostly academic interest for a long time in the form of FRP~\cit
 
 While reactive programs might be more declarative and concise, RP does not work well with traditional interactive debuggers, shipped with most IDE's. RP borrows from Functional Programming (FP) for it's abstractions, its laziness and advocating the use of `pure' (same input, same output) lambda functions. Those features contribute to an execution flow that is hidden inside the RP implementation library and non-linear execution of the users code. This results in not useful stack traces and frequently breakpoints don't help as relevant variables are not in scope. Furthermore, using a low level debugger makes it harder to see the high level relations and overview that the high-level RP abstraction provides.
 
-Furthermore there is a large gap between developers new to RP and experienced RP developers, as recently discussed at the Rx Contributor Days~\footnote{http://contributordays.com/contributor-days/rxjs}. To ``think in the reactive way'' requires comprehension of the core concepts that RP offers. As debugging is a fundamental part of comprehension, any improvements made to ease the debugging experience and capabilities in this area might improve how RP is comprehended.
+Furthermore there is a large gap between developers new to RP and experienced RP developers, as recently discussed at the Rx Contributor Days\footnote{\label{foot:contribdays}http://contributordays.com/contributor-days/rxjs}. To ``think in the reactive way'' requires comprehension of the core concepts that RP offers. As debugging is a fundamental part of comprehension, any improvements made to ease the debugging experience and capabilities in this area might improve how RP is comprehended.
 
 Debugging is an important part of the daily life of a programmer. However, compared to programming in general, there is a research gap regarding comprehension of RP and current debugging practices and debugging methods for RP. Given the discussed fundamental differences, knowledge about traditional imperative programming might not apply to RP. The impact of any improvements on the developer community can be substantial, as recent reactive front-end frameworks like Angular grow in usage, and increasingly many developers are exposed to some form of RP.
 
@@ -15,7 +15,7 @@ We formulate the following research questions to steer the research:
 
 \begin{description}
 \item[RQ1] How do developers debug RP? \\
-Before we design tools it is important to understand the problems arising in the the current state~\cite{singer2010examination}. Anecdotal evidence by a number of resources\footnote{http://contributordays.com/contributor-days/rxjs}\footnote{https://staltz.com/how-to-debug-rxjs-code.html}
+Before we design tools it is important to understand the problems arising in the the current state~\cite{singer2010examination}. Anecdotal evidence by a number of resources\footnoteref{foot:contribdays}\footnote{https://staltz.com/how-to-debug-rxjs-code.html}
 suggests that the current state is non-optimal.
 
 \item[RQ2] How can we design a tool that helps developers debug RP? \\

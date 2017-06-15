@@ -1,62 +1,19 @@
-\section{Background}
-\label{background}
-In this section we give an overview of prior work 
-and the context of this research.
+\section{Background: RP}
 
+\label{background}
 \input{chapters/nutshell}
 
-\subsubsection{Marble Diagram}
-\label{marblediagram}
-The term \textit{Marble Diagram} comes from the shape of the glyps in the images used to explain Rx in the official documentation. 
-The diagrams contain one or more timelines containing the events that enter and leave Observables. 
-Developers can see from the diagram how operators work by inspecting the difference between the timelines, 
-where events might be skipped, added, transformed or delayed. 
-Mapping time on the x-axis provides insight that is missing when inspecting only a single time slice, like with traditional debuggers.
-
-\begin{figure}[ht]
+\begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{images/marble-diagram.pdf}
 \caption{Marble Diagram}
 \label{marblediagram-image}
 \end{figure}
 
-\subsection{Debugging}
-Debugging for general purpose languages revolves around 
-attaching a debugger,
-stepping through the code, 
-attaching code or data breakpoints, 
-navigating along different calls in the call stack and 
-examining variables and results of expressions~\cite{Spinellis2017}.
-However, existing research measuring how these different tasks are part of the developers work day found that 
-while developers spend much time on comprehending code they do not spend much time inside the debugger~\cite{minelli2015know}.
-Beller et al.~\cite{beller2017behavior} found that only 23\% of their subjects actively use the IDE's debugger,
-with the most common action being adding breakpoints, followed by stepping through code.
-The automated tooling of these studies did not measure different kinds of debugging other than using the IDE provided tools, 
-however Beller's survey indicates that 71\% also uses printf statements for debugging.
-No indication was given of any RP language and libraries used by the subjects in the study, 
-but the observation that printf debugging is common matches our experience with debugging reactive programs.
-
-% What comprises debugging?
-% \item Maybe Zeller / Spinellis?
-
-% \item Petrillo, ``Towards Understanding..." e.g. Swarm debugging
-% \item Minelli (know what you did last summer)
-% \item Moritz (watchdog 2.0)
-
-\subsection{Debugging for Program Comprehension}
-Both debugging and comprehension are processes in the work of programmers.
-Initially comprehension was seen as a distinct step programmers had to make
-prior to being able to debug programs~\cite{katz1987debugging}, 
-but this distinction is criticized by Gilmore saying we must view 
-``debugging as a design activity''~\cite{gilmore1991models}, 
-part of creating and comprehending programs. 
-Maalej et al.~\cite{Maalej2014} interviewed professional developers 
-and found that developers require runtime information to understand a program,
-and that debugging is frequently used to gather this runtime information.
-This supports our view that `debugging' is not only used for fault localization,
-but also for comprehension.
-
-% \item Katz, distinct step
-% \item Gilmore, comprehension + debugging == linked
-% \item Maalej: professionals, avoid deep comprehension, sharing knowlegde
-
+\paragraph{Marble Diagram}
+\label{marblediagram}
+The term \textit{Marble Diagram} comes from the shape of the glyps in the images used to explain Rx in the official documentation. 
+The diagrams contain one or more timelines containing the events that enter and leave Observables. 
+Developers can see from the diagram how operators work by inspecting the difference between the timelines, 
+where events might be skipped, added, transformed or delayed. 
+Mapping time on the x-axis provides insight that is missing when inspecting only a single time slice.

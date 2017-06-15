@@ -13,38 +13,58 @@ Then we asked several open questions regarding use of RP, how subjects debug RP 
 \caption{Interview questions}
 \label{interview-questions}
 \begin{tabular}{ll}
+\hline
     & \textbf{Question}                                               \\ \hline
-Q1  & Explain your (professional) experience.                         \\ \hline
-Q2  & Assess your experience on a scale from beginner to expert.      \\ \hline
-Q3  & Explain your (professional) reactive programming experience.    \\ \hline
-Q4  & Assess your RP experience on a scale from beginner to expert.   \\ \hline
-Q5  & Did you refactor or rework RP code?                             \\ \hline
-Q6  & Did you and how did you test or verify the workings of RP code? \\ \hline
-Q7  & Did you and how did you debug RP code?                          \\ \hline
-Q8  & Did you and how did you use documentation on RP?                \\ \hline
-Q9  & What difficulties did you experience with RP?                   \\ \hline
+Q1  & Explain your (professional) experience.                         \\
+Q2  & Assess your experience on a scale from beginner to expert.      \\
+Q3  & Explain your (professional) reactive programming experience.    \\
+Q4  & Assess your RP experience on a scale from beginner to expert.   \\
+Q5  & Did you refactor or rework RP code?                             \\
+Q6  & Did you and how did you test or verify the workings of RP code? \\
+Q7  & Did you and how did you debug RP code?                          \\
+Q8  & Did you and how did you use documentation on RP?                \\
+Q9  & What difficulties did you experience with RP?                   \\
 Q10 & What is your general approach to understand a piece of Rx?      \\ \hline
 \end{tabular}
 \end{table*}
 
-Five developers with professional programming experience ranging from 4 to 12 years where interviewed. 
+Four developers with professional programming experience ranging from 4 to 12 years where interviewed.
 Those developers work in a company building mostly reactive systems~\footnote{\url{http://www.reactivemanifesto.org/}} using various RP solutions,
-and range from personal experience to over a year of Rx experience.
-Furthermore we interviewed one subject from our university with 4 years of occasional Rx experience.
+and range from a month to over a year of Rx experience.
 
-\subsection{Interview results}
-Of the 6 subjects only the subject without professional experience did not debug Rx. 
-The other 5 subjects all independently mentioned using println-debugging in several forms (println, logging, console log).
-One subject mentioned that while adding log statements is easy it required him to recompile the project which could take several minutes, 
-which caused him to rely more on breakpoints using the Chrome debugger.
-Another subject - which experience was mostly with RxScala - mentioned that he did not use breakpoints as those `are difficult to use with asynchronous computations'.
-A third subject used the NodeJs debugger but describes using it as `painful' as he stepped through the inners of Rx.
+\subsection{Interviews}
 
+\paragraph{Testing}
+Of the 4 subjects none performed tests specifically for Rx logic. One subject mentioned that they only test the business logic in their application and consider the Rx code as `glue' which either works or does not work, which he can validate by just running the application.
+
+\paragraph{Debugging}
+All subjects independently mentioned using println-debugging in several forms (println, logging, console log).
+One subject mentioned that while adding log statements is easy it required him to recompile the Typescript project which could take several minutes, 
+which caused him to often rely on breakpoints using the Chrome debugger. However, to add more `context' to his debug sessions he added console log statements.
+Another subject - which experience was mostly with RxScala - mentioned that he did not use breakpoints as those `are difficult to use with asynchronous computations'. Instead relying on what is printed he can `quickly reason what happens'.
+A third subject used the NodeJS debugger but describes using it as `painful' as he stepped through the inners of Rx.
+The fourth subject sometimes debugged by uncommenting the chain line by line, to investigate why some part of the code was not reached. Furthermore he mentioned that it is sometimes not clear whether a subscription is made and verifies this through logging.
+
+\paragraph{Documentation}
+Subjects give different reasons to visit the documentation, but the most common reason is to `find an operator for what I need'. Rx's Observable API has 28 static methods and 114 instance methods which the subjects don't fully recall and feel there might be an operator that precisely matches their needs. Another reason to visit the documentation is to comprehend how operator in existing code work, which one subject does by looking at the marble diagrams at \href{http://rxmarbles.com}{RxMarbles.com} and in the \href{https://github.com/Reactive-Extensions/RxJS/blob/master/doc/}{GitHub documentation}. Another subject retrieves this information mostly textually from \href{http://reactivex.io/rxjs}{ReactiveX.io} and \href{http://introtorx.com}{IntroToRx.com}~\cite{introtorx}. One subject complains that there are not enough examples in the documentation.
+
+\paragraph{Difficulties experienced}
+Two subjects mention that the IDE does not help, which one explains with `Rx is more about timing than about types', and there is no indication that the output is what you expect. Another subject said he is not allways sure what happens if he executes a piece of code, mostly due to Observables sometimes being lazy.
+Two subjects note that flows are clear and comprehensible in the scope of a class or function, but for application wide flows it becomes unclear. The subject using mostly RxScala mentiones that creating micro services helps in this regard. 
+One subject mentions that `you need to know a lot as a starting {\lbrack}rxjs{\rbrack} developer', giving the example of the many ways to cleanup and \code{unsubscribe}, which he did manually initially. He used logging to analyze and learn and overcome his inexperience. 
+
+\paragraph{Approach}
+Subjects first look which operators are used, and then at which (types of) values are in the data flow. One subject first forms an expectation of the resulting value types based on the Observable's variable name and then reasons backwards through the operators to determine when and if values are filtered out.
 
 \subsection{Literature and written work}
-Developers can learn Rx through several sources such as the official documentation at \href{http://reactivex.io}{reactivex.io}, books, online courses and from the many blog posts available. The official documentation\footnote{
+Developers can learn Rx through several sources such as the official documentation at \href{http://reactivex.io}{ReactiveX.io}, books, online courses and from the many blog posts available. The official documentation\footnote{
 	\url{https://github.com/Reactive-Extensions/RxJS/blob/master/doc/gettingstarted/testing.md\#debugging-your-rx-application}
-} mentions the use of the \code{do}-operator to add tracing to console. Five books we reviewed on different versions of Rx contained a debugging chapter with tips like adding the Rx version specific \code{do}-like operators~\cite{esposito2016reactive,rxjavabook2016} or do not have a debugging chapter at all~\cite{introtorx, rxjavabook2015, rxswiftbook2017}. Esposito and Ciceri~\cite{esposito2016reactive} further explain how to best format the log statements and introduce ways to limit the logging by modifying the Observable through means of throttling and sampling. The RxJava book~\cite{rxjavabook2016} also contains tips to use the various \code{do} operators to integrate with existing metric tools.
+} mentions the use of the \code{do}-operator to add tracing to console. Five books we reviewed on different versions of Rx contained a debugging chapter with tips like adding the Rx version specific \code{do}-like operators~\cite{esposito2016reactive,rxjavabook2016} or do not have a debugging chapter at all~\cite{introtorx, rxjavabook2015, rxswiftbook2017}. Esposito and Ciceri~\cite{esposito2016reactive} further explain how to best format the log statements and introduce ways to limit the logging by modifying the Observable through means of throttling and sampling. The RxJava book~\cite{rxjavabook2016} also contains tips to use the various \code{do} operators to integrate with existing metric tools. We note that all of these methods require changes to the code, requiring (possibly recompilation and) re-execution when a different part of the flow needs to be inspected.
 To our knowledge the only article addressing issues of debugging Rx is by Staltz, one of the contributors of RxJS\footnote{\url{http://staltz.com/how-to-debug-rxjs-code.html}}, noting that conventional debuggers are not suitable for the higher level of abstraction of Observables. Staltz explains three current ways to debug Rx, being (1) tracing to the console, (2) manually drawing the dependency graph, (3) manually drawing marble diagrams.
 
-The available literature matches the results of the interviews. \code{printf}-debugging is commonly advised and used. While the conventional debugger works in some cases this is mostly for the procedural logic that interleaves Rx logic. Automated tooling is suggested, but is not implemented.  
+\subsection{Practices}
+The available literature matches the results of the interviews. \code{printf}-debugging is commonly advised and used. While the conventional debugger works in some cases this is mostly for the procedural logic that interleaves Rx logic. Automated tooling is suggested, but is not implemented. We see that developers use \code{printf}-debugging to learn the behavior of Observables, meaning both their values flowing through and their (one or many) subscriptions. Furthermore, we identify different goals for Rx debugging:
+(1) finding bugs and issues in reactive behavior,
+(2) comprehending behavior of operators in existing code,
+(3) understanding dependencies between Observables and
+(4) gain high-level overview of the reactive structure.
