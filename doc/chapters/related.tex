@@ -1,6 +1,74 @@
 \section{Related Work}
 
-\subsection{Debugging}
+\paragraph{RP Debugging} 
+REScala~\cite{salvaneschi2014rescala} is a RP library for Scala, based on Scala.React. 
+Recently a debugger model was created for REScala, called `RP Debugging'~\cite{salvaneschi2016debugging}, 
+featuring a dependency graph visualization, breakpoints, a query language and performance monitoring.
+The debugger fully integrates with the Eclipse IDE and the Scala debugger facilities, 
+creating an good (Scala) developer experience and a feature RxFiddle currently can not offer: reactive breakpoints. 
+However breakpoints are arguably not as useful as `smart breakpoints' (Section \label{breakpoints}).
+Furthermore, our debugger design works with Rx, cross language, and outside of the IDE,
+in the browser environment and/or connecting to a production system.
+Rx has different reactive semantics and a more powerful, but also more extensive API, which includes operators acting in the time domain (\code{delay}, etc.).
+Therefore we argue that seeing the many values in a flow over time is very valuable and we use Marble Diagrams to show this, 
+while RP Debugging only shows the latest values at the selected time.
+
+\paragraph{RP Visualization} 
+RxMarbles~\cite{rxmarbles} visualizes single Rx operators, for the purpose of learning and comprehension.
+Users can modify the diagrams by dragging the events and instantly see the changes reflected in the output.
+By using specific precoded inputs and timings the essence of the operator is made clear.
+In the soon to be released RxViz\footnote{\url{https://twitter.com/moroshko/status/854529439262167040}}, 
+Moroshko takes a similar approach but uses code instead of prepared inputs.
+Where RxMarbles is limited to non higher order flows, RxViz subscribes to all inner Observables when it detects an higher order Observable showing them concurrently.
+Contrarily to our work, these tools focus only on learning single operators.
+
+\paragraph{Omniscient Debugging} Omniscient debuggers~\cite{pothier2009back} are `all-knowing debuggers', 
+they trace, store and query all events in a programs execution.
+When storing vasts amount of program execution information, performance and efficiency becomes very much a problem and research in omniscient debuggers focus on this specifically.
+We also trace events of the entire execution, however in contrast to omniscient debuggers we only store trace events regarding RP data flows.
+The RP semantics allow us to create future optimizations, for example retaining only the active flow structure, while the flow's data is kept in a rolling buffer.
+
+\paragraph{Dynamic Analysis.}
+The study of program execution is called `dynamic analysis'~\cite{cornelissen2009systematic}.
+In most cases dynamic analysis involves a \textit{post mortem} analysis, 
+where first the program is run, collecting an execution trace, and then the trace data is analyzed to create a visualization.
+The various derived visualizations, like class and instance interaction graphs, function invocation histories~\cite{lange1995program}, invocation views and sequence diagrams~\cite{cornelissen2008execution} show the possibility to use trace information for debugging.
+Arguably an on-line analysis is more useful for debugging than the standard post mortem analysis. Reiss mentions the compromises that have to be made to make an on-line analysis~\cite{reiss2006visualizing}: 
+reduced tracing is required to not slow down the system (known as the observer-effect) and
+fast analysis is required to lower the cost of getting to the visualization, to not discourage the users.
+In our design we handle the same compromises as they are relevant for RP debugging too, and our JavaScript trace implementation bears resemblance to that of Program Visualiser~\cite{lange1995program}.
+
+% \todo{
+% \begin{enumerate}
+%  \item Cornelissen, TU Delft, survey on Program Compr. through Dynamic Analysis
+%  		lists limitations: 
+% 		   - incompleteness, only part of domain
+% 			 - which scenarios to analyse
+% 			 - scalability (wrt human cognitive load) 
+% 		 	 - observer effect (multi-threaded, realtime) changes execution
+% \end{enumerate}
+% }
+
+% \todo{
+% \begin{enumerate}
+% 	\item Atlas (2014): rich graph representation, can be used to build call graphs, dataflow graphs, dependency graphs
+% %	\item RP debugging (2016, Guido): REScala, data flow graph, breakpoints
+% %	\item BIGDEBUG Spark debugging (2017): data flow graph, non-pausing simulated breakpoints, data provenance
+% \end{enumerate}
+% }
+
+% \textbf{Tracing \& Automated visualization for comprehension}
+% \todo{
+% \begin{enumerate}
+%  \item Lange 1995, Program Visualizer for C++
+%  \item story flow: visualize stories over time, comprehending relations, interactive visualization
+%  \item Weck \& Tichy, Visualizing Data-Flows in Functional Programs
+%  \item Srinivasan, ICPC16, ``Case Studies of Optimized Sequence Diagram for Program Comprehension", Texas A\&M Univerity
+% %  \item Misha Moroshko (Facebook) Rx visualization
+% \end{enumerate}
+% }
+
+\paragraph{Understanding Debugging}
 Debugging for general purpose languages revolves around 
 attaching a debugger,
 stepping through the code, 
@@ -8,7 +76,7 @@ attaching code or data breakpoints,
 navigating along different calls in the call stack and 
 examining variables and results of expressions~\cite{Spinellis2017}.
 However, existing research measuring how these different tasks are part of the developers work day found that 
-while developers spend much time on comprehending code they do not spend much time inside the debugger~\cite{minelli2015know}.
+while developers spend much time on comprehending code they do not spend much time inside the IDE's debugger~\cite{minelli2015know}.
 Beller et al.~\cite{beller2017behavior} found that only 23\% of their subjects actively use the IDE's debugger,
 with the most common action being adding breakpoints, followed by stepping through code.
 The automated tooling of these studies did not measure different kinds of debugging other than using the IDE provided tools, 
@@ -23,7 +91,7 @@ but the observation that printf debugging is common matches our experience with 
 % \item Minelli (know what you did last summer)
 % \item Moritz (watchdog 2.0)
 
-\subsection{Debugging for Program Comprehension}
+\paragraph{Debugging for Program Comprehension}
 Both debugging and comprehension are processes in the work of programmers.
 Initially comprehension was seen as a distinct step programmers had to make
 prior to being able to debug programs~\cite{katz1987debugging}, 
@@ -39,58 +107,3 @@ but also for comprehension.
 % \item Katz, distinct step
 % \item Gilmore, comprehension + debugging == linked
 % \item Maalej: professionals, avoid deep comprehension, sharing knowlegde
-
-\textbf{Dynamic Analysis.}
-Although interactive debuggers are commonly used for debugging 
-of the runtime behavior of programs, more specialized tools already exist: 
-the study of program execution is called `dynamic analysis' which has 
-received substantial attention in the research community,
-as surveyed by Cornellissen et al.~\cite{cornelissen2009systematic}.
-They categorise on different facets being the 
-\textit{activity} [goal of analysis],
-\textit{target} [kind of inspected program or system],
-\textit{method} [visualization, metrics, online, querying, etc.],
-\textit{evaluation} [preliminary, case study, quantitative, etc.].
-In most cases dynamic analysis involves a \textit{post mortem} analysis, 
-where first the program is run and then the trace data is analyzed to create a visualization.
-Reiss mentions the compromises that have to be made to make an online analysis~\cite{reiss2006visualizing}: 
-reduced tracing is required to not slow down the system (known as the observer-effect), 
-fast analysis is required to lower the cost of getting to the visualization, to not discourage the users.
-In our design we found similar compromises relevant for RP debugging.
-
-% \todo{
-% \begin{enumerate}
-%  \item Cornelissen, TU Delft, survey on Program Compr. through Dynamic Analysis
-%  		lists limitations: 
-% 		   - incompleteness, only part of domain
-% 			 - which scenarios to analyse
-% 			 - scalability (wrt human cognitive load) 
-% 		 	 - observer effect (multi-threaded, realtime) changes execution
-% \end{enumerate}
-% }
-
-\textbf{Specialized debuggers.}
-Most research into debugging focusses on procedural and 
-imperative languages~\cite{cornelissen2009systematic}.
-Other topics of interest are multi-threading and distributed systems and 
-only few focus on other styles, like declarative programming~\cite{nilsson1998declarative}.
-Debugging specifically for Reactive Programming was only first mentioned and tried by Salvaneshi et al. for REScala~\cite{salvaneschi2014empirical,salvaneschi2016debugging}.
-
-\todo{
-\begin{enumerate}
-	\item Atlas (2014): rich graph representation, can be used to build call graphs, dataflow graphs, dependency graphs
-%	\item RP debugging (2016, Guido): REScala, data flow graph, breakpoints
-%	\item BIGDEBUG Spark debugging (2017): data flow graph, non-pausing simulated breakpoints, data provenance
-\end{enumerate}
-}
-
-\textbf{Tracing \& Automated visualization for comprehension}
-\todo{
-\begin{enumerate}
- \item Lange 1995, Program Visualizer for C++
- \item story flow: visualize stories over time, comprehending relations, interactive visualization
- \item Weck \& Tichy, Visualizing Data-Flows in Functional Programs
- \item Srinivasan, ICPC16, ``Case Studies of Optimized Sequence Diagram for Program Comprehension", Texas A\&M Univerity
-%  \item Misha Moroshko (Facebook) Rx visualization
-\end{enumerate}
-}
