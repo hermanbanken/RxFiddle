@@ -309,27 +309,6 @@ to application source code. Taint tracking systems typically face challenges in 
   file      = {:TOSEM-Maalej-Comprehension-PrePrint2.pdf:PDF},
   publisher = {ACM},
 }
-
-@Article{Spinellis2017,
-  author    = {Spinellis, Diomidis},
-  title     = {Effective debugging},
-  year      = {2017},
-  publisher = {Addison-Wesley},
-  review    = {Item 32. 
-If the stack trace contains only third-party routines, your 
-program is probably executing through a framework that 
-interacts with it via callback routines, retaining the control 
-of the program flow. You probably don’t want to debug the 
-framework’s code, so you need to add some breakpoints to get a 
-chance to debug your own code.
-
-Item 32 about Stack traces
-  - stack navigation for library: use breakpoints in own code
-
-Item 41 about Logging Statements: 
-  - complementary, allows deeper navigation of data structures, 
-  - permanent logging can be feature},
-}
 {gulzar2016bigdebug,
 	author={Gulzar, Interlandi, Yoo},
 	title={BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark},
@@ -346,15 +325,6 @@ Item 41 about Logging Statements:
   year      = {2016},
   pages     = {1--28},
   publisher = {Springer},
-}
-
-@InProceedings{Gulzar2016,
-  author  = {Gulzar, Interlandi, Yoo},
-  title   = {BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark},
-  year    = {2016},
-  pages   = {784--795},
-  doi     = {10.1145/2884781.2884813},
-  journal = {International Conference on Software Engineering International Conference on Software Engineering},
 }
 
 @Article{benveniste1991synchronous,
@@ -534,11 +504,15 @@ debugging is closing the gap between actual code and the required specifications
 }
 
 @InProceedings{lange1995program,
-  author   = {Lange, Danny B and Nakamura, Yuichi and others},
-  title    = {Program Explorer: A Program Visualizer for C++.},
-  file     = {:lange.pdf:LaTeX},
-  keywords = {rank3},
-  review   = {Trace just like RxFiddle},
+  author       = {Lange, Danny B and Nakamura, Yuichi and others},
+  title        = {Program Explorer: A Program Visualizer for C++.},
+  booktitle    = {Proceedings of the USENIX Conference on Object-Oriented Technologies on USENIX Conference on Object-Oriented Technologies (COOTS)},
+  year         = {1995},
+  pages        = {4--4},
+  organization = {USENIX Association},
+  file         = {:lange.pdf:LaTeX},
+  keywords     = {rank3},
+  review       = {Trace just like RxFiddle},
 }
 
 @InProceedings{cornelissen2007understanding,
@@ -889,7 +863,7 @@ explains Do as a way to add in stream logs but warns about running sequentially 
   publisher = {IEEE},
 }
 
-@Online{rxmarbles,
+@Misc{rxmarbles,
   author  = {A. Medeiros},
   title   = {RxMarbles},
   date    = {2014},
@@ -930,6 +904,77 @@ explains Do as a way to add in stream logs but warns about running sequentially 
   date    = {2017},
   url     = {https://github.com/moroshko/rxviz},
   urldate = {2017-06-20},
+}
+
+@InBook{Gutierrez2017,
+  pages     = {163--178},
+  title     = {Reactive Messaging},
+  publisher = {Apress},
+  year      = {2017},
+  author    = {Gutierrez, Felipe},
+  address   = {Berkeley, CA},
+  isbn      = {978-1-4842-1224-0},
+  booktitle = {Spring Boot Messaging: Messaging APIs for Enterprise and Integration Solutions},
+  doi       = {10.1007/978-1-4842-1224-0_10},
+  url       = {http://dx.doi.org/10.1007/978-1-4842-1224-0_10},
+}
+
+@InProceedings{edwards2009coherent,
+  author       = {Edwards, Jonathan},
+  title        = {Coherent reaction},
+  booktitle    = {Proceedings of the 24th ACM SIGPLAN conference companion on Object oriented programming systems languages and applications},
+  year         = {2009},
+  pages        = {925--932},
+  organization = {ACM},
+}
+
+@Misc{klangakka,
+  author  = {Bon{\'e}r, Jonas and Klang, Viktor and Kuhn, Roland},
+  title   = {Akka Library},
+  year    = {2009},
+  url     = {http://akka.io},
+  urldate = {2017-06-20},
+}
+
+@InProceedings{Gulzar2016,
+  author    = {Gulzar, Muhammad Ali and Interlandi, Matteo and Yoo, Seunghyun and Tetali, Sai Deep and Condie, Tyson and Millstein, Todd and Kim, Miryung},
+  title     = {BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark},
+  booktitle = {Proceedings of the 38th International Conference on Software Engineering},
+  year      = {2016},
+  series    = {ICSE '16},
+  pages     = {784--795},
+  address   = {New York, NY, USA},
+  publisher = {ACM},
+  acmid     = {2884813},
+  doi       = {10.1145/2884781.2884813},
+  isbn      = {978-1-4503-3900-1},
+  keywords  = {big data analytics, data-intensive scalable computing (DISC), debugging, fault localization and recovery, interactive tools},
+  location  = {Austin, Texas},
+  numpages  = {12},
+  url       = {http://doi.acm.org/10.1145/2884781.2884813},
+}
+
+@Book{Spinellis2017,
+  title     = {Effective Debugging: 66 Specific Ways to Debug Software and Systems},
+  publisher = {Addison-Wesley Professional},
+  year      = {2016},
+  author    = {Spinellis, Diomidis},
+  edition   = {1st},
+  isbn      = {0134394798, 9780134394794},
+  review    = {Item 32. 
+If the stack trace contains only third-party routines, your 
+program is probably executing through a framework that 
+interacts with it via callback routines, retaining the control 
+of the program flow. You probably don’t want to debug the 
+framework’s code, so you need to add some breakpoints to get a 
+chance to debug your own code.
+
+Item 32 about Stack traces
+  - stack navigation for library: use breakpoints in own code
+
+Item 41 about Logging Statements: 
+  - complementary, allows deeper navigation of data structures, 
+  - permanent logging can be feature},
 }
 
 @Comment{jabref-meta: databaseType:bibtex;}

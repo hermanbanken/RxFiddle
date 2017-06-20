@@ -68,7 +68,10 @@ To our knowledge the only article addressing issues of debugging Rx is by Staltz
 
 \subsection{Practices}
 The available literature matches the results of the interviews: \code{printf}-debugging is commonly advised and used. While the conventional debugger works in some cases, this is mostly the case for the procedural logic that interleaves Rx logic. Automated tooling is suggested, but is not implemented. We see that developers use \code{printf}-debugging to learn the behavior of Observables, behavior meaning both their values flowing through and their (one or many) subscriptions. Furthermore, we identify different goals for Rx debugging:
-(1) finding bugs and issues in reactive behavior,
-(2) comprehending behavior of operators in existing code,
-(3) understanding dependencies between Observables and
-(4) gaining high-level overview of the reactive structure.
+\begin{enumerate}
+\itemsep0em 
+\item[(1)] finding bugs and issues in reactive behavior,
+\item[(2)] comprehending behavior of operators in existing code,
+\item[(3)] understanding dependencies between Observables and
+\item[(4)] gaining high-level overview of the reactive structure.
+\end{enumerate}

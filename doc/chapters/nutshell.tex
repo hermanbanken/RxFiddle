@@ -6,10 +6,18 @@ According to the original definition\footnote{
 This means that when a reactive program is run, it sets up a data pipeline and waits until input arrives when the environment changes.
 Reactive Programming languages and libraries provide developers with the appropriate abstractions and methods to create such programs.
 
-The programming paradigm of Reactive Programming is implemented by multiple languages and libraries. Many RP implementations share a notion of a collection that abstracts over \textit{time} (in contrast to \textit{space} like standard collections) be it \textit{Observable} (Rx~\cite{meijer2010subject}), Signal (Elm~\cite{czaplicki2012elm}), Signal/Event (REScala~\cite{salvaneschi2014rescala}) or Behavior/Event (FRP~\cite{elliott1997functional}). In this paper, we focus on the Rx formulation, but our work is applicable to other RP implementations to some extend. 
+The programming paradigm of Reactive Programming is implemented by multiple languages and libraries. 
+Many RP implementations share a notion of a collection that abstracts over \emph{time} (in contrast to \emph{space} like standard collections).
+This collection comes in different flavors, 
+such as Observable (Rx~\cite{meijer2010subject}), 
+Signal (Elm~\cite{czaplicki2012elm}), 
+Signal/Event (REScala~\cite{salvaneschi2014rescala}) or 
+Behavior/Event (FRP~\cite{elliott1997functional}).
+The implementations differ in precise semantics of their collections, their execution model (push/pull), and the set of available operators.  
+In this paper, we focus on the Rx formulation, but our work is applicable to other RP implementations to some extend. 
 
 Understanding how we arrive at our visualization requires at least minimal understanding of Rx.
-Rx introduces two basic types \textit{Observable} and \textit{Observer}. Observables define the data flow and produce the data while Observers receive the data, possibly moving the data further down the stream. Figure \ref{sample1} shows a very basic example of a `in situ' data flow in Rx. Initially an Observable is created, here using the static \code{of} method, then dependent Observables are created using the \code{map} and \code{filter} methods on the Observable instance. Finally we \code{subscribe} to start the data flow and send the data in the flow to the console.
+Rx introduces two basic types \emph{Observable} and \emph{Observer}. Observables define the data flow and produce the data while Observers receive the data, possibly moving the data further down the stream. Figure \ref{sample1} shows a very basic example of a `in situ' data flow in Rx. Initially an Observable is created, here using the static \code{of} method, then dependent Observables are created using the \code{map} and \code{filter} methods on the Observable instance. Finally we \code{subscribe} to start the data flow and send the data in the flow to the console.
 
 \begin{figure*}[h!]
 \centering
