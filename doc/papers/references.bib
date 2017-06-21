@@ -241,6 +241,23 @@ to application source code. Taint tracking systems typically face challenges in 
   organization={IEEE}
 }
 
+@misc{berry1989real,
+  title={Real time programming: special purpose or general purpose languages},
+  author={Berry, G},
+  year={1989},
+  organization = {INRIA},
+  number    = {1065}
+}
+
+@inproceedings{salvaneschi2014rescala,
+  title={REScala: Bridging between object-oriented and functional style in reactive applications},
+  author={Salvaneschi, Guido and Hintz, Gerold and Mezini, Mira},
+  booktitle={Proceedings of the 13th international conference on Modularity},
+  pages={25--36},
+  year={2014},
+  organization={ACM}
+}
+
 @InProceedings{salvaneschi2014empirical,
   author       = {Salvaneschi, Guido and Amann, Sven and Proksch, Sebastian and Mezini, Mira},
   title        = {An empirical study on program comprehension with reactive programming},
@@ -292,27 +309,6 @@ to application source code. Taint tracking systems typically face challenges in 
   file      = {:TOSEM-Maalej-Comprehension-PrePrint2.pdf:PDF},
   publisher = {ACM},
 }
-
-@Article{Spinellis2017,
-  author    = {Spinellis, Diomidis},
-  title     = {Effective debugging},
-  year      = {2017},
-  publisher = {Addison-Wesley},
-  review    = {Item 32. 
-If the stack trace contains only third-party routines, your 
-program is probably executing through a framework that 
-interacts with it via callback routines, retaining the control 
-of the program flow. You probably don’t want to debug the 
-framework’s code, so you need to add some breakpoints to get a 
-chance to debug your own code.
-
-Item 32 about Stack traces
-  - stack navigation for library: use breakpoints in own code
-
-Item 41 about Logging Statements: 
-  - complementary, allows deeper navigation of data structures, 
-  - permanent logging can be feature},
-}
 {gulzar2016bigdebug,
 	author={Gulzar, Interlandi, Yoo},
 	title={BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark},
@@ -329,15 +325,6 @@ Item 41 about Logging Statements:
   year      = {2016},
   pages     = {1--28},
   publisher = {Springer},
-}
-
-@InProceedings{Gulzar2016,
-  author  = {Gulzar, Interlandi, Yoo},
-  title   = {BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark},
-  year    = {2016},
-  pages   = {784--795},
-  doi     = {10.1145/2884781.2884813},
-  journal = {International Conference on Software Engineering International Conference on Software Engineering},
 }
 
 @Article{benveniste1991synchronous,
@@ -517,11 +504,15 @@ debugging is closing the gap between actual code and the required specifications
 }
 
 @InProceedings{lange1995program,
-  author   = {Lange, Danny B and Nakamura, Yuichi and others},
-  title    = {Program Explorer: A Program Visualizer for C++.},
-  file     = {:lange.pdf:LaTeX},
-  keywords = {rank3},
-  review   = {Trace just like RxFiddle},
+  author       = {Lange, Danny B and Nakamura, Yuichi and others},
+  title        = {Program Explorer: A Program Visualizer for C++.},
+  booktitle    = {Proceedings of the USENIX Conference on Object-Oriented Technologies on USENIX Conference on Object-Oriented Technologies (COOTS)},
+  year         = {1995},
+  pages        = {4--4},
+  organization = {USENIX Association},
+  file         = {:lange.pdf:LaTeX},
+  keywords     = {rank3},
+  review       = {Trace just like RxFiddle},
 }
 
 @InProceedings{cornelissen2007understanding,
@@ -549,7 +540,7 @@ debugging is closing the gap between actual code and the required specifications
 }
 
 @Article{beller2017behavior,
-  author    = {Beller Moritz, and Spruit, Niels and Zaidman, Andy},
+  author    = {Moritz Beller and Niels Spruit and Andy Zaidman},
   title     = {On The Dichotomy of Debugging Behavior Among Programmers},
   year      = {2017},
   file      = {:moritz debugging behavior.pdf:PDF;:moritz-beller-peerj-preprints-2743.pdf:PDF},
@@ -606,6 +597,7 @@ explains Do as a way to add in stream logs but warns about running sequentially 
   year         = {2006},
   pages        = {125--134},
   organization = {ACM},
+  file         = {:reiss.pdf:PDF},
   keywords     = {cornelissen,cornelissen133,online},
 }
 
@@ -674,9 +666,9 @@ explains Do as a way to add in stream logs but warns about running sequentially 
   booktitle    = {ACM SIGPLAN Notices},
   year         = {1997},
   volume       = {32},
-  number       = {8},
   pages        = {263--273},
   organization = {ACM},
+  issue        = {8},
 }
 
 @InProceedings{meijer2010subject,
@@ -699,9 +691,9 @@ explains Do as a way to add in stream logs but warns about running sequentially 
   booktitle    = {ACM SIGPLAN Notices},
   year         = {2013},
   volume       = {48},
-  number       = {6},
   pages        = {411--422},
   organization = {ACM},
+  issue        = {6},
 }
 
 @Article{czaplicki2012elm,
@@ -723,9 +715,9 @@ explains Do as a way to add in stream logs but warns about running sequentially 
   booktitle    = {ACM SIGPLAN Notices},
   year         = {2009},
   volume       = {44},
-  number       = {10},
   pages        = {1--20},
   organization = {ACM},
+  issue        = {10},
 }
 
 @InProceedings{olston2011inspector,
@@ -749,24 +741,18 @@ explains Do as a way to add in stream logs but warns about running sequentially 
   publisher = {IEEE},
 }
 
-@InProceedings{kleinschmager2011rate,
-  author       = {Kleinschmager, Sebastian and Hanenberg, Stefan},
-  title        = {How to rate programming skills in programming experiments?: a preliminary, exploratory, study based on university marks, pretests, and self-estimation},
-  booktitle    = {Proceedings of the 3rd ACM SIGPLAN workshop on Evaluation and usability of programming languages and tools},
-  year         = {2011},
-  pages        = {15--24},
-  organization = {ACM},
-  file         = {:plateau2011-hanenberg.pdf:PDF},
-}
-
-@InProceedings{feigenspan2012measuring,
-  author       = {Feigenspan, Janet and K{\"a}stner, Christian and Liebig, J{\"o}rg and Apel, Sven and Hanenberg, Stefan},
-  title        = {Measuring programming experience},
-  booktitle    = {Program Comprehension (ICPC), 2012 IEEE 20th International Conference on},
-  year         = {2012},
-  pages        = {73--82},
-  organization = {IEEE},
-  file         = {:Measuring and Modeling Programming Experience.twocolumn.pdf:PDF},
+@Article{ko2015practical,
+  author    = {Ko, Andrew J and Latoza, Thomas D and Burnett, Margaret M},
+  title     = {A practical guide to controlled experiments of software engineering tools with human participants},
+  journal   = {Empirical Software Engineering},
+  year      = {2015},
+  volume    = {20},
+  number    = {1},
+  pages     = {110--141},
+  file      = {:practical guide to controlled experiments of software engineering tools.pdf:PDF},
+  keywords  = {rank5},
+  publisher = {Springer},
+  review    = {Guide to RxFiddle tool research!},
 }
 
 @Article{siegmund2014measuring,
@@ -781,18 +767,231 @@ explains Do as a way to add in stream logs but warns about running sequentially 
   publisher = {Springer},
 }
 
-@Article{ko2015practical,
-  author    = {Ko, Andrew J and Latoza, Thomas D and Burnett, Margaret M},
-  title     = {A practical guide to controlled experiments of software engineering tools with human participants},
-  journal   = {Empirical Software Engineering},
-  year      = {2015},
-  volume    = {20},
-  number    = {1},
-  pages     = {110--141},
-  file      = {:practical guide to controlled experiments of software engineering tools.pdf:PDF},
-  keywords  = {rank5},
-  publisher = {Springer},
-  review    = {Guide to RxFiddle tool research!},
+@InProceedings{feigenspan2012measuring,
+  author       = {Feigenspan, Janet and K{\"a}stner, Christian and Liebig, J{\"o}rg and Apel, Sven and Hanenberg, Stefan},
+  title        = {Measuring programming experience},
+  booktitle    = {Program Comprehension (ICPC), 2012 IEEE 20th International Conference on},
+  year         = {2012},
+  pages        = {73--82},
+  organization = {IEEE},
+  file         = {:Measuring and Modeling Programming Experience.twocolumn.pdf:PDF},
+}
+
+@InProceedings{kleinschmager2011rate,
+  author       = {Kleinschmager, Sebastian and Hanenberg, Stefan},
+  title        = {How to rate programming skills in programming experiments?: a preliminary, exploratory, study based on university marks, pretests, and self-estimation},
+  booktitle    = {Proceedings of the 3rd ACM SIGPLAN workshop on Evaluation and usability of programming languages and tools},
+  year         = {2011},
+  pages        = {15--24},
+  organization = {ACM},
+  file         = {:plateau2011-hanenberg.pdf:PDF},
+}
+
+@InProceedings{reinke2001ghood,
+  author    = {Reinke, Claus},
+  title     = {GHood--graphical visualisation and animation of Haskell object observations},
+  booktitle = {2001 ACM SIGPLAN},
+  year      = {2001},
+  pages     = {121},
+  file      = {:ghood.pdf:PDF},
+  keywords  = {rank4},
+}
+
+@InProceedings{wallace2001multiple,
+  author    = {Wallace, Malcolm and Chitil, Olaf and Brehm, Thorsten and Runciman, Colin},
+  title     = {Multiple-view tracing for Haskell: a new Hat},
+  booktitle = {Preliminary Proceedings of the 2001 ACM SIGPLAN Haskell Workshop, Firenze, Italy},
+  year      = {2001},
+  pages     = {151--170},
+  file      = {:ghood.pdf:PDF},
+  keywords  = {rank3},
+}
+
+@Book{rxjavabook2016,
+  title = {Reactive Programming with RxJava},
+  subtitle = {Creating Asynchronous, Event-Based Applications},
+  author = {Nurkiewicz, Tomasz and Christensen, Ben},
+  year = {2016},
+  publisher = {O'Reilly Media},
+  review = {https://www.safaribooksonline.com/library/view/reactive-programming-with/9781491931646/ch07.html},
+}
+
+@Book{rxswiftbook2017,
+  title = {RxSwift},
+  subtitle = {Learn how to use RxSwift to create complex, reactive applications on iOS.},
+  author = {Pillet, Florent and Bontognali, Junior and Todorov, Marin and Gardner, Scott},
+  isbn = {978-1942878346},
+  publisher = {Razeware LLC},
+  year = {2017},
+  review = {https://store.raywenderlich.com/products/rxswift},
+}
+
+@Book{rxjavabook2015,
+  title = {RxJava Essentials},
+  subtitle = {Learn reactive programming to create awesome Android and Java apps},
+  author = {Morgillo, Ivan},
+  isbn = {9781784399108},
+  publisher = {PACKT},
+  year = {2017},
+  review = {https://www.safaribooksonline.com/library/view/rxjava-essentials/9781784399108/}
+}
+
+@Book{introtorx,
+  title = {Introduction to Rx},
+  author = {Campbell, Lee},
+  year = {2012},
+  url = {http://www.introtorx.com},
+}
+
+@Book{frpbook2016,
+  title = {Functional Reactive Programming},
+  author = {Blackheath, Stephen and Jones, Anthony},
+  year = {2016},
+  month = {jul},
+  isbn = {9781633430105},
+  publisher = {Manning},
+}
+
+@Book{functionalphp,
+  title = {Functional PHP},
+  author = {Crettenand,Gilles},
+  year = {2017},
+  month = {feb},
+  isbn = {9781785880322},
+}
+
+@inproceedings{gallaba2015don,
+  title={Don't call us, we'll call you: Characterizing callbacks in JavaScript},
+  author={Gallaba, Keheliya and Mesbah, Ali and Beschastnikh, Ivan},
+  booktitle={Empirical Software Engineering and Measurement (ESEM), 2015 ACM/IEEE International Symposium on},
+  pages={1--10},
+  year={2015},
+  organization={IEEE}
+}
+
+@Article{pothier2009back,
+  author    = {Pothier, Guillaume and Tanter, {\'E}ric},
+  title     = {Back to the future: Omniscient debugging},
+  journal   = {IEEE software},
+  year      = {2009},
+  volume    = {26},
+  number    = {6},
+  file      = {:pothier2009back - Back to the future_ Omniscient debugging.pdf:PDF},
+  publisher = {IEEE},
+}
+
+@Misc{rxmarbles,
+  author  = {A. Medeiros},
+  title   = {RxMarbles},
+  date    = {2014},
+  url     = {http://rxmarbles.com},
+  urldate = {2016-09-10},
+}
+
+@Article{cornelissen2008execution,
+  author    = {Cornelissen, Bas and Zaidman, Andy and Holten, Danny and Moonen, Leon and van Deursen, Arie and van Wijk, Jarke J},
+  title     = {Execution trace analysis through massive sequence and circular bundle views},
+  journal   = {Journal of Systems and Software},
+  year      = {2008},
+  volume    = {81},
+  number    = {12},
+  pages     = {2252--2268},
+  publisher = {Elsevier},
+}
+
+@InProceedings{zaharia2012resilient,
+  author       = {Zaharia, Matei and Chowdhury, Mosharaf and Das, Tathagata and Dave, Ankur and Ma, Justin and McCauley, Murphy and Franklin, Michael J and Shenker, Scott and Stoica, Ion},
+  title        = {Resilient distributed datasets: A fault-tolerant abstraction for in-memory cluster computing},
+  booktitle    = {Proceedings of the 9th USENIX conference on Networked Systems Design and Implementation},
+  year         = {2012},
+  pages        = {2--2},
+  organization = {USENIX Association},
+}
+
+@Misc{boner2014reactive,
+  author    = {Bon{\'e}r, Jonas and Farley, Dave and Kuhn, Roland and Thompson, Martin},
+  title     = {The reactive manifesto},
+  year      = {2014},
+  publisher = {Tech. rep. Sept. 2014. url: http://www. reactivemanifesto. org/pdf/the-reactivemanifesto-2.0. pdf},
+}
+
+@Misc{rxviz,
+  author  = {M. Moroshko},
+  title   = {RxViz: Animated playground for Rx Observables},
+  date    = {2017},
+  url     = {https://github.com/moroshko/rxviz},
+  urldate = {2017-06-20},
+}
+
+@InBook{Gutierrez2017,
+  pages     = {163--178},
+  title     = {Reactive Messaging},
+  publisher = {Apress},
+  year      = {2017},
+  author    = {Gutierrez, Felipe},
+  address   = {Berkeley, CA},
+  isbn      = {978-1-4842-1224-0},
+  booktitle = {Spring Boot Messaging: Messaging APIs for Enterprise and Integration Solutions},
+  doi       = {10.1007/978-1-4842-1224-0_10},
+  url       = {http://dx.doi.org/10.1007/978-1-4842-1224-0_10},
+}
+
+@InProceedings{edwards2009coherent,
+  author       = {Edwards, Jonathan},
+  title        = {Coherent reaction},
+  booktitle    = {Proceedings of the 24th ACM SIGPLAN conference companion on Object oriented programming systems languages and applications},
+  year         = {2009},
+  pages        = {925--932},
+  organization = {ACM},
+}
+
+@Misc{klangakka,
+  author  = {Bon{\'e}r, Jonas and Klang, Viktor and Kuhn, Roland},
+  title   = {Akka Library},
+  year    = {2009},
+  url     = {http://akka.io},
+  urldate = {2017-06-20},
+}
+
+@InProceedings{Gulzar2016,
+  author    = {Gulzar, Muhammad Ali and Interlandi, Matteo and Yoo, Seunghyun and Tetali, Sai Deep and Condie, Tyson and Millstein, Todd and Kim, Miryung},
+  title     = {BigDebug: Debugging Primitives for Interactive Big Data Processing in Spark},
+  booktitle = {Proceedings of the 38th International Conference on Software Engineering},
+  year      = {2016},
+  series    = {ICSE '16},
+  pages     = {784--795},
+  address   = {New York, NY, USA},
+  publisher = {ACM},
+  acmid     = {2884813},
+  doi       = {10.1145/2884781.2884813},
+  isbn      = {978-1-4503-3900-1},
+  keywords  = {big data analytics, data-intensive scalable computing (DISC), debugging, fault localization and recovery, interactive tools},
+  location  = {Austin, Texas},
+  numpages  = {12},
+  url       = {http://doi.acm.org/10.1145/2884781.2884813},
+}
+
+@Book{Spinellis2017,
+  title     = {Effective Debugging: 66 Specific Ways to Debug Software and Systems},
+  publisher = {Addison-Wesley Professional},
+  year      = {2016},
+  author    = {Spinellis, Diomidis},
+  edition   = {1st},
+  isbn      = {0134394798, 9780134394794},
+  review    = {Item 32. 
+If the stack trace contains only third-party routines, your 
+program is probably executing through a framework that 
+interacts with it via callback routines, retaining the control 
+of the program flow. You probably don’t want to debug the 
+framework’s code, so you need to add some breakpoints to get a 
+chance to debug your own code.
+
+Item 32 about Stack traces
+  - stack navigation for library: use breakpoints in own code
+
+Item 41 about Logging Statements: 
+  - complementary, allows deeper navigation of data structures, 
+  - permanent logging can be feature},
 }
 
 @Comment{jabref-meta: databaseType:bibtex;}

@@ -1,4 +1,5 @@
-\input{preamble.paper}
+\input{paper-preamble}
+
 \newcommand{\code}[1]{\texttt{#1}}
 %\newenvironment{todo*}[1]{\textcolor{red}#1}{}
 \newcommand{\todo}[1]{
@@ -10,26 +11,40 @@
 }
 }
 
-\input{chapters/intro}
+% Stanford writing guide http://cs.stanford.edu/people/widom/paper-writing.html
 
-\input{chapters/background}
+\input{chapters/1.introduction}
 
-\input{chapters/motivation}
+\input{chapters/2.background}
 
-\input{chapters/current}
+\input{chapters/3.methods}
 
-\input{chapters/design}
+\input{chapters/4.practices}
 
-\input{chapters/evaluate}
+\input{chapters/5.design}
 
-\input{chapters/discussion}
+\input{chapters/6.evaluate}
 
-\input{chapters/conclusion}
+\input{chapters/7.results}
+
+\input{chapters/8.discussion}
+
+\input{chapters/9.limitations}
+
+\input{chapters/10.related}
+
+\input{chapters/11.validity}
+
+\input{chapters/12.conclusion}
 
 %\include{scratchpad}
 
 \bibliographystyle{unsrt}
-\bibliographystyle{abbrv}
+% \bibliographystyle{abbrv}
+{\footnotesize
 \bibliography{papers/references}
+}
 
-\input{postamble.paper}
+\input{chapters/13.appendix}
+
+\end{document}

@@ -1,0 +1,21 @@
+\subsection{Results}
+\paragraph{Overall}
+Figure \ref{fig-timePerTask} shows the time until the correct answer was given per task. Here we consider both the results from the offline experiment as the online experiment. We make no assumptions about the underlying distribution so we perform a non-parametric Wilcoxon Mann-Whitney U test (\textit{$H_0$: times for the Console group and RxFiddle group are drawn from the same population}) to see if the differences are significant, and a Cliffs delta test for ordinal data to determine the effect size.
+
+\begin{centering}
+\input{tables/wilcoxonPerTask}
+\end{centering}
+
+For tasks T3 we can reject $H_0$ with high significance ($p < 0.05$), the RxFiddle group is faster.
+For the tasks T1, T2 and T4 we can not reject $H_0$ ($p > 0.05$), and for T2 the U test indicates no difference at all, meaning the RxFiddle group and Console group perform or could perform equally.
+
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{images/timePerTask.pdf}
+\caption{Time until correct answer per task}
+\label{fig-timePerTask}
+\end{figure}
+
+\paragraph{Control for experience}
+To investigate this further, we split the results for different groups of subjects, as shown in Figure \ref{fig-timePerTaskSplit}.  When we control for years of RP experience and the self-assessed RP experience (splitting at the median values, inclusive) we see bigger differences for all tasks for groups with more experience. This indicates that the visualization might be less suitable for inexperienced subjects.
+
+Even while regarding more experienced subjects, the effect is still most significant for T3. We think that RxFiddle might be more suitable to replace traditional debugging for some tasks than others.
