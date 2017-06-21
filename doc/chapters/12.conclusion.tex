@@ -1,6 +1,10 @@
 \section{Conclusion}
-In this paper, we presented RxFiddle, a debugger for reactive programs using RxJS. With RxFiddle developers can see the run-time data flow structure of their application and the events that go through these flows. We show that RxFiddle is an alternative for traditional debugging and in some cases outperforms traditional debugging in terms of time spend.
+We presented our research of debugging reactive programs, where we show that the current practice is \printfdebugging{}. To provide an alternative we design RP debugging. We created the RxFiddle implementation, a debugger for reactive programs using RxJS. With RxFiddle developers can see the run-time data flow structure of their application and the events that go through these flows. We show that RxFiddle is an alternative for traditional debugging and in some cases outperforms traditional debugging in terms of time spend. We plan to extend RxFiddle to other members of the Rx-family of languages. Furthermore we want to extend the debugger user interface to scale better and provide even more insight leveraging already captured meta data about timing of events.
 
-We plan to extend RxFiddle to other members of the Rx-family of languages. Furthermore we want to extend the debugger user interface to scale better and provide even more insight leveraging already captured meta data about timing of events.
+In this paper, we make the following concrete contributions:
+\begin{itemize}
+\item[(1)] Design of a RP debugger
+\item[(2)] The implementation of the debugger for RxJS, and the service RxFiddle.net, a platform for the debugger in an online environment with code sharing functionality.
+\end{itemize}
 
-RxFiddle is Open Source\footnote{\url{http://github.com/hermanbanken/RxFiddle}} and other developers are encouraged to add support for more languages. Researchers could use the instrumentation to infer usage information from RP programs or explore new possibilities regarding the visualization.
+The debugger and the platform are open source and are available online at~\cite{rxfiddle-doi}.
