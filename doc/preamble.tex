@@ -1,38 +1,93 @@
-\documentclass[11pt,a4paper]{article}
-\usepackage{graphicx}
-\usepackage{url}
+% THIS IS SIGPROC-SP.TEX - VERSION 3.1
+% WORKS WITH V3.2SP OF ACM_PROC_ARTICLE-SP.CLS
+% APRIL 2009
+\documentclass{acm_proc_article-sp}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{minted}
+\usepackage{lineno}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{epigraph}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{datetime}
+\usepackage{catchfile}
 \usepackage{hyperref}
-\usepackage[top=1.25in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
 
-\hypersetup{ colorlinks=true, linkcolor=cyan, filecolor=cyan,
-urlcolor=cyan, citecolor=cyan, } \urlstyle{same}
+\setlength{\paperheight}{11in}
+\usetikzlibrary{automata,arrows,positioning,calc,fit}
+% \linenumbers
 
-\def\sectionautorefname{section}
+\newcommand{\thesistitle}{Debugging Data-Flows in Reactive Programs}
 
+\makeatletter
+\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{\ref{#1}}\@footnotemark}
+\makeatother
+
+\CatchFileDef{\HEAD}{../.git/refs/heads/master}{}
+\newcommand{\gitrevision}{%
+  \StrLeft{\HEAD}{7}%
+}
+
+\hypersetup{pdftitle={\thesistitle}}
+
+\newcommand{\printfdebugging}{{\code{printf}-debugging}} 
+
+\hyphenation{Ob-serv-ables}
+\hyphenation{Marble}
+\hyphenation{Diagrams}
+\hyphenation{Java-Script}
+\hyphenation{RxFiddle}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% LaTeX Overlay Generator - Annotated Figures v0.0.1
+% Created with http://ff.cx/latex-overlay-generator/
+% If this generator saves you time, consider donating 5,- EUR! :-)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\annotatedFigureBoxCustom{bottom-left}{top-right}{label}{label-position}{box-color}{label-color}{border-color}{text-color}
+\newcommand*\annotatedFigureBoxCustom[8]{\draw[#5,thick,rounded corners] (#1) rectangle (#2);\node at (#4) [fill=#6,thick,shape=circle,draw=#7,inner sep=2pt,font=\sffamily,text=#8] {\textbf{#3}};}
+%\annotatedFigureBox{bottom-left}{top-right}{label}{label-position}
+\newcommand*\annotatedFigureBox[4]{\annotatedFigureBoxCustom{#1}{#2}{#3}{#4}{white}{white}{black}{black}}
+\newcommand*\annotatedFigureText[4]{\node[draw=none, anchor=south west, text=#2, inner sep=0, text width=#3\linewidth,font=\sffamily] at (#1){#4};}
+\newenvironment {annotatedFigure}[1]{\centering\begin{tikzpicture}
+\node[anchor=south west,inner sep=0] (image) at (0,0) { #1};\begin{scope}[x={(image.south east)},y={(image.north west)}]}{\end{scope}\end{tikzpicture}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
-\title{ Thesis Proposal \\
-Visualizing Data-Flows in Reactive Programs }
-\author{ Herman Banken - 4078624
-\vspace{1cm} \\
-TU Delft, Department of Electrical Engineering, \\
-Mathematics and Computer Science }
-\date{\today}
+\title{\thesistitle}
 
-\vfill
+\numberofauthors{3}
+\author{
+\alignauthor
+Herman Banken\\
+       \affaddr{Delft University of Technology, The Netherlands}\\
+       \email{hermanb@ch.tudelft.nl}
+\alignauthor
+Georgios Gousios\\
+       \affaddr{Delft University of Technology, The Netherlands}\\
+       \email{g.gousios@tudelft.nl}
+\alignauthor
+Erik Meijer\\
+       \affaddr{Delft University of Technology, The Netherlands}\\
+       \email{h.j.m.meijer@tudelft.nl}
+}
 
-\begin{figure}[!bp]
-    \centering
-    \begin{minipage}[b]
-        {0.4\textwidth} \includegraphics[width=\textwidth,trim={0 12cm 0
-        10cm 0},clip]{images/tudelft.pdf}
-    \end{minipage}
-    \hfill
-    \begin{minipage}[b]
-        {0.4\textwidth} \includegraphics[width=\textwidth]{images/ordina.png}
-    \end{minipage}
-\end{figure}
+\date{\today} %10 Juli 2017}
+
+\include{cover}
 
 \maketitle
+\begin{abstract}
+\input{chapters/0.abstract}
+\end{abstract}
 
-\clearpage
+% A category with the (minimum) three required fields
+%\category{H.4}{Information Systems Applications}{Miscellaneous}
+%A category including the fourth, optional field follows...
+%\category{D.2.8}{Software Engineering}{Metrics}[complexity measures, performance measures]
+
+\keywords{reactive programming, debugging, visualization, program comprehension} % NOT required for Proceedings
