@@ -2,11 +2,11 @@
 
 \paragraph{RP Debugging} 
 REScala~\cite{salvaneschi2014rescala} is a RP library for Scala, based on Scala.React. 
-Recently a debugger model was created for REScala, called `RP Debugging'~\cite{salvaneschi2016debugging}, 
+Recently a debugger model was created for REScala, called ``RP Debugging''~\cite{salvaneschi2016debugging}, 
 featuring a dependency graph visualization, breakpoints, a query language and performance monitoring.
 The debugger fully integrates with the Eclipse IDE and the Scala debugger facilities, 
 creating an good (Scala) developer experience and a feature RxFiddle currently can not offer: reactive breakpoints. 
-However breakpoints are arguably not as useful as `smart breakpoints' (Section \label{breakpoints}).
+However breakpoints are arguably not as useful as ``smart breakpoints'' (Section \label{breakpoints}).
 Furthermore, our debugger design works with Rx, cross language, and outside of the IDE,
 in the browser environment and/or connecting to a production system.
 Rx has different reactive semantics and a more powerful, but also more extensive API, which includes operators acting in the time domain (\code{delay}, etc.).
@@ -22,14 +22,14 @@ Moroshko takes a similar approach but uses code instead of prepared inputs.
 Where RxMarbles is limited to non higher order flows, RxViz subscribes to all inner Observables when it detects an higher order Observable showing them concurrently.
 Contrarily to our work, these tools focus only on learning single operators.
 
-\paragraph{Omniscient Debugging} Omniscient debuggers~\cite{pothier2009back} are `all-knowing debuggers', 
+\paragraph{Omniscient Debugging} Omniscient debuggers~\cite{pothier2009back} are ``all-knowing debuggers'', 
 they trace, store and query all events in a programs execution.
 When storing vasts amount of program execution information, performance and efficiency becomes very much a problem and research in omniscient debuggers focus on this specifically.
 We also trace events of the entire execution, however in contrast to omniscient debuggers we only store trace events regarding RP data flows.
 The RP semantics allow us to create future optimizations, for example retaining only the active flow structure, while the flow's data is kept in a rolling buffer.
 
 \paragraph{Dynamic Analysis.}
-The study of program execution is called `dynamic analysis'~\cite{cornelissen2009systematic}.
+The study of program execution is called ``dynamic analysis''~\cite{cornelissen2009systematic}.
 In most cases dynamic analysis involves a \textit{post mortem} analysis, 
 where first the program is run, collecting an execution trace, and then the trace data is analyzed to create a visualization.
 The various derived visualizations, like class and instance interaction graphs, function invocation histories~\cite{lange1995program}, invocation views and sequence diagrams~\cite{cornelissen2008execution} show the possibility to use trace information for debugging.
@@ -80,9 +80,9 @@ while developers spend much time on comprehending code they do not spend much ti
 Beller et al.~\cite{beller2017behavior} found that only 23\% of their subjects actively use the IDE's debugger,
 with the most common action being adding breakpoints, followed by stepping through code.
 The automated tooling of these studies did not measure different kinds of debugging other than using the IDE provided tools, 
-however Beller's survey indicates that 71\% also uses printf statements for debugging.
+however Beller's survey indicates that 71\% also uses \code{printf} statements for debugging.
 No indication was given of any RP language and libraries used by the subjects in the study, 
-but the observation that printf debugging is common matches our experience with debugging reactive programs.
+but the observation that \printfdebugging{} is common matches our experience with debugging reactive programs.
 
 % What comprises debugging?
 % \item Maybe Zeller / Spinellis?
@@ -101,7 +101,7 @@ part of creating and comprehending programs.
 Maalej et al.~\cite{Maalej2014} interviewed professional developers 
 and found that developers require runtime information to understand a program,
 and that debugging is frequently used to gather this runtime information.
-This supports our view that `debugging' is not only used for fault localization,
+This supports our view that debugging is not only used for fault localization,
 but also for comprehension.
 
 % \item Katz, distinct step

@@ -5,7 +5,7 @@
 Reactive Programming (RP) is a declarative programming paradigm for working with streams of input data. 
 According to the first definition\footnote{
 ``Reactive programs [..] maintain a continuous interaction with their environment, at a speed which is determined by the environment, not the program itself.''~\cite{berry1989real}
-} a reactive program must interact with the environment `at a speed which is determined by the environment'.
+} a reactive program must interact with the environment ``at a speed which is determined by the environment''.
 Conceptually, when a reactive program is run, it sets up a data pipeline and waits until input arrives when the environment changes.
 Reactive Programming languages and libraries provide developers with a set of abstractions and methods to create such programs.
 
@@ -56,7 +56,7 @@ Creating this specification is called the \emph{assembly} phase. In the code sam
 
 \paragraph{Runtime} After the root Observables are subscribed to, they can start emitting data. This is the \emph{runtime} phase. Depending on the nature of the Observable this might attach event listeners to UI elements, open network connections or start iterating over a list of elements. Events are pushed to $s_3$, to $s_2$ and finally to $s_1$ which calls \code{console.log} in Figure \ref{sample1}. 
 
-Rx identifies three types of events that can occur during the runtime phase: `next', `error' and `complete'-events. Next-events contain the next value in the flow, an error-event encapsulates an error and is a unsuccessful termination to a stream, while a complete-event denotes the successful termination of the stream. There are restrictions on their order: a Observable may first emit an unlimited amount of next-events, and then either an error or a complete event. Observables do not need to emit any next-events, and do not need to terminate.
+Rx identifies three types of events that can occur during the runtime phase: \emph{next}, \emph{error} and \emph{complete}-events. Next-events contain the next value in the flow, an error-event encapsulates an error and is a unsuccessful termination to a stream, while a complete-event denotes the successful termination of the stream. There are restrictions on their order: a Observable may first emit an unlimited amount of next-events, and then either an error or a complete event. Observables do not need to emit any next-events, and do not need to terminate.
 
 More complex programs feature operators that merge Observables\footnote{
 	\code{concat}, \code{merge}, \code{combineLatest}, \code{zip}
