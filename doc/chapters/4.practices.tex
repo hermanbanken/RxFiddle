@@ -36,37 +36,37 @@ The fifth developer (D5) works in Company B, and is concerned with building and 
 In the following paragraphs we discuss the results of Q6-Q10 in detail. Not every subject answered each question in the same amount of detail, so we discuss the answers that provide meaningful insights in the current practice.
 
 \paragraph{Testing}
-Of the 4 subjects of Company A none performed tests specifically for Rx logic. \emph{Just running the application}, is enough according to D3, saying that they only test the business logic in their application and consider the Rx code as ``glue''' which either works or does not work. In contrast, D5 and his team at Company B extensively tests their application using the Rx' built-in test facilities like ``marble tests'' and the \code{TestScheduler}. Using tests, the subject \emph{confirms his believes about the behavior} of the chain of operators, and test also help later on when refactoring the code.
+Of the 4 subjects of Company A none performed tests specifically for Rx logic. \emph{``Just running the application''}, is enough according to D3, saying that they only test the business logic in their application and consider the Rx code as ``glue''' which either works or does not work. In contrast, D5 and his team at Company B extensively tests their application using the Rx' built-in test facilities like ``marble tests'' and the \code{TestScheduler}. Using tests, the subject \emph{confirms his believes about the behavior} of the chain of operators, and test also help later on when refactoring the code.
 
 \paragraph{Debugging}
 All subjects independently mention using temporary \printfdebugging{} statements (\code{console.log} in JavaScript).
 Subjects use \printfdebugging{} to \emph{``add more context''} (D1) to their debug sessions. 
-Printing which values flow through the flow allows them to ``quickly reason what happens'' (D3). 
+Printing which values flow through the flow allows them to \emph{``quickly reason what happens''} (D3). 
 Breakpoints are only used when the project requires costly recompilation otherwise (D1).
 Existing debuggers often can not be used to inspect the life-cycle of Observables (subscription and disposal),
 as these occurrences are not normally defined in user code and would require breakpoints in library code, 
 like the \code{subscribe}-method, which is used by all class instances of Observable. 
-This debugging inside the Rx library was described as ``painful'', by D2 when using the NodeJS debugger to step through the inners of Rx.
+This debugging inside the Rx library was described as \emph{``painful''}, by D2 when using the NodeJS debugger to step through the inners of Rx.
 Alternatives used by our subjects are (1) creating a \emph{custom \code{debug} operator} which prints these life-cycle events (D5) or (2) creating custom Observables (\code{Observable.create}) with \emph{custom subscribe and dispose methods}, inserted at the beginning of the chain, that print upon their usage (D2, D5).
 While \printfdebugging{} and breakpoints are useful in various degrees when executing a single Observable chain,
-these methods both become considerably more difficult and ``overview is easily lost'' when executing multiple chains concurrently (D3, D5).
+these methods both become considerably more difficult and \emph{``overview is easily lost''} when executing multiple chains concurrently (D3, D5).
 
 \paragraph{Documentation}
 Subjects give different reasons to visit the documentation, but the most common reason is to \emph{``find an operator for what I need''} (D1). They feel that there might be an operator that precisely matches their needs, however knowing all operators by heart is not common (the Rx's Observable API has 28 static methods and 114 instance methods), therefore subjects sometimes end up doing an extensive search for some specific operator. Another reason to visit the documentation is to \emph{comprehend how operators in existing code work}. For this subjects use the marble diagrams at \href{http://rxmarbles.com}{RxMarbles.com} (D2, D5), the RxJS 4 documentation at \href{https://github.com/Reactive-Extensions/RxJS/blob/master/doc/}{GitHub} (D2, D5), the RxJS 5 documentation at \href{http://reactivex.io/rxjs}{ReactiveX.io} (D1, D4, D5) and the online book \href{http://introtorx.com}{IntroToRx.com}~\cite{introtorx} (D4). D1 specifically mentions the need for more examples in the documentation.
 
 \paragraph{Difficulties experienced}
-The IDE does not help with developing Rx (D2, D4); according to D4 ``Rx is more about timing than about types'', and ``You miss some sort of indication that the output is what you expect''. It is not allways clear what happens when you execute a piece of code, ``mostly due to Observables sometimes being lazy'' (D2).
+The IDE does not help with developing Rx (D2, D4); according to D4 \emph{``Rx is more about timing than about types''}, and \emph{``You miss some sort of indication that the output is what you expect''}. It is not allways clear what happens when you execute a piece of code, ``mostly due to Observables sometimes being lazy'' (D2).
 Flows are clear and comprehensible in the scope of a single class or function, but for application wide flows it becomes unclear (D3, D4 and D5). D3 mostly used RxScala and mentions that creating micro services helps in this regard.
-D1 mentoins that ``you need to know a lot as a starting {\lbrack}rxjs{\rbrack} developer'', giving the example of the many ways to cleanup and \code{unsubscribe}, which he did manually initially. D1 used both logging while analyzing existing code and learning to overcome inexperience.
+D1 mentoins that \emph{``you need to know a lot as a starting {\lbrack}rxjs{\rbrack} developer''}, giving the example of the many ways to cleanup and \code{unsubscribe}, which he did manually initially. D1 used both logging while analyzing existing code and learning to overcome inexperience.
 
 \paragraph{Approach to understanding}
 Subjects first \emph{look which operators are used},
 then they \emph{reason about what types and values might flow through the stream} (D2, D3, D4 and D5), using varous methods.
 By analysing the variable names D2 forms an expectation of the resulting value types, then reasoning backwards, to see how this data is derived.
 \emph{Running the code}, is used when possible by D5, to observe the outcome of the stream, as this ``shows the intentions of the original developer''.
-If it then remains unclear how the data is transformed, the subject adds his \code{debug} operator or looks up operators in the documentation.  
+If it remains unclear how the data is transformed, the subject adds his \code{debug} operator or looks up operators in the documentation.  
 
-\subsection{Literature and written work}
+\subsection{Analysis of Literature}
 Developers can learn Rx through several sources such as the official documentation at \href{http://reactivex.io}{ReactiveX.io}, books, online courses and from the many blog posts available. We gathered resources to be analyzed by selecting 4 popular books about Rx, and complement this with the official documentations and an article by a core contributor of RxJS.
 All reviewed resources either mention debugging briefly and suggest using the \code{do} operator for \printfdebugging{}, or teach the developer \printfdebugging{} via code samples. 
 
@@ -75,22 +75,16 @@ The RxJS 4 documentation\footnote{
 } and two books~\cite{esposito2016reactive,rxjavabook2016} propose the use of the \code{do} operator for debugging. Esposito and Ciceri~\cite{esposito2016reactive} further explain how to best format the log statements and introduce ways to limit the logging by modifying the Observable through means of throttling and sampling. The RxJava book~\cite{rxjavabook2016} also contains tips to use the various \code{do} operators to integrate with existing metric tools.
 To our knowledge the only article addressing issues of debugging Rx is by Staltz, one of the contributors of RxJS\footnote{\url{http://staltz.com/how-to-debug-rxjs-code.html}}, noting that conventional debuggers are not suitable for the higher level of abstraction of Observables. Staltz explains three current ways to debug Rx, being: (1) tracing to the console, (2) manually drawing the dependency graph, (3) manually drawing marble diagrams.
 
-In an small exploratory study we analyzed a set of 13 books about RxJS, which was created by selecting 69 books matching ``RxJS'' from the O'Reilly Safari catalogus\footnote{www.safaribooksonline.com}, and further reducing the set by filtering on terms like ``debugger'' and ``debug''. While, none of the remaining books had a chapter about debugging, many of these books use \printfdebugging{} in their code samples. Notably, \cite{frpbook2016} suggests in a ``Future Directions'' chapter, that special debuggers could provide a graphical representation of FRP state over time and would allow debugging without stepping into the FRP engine.
+We analyzed a set of 13 books about RxJS, which was created by selecting 69 books matching ``RxJS'' from the O'Reilly Safari catalogue\footnote{www.safaribooksonline.com}, and further reducing the set by filtering on terms like ``debugger'' and ``debug''. While, none of the remaining books had a chapter about debugging, many of these books use \printfdebugging{} in their code samples. Notably, \cite{frpbook2016} suggests, in a ``Future Directions'' chapter, that special debuggers could provide a graphical representation of FRP state over time and would allow debugging without stepping into the FRP engine.
 
-%We note that \printfdebugging{} requires changing to the code, requiring (possibly recompilation and) re-execution when a different part of the flow needs to be inspected.
-
-%However, \cite{frpbook2016} predicts in their ``Future Directions'' chapter, that future debuggers ``could provide a graphical representation of FRP state over time. They would allow us to debug FRP logic without stepping into the FRP engine implementation''.
-% We extended our selection with two popular books about other implementations,namely Rx.NET~\cite{esposito2016reactive} and RxJava~\cite{rxjavabook2016}. Of the selec
-% functionalphp, frpbook2016
-
-\subsection{Practices}
+\subsection{Overview of practices}
 The available literature matches the results of the interviews: \printfdebugging{} is commonly advised and used. While the conventional debugger works in some cases, this is mostly the case for the procedural logic that interleaves Rx logic. Automated tooling is suggested, but is not implemented. We see that developers use \printfdebugging{} to learn the behavior of Observables, behavior meaning both their values flowing through and their (one or many) subscriptions. 
 
-Furthermore, we identify different goals for Rx debugging:
+Overall, we identified 4 overarching practices when debugging Rx code:
 \begin{enumerate}
 \itemsep0em 
-\item[(1)] finding bugs and issues in reactive behavior,
-\item[(2)] comprehending behavior of operators in existing code,
-\item[(3)] understanding dependencies between Observables and
-\item[(4)] gaining high-level overview of the reactive structure.
+\item[(1)] gaining high-level overview of the reactive structure,
+\item[(2)] understanding dependencies between Observables,
+\item[(3)] finding bugs and issues in reactive behavior and
+\item[(4)] comprehending behavior of operators in existing code.
 \end{enumerate}
