@@ -6,15 +6,16 @@ d = read.arff("/Users/hbanken/Dropbox/Afstuderen/interviews/analyze experiment/c
 
 samples <- c("generate", "bmi", "time", "imdb")
 wc <- sapply(samples, function (x) {
-  print(x)
-  name <- paste("sample_",x,"_t_correct", sep="")
-  print(wilcox.test(d[,name]~(d$mode=="console")))
+  column <- paste("sample_",x,"_t_correct", sep="")
+  dc <- subset(d, !is.na(d[[column]]))
+  print(paste(x, ": n = ", nrow(dc)))
+  print(wilcox.test(dc[[column]]~(dc$mode=="console")))
   delta <- cliffs.d(
-    na.omit(subset(d, mode=="console")[,name]),
-    na.omit(subset(d, mode=="rxfiddle")[,name])
+    subset(dc, mode=="console")[,column],
+    subset(dc, mode=="rxfiddle")[,column]
   )
-  print(paste("N_console", length(na.omit(subset(d, mode=="console")[,name]))))
-  print(paste("N_rxfiddle", length(na.omit(subset(d, mode=="rxfiddle")[,name]))))
+  print(paste("N_console", length(subset(dc, mode=="console")[,column])))
+  print(paste("N_rxfiddle", length(subset(dc, mode=="rxfiddle")[,column])))
   print(paste("Cliffs delta: ", delta))
 })
 
