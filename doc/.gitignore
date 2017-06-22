@@ -5,4 +5,8 @@
 *.out
 *.fmt
 *.bak
+*.bcf
+*-blx.bib
 _minted-paper
+paper.run.xml
+papers/references.bib.sav
