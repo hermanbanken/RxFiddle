@@ -4,7 +4,7 @@ We recommend developers to try RxFiddle on their codebase to better understand t
 and potentially detect and verify (performance) bugs they are not aware of.
 At least one example of this has already occurred in practice:
 one of our interview subjects reported a bug\footnote{\url{https://github.com/ReactiveX/rxjs/issues/2661}} in the \code{groupBy} implementation of RxJS,
-which resulted in retention of subscriptions, increased memory usage and finally an out-of-memory exception;
+which resulted in retention of subscriptions, increased memory usage and finally led to an out-of-memory exception;
 the subject detected the bug in practice and required extensive amount of debugging involving the NodeJS debugger to trace down,
 but could be validated quickly when examining the life-cycle events in RxFiddle.
 
