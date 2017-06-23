@@ -142,13 +142,13 @@ different language and platform.
     \resizebox{\textwidth}{!}{%
 \begin{tabular}{|l|l|}
         \hline
-        addObservable(id, sourceIds)                                    & Adds a Observable node, with zero or more source Observable's                                    \\ 
+        \code{addObservable(id, sourceIds)}                             & Adds a Observable node, with zero or more source Observable's                                    \\ 
         \hline
-        addObserver(id, observableId, destinationId)                    & \begin{tabular}[c]{@{}l@{}}Add a Observer, observableId denotes the Observable it subscribed to, \\ 
-        optional destinationId adds an edge to the destination Observer
+        \code{addObserver(id, observableId, destinationId)}             & \begin{tabular}[c]{@{}l@{}}Add a Observer, \code{observableId} denotes the Observable it subscribed to, \\ 
+        optional \code{destinationId} adds an edge to the destination Observer
     \end{tabular} \\
     \hline
-    addOuterObserver(observerId, outerDestination)      &
+    \code{addOuterObserver(observerId, outerDestination)}      &
     \begin{tabular}[c]
         {@{}l@{}}Create a special edge between an existing Observer and
         the higher order \\
@@ -158,13 +158,13 @@ different language and platform.
     \hline
     addEvent(observerId, type, optionalValue) &
     \begin{tabular}[c]
-        {@{}l@{}}Add an event to the Observer denoted by observerId, of
+        {@{}l@{}}Add an event to the Observer denoted by \code{observerId}, of
         type (next, error, complete), \\
         optionally with a value (for next / error events).
     \end{tabular}
     \\
     \hline
-    addMeta(id, metadata) & Add meta data such as the method call which
+    \code{addMeta(id, metadata)} & Add meta data such as the method call which
     created an Observable.  \\
     \hline
 \end{tabular}
