@@ -1,0 +1,13 @@
+\subsection{Implications}
+The developers using Rx in practice now have an alternative to \printfdebugging{}. 
+We recommend developers to try RxFiddle on their codebase to better understand the reactive behavior of their applicatoin, 
+and potentially detect (performance) bugs they are not aware of.
+At least example of this has already occurred in practice:
+we helped one of our interview subjects with a bug\footnote{\url{https://github.com/ReactiveX/rxjs/pull/2662}} in the \code{groupBy} implementation of RxJS,
+which resulted in retention of subscriptions, increased memory usage and finally an out-of-memory exception;
+the bug was detected in practice and required extensive amount of debugging involving the NodeJS debugger to trace down, 
+but could be validated quickly by examining the life-cycle events in RxFiddle.
+
+Contributors of RP libraries should use tools like the RxFiddle visualizer in documentation to provide executable samples,
+which would allow for a better learning experience, 
+and at the same time introduces novice developers to other ways of debugging than \printfdebugging{}.

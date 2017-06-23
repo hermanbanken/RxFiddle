@@ -1,8 +1,25 @@
-\section{Threads to validity}
+\section{Threats to validity}
+\paragraph{External validity}
+For the interviews we selected 5 professional developers that were both available and worked on projects involving RxJS. 
+The online experiment was open to anyone who wanted to participate, and shared publicly. These recruitment channels pose a threat to generalizability: different practices might exist in different companies, different developer communities and for different RP implementations \& languages. Future work is needed on validating the debugger in these different contexts.
 
-\todo{look at \url{http://ieeexplore.ieee.org/document/7476654/\#full-text-section}}
-\todo{look at Contributors paper of Gousios}
+Our code samples for the tasks are based on documentation samples and common use cases for Rx; RxFiddle might perform different on actual samples from practice, especially when the developer is familiar with the project or domain. The experiment consists of 2 small and 2 medium tasks; for larger tasks the effect of using the debugger could be bigger and therefore be better measurable. Still, we chose for these smaller tasks: in the limited time of the subjects they could answer only so many questions. With the limited amount of time available, we still show that a significant speed-up can be achieved in some cases. We leave it for future work to extend the experiment to include user code \& larger systems.
 
-\textbf{Subjects.} The online experiment was open to anyone who wanted to participate. As a result a mixed group of developers took part, even those without Rx experience. The total amount of participants filling in the preliminary survey for the experiment was larger than the group finishing the experiment and some participants stopped during the tasks. We only consider results from fully completed tasks.
+\paragraph{Construct validity}
+We measure the time between the moment a question is displayed and the moment its correct answer is submitted. Even though our questions and code samples are short and were designed to be read quickly, still some variation is introduced by different reading speeds of subjects. 
+A setup where the question and code can be read before the time is started can remedy this threat; but introduces the problem of \emph{planning} when given unlimited time~\cite{ko2015practical}: subjects can start planning their solution before the time starts.
+Furthermore, subjects might have different strategies to validate their (potentially correct) assumptions before submitting, ranging from going over the answer once more, to immediately testing the answer by submitting it. However, explicitly stating that invalid answers do not lead to penalty might introduce more guessing behavior. Future studies could use longer tasks, with preparation time to read the sample software at hand, with a wizard-like experiment interface presenting one short question at a time.  
 
-\textbf{Tasks.} The experiment consists of 2 small and 2 medium tasks, so the results of the experiment might not necessarily generalize to debugging RP in practice with larger systems. For larger tasks the effect of using the debugger could be bigger and therefore be better measurable. Still, we chose for these smaller tasks: in the limited time of the subjects they could answer only so many questions. With the limited amount of time available, we still show that a significant speed-up can be achieved in some cases. We leave it for future work to extend the experiment to include larger systems.
+\paragraph{Internal validity}
+As a result of the recruitment method of the experiment, a mixed group of developers took part, attracting even those without Rx experience. To reduce the variation in experience that this introduces, we separately examined the results of more experienced developers.
+
+At the time of the experiment RxFiddle was already available online for use, and furthermore some of the experiment subjects had already used RxFiddle during piloting. We mitigate this issue partially by providing a instruction video at the start of the experiment, however subjects with extensive experience with RxFiddle might bias the results.
+
+The \emph{subject-expectancy effect}~\cite{ko2015practical} poses a validity concern, as subjects who expect a certain outcome may behave in a way that ensures it. Our subjects had the opportunity to learn the context of the experiment and thus could be more motivated to use RxFiddle than using the traditional debugger. Our online experiment captures motivation to some extend as drop-out (not completing all tasks) happens; the approximately equal drop-out in both groups (RxFiddle 58.1\%, Console 58.5\%, Fisher's exact test p-value $1$), suggests no motivational differences. Future studies could offer subject external motivation (e.g. by ranking contenders or offering prizes), to limit the threats introduced by motivation.
+
+% \todo{look at \url{http://ieeexplore.ieee.org/document/7476654/\#full-text-section}}\\
+% \todo{look at Contributors paper of Gousios}\\
+
+% \textbf{Tasks.} 
+
+% However, we want RP debugging to be accessible for novice developers too; as the visualization techniques can be embedded in documentation. 

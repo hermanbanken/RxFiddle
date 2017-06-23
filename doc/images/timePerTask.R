@@ -9,9 +9,13 @@ require(ggplot2)
 require(foreign)
 library(easyGgplot2)
 library(stringr)
+library(gridExtra)
+library(grid)
 
 # Load
 d = read.arff("~/Dropbox/Afstuderen/interviews/analyze experiment/current.arff")
+#d <- subset(d, !is.na(sample_imdb_t_correct))
+
 
 ggplot(d, aes(x = type, y = years_rp)) + geom_boxplot()
 median(d$years_pr, na.rm=TRUE)
@@ -37,7 +41,6 @@ timePerTask <- function(d) {
     
     sequential <- rbind(sequential, nextF)
   }
-  
   # Plot
   plot <- ggplot2.boxplot(data=sequential,
                   yName="t_correct",
@@ -60,16 +63,20 @@ dev.off()
 #+ stat_summary(fun.data = n_fun, geom = "text"),
 
 pdf("~/Documents/thesis/doc/images/timePerTaskSplit.pdf", width=15, height=20)
-
 grid_arrange_shared_legend(
-  timePerTask(subset(d, years_rp <= 1)) + ggtitle(paste("years exp rp <= 1 (n = ", nrow(subset(d, years_rp <= 1)), ")", sep="")),
-  timePerTask(subset(d, years_rp > 1)) + ggtitle(paste("years exp rp > 1 (n = ", nrow(subset(d, years_rp > 1)), ")", sep="")),
-  timePerTask(subset(d, exp_rp <= 2)) + ggtitle(paste("exp rp < 'beginner' (n = ", nrow(subset(d, exp_rp <= 2)), ")", sep="")),
-  timePerTask(subset(d, exp_rp > 2)) + ggtitle(paste("exp rp >= 'beginner' (n = ", nrow(subset(d, exp_rp > 2)), ")", sep="")),
-  timePerTask(subset(d, type == "controlled")) + ggtitle(paste("type = controlled (n = ", nrow(subset(d, type == "controlled")), ")", sep="")),
-  timePerTask(subset(d, type == "online")) + ggtitle(paste("type = online (n = ", nrow(subset(d, type == "online")), ")", sep="")),
+  timePerTask(subset(d, years_rp <= 1)) + ggtitle(paste("years exp rp <= 1", sep="")),
+  timePerTask(subset(d, years_rp > 1)) + ggtitle(paste("years exp rp > 1", sep="")),
+  timePerTask(subset(d, exp_rx <= 2)) + ggtitle(paste("exp rx <= 'beginner'", sep="")),
+  timePerTask(subset(d, exp_rx > 2)) + ggtitle(paste("exp rx > 'beginner'", sep="")),
+  timePerTask(subset(d, type == "controlled")) + ggtitle(paste("type = controlled", sep="")),
+  timePerTask(subset(d, type == "online")) + ggtitle(paste("type = online", sep="")),
   ncol=2, nrow=3)
-
-plot
 dev.off()
+
+pdf("~/Documents/thesis/doc/images/timePerTaskRx.pdf", width=6, height=3)
+timePerTask(subset(d, exp_rx > 2))
+dev.off()
+# tryout
+# timePerTask(subset(d, years_rp <= 1)) + ggtitle(paste("years exp rp <= 1 (n = ", nrow(subset(d, sample_imdb_tries > 0)), ")", sep=""))
+
 

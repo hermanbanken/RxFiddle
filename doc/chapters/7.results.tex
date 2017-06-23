@@ -1,6 +1,14 @@
 \subsection{Results}
+The online experiment was performed outside of our control, and some participants quit the experiment prematurely. In total we had 105 subjects starting the survey, of those 93 completed the preliminary questionnaire, and 84, 71, 65, and 56 subjects started respectively T1, T2, T3 and T4. All of the subjects in the offline setting started all tasks. Figure~\ref{fig:resultPerTask} shows the outcome of the tasks. In the remainder of this section we consider only the \emph{Correct} outcomes.
+
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{images/resultPerTask.pdf}
+\caption{Task outcome per group (RxFiddle/Console) and environment (online/offline)}
+\label{fig:resultPerTask}
+\end{figure}
+
 \paragraph{Overall}
-Figure \ref{fig-timePerTask} shows the time until the correct answer was given per task. Here we consider both the results from the offline experiment as the online experiment. We make no assumptions about the underlying distribution so we perform a non-parametric Wilcoxon Mann-Whitney U test (\textit{$H_0$: times for the Console group and RxFiddle group are drawn from the same population}) to see if the differences are significant, and a Cliffs delta test for ordinal data to determine the effect size.
+Figure \ref{fig:timePerTask} shows the time until the correct answer was given per task. Here we consider both the results from the offline experiment as the online experiment. We make no assumptions about the underlying distribution so we perform a non-parametric Wilcoxon Mann-Whitney U test (\textit{$H_0$: times for the Console group and RxFiddle group are drawn from the same population}) to see if the differences are significant, and a Cliffs delta test for ordinal data to determine the effect size.
 
 \begin{centering}
 \input{tables/wilcoxonPerTask}
@@ -11,11 +19,21 @@ For the tasks T1, T2 and T4 we can not reject $H_0$ ($p > 0.05$), meaning the \e
 
 \begin{figure}[t]
 \includegraphics[width=\columnwidth]{images/timePerTask.pdf}
-\caption{Time until correct answer per task}
-\label{fig-timePerTask}
+\caption{Time until correct answer per task, overall}
+\label{fig:timePerTask}
 \end{figure}
 
 \paragraph{Control for experience}
-To investigate this further, we split the results for different groups of subjects, as shown in Figure \ref{fig-timePerTaskSplit}.  When we control for years of RP experience and the self-assessed RP experience (splitting at the median values, inclusive) we see bigger differences for all tasks for groups with more experience. This indicates that the visualization might be less suitable for inexperienced subjects.
+To investigate this further, we split the results for different groups of subjects, as shown in Figure \ref{fig:timePerTaskRx}.  When we control for the self-assessed Rx experience (splitting at the median value; greater than ``Beginner''-level) we see bigger differences for all tasks for groups with more experience, as shown in Figure~\ref{fig:timePerTaskRx} and the following table.
 
-Even while regarding more experienced subjects, the effect is still most significant for T3. We think that RxFiddle might be more suitable to replace traditional debugging for some tasks than others.
+\begin{centering}
+\input{tables/wilcoxonPerTaskRx}
+\end{centering}
+
+\begin{figure}[t]
+\includegraphics[width=\columnwidth]{images/timePerTaskRx.pdf}
+\caption{Time until correct answer per task, for subjects with more than ``Beginner''-level of experience with Rx}
+\label{fig:timePerTaskRx}
+\end{figure}
+
+Still, for tasks T1, T2, and T4 we can not reject $H_0$, but the results are more significant comparing only experienced subjects.

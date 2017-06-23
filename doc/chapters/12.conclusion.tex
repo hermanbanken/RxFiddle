@@ -1,5 +1,9 @@
 \section{Conclusion}
-We presented our research of debugging reactive programs, where we show that the current practice is \printfdebugging{}. To provide an alternative we design RP debugging. We created the RxFiddle implementation, a debugger for reactive programs using RxJS. With RxFiddle developers can see the run-time data flow structure of their application and the events that go through these flows. We show that RxFiddle is an alternative for traditional debugging and in some cases outperforms traditional debugging in terms of time spend. We plan to extend RxFiddle to other members of the Rx-family of languages. Furthermore we want to extend the debugger user interface to scale better and provide even more insight leveraging already captured meta data about timing of events.
+Observing the current debugging practices, this work shows the prevalent method for RP debugging of \printfdebugging{}.
+To provide a better alternative, we have created a debugger design for RP and presented the RxFiddle implementation, a RP debugger for RxJS, which allows developers to: (1) gain a high-level overview of the reactive data flow structure, (2) investigate the values and life-cycle of a specific data flow, at run-time.
+
+Through an experiment we show that RxFiddle is an viable alternative for traditional debugging and in some cases outperforms traditional debugging in terms of time spend. There are several promising directions for improving our current design. 
+Specifically scalability could be improved and different edge visualizations could be explored, to improve the usability of the tool. Furthermore, even more insight could be provided leveraging already captured meta data about timing of events. At the implementation level, we plan to extend RxFiddle to other members of the Rx-family of languages.
 
 In this paper, we make the following concrete contributions:
 \begin{itemize}
