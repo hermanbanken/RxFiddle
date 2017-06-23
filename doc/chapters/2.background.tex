@@ -32,9 +32,9 @@ and \emph{Observer}.  Observables define the data flow and produce the
 data while Observers receive the data, possibly moving the data further
 down the stream.  Figure%
 \ref{sample1} shows a very basic example of an ``in situ'' data flow in
-Rx.  Initially, an Observable is created, here using the static \code{of}
+Rx.  Initially, an Observable is created, here using the static \code{of}-%
 method, then dependent Observables are created using the \code{map} and
-\code{filter} methods on the Observable instance.  Finally we \code{subscribe}
+\code{filter}-methods on the Observable instance.  Finally we \code{subscribe}
 to start the data flow and send the data in the flow to the console.
 
 \begin{figure*}[ht!]
@@ -76,7 +76,7 @@ of Figure%
 $ o_2 $ and $ o_3 $ from Figure%
 \ref{chaincreate}.
 
-\paragraph{Subscription} When the \code{subscribe} method of an
+\paragraph{Subscription} When the \code{subscribe}-method of an
 Observable is called, the data flow is prepared by recursively
 subscribing ``up'' the stream:  every subscribe call creates an \emph{Observer},
 that is passed to the input Observable, which again subscribes an

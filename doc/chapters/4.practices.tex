@@ -78,11 +78,11 @@ Observables (subscription and disposal), as these occurrences are not
 normally defined in user code and would require breakpoints in library
 code, like the \code{subscribe}-method, which is used by all class
 instances of Observable.  This debugging inside the Rx library was
-described as \emph{``painful''}, by D2 when using the Node.js debugger
+described as \emph{``painful''} by D2, when using the Node.js debugger
 to step through the inners of Rx.  Alternatives used by our subjects are
 (1) creating a \emph{custom \code{debug} operator} which prints these
 life-cycle events (D5) or (2) creating custom Observables (\code{Observable.create})
-with \emph{custom subscribe and dispose methods}, inserted at the
+with \emph{custom \code{subscribe}- and \code{dispose}-methods}, inserted at the
 beginning of the chain, that print upon their usage (D2, D5).  While
 \printfdebugging{} and breakpoints are useful in various degrees when
 executing a single Observable chain, these methods both become
@@ -97,7 +97,7 @@ not common (the Rx's Observable API has 28 static methods and 114
 instance methods), therefore subjects sometimes end up doing an
 extensive search for some specific operator.  Another reason to visit
 the documentation is to \emph{comprehend how operators in existing code
-work}.  For this subjects use the marble diagrams at \href{http://rxmarbles.com}
+work}.  For this, subjects use the marble diagrams at \href{http://rxmarbles.com}
 {RxMarbles.com}~\cite{rxmarbles} (D2, D5), the RxJS 4 documentation at
 \href{https://github.com/Reactive-Extensions/RxJS/blob/master/doc/} {GitHub}
 (D2, D5), the RxJS 5 documentation at \href{http://reactivex.io/rxjs} {ReactiveX.io}~\cite
