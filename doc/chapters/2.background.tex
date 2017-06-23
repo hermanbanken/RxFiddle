@@ -22,7 +22,7 @@ In this paper, we focus on the Rx formulation, but our work is applicable to oth
 Understanding how we arrive at our visualization requires a minimal understanding of Rx.
 Rx introduces two basic types \emph{Observable} and \emph{Observer}. Observables define the data flow and produce the data while Observers receive the data, possibly moving the data further down the stream. Figure \ref{sample1} shows a very basic example of an ``in situ'' data flow in Rx. Initially, an Observable is created, here using the static \code{of} method, then dependent Observables are created using the \code{map} and \code{filter} methods on the Observable instance. Finally we \code{subscribe} to start the data flow and send the data in the flow to the console.
 
-\begin{figure*}[h!]
+\begin{figure*}[ht!]
 \centering
 
 \begin{subfigure}[t]{\columnwidth}

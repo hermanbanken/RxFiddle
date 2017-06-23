@@ -5,25 +5,25 @@ REScala~\cite{salvaneschi2014rescala} is a RP library for Scala, based on Scala.
 Recently a debugger model was created for REScala, called ``RP Debugging''~\cite{salvaneschi2016debugging}, 
 featuring a dependency graph visualization, breakpoints, a query language and performance monitoring.
 The debugger fully integrates with the Eclipse IDE and the Scala debugger facilities, 
-creating an good (Scala) developer experience and a feature RxFiddle currently can not offer: reactive breakpoints. 
-However breakpoints are arguably not as useful as ``smart breakpoints'' (Section \label{breakpoints}).
-Furthermore, our debugger design works with Rx, cross language, and outside of the IDE,
+creating a (Scala) developer experience and a feature RxFiddle currently can not offer: reactive breakpoints. 
+However breakpoints are arguably not as useful as ``simulated breakpoints'' (Section \ref{breakpoints}, \nameref{breakpoints}).
+Furthermore, our debugger design support multiple languages, and works outside of the IDE,
 in the browser environment and/or connecting to a production system.
 Rx has different reactive semantics and a more powerful, but also more extensive API, which includes operators acting in the time domain (\code{delay}, etc.).
-Therefore we argue that seeing the many values in a flow over time is very valuable and we use Marble Diagrams to show this, 
-while RP Debugging only shows the latest values at the selected time.
+Therefore, we argue that seeing the many values in a flow over time is very valuable; 
+RP Debugging shows the latest values at the selected time.
 
 \paragraph{RP Visualization} 
 RxMarbles~\cite{rxmarbles} visualizes single Rx operators, for the purpose of learning and comprehension.
 Users can modify the diagrams by dragging the events and instantly see the changes reflected in the output.
 By using specific precoded inputs and timings the essence of the operator is made clear.
 In the soon to be released RxViz~\cite{rxviz}, 
-Moroshko takes a similar approach but uses code instead of prepared inputs.
-Where RxMarbles is limited to non higher order flows, RxViz subscribes to all inner Observables when it detects an higher order Observable showing them concurrently.
-Contrarily to our work, these tools focus only on learning single operators.
+Moroshko takes a similar approach, but uses code instead of prepared inputs.
+Where RxMarbles is limited to non higher order flows, RxViz subscribes to all inner Observables when it detects a higher order Observable showing them concurrently.
+In contrast to our work, these tools focus only on learning single operators.
 
 \paragraph{Omniscient Debugging} Omniscient debuggers~\cite{pothier2009back} are ``all-knowing debuggers'', 
-they trace, store and query all events in a programs execution.
+that trace, store and query all events in a program execution.
 When storing vasts amount of program execution information, performance and efficiency becomes very much a problem and research in omniscient debuggers focus on this specifically.
 We also trace events of the entire execution, however in contrast to omniscient debuggers we only store trace events regarding RP data flows.
 The RP semantics allow us to create future optimizations, for example retaining only the active flow structure, while the flow's data is kept in a rolling buffer.
@@ -36,7 +36,7 @@ The various derived visualizations, like class and instance interaction graphs, 
 Arguably an on-line analysis is more useful for debugging than the standard post mortem analysis. Reiss mentions the compromises that have to be made to make an on-line analysis~\cite{reiss2006visualizing}: 
 reduced tracing is required to not slow down the system (known as the observer-effect) and
 fast analysis is required to lower the cost of getting to the visualization, to not discourage the users.
-In our design we handle the same compromises as they are relevant for RP debugging too, and our JavaScript trace implementation bears resemblance to that of Program Visualiser~\cite{lange1995program}.
+In our design, we handle the same compromises as they are relevant for RP debugging too, and our JavaScript trace implementation bears resemblance to that of Program Visualiser~\cite{lange1995program}.
 
 % \todo{
 % \begin{enumerate}

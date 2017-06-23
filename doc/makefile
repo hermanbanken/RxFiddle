@@ -1,7 +1,7 @@
 TEX = pdflatex -shell-escape -interaction=nonstopmode -file-line-error
-PRE =  $(TEX) -ini -job-name="preamble" "&pdflatex preamble.tex\dump"
-BIB = bibtex
+#PRE =  $(TEX) -ini -job-name="preamble" "&pdflatex preamble.tex\dump"
 FILE = paper
+BIB = biber
 
 .PHONY: all view
 
@@ -13,17 +13,11 @@ clean :
 view :
 	open $(FILE).pdf
 
-$(FILE).pdf : $(FILE).tex preamble.fmt $(FILE).bbl $(FILE).blg
-	$(TEX) $(FILE).tex
-
-$(FILE).bbl $(FILE).blg : $(FILE).bib $(FILE).aux
+$(FILE).blg : $(FILE).tex $(FILE).aux
 	$(BIB) $(FILE)
+
+$(FILE).pdf : $(FILE).tex $(FILE).blg
+	$(TEX) $(FILE).tex
 
 $(FILE).aux : $(FILE).tex
 	$(TEX) $(FILE).tex
-
-$(FILE).bib : $(FILE).tex
-	$(TEX) $(FILE).tex
-
-preamble.fmt : preamble.tex
-	$(PRE) preamble.tex
