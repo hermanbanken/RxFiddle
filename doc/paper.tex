@@ -1,37 +1,62 @@
-\input{preamble}
+\documentclass{acm_proc_article-sp}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{minted}
+\usepackage{lineno}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{epigraph}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{datetime}
+\usepackage{catchfile}
+\usepackage{hyperref}
 
-\newcommand{\code}[1]{\texttt{#1}}
+\usepackage[backend=biber,style=ieee,sorting=nty,citestyle=numeric-comp,urldate=edtf]
+{biblatex} \addbibresource{./papers/references.bib}
 
-% Stanford writing guide http://cs.stanford.edu/people/widom/paper-writing.html
+\input{definitions}
 
-\input{chapters/1.introduction}
+\title{\thesistitle}
+\numberofauthors{3}
+\author{
+    \alignauthor Herman Banken\\
+    \affaddr{Delft University of Technology, The Netherlands}\\
+    \begin{email}{hermanb@ch.tudelft.nl}
+    \end{email}
+    \alignauthor Georgios Gousios\\
+    \affaddr{Delft University of Technology, The Netherlands}\\
+    \begin{email}{g.gousios@tudelft.nl}
+    \end{email}
+    \alignauthor Erik Meijer\\
+    \affaddr{Delft University of Technology, The Netherlands}\\
+    \begin{email}{h.j.m.meijer@tudelft.nl}
+    \end{email}
+}
+\begin{date}{\today}\end{date}
 
-\input{chapters/2.background}
+\begin{document}
 
-\input{chapters/3.methods}
+\include{tudelft/cover-plain}
 
-\input{chapters/4.practices}
+\maketitle \thispagestyle{empty}
 
-\input{chapters/5.design}
+\begin{abstract}
+    \input{chapters/0.abstract}
+\end{abstract}
 
-\input{chapters/6.evaluate}
+%\category{H.4}{Information Systems Applications}{Miscellaneous}
+%\category{D.2.8}{Software Engineering}{Metrics}[complexity measures, performance measures]
+\begin{keywords}{
+reactive programming,
+debugging,
+visualization,
+program comprehension
+}\end{keywords}
 
-\input{chapters/7.results}
-
-\input{chapters/8.discussion}
-
-\input{chapters/9.implications}
-
-\input{chapters/9.limitations}
-
-\input{chapters/11.validity}
-
-\input{chapters/10.related}
-
-\input{chapters/12.conclusion}
-
-\AtNextBibliography{\small} \printbibliography
-
-\input{chapters/13.appendix}
+\input{chapters/toc}
 
 \end{document}
