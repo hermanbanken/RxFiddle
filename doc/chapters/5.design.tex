@@ -7,7 +7,7 @@ Given the findings of RQ1, the requirements for our visualizer are:
     \item[REQ1]
         Provide overview of Observable flows.  This overview should
         support practices 1 and 2, by graphically representing the
-        relations between Observables such that a complete image is
+        relations between Observables, such that a complete image is
         given of all Observables and how they interact.
     \item[REQ2]
         Provide detailed view inside flow.  This view should support
@@ -17,7 +17,7 @@ Given the findings of RQ1, the requirements for our visualizer are:
 \end{description}
 
 To meet those requirements, we propose a visualizer consisting of two
-parts:  (1) a data flow graph and (2) a dynamic marble diagram.  The
+parts:  (1) a Data Flow Graph and (2) a Dynamic Marble Diagram.  The
 data flow graph satisfies REQ1, providing a high-level overview, showing
 how different flows are created, combined and used, while the marble
 diagram satisfies REQ2, offering a more in-depth look into a single
@@ -26,7 +26,7 @@ subscriptions) of the flows and can be used to learn the behaviors and
 interplay of operators.
 
 \subsection{Data Flow Graph}
-\paragraph{Simplified graphs} When running an RP program, Observables
+\paragraph{Simplified graphs} When running a RP program, Observables
 are created that depend on other Observables (their \emph{source}) and
 Observers are created to send their values to a defined set of Observers
 (their \emph{destination}).  Figure~%
@@ -74,7 +74,7 @@ we cluster flows per Observable.  Furthermore, StoryFlow supports
 interactivity in various layout stages of which we use the algorithms
 for \emph{straightening} and \emph{dragging} to support selecting a
 specific flow, which is then highlighted, straightened and positioned at
-the right in order to match the marble diagram, shown for the current
+the right in order to match the Marble Diagram, shown for the current
 highlighted flow.
 
 \paragraph{Color} Coloring the nodes can be used to identify the same
@@ -100,7 +100,7 @@ apply to events, as the amount of events and distinguishing features
 might be unbounded.  Instead the event values are shown upon hovering.
 
 \subsection{Architecture} To support the visualization, we design a
-debugger architecture consisting of 2 components:  a host
+debugger architecture consisting of two components:  a host
 instrumentation and a visualizer.
 
 The \textbf{Host instrumentation} instruments the Rx library to emit
@@ -203,17 +203,17 @@ call frame information (time, method name, arguments).  In the
 subscription phase, we detect calls to the \code{subscribe}-method:  the
 destination Observers are passed as arguments, so we create the graph
 nodes and save the relation as an edge.  In the runtime phase we detect
-\code{next}, \code{error} and \code{complete} calls on Observers and add
+\code{next}-, \code{error}- and \code{complete}-calls on Observers and add
 these as meta data to the Observer nodes.
 
 \paragraph{Graph Loggers} From the Linking-step the graph mutations are
 streamed to the environment of the visualizer, where the graph is
-rebuild.  Depending on the host language a different protocol is used:
+rebuilt.  Depending on the host language a different protocol is used:
 RxFiddle's code editor executes the code in a Worker%
 \footnote{\url{https://developer.mozilla.org/docs/Web/API/Worker}} and
 transmits events over the postMessage protocol, while RxFiddle for
 \NodeJS{} transmits over WebSockets.  Being able to support multiple
-protocols increases the possible use cases, ranging from the code editor
+protocols, increases the possible use cases, ranging from the code editor
 for small programs, to the \NodeJS{} plugin for server applications, to
 Chrome DevTool extensions%
 \footnote{\url{https://developer.chrome.com/extensions/devtools}} for
@@ -224,10 +224,10 @@ form of a graph from the Logger.  It then uses the Observers in the
 graph to create the DFG.  To layout the DFG using StoryFlow~\cite{liu2013storyflow},
 we first rank the graph using depth first search, remove slack and
 reverse edges where necessary to create a directed acyclic graph.  We
-then add dummy nodes to replaces long edges with edges spanning a single
+then add dummy nodes to replace long edges with edges spanning a single
 rank.  Finally we order and align the nodes in the ranks assigning
 coordinates for the visualization.  It is important that layout is fast,
 as it runs every time the DFG is changed.  To render the Marble Diagrams
-the flow to and from the selected Observer is gathered by recursively
+the flow \emph{to} and \emph{from} the selected Observer is gathered, by recursively
 traversing the graph in the direction of the edges, respectively the
 reversed direction.

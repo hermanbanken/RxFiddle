@@ -80,7 +80,7 @@ code, like the \code{subscribe}-method, which is used by all class
 instances of Observable.  This debugging inside the Rx library was
 described as \emph{``painful''} by D2, when using the Node.js debugger
 to step through the inners of Rx.  Alternatives used by our subjects are
-(1) creating a \emph{custom \code{debug} operator} which prints these
+(1) creating a \emph{custom \code{debug}-operator} which prints these
 life-cycle events (D5) or (2) creating custom Observables (\code{Observable.create})
 with \emph{custom \code{subscribe}- and \code{dispose}-methods}, inserted at the
 beginning of the chain, that print upon their usage (D2, D5).  While
@@ -97,7 +97,7 @@ not common (the Rx's Observable API has 28 static methods and 114
 instance methods), therefore subjects sometimes end up doing an
 extensive search for some specific operator.  Another reason to visit
 the documentation is to \emph{comprehend how operators in existing code
-work}.  For this, subjects use the marble diagrams at \href{http://rxmarbles.com}
+work}.  For this, subjects use the Marble Diagrams at \href{http://rxmarbles.com}
 {RxMarbles.com}~\cite{rxmarbles} (D2, D5), the RxJS 4 documentation at
 \href{https://github.com/Reactive-Extensions/RxJS/blob/master/doc/} {GitHub}
 (D2, D5), the RxJS 5 documentation at \href{http://reactivex.io/rxjs} {ReactiveX.io}~\cite
@@ -111,9 +111,9 @@ than about types''}, and \emph{``You miss some sort of indication that
 the output is what you expect''}.  It is not allways clear what happens
 when you execute a piece of code, ``mostly due to Observables sometimes
 being lazy'' (D2).  Flows are clear and comprehensible in the scope of a
-single class or function, but for application wide flows it becomes
+single class or function, but for applicationwide flows it becomes
 unclear (D3, D4 and D5).  D3 mostly used RxScala and mentions that
-creating micro services helps in this regard.  D1 mentoins that \emph{``you
+creating micro services helps in this regard.  D1 mentions that \emph{``you
 need to know a lot as a starting {\lbrack}RxJS{\rbrack} developer''},
 giving the example of the many ways to cleanup and \code{unsubscribe},
 which he did manually initially.  D1 used both logging while analyzing
@@ -121,13 +121,13 @@ existing code and learning to overcome inexperience.
 
 \paragraph{Approach to understanding} Subjects first \emph{look which
 operators are used}, then they \emph{reason about what types and values
-might flow through the stream} (D2, D3, D4 and D5), using varous
-methods.  By analysing the variable names D2 forms an expectation of the
+might flow through the stream} (D2, D3, D4 and D5), using various
+methods.  By analyzing the variable names D2 forms an expectation of the
 resulting value types, then reasoning backwards, to see how this data is
 derived.  \emph{Running the code}, is used when possible by D5, to
 observe the outcome of the stream, as this ``shows the intentions of the
 original developer''.  If it remains unclear how the data is
-transformed, the subject adds his \code{debug} operator or looks up
+transformed, the subject adds his \code{debug}-operator or looks up
 operators in the documentation.
 
 \subsection{Analysis of Literature} Developers can learn Rx through
@@ -136,25 +136,25 @@ several sources such as the official documentation at \href{http://reactivex.io}
 available.  We gathered resources to be analyzed by selecting 4 popular
 books about Rx, and complement this with the official documentations and
 an article by a core contributor of RxJS.  All reviewed resources either
-mention debugging briefly and suggest using the \code{do} operator for
+mention debugging briefly and suggest using the \code{do}-operator for
 \printfdebugging{}, or teach the developer \printfdebugging{} via code
 samples.
 
 The RxJS 4 documentation%
 \footnote{ \url{https://github.com/Reactive-Extensions/RxJS/blob/master/doc/gettingstarted/testing.md}
 } and two books~\cite{esposito2016reactive,rxjavabook2016} propose the
-use of the \code{do} operator for debugging.  Esposito and Ciceri~\cite{esposito2016reactive}
+use of the \code{do}-operator for debugging.  Esposito and Ciceri~\cite{esposito2016reactive}
 further explain how to best format the log statements and introduce ways
 to limit the logging by modifying the Observable through means of
 throttling and sampling.  The RxJava book~\cite{rxjavabook2016} also
-contains tips to use the various \code{do} operators to integrate with
+contains tips to use the various \code{do}-operators to integrate with
 existing metric tools.  To our knowledge the only article addressing
 issues of debugging Rx is by Staltz, one of the contributors of RxJS%
 \footnote{\url{http://staltz.com/how-to-debug-rxjs-code.html}}, noting
 that conventional debuggers are not suitable for the higher level of
 abstraction of Observables.  Staltz explains three current ways to debug
 Rx, being:  (1) tracing to the console, (2) manually drawing the
-dependency graph, (3) manually drawing marble diagrams.
+dependency graph, (3) manually drawing Marble Diagrams.
 
 We analyzed a set of 13 books about RxJS, which was created by selecting
 69 books matching ``RxJS'' from the O'Reilly Safari catalogue%
@@ -175,7 +175,7 @@ developers use \printfdebugging{} to learn the behavior of Observables,
 behavior meaning both their values flowing through and their (one or
 many) subscriptions.
 
-Overall, we identified 4 overarching practices when debugging Rx code:
+Overall, we identified four overarching practices when debugging Rx code:
 \begin{enumerate}
         \itemsep0em
     \item[(1)]
