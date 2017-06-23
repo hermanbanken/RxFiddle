@@ -36,7 +36,7 @@ The fifth developer (D5) works in Company B, and is concerned with building and 
 In the following paragraphs we discuss the results of Q6-Q10 in detail. Not every subject answered each question in the same amount of detail, so we discuss the answers that provide meaningful insights in the current practice.
 
 \paragraph{Testing}
-Of the 4 subjects of Company A none performed tests specifically for Rx logic. \emph{``Just running the application''}, is enough according to D3, saying that they only test the business logic in their application and consider the Rx code as ``glue''' which either works or does not work. In contrast, D5 and his team at Company B extensively tests their application using the Rx' built-in test facilities like ``marble tests'' and the \code{TestScheduler}. Using tests, the subject \emph{confirms his believes about the behavior} of the chain of operators, and test also help later on when refactoring the code.
+Of the 4 subjects of Company A, none performed tests specifically for Rx logic. \emph{``Just running the application''}, is enough according to D3, saying that they only test the business logic in their application and consider the Rx code as ``glue''' which either works or does not work. In contrast, D5 and his team at Company B extensively tests their application using the Rx' built-in test facilities like ``marble tests'' and the \code{TestScheduler}~\cite{reactivex}. Using tests, the subject \emph{confirms his believes about the behavior} of the chain of operators, and tests also help later on when refactoring code.
 
 \paragraph{Debugging}
 All subjects independently mention using temporary \printfdebugging{} statements (\code{console.log} in JavaScript).
@@ -46,7 +46,7 @@ Breakpoints are only used when the project requires costly recompilation otherwi
 Existing debuggers often can not be used to inspect the life-cycle of Observables (subscription and disposal),
 as these occurrences are not normally defined in user code and would require breakpoints in library code, 
 like the \code{subscribe}-method, which is used by all class instances of Observable. 
-This debugging inside the Rx library was described as \emph{``painful''}, by D2 when using the NodeJS debugger to step through the inners of Rx.
+This debugging inside the Rx library was described as \emph{``painful''}, by D2 when using the Node.js debugger to step through the inners of Rx.
 Alternatives used by our subjects are (1) creating a \emph{custom \code{debug} operator} which prints these life-cycle events (D5) or (2) creating custom Observables (\code{Observable.create}) with \emph{custom subscribe and dispose methods}, inserted at the beginning of the chain, that print upon their usage (D2, D5).
 While \printfdebugging{} and breakpoints are useful in various degrees when executing a single Observable chain,
 these methods both become considerably more difficult and \emph{``overview is easily lost''} when executing multiple chains concurrently (D3, D5).

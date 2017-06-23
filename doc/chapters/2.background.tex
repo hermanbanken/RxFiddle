@@ -6,7 +6,7 @@ Reactive Programming (RP) is a declarative programming paradigm for working with
 According to the first definition\footnote{
 ``Reactive programs [..] maintain a continuous interaction with their environment, at a speed which is determined by the environment, not the program itself.''~\cite{berry1989real}
 } a reactive program must interact with the environment ``at a speed which is determined by the environment''.
-Conceptually, when a reactive program is run, it sets up a data pipeline and waits until input arrives when the environment changes.
+Conceptually, when a reactive program is run, it sets up a data pipeline and waits until input arrives, i.e. when the environment changes.
 Reactive Programming languages and libraries provide developers with a set of abstractions and methods to create such programs.
 
 The programming paradigm of Reactive Programming is implemented by multiple languages and libraries. 
@@ -64,7 +64,7 @@ More complex programs feature operators that merge Observables\footnote{
 	\code{partition}, or through sharing with \code{share} or \code{publish}
 } or handle higher order Observables\footnote{
 	\code{flatMap}, \code{mergeMap}, \code{concatMap}
-}, resulting in more complex graphs. While merging and splitting happens on an Observable level (the \code{source} property still points to the one or more dependencies) higher order Observable flattening manifests only in Observer structure (there is no reference between the Observables). Figure \ref{chainhigher} shows this with an (abbreviated) \code{inner} Observable that is subscribed twice (for both values $2$ and $3$, value 1 is skipped), resulting in two identical data flows over $o_1$. The data flow through $s_{4,n}$ and $s_{4_m}$ is pushed into $s_1$, flattening the data flow. 
+}, resulting in more complex graphs. An example of \code{flatMap} is shown in Figure~\ref{sample3}. While merging and splitting happens on an Observable level (the \code{source} property still points to one or more dependencies) higher order Observable flattening manifests only in Observer structure (there is no reference between the Observables). Figure \ref{chainhigher} shows this with an (abbreviated) \code{inner} Observable that is subscribed twice (for both values $2$ and $3$, value 1 is skipped), resulting in two identical data flows over $o_1$. The data flow through $s_{4,n}$ and $s_{4_m}$ is pushed into $s_1$, flattening the data flow. 
 
 \begin{figure}[t]
 \centering
