@@ -102,14 +102,17 @@ nrow(subset(subset(d, mode == "rxfiddle"), sample_imdb_state == "nf" & sample_im
 # Tests of proportion
 # https://cran.r-project.org/doc/contrib/Lemon-kickstart/kr_prop.html
 typedropout <- matrix(c(
-  nrow(subset(subset(d, mode == "console"), sample_imdb_state == "ns")),
-  nrow(subset(d, mode == "console" & sample_dummy_state %in% c("correct", "pass", "nf"))),
-  nrow(subset(subset(d, mode == "rxfiddle"), sample_imdb_state == "ns")),
-  nrow(subset(d, mode == "rxfiddle" & sample_dummy_state %in% c("correct", "pass", "nf")))
+  nrow(subset(d, mode == "console" & sample_imdb_state == "ns")),
+  nrow(subset(d, mode == "console" & sample_dummy_state %in% c("correct", "pass"))),
+  nrow(subset(d, mode == "rxfiddle" & sample_imdb_state == "ns")),
+  nrow(subset(d, mode == "rxfiddle" & sample_dummy_state %in% c("correct", "pass")))
 ), ncol=2, byrow=T)
 typedropout[4] <- typedropout[4] - typedropout[2]
 typedropout[3] <- typedropout[3] - typedropout[1]
 rownames(typedropout) <- c("console", "rxfiddle")
 colnames(typedropout) <- c("dropout", "finished")
 
-prop.test(typedropout)
+fisher.test(typedropout)
+print(paste("console dropout", typedropout[1] / (typedropout[1] + typedropout[3])))
+print(paste("rxfiddle dropout", typedropout[2] / (typedropout[2] + typedropout[4])))
+  
