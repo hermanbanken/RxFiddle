@@ -60,36 +60,6 @@ the same compromises as they are relevant for RP debugging too, and our
 JavaScript trace implementation bears resemblance to that of Program
 Visualiser~\cite{lange1995program}.
 
-% \todo{
-% \begin{enumerate}
-%  \item Cornelissen, TU Delft, survey on Program Compr. through Dynamic Analysis
-%  		lists limitations:
-% 		   - incompleteness, only part of domain
-% 			 - which scenarios to analyse
-% 			 - scalability (wrt human cognitive load)
-% 		 	 - observer effect (multi-threaded, realtime) changes execution
-% \end{enumerate}
-% }
-
-% \todo{
-% \begin{enumerate}
-% 	\item Atlas (2014): rich graph representation, can be used to build call graphs, dataflow graphs, dependency graphs
-% %	\item RP debugging (2016, Guido): REScala, data flow graph, breakpoints
-% %	\item BIGDEBUG Spark debugging (2017): data flow graph, non-pausing simulated breakpoints, data provenance
-% \end{enumerate}
-% }
-
-% \textbf{Tracing \& Automated visualization for comprehension}
-% \todo{
-% \begin{enumerate}
-%  \item Lange 1995, Program Visualizer for C++
-%  \item story flow: visualize stories over time, comprehending relations, interactive visualization
-%  \item Weck \& Tichy, Visualizing Data-Flows in Functional Programs
-%  \item Srinivasan, ICPC16, ``Case Studies of Optimized Sequence Diagram for Program Comprehension", Texas A\&M Univerity
-% %  \item Misha Moroshko (Facebook) Rx visualization
-% \end{enumerate}
-% }
-
 \paragraph{Understanding Debugging} Debugging for general purpose
 languages revolves around attaching a debugger, stepping through the
 code, attaching code or data breakpoints, navigating along different
@@ -108,13 +78,6 @@ debugging. No indication was given of any RP language and libraries used
 by the subjects in the study, but the observation that \printfdebugging{}
 is common, matches our experience with debugging reactive programs.
 
-% What comprises debugging?
-% \item Maybe Zeller / Spinellis?
-
-% \item Petrillo, ``Towards Understanding..." e.g. Swarm debugging
-% \item Minelli (know what you did last summer)
-% \item Moritz (watchdog 2.0)
-
 \paragraph{Debugging for Program Comprehension} Both debugging and
 comprehension are processes in the work of programmers.  Initially,
 comprehension was seen as a distinct step programmers had to make prior
@@ -127,7 +90,3 @@ information to understand a program, and that debugging is frequently
 used to gather this runtime information.  This supports our view that
 debugging is not only used for fault localization, but also for
 comprehension.
-
-% \item Katz, distinct step
-% \item Gilmore, comprehension + debugging == linked
-% \item Maalej: professionals, avoid deep comprehension, sharing knowlegde

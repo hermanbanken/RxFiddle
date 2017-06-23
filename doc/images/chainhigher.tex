@@ -23,13 +23,9 @@
     node[sloped,below] {destination} (Z) (Q) edge [bend left] node[sloped,above]
     {subscribe} (F) (Q) edge node[sloped,below] {destination} (Z);
 
-    %  \node[draw=none] (K) at ($ (P) + (-4:-3) $){$\cdots$};
-    %  \node[draw=none] (M) at ($ (Q) + (-4:-3) $){$\cdots$};
-
     % https://tex.stackexchange.com/questions/75497/automata-container-box
     \node [draw=red, label={\color{red}inner}, fit=(F) (P) (Q), inner
     sep=0.5cm,dashed, ultra thick, fill=red!10, fill opacity=0.2] {};
-    %\node [draw=blue, fit= (G) (Q) (M), inner sep=0.5cm,dashed, ultra thick, fill=blue!10, fill opacity=0.2] {};
 
     % https://tex.stackexchange.com/questions/160643/ellipsis
     \draw[<-] (A) -- node[above] {of(1,2,3)} ++(-2cm,0); \draw[->] (F)
