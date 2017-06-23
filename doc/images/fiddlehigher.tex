@@ -1,17 +1,14 @@
-\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=1.5cm,
+\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node
+    distance=1.5cm,
                     semithick,scale=0.8, every node/.style={scale=0.8}]
-\tikzstyle{every state}=[]
-\filldraw 
-  (0,2) circle (2pt) node[right] {of(1,2,3)}    --
-  (0,1) circle (2pt) node[right] {skip(1)}  -- 
-  (0,0) circle (2pt) node[right] {flatMap(() => inner)};
+    \tikzstyle{every state}=[] \filldraw (0,2) circle (2pt) node[right]
+    {of(1,2,3)} -- (0,1) circle (2pt) node[right] {skip(1)} -- (0,0)
+    circle (2pt) node[right] {flatMap(() => inner)};
 
-\filldraw 
-  (-1,1) circle (2pt) node[left] {of(`A', `B')} --
-  (0,0)  circle (2pt) node[right] {};
+    \filldraw (-1,1) circle (2pt) node[left] {of(`A', `B')} -- (0,0)
+    circle (2pt) node[right] {};
 
-\filldraw 
-  (-0.7,1) circle (2pt) node[left] {} --
-  (0,0)    circle (2pt) node[right] {};
+    \filldraw (-0.7,1) circle (2pt) node[left] {} -- (0,0) circle (2pt)
+    node[right] {};
 
 \end{tikzpicture}

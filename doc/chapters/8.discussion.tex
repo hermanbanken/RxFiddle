@@ -1,16 +1,51 @@
-\section{Discussion}
-We now discuss our main findings, how RxFiddle resolves the debugging problem of Rx, and contrast our design to other design choices and possibilities of future work.
+\section{Discussion} We now discuss our main findings, how RxFiddle
+resolves the debugging problem of Rx, and contrast our design to other
+design choices and possibilities of future work.
 
 \subsection{Main results}
-\paragraph{Quick and dirty debugging} Through interviews and literature we establish that current debugging practices for RP consist mostly of \printfdebugging{}. The shortcomings of this method were evident from the interviews: it works reliably only for synchronous execution or small amounts of events being logged, otherwise overview is lost, furthermore the time-context of events and dependency-context of flows are not available using this method. We attribute the prevalence of \printfdebugging{} to this \emph{``quick and dirty''} method being available in every language and on every platform, without a viable alternative.
+\paragraph{Quick and dirty debugging} Through interviews and literature
+we establish that current debugging practices for RP consist mostly of
+\printfdebugging{}.  The shortcomings of this method were evident from
+the interviews:  it works reliably only for synchronous execution or
+small amounts of events being logged, otherwise overview is lost,
+furthermore the time-context of events and dependency-context of flows
+are not available using this method.  We attribute the prevalence of
+\printfdebugging{} to this \emph{``quick and dirty''} method being
+available in every language and on every platform, without a viable
+alternative.
 
-\paragraph{Improved context: being complete, disposing doubts}
-With our design and complementary implementation we show that the abstract model of RP is suitable for visualization on two levels: overview and detail. On the overview level, we complement the dependencies visible in source code with a graph of the resulting structure, showing the run-time effect of certain operators on the reactive structure. On the detail level we add the time-context, by showing previous values on a horizontal time line, and the dependency-context, by showing input and output flows above and below the flow of interest. 
-While the results of our evaluation could be observed as a negative, RxFiddle is a new tool, where subjects have only just been exposed to the tool and received only a short training.
-We expect that by designing a debugger model so close to the actual abstractions, our debugger works especially well for users with some knowledge of these abstractions; while only T3 shows better performance with high significancy, we observe slightly better results when controlling for experience. Future research might investigate the effect of experience in more detail, including the use of more complicated tasks, with larger samples.
+\paragraph{Improved context:  being complete, disposing doubts} With our
+design and complementary implementation we show that the abstract model
+of RP is suitable for visualization on two levels:  overview and detail.
+On the overview level, we complement the dependencies visible in source
+code with a graph of the resulting structure, showing the run-time
+effect of certain operators on the reactive structure.  On the detail
+level we add the time-context, by showing previous values on a
+horizontal time line, and the dependency-context, by showing input and
+output flows above and below the flow of interest.  While the results of
+our evaluation could be observed as a negative, RxFiddle is a new tool,
+where subjects have only just been exposed to the tool and received only
+a short training.  We expect that by designing a debugger model so close
+to the actual abstractions, our debugger works especially well for users
+with some knowledge of these abstractions; while only T3 shows better
+performance with high significancy, we observe slightly better results
+when controlling for experience.  Future research might investigate the
+effect of experience in more detail, including the use of more
+complicated tasks, with larger samples.
 
-In the presented research, we did not perform tests with subjects using their own code. However, during piloting and after the release of RxFiddle we received positive feedback regarding the completeness of the visualization. As one user put it, \emph{``by using RxFiddle when learning and understanding what RxJS does in our project, I have a feeling of improved control over our Observables, Subscriptions and the reactive parts of our app''}. Specifically the life-cycle events, which are generally hard to debug using \printfdebugging{}, are more clear: \emph{``Initially we were reluctant to manually subscribe, but after seeing that `complete' often triggers a `dispose', the team became more confident to sometimes use \code{subscribe()} directly''}.
-Future research might address this by designing experiments specifically using the users own code.
+In the presented research, we did not perform tests with subjects using
+their own code.  However, during piloting and after the release of
+RxFiddle we received positive feedback regarding the completeness of the
+visualization.  As one user put it, \emph{``by using RxFiddle when
+learning and understanding what RxJS does in our project, I have a
+feeling of improved control over our Observables, Subscriptions and the
+reactive parts of our app''}.  Specifically the life-cycle events, which
+are generally hard to debug using \printfdebugging{}, are more clear:
+\emph{``Initially we were reluctant to manually subscribe, but after
+seeing that `complete' often triggers a `dispose', the team became more
+confident to sometimes use \code{subscribe()} directly''}.  Future
+research might address this by designing experiments specifically using
+the users own code.
 
 %%%%%%%%%%%%%%%%
 % Quotes:

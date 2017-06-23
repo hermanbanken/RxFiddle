@@ -2,14 +2,8 @@
 
 \newcommand{\code}[1]{\texttt{#1}}
 %\newenvironment{todo*}[1]{\textcolor{red}#1}{}
-\newcommand{\todo}[1]{
-\textcolor{red}{#1}
-}
-\newcommand{\todov}[1]{
-{\color{red}
-#1
-}
-}
+\newcommand{\todo}[1]{ \textcolor{red}{#1} }
+\newcommand{\todov}[1]{ {\color{red} #1 } }
 
 % Stanford writing guide http://cs.stanford.edu/people/widom/paper-writing.html
 
@@ -41,8 +35,7 @@
 
 %\include{scratchpad}
 
-\AtNextBibliography{\small}
-\printbibliography
+\AtNextBibliography{\small} \printbibliography
 
 \input{chapters/13.appendix}
 
