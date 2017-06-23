@@ -14,15 +14,12 @@
 \usepackage{datetime}
 \usepackage{catchfile}
 \usepackage{hyperref}
-
 \usepackage[backend=biber,style=ieee,sorting=nty,citestyle=numeric-comp,urldate=edtf]
 {biblatex} \addbibresource{./papers/references.bib}
 
 \input{definitions}
 
 \begin{document}
-
-%\include{cover-tu}
 
 %% Use Roman numerals for the page numbers of the title pages and table of
 %% contents.
@@ -48,7 +45,7 @@
     ISBN 000-00-0000-000-0
 }
 \titleoffsetx{7cm} % 2
-\titleoffsety{16.6cm} % 8
+\titleoffsety{16.5cm} % 8
 \afiloffsetx{1cm}
 \afiloffsety{16cm}
 \makecover[whitelogo]
@@ -66,21 +63,29 @@
 % \input{chapters/0.abstract}
 % \end{abstract}
 
-\tableofcontents
 
-%% Use Arabic numerals for the page numbers of the chapters.
-\mainmatter
+% THREE OPTIONS
 
-\let\subparagraph\paragraph
-\let\paragraph\subsection
-\let\subsection\section
-\let\section\chapter
-%\input{chapters/toc}
+% A: Either use report style
 
-%% Use letters for the chapter numbers of the appendices.
-% \appendix
-% \input{appendix-a}
-% \bibliography{report}
+    %% Doesnt cope with multiple document classes
+    %\tableofcontents
+    %\let\subparagraph\paragraph
+    %\let\paragraph\subsection
+    %\let\subsection\section
+    %\let\section\chapter
+    %\input{chapters/toc}
+
+% B: Load the pdf
+
+    %% seems to produce blank pages...
+    %\setboolean{@twoside}{false}
+    %%add: \usepackage{pdfpages}
+    %\includepdf[pages=-]{paper.pdf}
+
+% C: Just merge the documents with Apple's Preview
+
+    %% Intentionally left blank
 
 \end{document}
 
