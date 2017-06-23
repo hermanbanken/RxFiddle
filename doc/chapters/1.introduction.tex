@@ -22,7 +22,7 @@ Functional Reactive Programming (FRP)~\cite{elliott1997functional,elliott2009pus
 but in recent years the use of RP has exploded.  Languages such as Elm~\cite
 {czaplicki2012elm} and libraries such as Reactor~\cite{Gutierrez2017},
 Akka~\cite{klangakka} and Rx~\cite{meijer2010subject} are being used by
-companies like Netflix, Microsoft, and Google to build highly responsive
+companies like Netflix, Microsoft and Google, to build highly responsive
 and scalable systems.  Front-end libraries like AngularJS, that use RP
 in their foundations, are used by many large sites (9.1\% of Quantcast
 Top 10k websites%
@@ -34,12 +34,12 @@ Programming'' in the form of the Reactive Manifesto~\cite{boner2014reactive}.
 While reactive programs might be more declarative and concise, RP does
 not work well with traditional interactive debuggers, shipped with most
 IDE\'s~\cite{salvaneschi2016debugging}.  RP borrows from Functional
-Programming (FP) for it's abstractions, its laziness and advocating the
+Programming (FP) for its abstractions, its laziness and advocating the
 use of ``pure'' lambda functions.  Those features contribute to a
 control flow that is hidden inside the RP implementation library and
 lead to non-linear execution of user code.  This results in not useful
-stack traces, while breakpoints do not help as relevant variables are
-frequently not in scope.  Furthermore, using a low level debugger makes
+stack traces, while breakpoints do not help either, since relevant variables
+are frequently not in scope.  Furthermore, using a low level debugger makes
 it harder to interact with the high level abstractions that RP provides.
 Compared to imperative programming, there is limited scientific
 knowledge regarding how developers debug reactive programs.  Traditional
@@ -53,7 +53,7 @@ overview of the dependencies in the data flow, (2) enables a detailed
 insight in the data flow and the timing of individual events, and (3)
 allows developers to trace values back through the data flow.  To guide
 our design we conducted interviews among professional developers.  After
-building RxFiddle we validate it with a user experiment.  The results
+building RxFiddle, we validated it with a user experiment.  The results
 show that RxFiddle can help developers debug RP data flows faster.
 
 To steer the research, we formulate the following research questions:
@@ -67,7 +67,7 @@ To steer the research, we formulate the following research questions:
         \footnote{%
         \label{foot:contribdays}http://contributordays.com/contributor-days/rxjs}%
         \footnote{https://staltz.com/how-to-debug-rxjs-code.html}
-        suggests that debugging RP is very difficult.
+        suggests that debugging RP is difficult.
 
     \item[RQ2]
         How can we design a tool that helps developers debug RP?  \\
