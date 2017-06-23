@@ -1,16 +1,30 @@
-\section{Conclusions}
-Observing the current debugging practices, this work shows the prevalent method for RP debugging is \printfdebugging{}.
-To provide a better alternative, we have created a RP debugger design and presented the RxFiddle implementation, a RP debugger for RxJS, which allows developers to: 
-(1) gain a high-level overview of the reactive data flow structure and dependencies,
-(2) investigate the values and life-cycle of a specific data flow, at run-time.
+\section{Conclusions} Observing the current debugging practices, this
+work shows the prevalent method for RP debugging is \printfdebugging{}.
+To provide a better alternative, we have created a RP debugger design
+and presented the RxFiddle implementation, a RP debugger for RxJS, which
+allows developers to:  (1) gain a high-level overview of the reactive
+data flow structure and dependencies, (2) investigate the values and
+life-cycle of a specific data flow, at run-time.
 
-Through an experiment we show that RxFiddle is an viable alternative for traditional debugging and in some cases outperforms traditional debugging in terms of time spent. There are several promising directions for improving our design.
-Specifically scalability could be improved and different edge visualizations could be explored, to improve the usability of the tool. Furthermore, by leveraging already captured meta data about timing of events, even more insight could be provided. At the implementation level, we plan to extend RxFiddle to other members of the Rx-family of languages.
+Through an experiment we show that RxFiddle is an viable alternative for
+traditional debugging and in some cases outperforms traditional
+debugging in terms of time spent.  There are several promising
+directions for improving our design.  Specifically scalability could be
+improved and different edge visualizations could be explored, to improve
+the usability of the tool.  Furthermore, by leveraging already captured
+meta data about timing of events, even more insight could be provided.
+At the implementation level, we plan to extend RxFiddle to other members
+of the Rx-family of languages.
 
 In this paper, we make the following concrete contributions:
 \begin{itemize}
-\item[(1)] Design of a RP debugger
-\item[(2)] The implementation of the debugger for RxJS, and the service RxFiddle.net, a platform for the debugger in an online environment with code sharing functionality.
+    \item[(1)]
+        Design of a RP debugger
+    \item[(2)]
+        The implementation of the debugger for RxJS, and the service
+        RxFiddle.net, a platform for the debugger in an online
+        environment with code sharing functionality.
 \end{itemize}
 
-The debugger and the platform are open source and are available online at~\cite{rxfiddle-doi}.
+The debugger and the platform are open source and are available online
+at~\cite{rxfiddle-doi}.

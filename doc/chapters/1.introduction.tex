@@ -1,33 +1,86 @@
 \section{Introduction}
 
-Software often needs to respond to external events and data flows. Consider for example software in interactive applications, for desktops, web and mobile phones, in graphics and in processing sensor data from phones or IoT-devices. Traditionally, handling these asynchronous events was done using the \emph{Observer design pattern}~\cite{johnson1995design} or \emph{callback functions}~\cite{gallaba2015don}. 
-Using these patterns, the system consuming the data does not have to block waiting for methods to return, but instead receives a notification event when data is available. While these patterns decouple the consumer from the producer of the data, they typically lead to dynamic registration, side effects in the consumers, and inversion of control~\cite{salvaneschi2014empirical,edwards2009coherent}.
+Software often needs to respond to external events and data flows.
+Consider for example software in interactive applications, for desktops,
+web and mobile phones, in graphics and in processing sensor data from
+phones or IoT-devices.  Traditionally, handling these asynchronous
+events was done using the \emph{Observer design pattern}~\cite{johnson1995design}
+or \emph{callback functions}~\cite{gallaba2015don}.  Using these
+patterns, the system consuming the data does not have to block waiting
+for methods to return, but instead receives a notification event when
+data is available.  While these patterns decouple the consumer from the
+producer of the data, they typically lead to dynamic registration, side
+effects in the consumers, and inversion of control~\cite{salvaneschi2014empirical,edwards2009coherent}.
 
-Reactive Programming (RP) is an alternative to these patterns for event driven computation. 
-RP defines event streams as lazy collections and provides operators that allow developers to deal with the complications of asynchronous event handling.
-It offers declarative and concise syntax for composing streams of data, to express the complex reactive behavior of these applications.
-RP started in academia in the form of Functional Reactive Programming (FRP)~\cite{elliott1997functional,elliott2009push,czaplicki2013asynchronous,maier2010deprecating,meyerovich2009flapjax}, but in recent years the use of RP has exploded. Languages such as Elm~\cite{czaplicki2012elm} and libraries such as Reactor~\cite{Gutierrez2017}, Akka~\cite{klangakka} and Rx~\cite{meijer2010subject} are being used by companies like Netflix, Microsoft, and Google to build highly responsive and scalable systems. Front-end libraries like AngularJS, that use RP in their foundations, are used by many large sites (9.1\% 
-of Quantcast Top 10k 
-% websites\footnote{\url{https://trends.builtwith.com/javascript/Angular-JS}, accessed 2017-06-20}). 
-websites\footnote{\url{{https://trends.builtwith.com/}}, accessed 2017-06-20}). 
-Developers and companies alike attempted to standardize ``Reactive Programming'' in the form of the Reactive Manifesto~\cite{boner2014reactive}.
+Reactive Programming (RP) is an alternative to these patterns for event
+driven computation.  RP defines event streams as lazy collections and
+provides operators that allow developers to deal with the complications
+of asynchronous event handling.  It offers declarative and concise
+syntax for composing streams of data, to express the complex reactive
+behavior of these applications.  RP started in academia in the form of
+Functional Reactive Programming (FRP)~\cite{elliott1997functional,elliott2009push,czaplicki2013asynchronous,maier2010deprecating,meyerovich2009flapjax},
+but in recent years the use of RP has exploded.  Languages such as Elm~\cite
+{czaplicki2012elm} and libraries such as Reactor~\cite{Gutierrez2017},
+Akka~\cite{klangakka} and Rx~\cite{meijer2010subject} are being used by
+companies like Netflix, Microsoft, and Google to build highly responsive
+and scalable systems.  Front-end libraries like AngularJS, that use RP
+in their foundations, are used by many large sites (9.1\% of Quantcast
+Top 10k websites%
+%URL to long for hbox; https://trends.builtwith.com/javascript/Angular-JS.
+\footnote{\url{{https://trends.builtwith.com/}}, accessed 2017-06-20}).
+Developers and companies alike attempted to standardize ``Reactive
+Programming'' in the form of the Reactive Manifesto~\cite{boner2014reactive}.
 
-While reactive programs might be more declarative and concise, RP does not work well with traditional interactive debuggers, shipped with most IDE's~\cite{salvaneschi2016debugging}. RP borrows from Functional Programming (FP) for it's abstractions, its laziness and advocating the use of ``pure'' lambda functions. Those features contribute to a control flow that is hidden inside the RP implementation library and lead to non-linear execution of user code. This results in not useful stack traces, while breakpoints do not help as relevant variables are frequently not in scope. Furthermore, using a low level debugger makes it harder to interact with the high level abstractions that RP provides.
-Compared to imperative programming, there is limited scientific knowledge regarding how developers debug reactive programs. Traditional imperative program debugging practices~\cite{beller2017behavior} do not apply to RP~\cite{salvaneschi2016debugging}.
+While reactive programs might be more declarative and concise, RP does
+not work well with traditional interactive debuggers, shipped with most
+IDE\'s~\cite{salvaneschi2016debugging}.  RP borrows from Functional
+Programming (FP) for it's abstractions, its laziness and advocating the
+use of ``pure'' lambda functions.  Those features contribute to a
+control flow that is hidden inside the RP implementation library and
+lead to non-linear execution of user code.  This results in not useful
+stack traces, while breakpoints do not help as relevant variables are
+frequently not in scope.  Furthermore, using a low level debugger makes
+it harder to interact with the high level abstractions that RP provides.
+Compared to imperative programming, there is limited scientific
+knowledge regarding how developers debug reactive programs.  Traditional
+imperative program debugging practices~\cite{beller2017behavior} do not
+apply to RP~\cite{salvaneschi2016debugging}.
 
-In this work we address the issue of RP debugging by designing and implementing a high level debugger called RxFiddle for a popular version of RP, namely Reactive Extensions (Rx). RxFiddle  (1) provides an overview of the dependencies in the data flow, (2) enables a detailed insight in the data flow and the timing of individual events, and (3) allows developers to trace values back through the data flow. To guide our design we conducted interviews among professional developers. After building RxFiddle we validate it with a user experiment. The results show that RxFiddle can help developers debug RP data flows faster.
+In this work we address the issue of RP debugging by designing and
+implementing a high level debugger called RxFiddle for a popular version
+of RP, namely Reactive Extensions (Rx).  RxFiddle (1) provides an
+overview of the dependencies in the data flow, (2) enables a detailed
+insight in the data flow and the timing of individual events, and (3)
+allows developers to trace values back through the data flow.  To guide
+our design we conducted interviews among professional developers.  After
+building RxFiddle we validate it with a user experiment.  The results
+show that RxFiddle can help developers debug RP data flows faster.
 
 To steer the research, we formulate the following research questions:
 
 \begin{description}
-\item[RQ1] How do developers debug RP? \\
-Before we design tools it is important to understand the problems arising in the the current state~\cite{singer2010examination}. Anecdotal evidence by a number of resources\footnote{\label{foot:contribdays}http://contributordays.com/contributor-days/rxjs}\footnote{https://staltz.com/how-to-debug-rxjs-code.html}
-suggests that debugging RP is very difficult.
+    \item[RQ1]
+        How do developers debug RP?  \\
+        Before we design tools it is important to understand the
+        problems arising in the the current state~\cite{singer2010examination}.
+        Anecdotal evidence by a number of resources%
+        \footnote{%
+        \label{foot:contribdays}http://contributordays.com/contributor-days/rxjs}%
+        \footnote{https://staltz.com/how-to-debug-rxjs-code.html}
+        suggests that debugging RP is very difficult.
 
-\item[RQ2] How can we design a tool that helps developers debug RP? \\
-By examining the results of RQ1, the limitations of traditional debuggers and the opportunities that RP programs offer in terms of structure and explicit dependencies between data flows, we design a novel RP debugger.
+    \item[RQ2]
+        How can we design a tool that helps developers debug RP?  \\
+        By examining the results of RQ1, the limitations of traditional
+        debuggers and the opportunities that RP programs offer in terms
+        of structure and explicit dependencies between data flows, we
+        design a novel RP debugger.
 
-\item[RQ3] Can specialized RP debuggers speed up comprehension \& debugging? \\
-To validate our design and examine whether specialized tooling can improve the experience we measure the speed and correctness of comprehension in an experiment.
+    \item[RQ3]
+        Can specialized RP debuggers speed up comprehension \&
+        debugging?  \\
+        To validate our design and examine whether specialized tooling
+        can improve the experience we measure the speed and correctness
+        of comprehension in an experiment.
 
 \end{description}
