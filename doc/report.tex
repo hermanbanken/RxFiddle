@@ -1,0 +1,91 @@
+\documentclass[whitelogo]{tudelft/tudelft-report}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{minted}
+\usepackage{lineno}
+\usepackage{enumitem}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{epigraph}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{datetime}
+\usepackage{catchfile}
+\usepackage{hyperref}
+\usepackage[backend=biber,style=ieee,sorting=nty,citestyle=numeric-comp,urldate=edtf]
+{biblatex} \addbibresource{./papers/references.bib}
+
+\input{definitions}
+
+\begin{document}
+
+%% Use Roman numerals for the page numbers of the title pages and table of
+%% contents.
+\frontmatter
+
+%% Uncomment following 16 lines for a cover with a picture on the lower half only
+\title{
+\vspace{4mm}Debugging\\
+\vspace{6mm}Data-Flows 
+\vspace{4mm}in\\
+\vspace{4mm}Reactive\\Programs}
+\subtitle{}
+\author{Herman Banken}
+\affiliation{Technische Universiteit Delft}
+\coverimage{tudelft/street-371222-colorized-cropped.jpg}%{cover.jpg}
+\covertext[tudelft-white]{
+    \textbf{Cover Text} \\
+    possibly \\
+    spanning 
+    multiple 
+    lines
+    \vfill
+    ISBN 000-00-0000-000-0
+}
+\titleoffsetx{7cm} % 2
+\titleoffsety{16.5cm} % 8
+\afiloffsetx{1cm}
+\afiloffsety{16cm}
+\makecover[whitelogo]
+
+\hypersetup{
+    pdftitle={Debugging Data-Flows in Reactive Programs}
+}
+
+%% Include an optional title page.
+\input{tudelft/title}
+
+\input{tudelft/preface}
+
+% \begin{abstract}
+% \input{chapters/0.abstract}
+% \end{abstract}
+
+
+% THREE OPTIONS
+
+% A: Either use report style
+
+    %% Doesnt cope with multiple document classes
+    %\tableofcontents
+    %\let\subparagraph\paragraph
+    %\let\paragraph\subsection
+    %\let\subsection\section
+    %\let\section\chapter
+    %\input{chapters/toc}
+
+% B: Load the pdf
+
+    %% seems to produce blank pages...
+    %\setboolean{@twoside}{false}
+    %%add: \usepackage{pdfpages}
+    %\includepdf[pages=-]{paper.pdf}
+
+% C: Just merge the documents with Apple's Preview
+
+    %% Intentionally left blank
+
+\end{document}
+

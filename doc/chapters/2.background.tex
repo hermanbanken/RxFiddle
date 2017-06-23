@@ -24,10 +24,10 @@ or Behavior/Event (FRP~\cite {elliott1997functional}).  The
 implementations differ in the precise semantics of their collections,
 their execution model (push/pull), and the set of available operators.
 In this paper, we focus on the Rx formulation, but our work is
-applicable to other RP implementations to some extend.
+applicable to other RP implementations to some extent.
 
 Understanding how we arrive at our visualization requires a minimal
-understanding of Rx.  Rx introduces two basic types \emph{Observable}
+understanding of Rx.  Rx introduces two basic types, \emph{Observable}
 and \emph{Observer}.  Observables define the data flow and produce the
 data while Observers receive the data, possibly moving the data further
 down the stream.  Figure%
@@ -78,13 +78,13 @@ $ o_2 $ and $ o_3 $ from Figure%
 
 \paragraph{Subscription} When the \code{subscribe} method of an
 Observable is called, the data flow is prepared by recursively
-subscribing up the stream:  every subscribe call creates an \emph{Observer},
+subscribing ``up'' the stream:  every subscribe call creates an \emph{Observer},
 that is passed to the input Observable, which again subscribes an
 Observer to its input Observable, until finally the root Observables are
 subscribed to.  We call this the \emph{subscription} phase.  In Figure%
-\ref{sample1} inside the single \code{subscribe} call Observer $ s_1 $
+\ref{sample1}, inside the single \code{subscribe} call, Observer $ s_1 $
 from Figure%
-\ref{chaincreate} is created and passed to $ o_3 $, which in turn will
+\ref{chaincreate} is created, and passed to $ o_3 $, which in turn will
 recursively subscribe to $ o_2 $ with a new Observer $ s_2 $ with
 destination $ s_1 $, until the full chain is subscribed.
 
@@ -97,7 +97,7 @@ $ which calls \code{console.log} in Figure%
 \ref{sample1}.
 
 Rx identifies three types of events that can occur during the runtime
-phase:  \emph{next}, \emph{error} and \emph{complete}-events.
+phase:  \emph{next}-, \emph{error}- and \emph{complete}-events.
 Next-events contain the next value in the flow, an error-event
 encapsulates an error and is a unsuccessful termination to a stream,
 while a complete-event denotes the successful termination of the stream.
@@ -109,14 +109,14 @@ to terminate.
 More complex programs feature operators that merge Observables%
 \footnote{ \code{concat}, \code{merge}, \code{combineLatest}, \code{zip}
 }, split Observables%
-\footnote{ \code{partition}, or through sharing with \code{share} or
+\footnote{ \code{partition}, or through multicasting with \code{share} or
 \code{publish} } or handle higher order Observables%
 \footnote{ \code{flatMap}, \code{mergeMap}, \code{concatMap} },
 resulting in more complex graphs.  An example of \code{flatMap} is shown
 in Figure~%
 \ref{sample3}.  While merging and splitting happens on an Observable
 level (the \code{source} property still points to one or more
-dependencies) higher order Observable flattening manifests only in
+dependencies), higher order Observable flattening manifests only in
 Observer structure (there is no reference between the Observables).
 Figure%
 \ref{chainhigher} shows this with an (abbreviated) \code{inner}

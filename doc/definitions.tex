@@ -1,0 +1,31 @@
+%%% Tooling %%%
+
+\input{images/overlaygenerator}
+
+\newcommand\footnoteref[1]{\protected@xdef\@thefnmark{%
+\ref{#1}}\@footnotemark} \makeatother
+
+\CatchFileDef{\HEAD}{../.git/refs/heads/master}{}
+\newcommand{\gitrevision}{%
+\StrLeft{\HEAD}{7}%
+}
+
+\newcommand{\code}[1]{\texttt{#1}}
+
+\setlength{\paperheight}{11in} \usetikzlibrary{automata,arrows,positioning,calc,fit}
+
+% \linenumbers
+
+%%% Textual %%%
+
+\newcommand{\thesistitle}{Debugging Data-Flows in Reactive Programs}
+\hypersetup{pdftitle={\thesistitle}}
+
+\hyphenation{Ob-serv-ables}
+\hyphenation{Marble}
+\hyphenation{Diagrams}
+\hyphenation{Java-Script}
+\hyphenation{RxFiddle}
+
+\newcommand{\printfdebugging}{{\code{printf}-debugging}}
+\newcommand{\NodeJS}{{Node.js}}
