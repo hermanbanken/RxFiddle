@@ -1,11 +1,11 @@
 \subsection{Results} The online experiment was performed outside of our
 control, and some participants quit the experiment prematurely.  In
-total we had 105 subjects starting the survey, of those 93 completed the
-preliminary questionnaire, and 84, 71, 65, and 56 subjects started
-respectively T1, T2, T3 and T4.  All of the subjects in the offline
-setting started all tasks.  Figure~\ref{fig:resultPerTask} 
-shows the outcome of the tasks; in the remainder
-of this section consider only the outcomes marked as ``Correct''.
+total we had 105 subjects (13 offline, 92 online) starting the survey,
+of those 93 completed the preliminary questionnaire, and 84, 71, 65,
+and 56 subjects started respectively T1, T2, T3 and T4.  All of the
+subjects in the offline setting started all tasks.
+Figure~\ref{fig:resultPerTask} shows the outcome of the tasks; in the 
+remainder of this section consider only the outcomes marked as ``Correct''.
 
 \begin{figure}[t]
     \includegraphics[width=\columnwidth]{images/resultPerTask.pdf}
@@ -21,11 +21,14 @@ distribution so we perform a non-parametric Wilcoxon Mann-Whitney U test
 (\textit{$ H_0 $:  times for the Console group and RxFiddle group are
 drawn from the same population}) to see if the differences are
 significant, and a Cliff's delta test for ordinal data to determine the
-effect size.
+effect size. The results are shown in Table~\ref{table:result}.
 
-\begin{centering}
-    \input{tables/wilcoxonPerTask}
-\end{centering}
+\begin{table}[h!]
+    {\centering\input{tables/wilcoxonPerTask}}
+    \caption{Results comparing the Console and RxFiddle groups, with 
+    respectively $n_1$ and $n_2$ subjects.}
+    \label{table:result}
+\end{table}
 
 For tasks T3 we can reject $ H_0 $ with high significance ($ p < 0.05 $),
 \emph{the RxFiddle group is faster}.  For the tasks T1, T2 and T4 we can
@@ -41,14 +44,18 @@ Console group perform or could perform equally}.
 \paragraph{Control for experience} To investigate this further, we split
 the results for different groups of subjects, as shown in Figure~%
 \ref{fig:timePerTaskSplit} in the Appendix.  When we control for the
-self-assessed Rx experience (splitting at the median value; greater than
-``Beginner''-level) we see bigger differences for all tasks for groups
+self-assessed Rx experience, we see bigger differences for all tasks for groups
 with more experience, as shown in Figure~%
-\ref{fig:timePerTaskRx} and the following table.
+\ref{fig:timePerTaskRx} and Table~\ref{table:result-split} (we split at the 
+median value; greater than ``Beginner''-level).
 
-\begin{centering}
-    \input{tables/wilcoxonPerTaskRx}
-\end{centering}
+\begin{table}[t]
+    {\centering\input{tables/wilcoxonPerTaskRx}}
+    \caption{Results comparing the Console and RxFiddle groups, with 
+    respectively $n_1$ and $n_2$ subjects, with Rx experience above 
+    ``Beginner''-level.}
+    \label{table:result-split}
+\end{table}
 
 \begin{figure}[t]
     \includegraphics[width=\columnwidth]{images/timePerTaskRx.pdf}

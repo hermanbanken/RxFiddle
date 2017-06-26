@@ -39,7 +39,7 @@ Observer sequences together, simplifying it in the process, resulting in
 a \emph{Data Flow Graph} (DFG) as in Figure~%
 \ref{fiddlesimple}.  The process is simple:  we retain only the
 Observer-subgraph nodes, complementing them with the meta data of the
-corresponding Observable nodes.  Higher order relations are retained as
+corresponding Observable nodes.  Higher order relations are retained, as
 shown in Figure~%
 \ref{fiddlehigher}.  Figure~%
 \ref{screenshot-mergeAll}B shows the DFG in practice.
@@ -111,7 +111,8 @@ a platform and language independent graph like Figure~%
 visualization, the debugger can be used for the complete Rx family of
 libraries by only reimplementing the first component.  The communication
 protocol for the instrumentation is shown in Table~%
-\ref{protocol}.
+\ref{protocol}. Note that the user never needs to use 
+this protocol, it is internal to the debugger.
 
 The \textbf{Visualizer} takes the output of the host instrumentation,
 the initial graph, and simplifies it into a Data Flow Graph.  Then it
@@ -156,7 +157,7 @@ different language and platform.
     \end{tabular}
     \\
     \hline
-    addEvent(observerId, type, optionalValue) &
+    \code{addEvent(observerId, type, optionalValue)} &
     \begin{tabular}[c]
         {@{}l@{}}Add an event to the Observer denoted by \code{observerId}, of
         type (next, error, complete), \\
@@ -192,7 +193,7 @@ are patched to return Proxies wrapping the API method calls.  The
 instrumentation passes every method entry and method exit to the
 Linking-step.
 
-\paragraph{Linking} Here, we distinguish between method calls from the
+\paragraph{Linking} We distinguish between method calls from the
 different phases (Section~%
 \ref{nutshell}).  From the assembly phase, we detect when Observables
 are used as target or arguments of a call or as return value, and create
@@ -213,8 +214,8 @@ RxFiddle's code editor executes the code in a Worker%
 \footnote{\url{https://developer.mozilla.org/docs/Web/API/Worker}} and
 transmits events over the postMessage protocol, while RxFiddle for
 \NodeJS{} transmits over WebSockets.  Being able to support multiple
-protocols, increases the possible use cases, ranging from the code editor
-for small programs, to the \NodeJS{} plugin for server applications, to
+protocols, extends the possible use cases, ranging from the code editor
+for small programs, to a \NodeJS{} plugin for server applications, to
 Chrome DevTool extensions%
 \footnote{\url{https://developer.chrome.com/extensions/devtools}} for
 web applications.
@@ -222,12 +223,13 @@ web applications.
 \paragraph{Visualizer} The visualizer receives the current state in the
 form of a graph from the Logger.  It then uses the Observers in the
 graph to create the DFG.  To layout the DFG using StoryFlow~\cite{liu2013storyflow},
-we first rank the graph using depth first search, remove slack and
+we first rank the graph using depth first search, remove 
+slack~\cite{gansner1993technique} and
 reverse edges where necessary to create a directed acyclic graph.  We
 then add dummy nodes to replace long edges with edges spanning a single
 rank.  Finally we order and align the nodes in the ranks assigning
-coordinates for the visualization.  It is important that layout is fast,
-as it runs every time the DFG is changed.  To render the Marble Diagrams
+coordinates for the visualization.  It is important that layouting is fast,
+as it runs every time the DFG is changed.  To render the Marble Diagrams,
 the flow \emph{to} and \emph{from} the selected Observer is gathered, by recursively
 traversing the graph in the direction of the edges, respectively the
 reversed direction.
