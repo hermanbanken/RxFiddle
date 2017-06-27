@@ -31,6 +31,15 @@ dev.off()
 ### AMOUNT OF DROPOUT
 d = read.arff("~/Dropbox/Afstuderen/interviews/analyze experiment/current.arff")
 
+# textual stats
+nrow(d)
+nrow(subset(d, type == "controlled"))
+nrow(subset(d, type == "online"))
+nrow(subset(d, sample_generate_state != "ns"))
+nrow(subset(d, sample_bmi_state != "ns"))
+nrow(subset(d, sample_time_state != "ns"))
+nrow(subset(d, sample_imdb_state != "ns"))
+
 # Tests of proportion
 # https://cran.r-project.org/doc/contrib/Lemon-kickstart/kr_prop.html
 typedropout <- matrix(c(
