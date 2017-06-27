@@ -1,28 +1,4 @@
-# install easyggplot2
-install.packages("devtools")
-library(devtools)
-install_github("easyGgplot2", "kassambara")
-install.packages("stringr")
-
-# setup
-require(ggplot2)
-require(foreign)
-library(easyGgplot2)
-library(stringr)
-library(gridExtra)
-library(grid)
-
-# Load
-d = read.arff("~/Dropbox/Afstuderen/interviews/analyze experiment/current.arff")
-#d <- subset(d, !is.na(sample_imdb_t_correct))
-
-
-ggplot(d, aes(x = type, y = years_rp)) + geom_boxplot()
-median(d$years_pr, na.rm=TRUE)
-median(d$years_rp, na.rm=TRUE)
-median(d$exp_pr, na.rm=TRUE)
-median(d$exp_rp, na.rm=TRUE)
-ggplot(d, aes(x = d$years_pr, y = d$sample_time_state, color = d$mode)) + geom_point()
+source("~/Documents/thesis/doc/images/shared.R", chdir=T)
 
 timePerTask <- function(d) {
   # Concat all tasks
@@ -32,13 +8,6 @@ timePerTask <- function(d) {
   for (i in 1:length(samples)) {
     name <- paste("sample_",samples[i],"_t_correct", sep="")
     nextF <- data.frame(task=paste("T",i, sep=""),t_correct=unname(d[name]/1000), mode=d$mode, type=d$type, completed=d$sum_t_correct, stringsAsFactors=FALSE)
-    
-    # Possible filters
-    # TODO remove 600 (10 minutes) clipping as soon as pause/unpause events are accounted for
-    nextF <- subset(nextF, t_correct<600)
-    #nextF <- subset(nextF, t_correct<600 & !is.na(completed))
-    #nextF <- subset(nextF, t_correct<600 & str_detect(type, "controlled"))
-    
     sequential <- rbind(sequential, nextF)
   }
   # Plot
@@ -52,15 +21,13 @@ timePerTask <- function(d) {
   plot
 }
 
+# All results
+
 pdf("~/Documents/thesis/doc/images/timePerTask.pdf", width=6, height=3)
 timePerTask(d)
 dev.off()
 
-# Plot counts inside bars
-#n_fun <- function(x){
-#  return(data.frame(y = median(x), label = paste0(length(x))))
-#}
-#+ stat_summary(fun.data = n_fun, geom = "text"),
+# Various splits
 
 pdf("~/Documents/thesis/doc/images/timePerTaskSplit.pdf", width=15, height=20)
 grid_arrange_shared_legend(
@@ -73,10 +40,10 @@ grid_arrange_shared_legend(
   ncol=2, nrow=3)
 dev.off()
 
+# Split for Rx
+
 pdf("~/Documents/thesis/doc/images/timePerTaskRx.pdf", width=6, height=3)
 timePerTask(subset(d, exp_rx > 2))
 dev.off()
-# tryout
-# timePerTask(subset(d, years_rp <= 1)) + ggtitle(paste("years exp rp <= 1 (n = ", nrow(subset(d, sample_imdb_tries > 0)), ")", sep=""))
 
 
