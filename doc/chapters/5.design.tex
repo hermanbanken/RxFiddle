@@ -207,6 +207,7 @@ nodes and save the relation as an edge.  In the runtime phase we detect
 \code{next}-, \code{error}- and \code{complete}-calls on Observers and add
 these as meta data to the Observer nodes.
 
+\vspace{-1mm}
 \paragraph{Graph Loggers} From the Linking-step the graph mutations are
 streamed to the environment of the visualizer, where the graph is
 rebuilt.  Depending on the host language a different protocol is used:
@@ -220,6 +221,7 @@ Chrome DevTool extensions%
 \footnote{\url{https://developer.chrome.com/extensions/devtools}} for
 web applications.
 
+\vspace{-1mm}
 \paragraph{Visualizer} The visualizer receives the current state in the
 form of a graph from the Logger.  It then uses the Observers in the
 graph to create the DFG.  To layout the DFG using StoryFlow~\cite{liu2013storyflow},

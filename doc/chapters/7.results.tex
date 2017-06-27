@@ -20,16 +20,7 @@ remainder of this section consider only the outcomes marked as ``Correct''.
     \caption{Results comparing the Console and RxFiddle groups, with
     respectively $n_1$ and $n_2$ subjects.}
     \label{table:result}
-\end{table}
-
-\begin{figure}[htbp]
-    \includegraphics[width=\columnwidth]{images/timePerTask.pdf}
-    \caption{Time until correct answer per task, overall}%
-    \label{fig:timePerTask}
-\end{figure}
-
-\begin{table}[htbp]
-    \centering
+\vspace{0.4cm}
     {\centering\input{tables/wilcoxonPerTaskRx}}
     \caption{Results comparing the Console and RxFiddle groups, with
     respectively $n_1$ and $n_2$ subjects, with Rx experience above
@@ -38,13 +29,19 @@ remainder of this section consider only the outcomes marked as ``Correct''.
 \end{table}
 
 \begin{figure}[htbp]
+    \includegraphics[width=\columnwidth]{images/timePerTask.pdf}
+    \caption{Time until correct answer per task, overall}%
+    \label{fig:timePerTask}
+\end{figure}
+
+\begin{figure}[htbp]
     \includegraphics[width=\columnwidth]{images/timePerTaskRx.pdf}
     \caption{Time until correct answer per task, for subjects with more
     than ``Beginner''-level of experience with Rx.}%
     \label{fig:timePerTaskRx}
 \end{figure}
 
-
+\vspace{-1mm}
 \paragraph{Overall} Figure~\ref{fig:timePerTask}
 shows the time until the correct answer was given
 per task.  Here we consider the combined results from the offline experiment
@@ -60,13 +57,14 @@ For tasks T3 we can reject $ H_0 $ with high significance ($ p < 0.05 $),
 not reject $ H_0 $ ($ p > 0.05 $), meaning the \emph{RxFiddle group and
 Console group perform or could perform equally}.
 
+\vspace{-1mm}
 \paragraph{Control for experience} To investigate this further, we split
 the results for different groups of subjects, as shown in Figure~%
 \ref{fig:timePerTaskSplit} in the Appendix.  When we control for the
 self-assessed Rx experience, we see bigger differences for all tasks for groups
 with more experience, as shown in Figure~%
 \ref{fig:timePerTaskRx} and Table~\ref{table:result-split} (we split at the
-median value; greater than ``Beginner''-level).
+median; \code{exp\_rx} $>$ ``Beginner''-level).
 
 Still, for tasks T1, T2, and T4 we can not reject $ H_0 $, but the
 results are more significant comparing only experienced subjects.
