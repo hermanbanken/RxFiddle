@@ -1,11 +1,12 @@
 \subsection{Results} The online experiment was performed outside of our
 control, and some participants quit the experiment prematurely.  In
-total we had 105 subjects starting the survey, of those 93 completed the
-preliminary questionnaire, and 84, 71, 65, and 56 subjects started
-respectively T1, T2, T3 and T4.  All of the subjects in the offline
-setting started all tasks.  Figure~%
-\ref{fig:resultPerTask} shows the outcome of the tasks; in the remainder
-of this section consider only the outcomes marked as ``Correct''.
+total we had 111 subjects (13 offline, 98 online) starting the survey,
+of those 98 completed the preliminary questionnaire, and
+89, 74, 67, and 58 subjects
+started respectively T1, T2, T3 and T4.  All of the
+subjects in the offline setting started all tasks.
+Figure~\ref{fig:resultPerTask} shows the outcome of the tasks; in the
+remainder of this section consider only the outcomes marked as ``Correct''.
 
 \begin{figure}[t]
     \includegraphics[width=\columnwidth]{images/resultPerTask.pdf}
@@ -13,49 +14,57 @@ of this section consider only the outcomes marked as ``Correct''.
     \label{fig:resultPerTask}
 \end{figure}
 
-\paragraph{Overall} Figure%
-\ref{fig:timePerTask} shows the time until the correct answer was given
+\begin{table}[htbp]
+    \centering
+    {\centering\input{tables/wilcoxonPerTask}}
+    \caption{Results comparing the Console and RxFiddle groups, with
+    respectively $n_1$ and $n_2$ subjects.}
+    \label{table:result}
+\vspace{0.4cm}
+    {\centering\input{tables/wilcoxonPerTaskRx}}
+    \caption{Results comparing the Console and RxFiddle groups, with
+    respectively $n_1$ and $n_2$ subjects, with Rx experience above
+    ``Beginner''-level.}
+    \label{table:result-split}
+\end{table}
+
+\begin{figure}[htbp]
+    \includegraphics[width=\columnwidth]{images/timePerTask.pdf}
+    \caption{Time until correct answer per task, overall}%
+    \label{fig:timePerTask}
+\end{figure}
+
+\begin{figure}[htbp]
+    \includegraphics[width=\columnwidth]{images/timePerTaskRx.pdf}
+    \caption{Time until correct answer per task, for subjects with more
+    than ``Beginner''-level of experience with Rx.}%
+    \label{fig:timePerTaskRx}
+\end{figure}
+
+\vspace{-1mm}
+\paragraph{Overall} Figure~\ref{fig:timePerTask}
+shows the time until the correct answer was given
 per task.  Here we consider the combined results from the offline experiment
 and the online experiment.  We make no assumptions about the underlying
 distribution so we perform a non-parametric Wilcoxon Mann-Whitney U test
 (\textit{$ H_0 $:  times for the Console group and RxFiddle group are
 drawn from the same population}) to see if the differences are
 significant, and a Cliff's delta test for ordinal data to determine the
-effect size.
-
-\begin{centering}
-    \input{tables/wilcoxonPerTask}
-\end{centering}
+effect size. The results are shown in Table~\ref{table:result}.
 
 For tasks T3 we can reject $ H_0 $ with high significance ($ p < 0.05 $),
 \emph{the RxFiddle group is faster}.  For the tasks T1, T2 and T4 we can
 not reject $ H_0 $ ($ p > 0.05 $), meaning the \emph{RxFiddle group and
 Console group perform or could perform equally}.
 
-\begin{figure}[t]
-    \includegraphics[width=\columnwidth]{images/timePerTask.pdf}
-    \caption{Time until correct answer per task, overall}%
-    \label{fig:timePerTask}
-\end{figure}
-
+\vspace{-1mm}
 \paragraph{Control for experience} To investigate this further, we split
-the results for different groups of subjects, as shown in Figure%
+the results for different groups of subjects, as shown in Figure~%
 \ref{fig:timePerTaskSplit} in the Appendix.  When we control for the
-self-assessed Rx experience (splitting at the median value; greater than
-``Beginner''-level) we see bigger differences for all tasks for groups
+self-assessed Rx experience, we see bigger differences for all tasks for groups
 with more experience, as shown in Figure~%
-\ref{fig:timePerTaskRx} and the following table.
-
-\begin{centering}
-    \input{tables/wilcoxonPerTaskRx}
-\end{centering}
-
-\begin{figure}[t]
-    \includegraphics[width=\columnwidth]{images/timePerTaskRx.pdf}
-    \caption{Time until correct answer per task, for subjects with more
-    than ``Beginner''-level of experience with Rx}%
-    \label{fig:timePerTaskRx}
-\end{figure}
+\ref{fig:timePerTaskRx} and Table~\ref{table:result-split} (we split at the
+median; \code{exp\_rx} $>$ ``Beginner''-level).
 
 Still, for tasks T1, T2, and T4 we can not reject $ H_0 $, but the
 results are more significant comparing only experienced subjects.

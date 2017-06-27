@@ -1,18 +1,7 @@
-# install easyggplot2
-install.packages("devtools")
-library(devtools)
-install_github("easyGgplot2", "kassambara")
-install_github('likert', 'jbryer')
-
-# setup
-require(ggplot2)
-require(foreign)
-library(easyGgplot2)
-library(reshape)
-require(likert)
+source("~/Documents/thesis/doc/images/shared.R", chdir=T)
+d = read.arff("~/Dropbox/Afstuderen/interviews/analyze experiment/current.arff")
 
 # Load
-d = read.arff("~/Dropbox/Afstuderen/interviews/analyze experiment/current.arff")
 mylevels <- c('none', 'beginner', 'medium', 'senior', 'expert')
 langs = c("lang_js","lang_java","lang_scala","lang_swift","lang_cs","rp","rx")
 # make lang columns factorized

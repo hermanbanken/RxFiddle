@@ -46,7 +46,7 @@ the interviews.
 Five developers with professional programming experience ranging from 4
 to 12 years were interviewed.  The first four developers (D1-D4) work
 in Company A, which builds mostly reactive systems~\cite{boner2014reactive}
-using various RP solutions, and developers range from a month to over a
+using various RP solutions. Developers range from a month to over a
 year of Rx experience.  The fifth developer (D5) works in Company B, and
 is concerned with building and maintaining a large scale distributed
 server application, that uses Rx to handle asynchronous events.
@@ -72,7 +72,9 @@ code.
 Subjects use \printfdebugging{} to \emph{``add more context''} (D1) to
 their debug sessions.  Printing which values flow through the flow
 allows them to \emph{``quickly reason what happens''} (D3).  Breakpoints
-are only used when the project requires costly recompilation otherwise (D1).
+are only used when the project requires costly (TypeScript) recompilation 
+if the source is modified, as required for \printfdebugging{} (D1).
+
 Existing debuggers often can not be used to inspect the life-cycle of
 Observables (subscription and disposal), as these occurrences are not
 normally defined in user code and would require breakpoints in library
@@ -108,7 +110,7 @@ need for more examples in the documentation.
 \paragraph{Difficulties experienced} The IDE does not help with
 developing Rx (D2, D4); according to D4 \emph{``Rx is more about timing
 than about types''}, and \emph{``You miss some sort of indication that
-the output is what you expect''}.  It is not allways clear what happens
+the output is what you expect''}.  It is not always clear what happens
 when you execute a piece of code, ``mostly due to Observables sometimes
 being lazy'' (D2).  Flows are clear and comprehensible in the scope of a
 single class or function, but for applicationwide flows it becomes
@@ -119,7 +121,7 @@ giving the example of the many ways to cleanup and \code{unsubscribe},
 which he did manually initially.  D1 used both logging while analyzing
 existing code and learning to overcome inexperience.
 
-\paragraph{Approach to understanding} Subjects first \emph{look which
+\paragraph{Understanding} Subjects first \emph{look at which
 operators are used}, then they \emph{reason about what types and values
 might flow through the stream} (D2, D3, D4 and D5), using various
 methods.  By analyzing the variable names D2 forms an expectation of the
@@ -148,9 +150,9 @@ further explain how to best format the log statements and introduce ways
 to limit the logging by modifying the Observable through means of
 throttling and sampling.  The RxJava book~\cite{rxjavabook2016} also
 contains tips to use the various \code{do}-operators to integrate with
-existing metric tools.  To our knowledge the only article addressing
-issues of debugging Rx is by Staltz, one of the contributors of RxJS%
-\footnote{\url{http://staltz.com/how-to-debug-rxjs-code.html}}, noting
+existing metric tools.  To our knowledge the only article%
+\footnote{\url{http://staltz.com/how-to-debug-rxjs-code.html}} addressing
+issues of debugging Rx is by Staltz, one of the contributors of RxJS, noting
 that conventional debuggers are not suitable for the higher level of
 abstraction of Observables.  Staltz explains three current ways to debug
 Rx, being:  (1) tracing to the console, (2) manually drawing the
@@ -159,12 +161,12 @@ dependency graph, (3) manually drawing Marble Diagrams.
 We analyzed a set of 13 books about RxJS, which was created by selecting
 69 books matching ``RxJS'' from the O'Reilly Safari catalogue%
 \footnote{\url{http://www.safaribooksonline.com}}, and further reducing
-the set by filtering on terms like ``debugger'' and ``debug''.  While,
+the set by filtering on the terms ``debug'' and ``debugger''.  While,
 none of the remaining books had a chapter about debugging, many of these
-books use \printfdebugging{} in their code samples.  Notably,\cite{frpbook2016}
-suggests, in a ``Future Directions'' chapter, that special debuggers
-could provide a graphical representation of FRP state over time and
-would allow debugging without stepping into the FRP engine.
+books use \printfdebugging{} in their code samples.  Notably, 
+Blackheath~\cite{frpbook2016} suggests, in a ``Future Directions'' chapter, 
+that special debuggers could provide a graphical representation of FRP
+state over time and would allow debugging without stepping into the FRP engine.
 
 \subsection{Overview of practices} The available literature matches the
 results of the interviews:  \printfdebugging{} is commonly advised and
@@ -179,11 +181,11 @@ Overall, we identified four overarching practices when debugging Rx code:
 \begin{enumerate}
         \itemsep0em
     \item[(1)]
-        gaining high-level overview of the reactive structure,
+        Gaining high-level overview of the reactive structure.
     \item[(2)]
-        understanding dependencies between Observables,
+        Understanding dependencies between Observables.
     \item[(3)]
-        finding bugs and issues in reactive behavior and
+        Finding bugs and issues in reactive behavior.
     \item[(4)]
-        comprehending behavior of operators in existing code.
+        Comprehending behavior of operators in existing code.
 \end{enumerate}
