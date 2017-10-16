@@ -58,6 +58,12 @@ let menu = h("div#menufold-static.menufold.flexy.wrap", [
   h("a.btn.flex-end", { attrs: { href: twitterIntent } }, "Twitter"),
 ])
 
+const demoHref = "https://rxfiddle.net/#type=editor&" +
+  "code=bGV0IGEgPSBSeC5PYnNlcnZhYmxlLm9mKDEsIDIsIDMpCgkubWFwKHggPT4geCAqIDIpCgpsZXQgYiA9IG5ldy" +
+  "BSeC5PYnNlcnZhYmxlLmNyZWF0ZShvID0+IHsKICBzZXRUaW1lb3V0KCgpID0+IG8ubmV4dCgiYSIpLCAxMDApCiAgc" +
+  "2V0VGltZW91dCgoKSA9PiBvLm5leHQoImIiKSwgNTAwKQogIHNldFRpbWVvdXQoKCkgPT4gby5uZXh0KCJjIiksIDEw" +
+  "MDApCn0pCgphLmZsYXRNYXAoXyA9PiBiKS5zdWJzY3JpYmUoKQ=="
+
 export default class Splash {
   public stream() {
     return Observable.combineLatest(
@@ -69,8 +75,8 @@ export default class Splash {
           menu,
           hero,
           h("div.warning", [
-            "Experiment: \"how do you Rx\"? Part of my thesis research.",
-            h("a.btn", { attrs: { href: "experiment.html" }, style: { float: "right" } }, "Participate"),
+            "New to RxJS / RxFiddle?",
+            h("a.btn", { attrs: { href: demoHref }, style: { float: "right" } }, "Demo"),
           ]),
 
           h("h2.border", "Getting started"),
