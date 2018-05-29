@@ -71,7 +71,8 @@ export default class RxFiddle {
    * @param param Optional, specify which RxFiddle instance to use. Defaults to rxfiddle.net,
    *              but you can also run your own RxFiddle on your own localhost.
    */
-  public openWindow({ address, origin }: { address?: string, origin?: string } = {}): TeardownLogic {
+  public openWindow(windowOrAddress: any): TeardownLogic {
+
     if(typeof window !== "object") {
       if(typeof process === "object") {
         console.warn("To use RxFiddle.openWindow, you need to run your app in the web browser. Consider using RxFiddle.serve since you're running in NodeJS.")
@@ -80,13 +81,16 @@ export default class RxFiddle {
       }
     }
 
-    if(!address) {
+    let { address, origin } = windowOrAddress;
+    if(!address && !(windowOrAddress instanceof Window)) {
       address = `https://rxfiddle.net/#type=postMessage`
       origin = "https://rxfiddle.net"
     }
 
     // Open RxFiddle window and prepare to clean it up on reload or unload
-    let w = window.open(address, '_blank', 'toolbar=0,location=0,menubar=0')
+    let w = windowOrAddress instanceof Window
+      ? windowOrAddress
+      : window.open(address, '_blank', 'toolbar=0,location=0,menubar=0')
     window.addEventListener("unload", () => !w.closed && w.close())
 
     let first = true
