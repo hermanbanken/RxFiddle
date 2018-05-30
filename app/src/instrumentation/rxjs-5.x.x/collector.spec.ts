@@ -95,16 +95,21 @@ export class TreeCollectorRx5Test {
   }
 
   @test
-  @only
   public flatMappedStreamTest() {
+    const scheduler = new Rx.TestScheduler((a,b) => a === b)
+
     const input$ = Rx.Observable.from([1, 2, 3, 4])
-      // .do(x => console.log("input: " + x))
+      .delayWhen((v) => Rx.Observable.timer(v % 2 === 0 ? 30 : 60, scheduler))
+      .do(x => console.log("input: " + x))
+
     const inner = Rx.Observable.of("my query")
+
     const sub = input$
-      // .debounce(() => Rx.Observable.timer(50))
+      .debounce(() => Rx.Observable.timer(50, scheduler))
       .flatMap(q => inner)
       .subscribe(list => console.log(list))
 
+    scheduler.flush()
     this.write("tree5_flat")
 
     if (!this.flowsFrom(this.getObs(inner), this.getSub(sub))) {
