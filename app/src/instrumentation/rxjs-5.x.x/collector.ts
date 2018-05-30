@@ -274,7 +274,7 @@ export class TreeCollector implements RxCollector {
       .map(o => this.tag("observer", o))
     this.tag("observer", observer).setSink(sinkOpt)
     let parentOpt = [(observer as any).parent]
-      .filter(isObserver)
+      .filter(isObserver.bind(null, this.Rx))
       .map(o => this.tag("observer", o))
     parentOpt.forEach(p => (this.tag("observer", observer)).setOuter(p))
   }
