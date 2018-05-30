@@ -1,0 +1,587 @@
+[
+  {
+    "id": "1",
+    "type": "observable"
+  },
+  {
+    "id": "1",
+    "meta": {
+      "names": "ScalarObservable"
+    }
+  },
+  {
+    "id": "1",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "string",
+            "value": "\"A\""
+          }
+        ],
+        "method": "of",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "2",
+    "type": "observable"
+  },
+  {
+    "id": "2",
+    "meta": {
+      "names": "ScalarObservable"
+    }
+  },
+  {
+    "id": "2",
+    "meta": {
+      "calls": {
+        "args": [],
+        "method": "publish",
+        "subject": "callRecord.subjectName 1"
+      }
+    }
+  },
+  {
+    "id": "3",
+    "type": "observer"
+  },
+  {
+    "id": "3",
+    "meta": {
+      "names": "Subscriber"
+    }
+  },
+  {
+    "id": "4",
+    "type": "observer"
+  },
+  {
+    "id": "4",
+    "meta": {
+      "names": "SafeSubscriber"
+    }
+  },
+  {
+    "v": "3",
+    "w": "4",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "5",
+    "type": "observable"
+  },
+  {
+    "id": "5",
+    "meta": {
+      "names": "Subject"
+    }
+  },
+  {
+    "id": "3",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 1
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "6",
+    "type": "subject"
+  },
+  {
+    "id": "6",
+    "meta": {
+      "names": "Subject"
+    }
+  },
+  {
+    "id": "6",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 2
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "6",
+    "w": "3",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "v": "5",
+    "w": "3",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "id": "7",
+    "type": "observable"
+  },
+  {
+    "id": "7",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "7",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "function",
+            "value": "x => x"
+          }
+        ],
+        "method": "map",
+        "subject": "callRecord.subjectName 2"
+      }
+    }
+  },
+  {
+    "id": "8",
+    "type": "observer"
+  },
+  {
+    "id": "8",
+    "meta": {
+      "names": "MapSubscriber"
+    }
+  },
+  {
+    "id": "9",
+    "type": "observer"
+  },
+  {
+    "id": "9",
+    "meta": {
+      "names": "Subscriber"
+    }
+  },
+  {
+    "id": "10",
+    "type": "observer"
+  },
+  {
+    "id": "10",
+    "meta": {
+      "names": "SafeSubscriber"
+    }
+  },
+  {
+    "v": "9",
+    "w": "10",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "v": "8",
+    "w": "9",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 3
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 4
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "6",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 5
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "6",
+    "w": "8",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "v": "5",
+    "w": "8",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "7",
+    "w": "9",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "id": "11",
+    "type": "observer"
+  },
+  {
+    "id": "11",
+    "meta": {
+      "names": "ConnectableSubscriber"
+    }
+  },
+  {
+    "v": "11",
+    "w": "6",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 6
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 7
+          },
+          "scheduler": "tick"
+        },
+        "value": "\"A\""
+      }
+    }
+  },
+  {
+    "id": "6",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 7
+          },
+          "scheduler": "tick"
+        },
+        "value": "\"A\""
+      }
+    }
+  },
+  {
+    "id": "3",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 7
+          },
+          "scheduler": "tick"
+        },
+        "value": "\"A\""
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 7
+          },
+          "scheduler": "tick"
+        },
+        "value": "\"A\""
+      }
+    }
+  },
+  {
+    "id": "9",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 7
+          },
+          "scheduler": "tick"
+        },
+        "value": "\"A\""
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "6",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "3",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "4",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "3",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "3",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "9",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "9",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "9",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 9
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "1",
+    "w": "11",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  }
+]

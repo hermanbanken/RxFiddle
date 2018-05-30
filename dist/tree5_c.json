@@ -1,0 +1,1432 @@
+[
+  {
+    "id": "2",
+    "scheduler": {
+      "id": "2",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "1",
+    "type": "observable",
+    "scheduler": {
+      "id": "2",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "1",
+    "meta": {
+      "names": "SubscriptionLoggable"
+    }
+  },
+  {
+    "id": "3",
+    "type": "observable",
+    "scheduler": {
+      "id": "2",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "3",
+    "meta": {
+      "names": "SubscriptionLoggable"
+    }
+  },
+  {
+    "id": "4",
+    "type": "observable"
+  },
+  {
+    "id": "4",
+    "meta": {
+      "names": "ArrayObservable"
+    }
+  },
+  {
+    "id": "5",
+    "type": "observable"
+  },
+  {
+    "id": "5",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "5",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "object",
+            "value": "[CombineLatestOperator] {\n  \"project\": (x, y) => x + y\n}"
+          }
+        ],
+        "method": "lift",
+        "subject": "callRecord.subjectName 4"
+      }
+    }
+  },
+  {
+    "id": "6",
+    "type": "observable"
+  },
+  {
+    "id": "6",
+    "meta": {
+      "names": "ArrayObservable"
+    }
+  },
+  {
+    "id": "6",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "1"
+          },
+          {
+            "type": "number",
+            "value": "2"
+          },
+          {
+            "type": "number",
+            "value": "3"
+          }
+        ],
+        "method": "of",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "7",
+    "type": "observable"
+  },
+  {
+    "id": "7",
+    "meta": {
+      "names": "ArrayObservable"
+    }
+  },
+  {
+    "id": "7",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "4"
+          },
+          {
+            "type": "number",
+            "value": "5"
+          },
+          {
+            "type": "number",
+            "value": "6"
+          }
+        ],
+        "method": "of",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "8",
+    "type": "observable"
+  },
+  {
+    "id": "8",
+    "meta": {
+      "names": "ArrayObservable"
+    }
+  },
+  {
+    "id": "9",
+    "type": "observable"
+  },
+  {
+    "id": "9",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "9",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "object",
+            "value": "[MergeAllOperator] {\n  \"concurrent\": 1\n}"
+          }
+        ],
+        "method": "lift",
+        "subject": "callRecord.subjectName 8"
+      }
+    }
+  },
+  {
+    "id": "10",
+    "type": "observable"
+  },
+  {
+    "id": "10",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "calls": {
+        "args": [],
+        "method": "lift",
+        "subject": "callRecord.subjectName 9"
+      }
+    }
+  },
+  {
+    "id": "11",
+    "type": "observable"
+  },
+  {
+    "id": "11",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "function",
+            "value": "x => x * 2"
+          }
+        ],
+        "method": "map",
+        "subject": "callRecord.subjectName 10"
+      }
+    }
+  },
+  {
+    "id": "12",
+    "type": "observable"
+  },
+  {
+    "id": "12",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "12",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "function",
+            "value": "x => x > 4"
+          }
+        ],
+        "method": "filter",
+        "subject": "callRecord.subjectName 11"
+      }
+    }
+  },
+  {
+    "id": "13",
+    "type": "observable"
+  },
+  {
+    "id": "13",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "13",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "function",
+            "value": "x => console.log(x)"
+          }
+        ],
+        "method": "do",
+        "subject": "callRecord.subjectName 12"
+      }
+    }
+  },
+  {
+    "id": "14",
+    "type": "observer"
+  },
+  {
+    "id": "14",
+    "meta": {
+      "names": "DoSubscriber"
+    }
+  },
+  {
+    "id": "15",
+    "type": "observer"
+  },
+  {
+    "id": "15",
+    "meta": {
+      "names": "Subscriber"
+    }
+  },
+  {
+    "id": "16",
+    "type": "observer"
+  },
+  {
+    "id": "16",
+    "meta": {
+      "names": "SafeSubscriber"
+    }
+  },
+  {
+    "v": "15",
+    "w": "16",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "v": "14",
+    "w": "15",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 1
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "17",
+    "type": "observer"
+  },
+  {
+    "id": "17",
+    "meta": {
+      "names": "FilterSubscriber"
+    }
+  },
+  {
+    "v": "17",
+    "w": "14",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 2
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "18",
+    "type": "observer"
+  },
+  {
+    "id": "18",
+    "meta": {
+      "names": "MapSubscriber"
+    }
+  },
+  {
+    "v": "18",
+    "w": "17",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 3
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 4
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 5
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "19",
+    "type": "observer"
+  },
+  {
+    "id": "19",
+    "meta": {
+      "names": "MergeAllSubscriber"
+    }
+  },
+  {
+    "v": "19",
+    "w": "18",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "19",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 6
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "19",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 7
+          },
+          "scheduler": "tick"
+        },
+        "value": {
+          "id": "6",
+          "type": "ArrayObservable"
+        }
+      }
+    }
+  },
+  {
+    "id": "20",
+    "type": "observer"
+  },
+  {
+    "id": "20",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "20",
+    "w": "19",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "20",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "20",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 9
+          },
+          "scheduler": "tick"
+        },
+        "value": "1"
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 9
+          },
+          "scheduler": "tick"
+        },
+        "value": "1"
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 9
+          },
+          "scheduler": "tick"
+        },
+        "value": "2"
+      }
+    }
+  },
+  {
+    "id": "20",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 10
+          },
+          "scheduler": "tick"
+        },
+        "value": "2"
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 10
+          },
+          "scheduler": "tick"
+        },
+        "value": "2"
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 10
+          },
+          "scheduler": "tick"
+        },
+        "value": "4"
+      }
+    }
+  },
+  {
+    "id": "20",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 11
+          },
+          "scheduler": "tick"
+        },
+        "value": "3"
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 11
+          },
+          "scheduler": "tick"
+        },
+        "value": "3"
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 11
+          },
+          "scheduler": "tick"
+        },
+        "value": "6"
+      }
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 11
+          },
+          "scheduler": "tick"
+        },
+        "value": "6"
+      }
+    }
+  },
+  {
+    "id": "21",
+    "type": "observer"
+  },
+  {
+    "id": "21",
+    "meta": {
+      "names": "Subscriber"
+    }
+  },
+  {
+    "id": "22",
+    "type": "observer"
+  },
+  {
+    "id": "22",
+    "meta": {
+      "names": "SafeSubscriber"
+    }
+  },
+  {
+    "v": "21",
+    "w": "22",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 12
+          },
+          "scheduler": "tick"
+        },
+        "value": "6"
+      }
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 12
+          },
+          "scheduler": "tick"
+        },
+        "value": "6"
+      }
+    }
+  },
+  {
+    "id": "20",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 13
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "20",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 14
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "6",
+    "w": "20",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "20",
+    "w": "19",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "20",
+    "w": "19",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "19",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 14
+          },
+          "scheduler": "tick"
+        },
+        "value": {
+          "id": "7",
+          "type": "ArrayObservable"
+        }
+      }
+    }
+  },
+  {
+    "id": "23",
+    "type": "observer"
+  },
+  {
+    "id": "23",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "23",
+    "w": "19",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "23",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 15
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "23",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 16
+          },
+          "scheduler": "tick"
+        },
+        "value": "4"
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 16
+          },
+          "scheduler": "tick"
+        },
+        "value": "4"
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 16
+          },
+          "scheduler": "tick"
+        },
+        "value": "8"
+      }
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 16
+          },
+          "scheduler": "tick"
+        },
+        "value": "8"
+      }
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 17
+          },
+          "scheduler": "tick"
+        },
+        "value": "8"
+      }
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 17
+          },
+          "scheduler": "tick"
+        },
+        "value": "8"
+      }
+    }
+  },
+  {
+    "id": "23",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 18
+          },
+          "scheduler": "tick"
+        },
+        "value": "5"
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 18
+          },
+          "scheduler": "tick"
+        },
+        "value": "5"
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 18
+          },
+          "scheduler": "tick"
+        },
+        "value": "10"
+      }
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 18
+          },
+          "scheduler": "tick"
+        },
+        "value": "10"
+      }
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 19
+          },
+          "scheduler": "tick"
+        },
+        "value": "10"
+      }
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 19
+          },
+          "scheduler": "tick"
+        },
+        "value": "10"
+      }
+    }
+  },
+  {
+    "id": "23",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 20
+          },
+          "scheduler": "tick"
+        },
+        "value": "6"
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 20
+          },
+          "scheduler": "tick"
+        },
+        "value": "6"
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 20
+          },
+          "scheduler": "tick"
+        },
+        "value": "12"
+      }
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 20
+          },
+          "scheduler": "tick"
+        },
+        "value": "12"
+      }
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 21
+          },
+          "scheduler": "tick"
+        },
+        "value": "12"
+      }
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 21
+          },
+          "scheduler": "tick"
+        },
+        "value": "12"
+      }
+    }
+  },
+  {
+    "id": "23",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 22
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "23",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 23
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "7",
+    "w": "23",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "23",
+    "w": "19",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "23",
+    "w": "19",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "19",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 23
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 23
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 23
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 23
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 24
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "22",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 24
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 25
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "16",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "19",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "8",
+    "w": "19",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "9",
+    "w": "18",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "11",
+    "w": "17",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "12",
+    "w": "14",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "13",
+    "w": "15",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  }
+]

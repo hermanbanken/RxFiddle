@@ -1,0 +1,1886 @@
+[
+  {
+    "id": "1",
+    "type": "observable"
+  },
+  {
+    "id": "1",
+    "meta": {
+      "names": "ArrayObservable"
+    }
+  },
+  {
+    "id": "1",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "array",
+            "value": "1, 2, 3, 4"
+          }
+        ],
+        "method": "from",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "2",
+    "type": "observable"
+  },
+  {
+    "id": "2",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "2",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "function",
+            "value": "(v) => Rx.Observable.timer(v % 2 === 0 ? 30 : 60, scheduler)"
+          }
+        ],
+        "method": "delayWhen",
+        "subject": "callRecord.subjectName 1"
+      }
+    }
+  },
+  {
+    "id": "3",
+    "type": "observable"
+  },
+  {
+    "id": "3",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "3",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "function",
+            "value": "x => console.log(\"input: \" + x)"
+          }
+        ],
+        "method": "do",
+        "subject": "callRecord.subjectName 2"
+      }
+    }
+  },
+  {
+    "id": "4",
+    "type": "observable"
+  },
+  {
+    "id": "4",
+    "meta": {
+      "names": "ScalarObservable"
+    }
+  },
+  {
+    "id": "4",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "string",
+            "value": "\"my query\""
+          }
+        ],
+        "method": "of",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "5",
+    "type": "observable"
+  },
+  {
+    "id": "5",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "5",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "function",
+            "value": "() => Rx.Observable.timer(50, scheduler)"
+          }
+        ],
+        "method": "debounce",
+        "subject": "callRecord.subjectName 3"
+      }
+    }
+  },
+  {
+    "id": "6",
+    "type": "observable"
+  },
+  {
+    "id": "6",
+    "meta": {
+      "names": "Observable"
+    }
+  },
+  {
+    "id": "6",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "function",
+            "value": "q => inner"
+          }
+        ],
+        "method": "flatMap",
+        "subject": "callRecord.subjectName 5"
+      }
+    }
+  },
+  {
+    "id": "7",
+    "type": "observer"
+  },
+  {
+    "id": "7",
+    "meta": {
+      "names": "MergeMapSubscriber"
+    }
+  },
+  {
+    "id": "8",
+    "type": "observer"
+  },
+  {
+    "id": "8",
+    "meta": {
+      "names": "Subscriber"
+    }
+  },
+  {
+    "id": "9",
+    "type": "observer"
+  },
+  {
+    "id": "9",
+    "meta": {
+      "names": "SafeSubscriber"
+    }
+  },
+  {
+    "v": "8",
+    "w": "9",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "v": "7",
+    "w": "8",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "7",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 1
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "10",
+    "type": "observer"
+  },
+  {
+    "id": "10",
+    "meta": {
+      "names": "DebounceSubscriber"
+    }
+  },
+  {
+    "v": "10",
+    "w": "7",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 2
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "11",
+    "type": "observer"
+  },
+  {
+    "id": "11",
+    "meta": {
+      "names": "DoSubscriber"
+    }
+  },
+  {
+    "v": "11",
+    "w": "10",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 3
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "12",
+    "type": "observer"
+  },
+  {
+    "id": "12",
+    "meta": {
+      "names": "DelayWhenSubscriber"
+    }
+  },
+  {
+    "v": "12",
+    "w": "11",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "12",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 4
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "12",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 5
+          },
+          "scheduler": "tick"
+        },
+        "value": "1"
+      }
+    }
+  },
+  {
+    "id": "13",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "14",
+    "type": "observable",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "names": "TimerObservable"
+    }
+  },
+  {
+    "id": "14",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "60"
+          },
+          {
+            "$ref": "13",
+            "type": "ref",
+            "value": "[TestScheduler] {...}"
+          }
+        ],
+        "method": "timer",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "15",
+    "type": "observer"
+  },
+  {
+    "id": "15",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "15",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 6
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "14",
+    "w": "15",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "15",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "15",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "12",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 7
+          },
+          "scheduler": "tick"
+        },
+        "value": "2"
+      }
+    }
+  },
+  {
+    "id": "16",
+    "type": "observable",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "16",
+    "meta": {
+      "names": "TimerObservable"
+    }
+  },
+  {
+    "id": "16",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "30"
+          },
+          {
+            "$ref": "13",
+            "type": "ref",
+            "value": "[TestScheduler] {...}"
+          }
+        ],
+        "method": "timer",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "17",
+    "type": "observer"
+  },
+  {
+    "id": "17",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "17",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 8
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "16",
+    "w": "17",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "17",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "17",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "12",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 9
+          },
+          "scheduler": "tick"
+        },
+        "value": "3"
+      }
+    }
+  },
+  {
+    "id": "18",
+    "type": "observable",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "names": "TimerObservable"
+    }
+  },
+  {
+    "id": "18",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "60"
+          },
+          {
+            "$ref": "13",
+            "type": "ref",
+            "value": "[TestScheduler] {...}"
+          }
+        ],
+        "method": "timer",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "19",
+    "type": "observer"
+  },
+  {
+    "id": "19",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "19",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "19",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 10
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "18",
+    "w": "19",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "19",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "19",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "12",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 11
+          },
+          "scheduler": "tick"
+        },
+        "value": "4"
+      }
+    }
+  },
+  {
+    "id": "20",
+    "type": "observable",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "20",
+    "meta": {
+      "names": "TimerObservable"
+    }
+  },
+  {
+    "id": "20",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "30"
+          },
+          {
+            "$ref": "13",
+            "type": "ref",
+            "value": "[TestScheduler] {...}"
+          }
+        ],
+        "method": "timer",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "21",
+    "type": "observer"
+  },
+  {
+    "id": "21",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "21",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 12
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "20",
+    "w": "21",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "21",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "21",
+    "w": "12",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "12",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 13
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "1",
+    "w": "12",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "2",
+    "w": "11",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "3",
+    "w": "10",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "5",
+    "w": "7",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "6",
+    "w": "8",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 14
+          },
+          "scheduler": "tick"
+        },
+        "value": "0"
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 14
+          },
+          "scheduler": "tick"
+        },
+        "value": "2"
+      }
+    }
+  },
+  {
+    "id": "22",
+    "type": "observer"
+  },
+  {
+    "id": "22",
+    "meta": {
+      "names": "Subscriber"
+    }
+  },
+  {
+    "id": "23",
+    "type": "observer"
+  },
+  {
+    "id": "23",
+    "meta": {
+      "names": "SafeSubscriber"
+    }
+  },
+  {
+    "v": "22",
+    "w": "23",
+    "type": "addObserverDestination",
+    "meta": {
+      "label": "destination"
+    }
+  },
+  {
+    "id": "22",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 15
+          },
+          "scheduler": "tick"
+        },
+        "value": "2"
+      }
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 15
+          },
+          "scheduler": "tick"
+        },
+        "value": "2"
+      }
+    }
+  },
+  {
+    "id": "24",
+    "type": "observable",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "24",
+    "meta": {
+      "names": "TimerObservable"
+    }
+  },
+  {
+    "id": "24",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "50"
+          },
+          {
+            "$ref": "13",
+            "type": "ref",
+            "value": "[TestScheduler] {...}"
+          }
+        ],
+        "method": "timer",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "25",
+    "type": "observer"
+  },
+  {
+    "id": "25",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "25",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "25",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 16
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "24",
+    "w": "25",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "25",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "25",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "17",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 18
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 19
+          },
+          "scheduler": "tick"
+        },
+        "value": "0"
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 19
+          },
+          "scheduler": "tick"
+        },
+        "value": "4"
+      }
+    }
+  },
+  {
+    "id": "22",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 20
+          },
+          "scheduler": "tick"
+        },
+        "value": "4"
+      }
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 20
+          },
+          "scheduler": "tick"
+        },
+        "value": "4"
+      }
+    }
+  },
+  {
+    "id": "26",
+    "type": "observable",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "26",
+    "meta": {
+      "names": "TimerObservable"
+    }
+  },
+  {
+    "id": "26",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "50"
+          },
+          {
+            "$ref": "13",
+            "type": "ref",
+            "value": "[TestScheduler] {...}"
+          }
+        ],
+        "method": "timer",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "25",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 21
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "27",
+    "type": "observer"
+  },
+  {
+    "id": "27",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "27",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "27",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 22
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "26",
+    "w": "27",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "27",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "27",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "21",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 24
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 25
+          },
+          "scheduler": "tick"
+        },
+        "value": "0"
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 25
+          },
+          "scheduler": "tick"
+        },
+        "value": "1"
+      }
+    }
+  },
+  {
+    "id": "22",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        },
+        "value": "1"
+      }
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 26
+          },
+          "scheduler": "tick"
+        },
+        "value": "1"
+      }
+    }
+  },
+  {
+    "id": "28",
+    "type": "observable",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "28",
+    "meta": {
+      "names": "TimerObservable"
+    }
+  },
+  {
+    "id": "28",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "50"
+          },
+          {
+            "$ref": "13",
+            "type": "ref",
+            "value": "[TestScheduler] {...}"
+          }
+        ],
+        "method": "timer",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "27",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 27
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "29",
+    "type": "observer"
+  },
+  {
+    "id": "29",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "29",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "29",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 28
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "28",
+    "w": "29",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "29",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "29",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "15",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 30
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "19",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 31
+          },
+          "scheduler": "tick"
+        },
+        "value": "0"
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 31
+          },
+          "scheduler": "tick"
+        },
+        "value": "3"
+      }
+    }
+  },
+  {
+    "id": "22",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 32
+          },
+          "scheduler": "tick"
+        },
+        "value": "3"
+      }
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 32
+          },
+          "scheduler": "tick"
+        },
+        "value": "3"
+      }
+    }
+  },
+  {
+    "id": "30",
+    "type": "observable",
+    "scheduler": {
+      "id": "13",
+      "name": "TestScheduler",
+      "type": "virtual",
+      "clock": 0
+    }
+  },
+  {
+    "id": "30",
+    "meta": {
+      "names": "TimerObservable"
+    }
+  },
+  {
+    "id": "30",
+    "meta": {
+      "calls": {
+        "args": [
+          {
+            "type": "number",
+            "value": "50"
+          },
+          {
+            "$ref": "13",
+            "type": "ref",
+            "value": "[TestScheduler] {...}"
+          }
+        ],
+        "method": "timer",
+        "subject": "callRecord.subjectName false"
+      }
+    }
+  },
+  {
+    "id": "29",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 33
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "31",
+    "type": "observer"
+  },
+  {
+    "id": "31",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "31",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "31",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 34
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "30",
+    "w": "31",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "31",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "31",
+    "w": "10",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "19",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 36
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 36
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "22",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 37
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "23",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 37
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "22",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 38
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "22",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 39
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 39
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "31",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 40
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "7",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 40
+          },
+          "scheduler": "tick"
+        },
+        "value": "3"
+      }
+    }
+  },
+  {
+    "id": "32",
+    "type": "observer"
+  },
+  {
+    "id": "32",
+    "meta": {
+      "names": "InnerSubscriber"
+    }
+  },
+  {
+    "v": "32",
+    "w": "7",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "32",
+    "meta": {
+      "events": {
+        "type": "subscribe",
+        "timing": {
+          "clocks": {
+            "tick": 41
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "32",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 42
+          },
+          "scheduler": "tick"
+        },
+        "value": "\"my query\""
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "next",
+        "timing": {
+          "clocks": {
+            "tick": 42
+          },
+          "scheduler": "tick"
+        },
+        "value": "\"my query\""
+      }
+    }
+  },
+  {
+    "id": "32",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 43
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "32",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "v": "4",
+    "w": "32",
+    "type": "setObserverSource",
+    "meta": {
+      "label": "observable"
+    }
+  },
+  {
+    "v": "32",
+    "w": "7",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "v": "32",
+    "w": "7",
+    "type": "addObserverOuter",
+    "meta": {
+      "label": "outer"
+    }
+  },
+  {
+    "id": "7",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "complete",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "9",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "7",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "10",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "11",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "12",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  },
+  {
+    "id": "8",
+    "meta": {
+      "events": {
+        "type": "dispose",
+        "timing": {
+          "clocks": {
+            "tick": 44
+          },
+          "scheduler": "tick"
+        }
+      }
+    }
+  }
+]

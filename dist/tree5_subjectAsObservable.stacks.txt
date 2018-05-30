@@ -1,0 +1,51 @@
+[
+  [
+    {
+      "arguments": [
+        null
+      ],
+      "childs": "muted",
+      "id": 577,
+      "method": "map",
+      "subject": {
+        "_isScalar": false,
+        "observers": [],
+        "closed": false,
+        "isStopped": false,
+        "hasError": false,
+        "thrownError": null
+      },
+      "subjectName": "Observable",
+      "tick": 0,
+      "time": 1527666818017,
+      "returned": {
+        "_isScalar": false,
+        "observers": [],
+        "closed": false,
+        "isStopped": false,
+        "hasError": false,
+        "thrownError": null,
+        "destination": "[Circular [\n  false,\n  false,\n  false,\n  false\n]]",
+        "source": "[Circular [\n  false,\n  false,\n  false,\n  false\n]]",
+        "operator": {}
+      }
+    }
+  ],
+  [
+    "[Circular [\n  577,\n  \"map\",\n  \"Observable\",\n  0,\n  1527666818017\n]]",
+    {
+      "arguments": [
+        "[Circular [\n  null,\n  null\n]]"
+      ],
+      "childs": "muted",
+      "id": 578,
+      "method": "lift",
+      "subject": "[Circular [\n  false,\n  false,\n  false,\n  false\n]]",
+      "subjectName": "Subject",
+      "tick": 0,
+      "time": 1527666818017,
+      "parent": 577,
+      "returned": "[Circular [\n  false,\n  false,\n  false,\n  false\n]]"
+    }
+  ]
+]

@@ -1,0 +1,388 @@
+[
+  [
+    {
+      "arguments": [
+        1
+      ],
+      "childs": "muted",
+      "id": 1,
+      "method": "of",
+      "subjectName": "ObservableStatic",
+      "tick": 0,
+      "time": 1527666817814,
+      "returned": {
+        "_isScalar": false,
+        "value": 1,
+        "scheduler": null
+      }
+    }
+  ],
+  [
+    {
+      "arguments": [
+        null
+      ],
+      "childs": "muted",
+      "id": 2,
+      "method": "map",
+      "subject": "[Circular [\n  false,\n  1\n]]",
+      "subjectName": "Observable",
+      "tick": 0,
+      "time": 1527666817814,
+      "returned": {
+        "_isScalar": false,
+        "source": "[Circular [\n  false,\n  1\n]]",
+        "operator": {}
+      }
+    }
+  ],
+  [
+    "[Circular [\n  2,\n  \"map\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    {
+      "arguments": [
+        "[Circular [\n  null,\n  null\n]]"
+      ],
+      "childs": "muted",
+      "id": 3,
+      "method": "lift",
+      "subject": "[Circular [\n  false,\n  1\n]]",
+      "subjectName": "Observable",
+      "tick": 0,
+      "time": 1527666817814,
+      "parent": 2,
+      "returned": "[Circular [\n  false\n]]"
+    }
+  ],
+  [
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 4,
+      "method": "subscribe",
+      "subject": "[Circular [\n  false\n]]",
+      "subjectName": "Observable",
+      "tick": 0,
+      "time": 1527666817814,
+      "returned": {
+        "closed": true,
+        "_parent": null,
+        "_parents": null,
+        "_subscriptions": null,
+        "syncErrorValue": null,
+        "syncErrorThrown": false,
+        "syncErrorThrowable": false,
+        "isStopped": true,
+        "destination": {
+          "closed": true,
+          "_parent": null,
+          "_parents": null,
+          "_subscriptions": null,
+          "syncErrorValue": null,
+          "syncErrorThrown": false,
+          "syncErrorThrowable": false,
+          "isStopped": true,
+          "destination": {
+            "closed": true
+          },
+          "_parentSubscriber": null,
+          "_context": null
+        }
+      }
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    {
+      "arguments": [
+        {
+          "closed": true,
+          "_parent": null,
+          "_parents": null,
+          "_subscriptions": null,
+          "syncErrorValue": null,
+          "syncErrorThrown": false,
+          "syncErrorThrowable": false,
+          "isStopped": true,
+          "destination": "[Circular [\n  true,\n  false,\n  false,\n  true\n]]",
+          "count": 1,
+          "thisArg": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]"
+        }
+      ],
+      "childs": "muted",
+      "id": 5,
+      "method": "subscribe",
+      "subject": "[Circular [\n  false,\n  1\n]]",
+      "subjectName": "Observable",
+      "tick": 0,
+      "time": 1527666817815,
+      "parent": 4,
+      "returned": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]"
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    {
+      "arguments": [
+        "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]"
+      ],
+      "childs": "muted",
+      "id": 6,
+      "method": "_trySubscribe",
+      "subject": "[Circular [\n  false,\n  1\n]]",
+      "subjectName": "Observable",
+      "tick": 0,
+      "time": 1527666817816,
+      "parent": 5
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    {
+      "arguments": [
+        1
+      ],
+      "childs": "muted",
+      "id": 7,
+      "method": "next",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817816,
+      "parent": 6
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  7,\n  \"next\",\n  \"Subscriber\",\n  0,\n  1527666817816,\n  null\n]]",
+    {
+      "arguments": [
+        1,
+        0
+      ],
+      "childs": "muted",
+      "id": 8,
+      "method": "lambda",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]",
+      "subjectName": "lambda",
+      "tick": 0,
+      "time": 1527666817816,
+      "parent": 7,
+      "returned": 1
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  7,\n  \"next\",\n  \"Subscriber\",\n  0,\n  1527666817816,\n  null\n]]",
+    {
+      "arguments": [
+        1
+      ],
+      "childs": "muted",
+      "id": 9,
+      "method": "next",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817816,
+      "parent": 7
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  7,\n  \"next\",\n  \"Subscriber\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  9,\n  \"next\",\n  \"Subscriber\",\n  0,\n  1527666817816,\n  null\n]]",
+    {
+      "arguments": [
+        1
+      ],
+      "childs": "muted",
+      "id": 10,
+      "method": "_next",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817816,
+      "parent": 9
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 11,
+      "method": "complete",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817817,
+      "parent": 6
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  11,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 12,
+      "method": "_complete",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817817,
+      "parent": 11
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  11,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  12,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 13,
+      "method": "complete",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817817,
+      "parent": 12
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  11,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  12,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  13,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 14,
+      "method": "_complete",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817817,
+      "parent": 13
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  11,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  12,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  13,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  14,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 15,
+      "method": "unsubscribe",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  null,\n  null\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817817,
+      "parent": 14
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  11,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  12,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  13,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  14,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  15,\n  \"unsubscribe\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 16,
+      "method": "unsubscribe",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817817,
+      "parent": 15
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  11,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  12,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  13,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  14,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  15,\n  \"unsubscribe\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  16,\n  \"unsubscribe\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 17,
+      "method": "unsubscribe",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817818,
+      "parent": 16
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  11,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  12,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  13,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  14,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 18,
+      "method": "unsubscribe",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817818,
+      "parent": 14
+    }
+  ],
+  [
+    "[Circular [\n  4,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817814\n]]",
+    "[Circular [\n  5,\n  \"subscribe\",\n  \"Observable\",\n  0,\n  1527666817815\n]]",
+    "[Circular [\n  6,\n  \"_trySubscribe\",\n  \"Observable\",\n  0,\n  1527666817816,\n  null\n]]",
+    "[Circular [\n  11,\n  \"complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    "[Circular [\n  12,\n  \"_complete\",\n  \"Subscriber\",\n  0,\n  1527666817817,\n  null\n]]",
+    {
+      "arguments": [],
+      "childs": "muted",
+      "id": 19,
+      "method": "unsubscribe",
+      "subject": "[Circular [\n  true,\n  false,\n  false,\n  true,\n  null,\n  1\n]]",
+      "subjectName": "Subscriber",
+      "tick": 0,
+      "time": 1527666817818,
+      "parent": 12
+    }
+  ]
+]
