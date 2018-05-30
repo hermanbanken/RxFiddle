@@ -1,0 +1,396 @@
+body {
+  display: flex;
+  flex-direction: column;
+}
+
+.survey {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.width {
+  max-width: 60em;
+  font-size: 1.2em;
+  margin: 0 auto 2em;
+  padding: 2em 1em;
+  flex: 1;
+}
+
+.mobile-only { display: none; }
+.mobile .mobile-only { display: inherit; }
+
+.page {
+  min-height: 80vh;
+}
+
+.hoptions {
+  display: flex;
+  padding: 0;
+  flex-direction: row;
+}
+.hoptions li {
+  flex: 1;
+  margin: 0;
+  list-style: none;
+  text-align: center;
+  display: flex;
+  margin: 5px;
+}
+.hoptions li label {
+  display: block;
+  background: #eee;
+  border: #ccc 1px solid;
+  border-radius: 5px;
+  width: 100%;
+  padding: 3px;
+}
+
+input[type="range"], .question input[type="range"] {
+  -webkit-appearance: none;
+  background: #ccc;
+  border-radius: 6px;
+  padding: 3px 5px;
+  margin-bottom: 20px;
+  margin-left: -14px;
+  margin-right: -14px;
+  width: calc(100% + 28px);
+  border: 1px solid #9a9a9a;
+  margin-top: 8px;
+}
+
+.hoptions li label input[type="radio"] {
+  display: block;
+  margin: 5px auto 3px;
+}
+
+.question { margin-bottom: 2em; }
+.question .labels {
+  display: flex;
+}
+.question input {
+  width: 100%;
+  z-index: 1;
+  padding: 10px 0;
+  margin: 0;
+}
+.question .labels .label {
+  padding-top: 0;
+  flex: 1;
+  text-align: center;
+  position: relative; 
+}
+.question .labels .label:first-child { flex: 0.5; text-align: left; }
+.question .labels .label:last-child { flex: 0.5; text-align: right; }
+
+.question .labels .label:before {
+  z-index: -1;
+  position: absolute; 
+  left: 50%;
+  top: -22px; 
+  margin-left: -1px;
+  width: 2px;
+  height: 15px;
+  background: black;
+  content: "";
+}
+.question .labels .label:first-child:before { left: 0; right: auto; }
+.question .labels .label:last-child:before { left: auto; right: 0; }
+
+.nav {
+  background: #efefef;
+  border-bottom: #ccc 2px solid;
+  padding: 0;
+  box-shadow: 0 0 5px rgba(0,0,0,.2);
+}
+.nav ol { 
+  font-size: 1.2em;
+  max-width: 40em;
+  display: flex;
+  margin: 0 auto;
+  padding: 0;
+  overflow-x: auto;
+}
+.nav ol li {
+  list-style: none;
+  margin: 0;
+  flex: 1;
+  flex-grow: 0;
+  white-space: nowrap;
+}
+
+.nav ol li a {
+  display: block;
+  padding: 1em;
+  text-decoration: none;
+  color: inherit;
+}
+.nav ol li a:hover { background: #ddd; border-bottom: 2px solid #ccc; margin-bottom: -2px; }
+.nav ol li a:active, .nav ol li a:focus { border-bottom: 2px solid blue; margin-bottom: -2px; }
+
+@media (pointer:coarse) {
+  input[type="range"] {
+    min-height: 50px;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    border: 1px solid #000000;
+    height: 36px;
+    width: 16px;
+    border-radius: 3px;
+    background: #ffffff;
+    cursor: pointer;
+    margin-top: -14px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+    box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+  }
+}
+
+.mobile input[type="range"] {
+  min-height: 50px;
+}
+.mobile input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: 1px solid #000000;
+  height: 36px;
+  width: 16px;
+  border-radius: 3px;
+  background: #ffffff;
+  cursor: pointer;
+  margin-top: -7px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+  box-shadow: 1px 1px 1px #000000, 0px 0px 1px #0d0d0d; /* Add cool effects to your sliders! */
+}
+
+.tool, .resize-panel {
+  height: auto;
+}
+.survey .tool .app {
+  /* Don't scroll in RxFiddle in survey */
+  overflow-y: visible;
+}
+
+.fullwidth {
+  margin-left: calc(-50vw + 19em);
+  width: 100vw;
+  margin-top: 0;
+  margin-bottom: 0;
+  border-right-width: 0;
+  border-left-width: 0;
+}
+
+.bg-blue {
+  background: #1678ca;
+  color: white;
+}
+
+.menufold + div {
+  height: auto;
+}
+#screens {
+  flex: 1;
+  display: flex;
+  position: relative;
+  background: white;
+}
+#screens > .tool {
+  flex: 1;
+  display: flex;
+}
+#screens .question-bar, #screens .menufold {flex: 0;transition: margin 1s;}
+
+.scrolly { overflow-y: scroll }
+
+.countdown {
+  font-size: 2em;
+  line-height: 0.7;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: rgba(0,0,0,.2);
+  z-index: 1000;
+}
+
+button.btn .overlay, button.btn + .overlay { display: none; }
+button.btn:hover .overlay, button.btn:active .overlay { display: block; }
+button.btn:hover + .overlay, button.btn:active + .overlay { display: block; }
+
+.help svg path {
+  fill: none;
+  stroke: white;
+  stroke-width: 6px;
+}
+
+.help svg text {
+  fill: white;
+  font-size: larger;
+}
+.helpbutton {
+  position: relative;
+  z-index: 1001;
+}
+
+.q {
+  /*background: white;
+  display: inline-block;*/
+}
+
+.question-bar h1 {
+  margin-top: 0;
+}
+
+form { 
+  display: table;
+}
+form .control {
+  display: table-row;
+}
+
+form .control label, form .control input {
+  display: table-cell;
+}
+
+form .control input, form .control input[type="text"] {
+  box-sizing: content-box;
+  font-size: 1.2em;
+  border: none;
+  padding: 4px;
+  margin: 2px;
+  background: white;
+}
+
+.mb {
+  margin-bottom: 0.5em;
+}
+.gray { color: gray; }
+
+
+
+.question-bar {
+  background: #1678ca;
+  color: white;
+}
+.question-bar .question-wrapper {
+   padding: 1em 0.5em;
+   transition: margin-top 0.5s;
+   margin-top: 0%;
+}
+
+.CodeMirror .readonly {
+  background: red;
+}
+
+.editor-visualizer {
+  order: 3;
+}
+
+.menufold.belowquestion {
+  order: 2;
+}
+
+.console-messages {
+  height: auto;
+  overflow-y: auto;
+}
+.console-messages > * {
+    padding: 3px;
+    border-bottom: 1px solid #ECECEC;
+}
+.console-messages > *:before {
+    content: "";
+    min-width: 0.2em;
+    display: inline-block;
+}
+.console-messages .reset {
+    color: blue;
+}
+
+.console-messages > *.level-error {
+  margin-top: -1px;
+  border-top: 1px solid hsl(0, 100%, 92%);
+  border-bottom: 1px solid hsl(0, 100%, 92%);
+  background: hsl(0, 100%, 97%);
+  color: red;
+}
+.console-messages > *.level-warn {
+  margin-top: -1px;
+  border-top: 1px solid #FFF5B2;
+  border-bottom: 1px solid #FFF5B2;
+  background: #FFFBDF;
+  color: #513502;
+}
+.console-messages > *:before {
+  background-image: url("../images/smallIcons_2x.png");
+  background-image: -webkit-image-set(url(../images/smallIcons.png) 1x, url(../images/smallIcons_2x.png) 2x);
+  background-size: 190px 30px;
+  margin-right: 12px;
+}
+
+.console-messages > *.level-info:before, 
+.console-messages > *.level-warn:before, 
+.console-messages > *.level-error:before {
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+}
+.console-messages > *.level-info:before { -webkit-mask-position: -80px 0px; background-position: -80px 0px; }
+.console-messages > *.level-warn:before { -webkit-mask-position: -60px 0px; background-position: -60px 0px; }
+.console-messages > *.level-error:before { -webkit-mask-position: -20px 0px; background-position: -20px 0px; }
+
+/*.message-level-icon, .command-result-icon {
+    position: absolute;
+    left: -17px;
+    top: 5px;
+    -webkit-user-select: none;
+}*/
+
+dd {
+    margin-left: 2em;
+    font-weight: normal;
+}
+dt {
+    font-weight: bold;
+    list-style-position: inside;
+    list-style-type: lower-roman;
+}
+
+#screens .buttons {
+  margin-bottom: 1em;
+}
+
+input.ref {
+  font-size: 1em;
+  width: 100%;
+  margin: 5px 0;
+}
+
+form .control input.invalid, form .control input[type="text"].invalid {
+  border: 1px solid red;
+  outline: none;
+  background: #ffc1c1;
+}
+form .control input.valid, form .control input[type="text"].valid {
+  outline: none;
+  border: 1px solid #009688;
+  background: rgb(207, 255, 207);
+}
+
+.sidebyside {
+  display: flex
+}
+
+.sidebyside iframe {
+  margin-left: 10px;
+  min-width: 50%;
+}
+
+textarea {
+  width: 100%;
+  font-size: 1.2em;
+}
+
+#screens div#menufold-static {
+    flex: 0 1 auto;
+}

@@ -1,0 +1,98 @@
+/*
+ * Copyright (c) 2015 The Chromium Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+/* Sample HTML:
+<div id="cpu-profile-flame-chart-overview-grid">
+<div class="resources-dividers">
+  <div class="resources-divider" style="left: 0%;"></div>
+  <div class="resources-divider" style="left: 9.93535%;"></div>
+  <div class="resources-divider" style="left: 19.8707%;"></div>
+  <div class="resources-divider" style="left: 29.806%;"></div>
+  <div class="resources-divider" style="left: 39.7414%;"></div>
+  <div class="resources-divider" style="left: 49.6767%;"></div>
+  <div class="resources-divider" style="left: 59.6121%;"></div>
+  <div class="resources-divider" style="left: 69.5474%;"></div>
+  <div class="resources-divider" style="left: 79.4828%;"></div>
+  <div class="resources-divider" style="left: 89.4181%;"></div>
+  <div class="resources-divider" style="left: 99.3535%;"></div>
+</div>
+<div class="timeline-grid-header">
+  <div class="resources-dividers-label-bar" style="top: 0px; cursor: -webkit-grab;">
+    <div class="resources-divider" style="left: 0%;">
+      <div class="resources-divider-label">0 ms</div>
+    </div>
+    <div class="resources-divider" style="left: 9.93535%;">
+      <div class="resources-divider-label">500 ms</div>
+    </div>
+    <div class="resources-divider" style="left: 19.8707%;">
+      <div class="resources-divider-label">1000 ms</div>
+    </div>
+  </div>
+</div>*/
+
+.resources-dividers {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: -100;
+    bottom: 0;
+}
+
+.resources-event-dividers {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 100%;
+    top: 0;
+    z-index: 300;
+    pointer-events: none;
+}
+
+.resources-dividers-label-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.85);
+    background-clip: padding-box;
+    height: 20px;
+    z-index: 200;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.resources-divider {
+    position: absolute;
+    width: 1px;
+    top: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.resources-event-divider {
+    position: absolute;
+    width: 2px;
+    top: 0;
+    bottom: 0;
+    z-index: 300;
+}
+
+.resources-divider-label {
+    position: absolute;
+    top: 4px;
+    right: 3px;
+    font-size: 80%;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.timeline-grid-header {
+    height: 20px;
+    pointer-events: none;
+}
+
+/*# sourceURL=ui_lazy/timelineGrid.css */

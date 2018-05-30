@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>RxFiddle - Tutorials</title>
+  <meta charset="utf8" />
+  <link rel="stylesheet" href="styles/style.css" type="text/css">
+  <link rel="shortcut icon" href="images/favicon.ico" type="image/x-icon" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    .CodeMirror {
+      height: auto;
+    }
+  </style>
+  <script>
+    function link(src) {
+      var s = document.createElement("link");
+      s.href = src;
+      s.rel = "stylesheet";
+      document.head.appendChild(s);
+    }
+    function script(src) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.async = false;
+      document.head.appendChild(s);
+    }
+    if (typeof require == 'undefined') {
+      if (window.location.hostname === "localhost") {
+        link('node_modules/codemirror/lib/codemirror.css')
+        script('node_modules/codemirror/lib/codemirror.js')
+        script('node_modules/codemirror/mode/javascript/javascript.js')
+      } else {
+        let codemirror = "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.25.2/"
+        link(codemirror + 'codemirror.min.css')
+        script(codemirror + 'codemirror.min.js')
+        script(codemirror + 'mode/javascript/javascript.min.js')
+      }
+    }
+  </script>
+</head>
+
+<body class="white">
+  <div id="menufold-static" class="menufold">
+    <a class="brand left" href="/"><img alt="ReactiveX" src="images/RxIconXs.png"></a>
+    <a class="btn" href="/">Back to home</a>
+    <div style="flex: 1 1 0%;"></div>
+  </div>
+  <div style="padding: 1em 2em">
+    <p>There are multiple ways of starting RxFiddle:</p>
+    <ul>
+      <li><a href="#browser">In browser</a>: using a editor you can write small samples, execute them in your browser, and share
+        them with your collegues.</li>
+      <li><a href="#attached">Attached</a>: connect RxFiddle to your existing project using the provided instrumentation.</li>
+    </ul>
+
+    <h1 id="browser">In Browser</h1>
+    <p>Simply surf to
+      <a href="https://rxfiddle.net/#type=editor"></a>
+      and you're good to go! For a quick demo or tutorial, view this video:
+    </p>
+    <iframe allowfullscreen frameborder="0" height="350" width="560" src="https://www.youtube.com/embed/BYFMuPOIijw"></iframe>
+
+    <h1 id="attached">Attached</h1>
+    <p>To run the attached version of RxFiddle first select your runtime:</p>
+    <ul>
+      <li>RxJS on Node: go to <a href="http://npmjs.org/package/rxfiddle">http://npmjs.org/package/rxfiddle</a></li>
+      <li>RxJS in a Web application, using plain RxJS or using a framework like Angular: use the Chrome Extension, <b>not implemented yet</b></li>
+      <li>RxJava or RxScala on JVM: use the rxfiddle-jvm-collector <b>not implemented yet</b>, visit the project page: <a href="https://github.com/hermanbanken/RxFiddle/tree/master/rxfiddle-jvm-collector">rxfiddle-jvm-collector</a></li>
+      <li>RxJava on Android: use the rxfiddle-dalvik-collector <b>not implemented yet</b>, issue a Pull Request!</li>
+      <li>RxSwift: use the rxfiddle-swift-collector <b>not implemented yet</b>, issue a Pull Request!</li>
+      <li>Rx.NET: use the rxfiddle-dotnet-collector <b>not implemented yet</b>, issue a Pull Request!</li>
+      <li>Other Rx language? Issue a Pull Request!</li>
+    </ul>
+  </div>
+  <script>
+    window.onload = function () {
+      CodeMirror.fromTextArea(document.querySelector("textarea"), {
+        lineNumbers: true,
+      })
+    }
+  </script>
+  <script>
+      (function (i, s, o, g, r, a, m) {
+        i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+          (i[r].q = i[r].q || []).push(arguments)
+        }, i[r].l = 1 * new Date(); a = s.createElement(o),
+          m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+      })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+    ga('create', 'UA-3854592-17', 'auto');
+    ga('send', 'pageview');
+  </script>
+</body>
+
+</html>

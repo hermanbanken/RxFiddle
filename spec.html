@@ -1,0 +1,70 @@
+<style>
+  h1,
+  h2,
+  h3,
+  ul,
+  p {
+    margin: 0 10px 10px;
+  }
+  
+  h1,
+  h2,
+  h3 {
+    margin-top: 10px;
+  }
+  
+  body {
+    margin: 0;
+    margin-bottom: 100px;
+  }
+  
+  iframe {
+    width: 100%;
+    min-height: 500px;
+    border-left: none;
+    border-right: none;
+  }
+</style>
+
+<h2>TODO</h2>
+<ul>
+  <li>Collapsing nodes based on same call (example: static concat)</li>
+  <li>Wiring of Subjects</li>
+  <li>RxJS 5 higher order links: inflow at correct node (at/below the outer subscriber)</li>
+</ul>
+
+<h2>Normal, singular flow</h2>
+<p>Features:</p>
+<ul>
+  <li>Basic operators</li>
+</ul>
+<iframe src="index.html#code=UnguT2JzZXJ2YWJsZS5vZigiQSIpCiAgLm1hcCh4ID0+IHggKiAyKQogIC5zY2FuKChwLCBuKSA9PiBwK24sIDApCiAgLnRha2UoMTApCiAgLnN1YnNjcmliZSgp&type=editor"></iframe>
+
+<h2>Concat 2 identical streams</h2>
+<p>Features:</p>
+<ul>
+  <li>Grouping of flows over identical observables</li>
+  <li>Higher order links (outer)</li>
+  <li>Calls resulting in multiple nodes (concat)</li>
+  <li>Calls to static methods (concat)</li>
+</ul>
+<iframe src="index.html#code=bGV0IGEgPSBSeC5PYnNlcnZhYmxlLm9mKCJBIikKICAubWFwKHggPT4geCAqIDIpCiAgLnNjYW4oKHAsIG4pID0+IHArbiwgMCkKICAudGFrZSgxMCkKClJ4Lk9ic2VydmFibGUKICAuY29uY2F0KGEsIGEpCiAgLnN1YnNjcmliZSgp&type=editor"></iframe>
+
+<h2>ConnectableObservable</h2>
+<p>Features:</p>
+<ul>
+  <li>Subject</li>
+  <li>Grouping of flows over identical Subjects</li>
+  <li>Split in graph</li>
+</ul>
+<iframe src="http://localhost:8085/#code=bGV0IGEgPSBSeC5PYnNlcnZhYmxlLm9mKCJBIikKbGV0IGIgPSBhLnB1Ymxpc2goKQoKYi5zdWJzY3JpYmUoKQpiLm1hcCh4ID0+IHgpLnN1YnNjcmliZSgpCgpiLmNvbm5lY3QoKQ==&type=editor"></iframe>
+
+<h2>publish diamond</h2>
+<p>Features:</p>
+<ul>
+  <li>Subject used under water</li>
+  <li>AnonymousSubject's</li>
+  <li>Split &amp; join in flow</li>
+  <li>Higher order links (outer) for takeUntil</li>
+</ul>
+<iframe src="http://localhost:8085/#code=bGV0IGEgPSBSeC5PYnNlcnZhYmxlCiAgLm9mKDEsIDIsIDMpCiAgLm1hcCh4ID0+IHgpCgpsZXQgYiA9IGEKICAucHVibGlzaChvID0+IG8KICAgIC5zY2FuKChwLCBuKSA9PiBwICsgbiwgMTApCiAgICAudGFrZVVudGlsKG8uc2tpcCgxKS5maWx0ZXIoeCA9PiB0cnVlKSkKICAgIC50YWtlKDIpCiAgKQoKbGV0IHN1YiA9IGIuc3Vic2NyaWJlKCk=&type=editor"></iframe>

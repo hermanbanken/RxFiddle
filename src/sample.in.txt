@@ -1,0 +1,37 @@
+static[rx.Observable::just] Setup
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:88)
+static[rx.Observable::just] => (rx.Observable 624f789b)
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:88)
+Follow(rx.Observable@624f789b)
+(rx.Observable 624f789b)[rx.Observable::map] Setup
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:90)
+(rx.Observable 624f789b)[rx.Observable::map] => (rx.Observable 6764708)
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:90)
+Follow(rx.Observable@6764708)
+(rx.Observable 6764708)[rx.Observable::take] Setup
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:92)
+(rx.Observable 6764708)[rx.Observable::take] => (rx.Observable 1fe46cfd)
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:92)
+Follow(rx.Observable@1fe46cfd)
+(rx.Observable 1fe46cfd)[rx.Observable::subscribe] Runtime
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:93)
+(rx.Observable 1fe46cfd)[rx.Observable::subscribe] => (rx.internal.operators.OperatorTake$1 22864527)
+	at nl.hermanbanken.rxfiddle.HookFollowTest.testMultipleOperators(HookFollowTest.java:93)
+Follow(rx.internal.operators.OperatorTake$1@22864527)
+(rx.Observable 624f789b)[rx.Observable::unsafeSubscribe] Runtime
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+(rx.internal.operators.OperatorTake$1 22864527)[rx.Subscriber::onNext] Runtime
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+(rx.internal.operators.OperatorTake$1 22864527)[rx.Subscriber::onNext] Runtime
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+(rx.internal.operators.OperatorTake$1 22864527)[rx.Subscriber::onNext] => (rx.internal.operators.OnSubscribeMap$MapSubscriber 56ce92de)
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+Follow(rx.internal.operators.OnSubscribeMap$MapSubscriber@56ce92de)
+(rx.internal.operators.OperatorTake$1 22864527)[rx.Subscriber::onNext] => (rx.internal.operators.OnSubscribeMap$MapSubscriber 56ce92de)
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+(rx.Observable 624f789b)[rx.Observable::unsafeSubscribe] => (rx.internal.operators.OnSubscribeMap$MapSubscriber 56ce92de)
+	at rx.internal.operators.OnSubscribeMap.call(OnSubscribeMap.java:48)
+result without invoke rx.observers.SafeSubscriber@6451c8a4
+Follow(rx.observers.SafeSubscriber@6451c8a4)
+result without invoke rx.observers.SafeSubscriber@6451c8a4
+result without invoke rx.observers.SafeSubscriber@6451c8a4

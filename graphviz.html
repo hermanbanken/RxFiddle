@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Webgraphviz</title>
+  <script src="static/viz-lite.js"></script>
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    textarea {
+      display: block;
+      min-height: 20px;
+    }
+    
+    div {
+      flex: 1
+    }
+    
+    textarea:hover {
+      flex: 1;
+      min-height: 70vh;
+    }
+  </style>
+</head>
+
+<body>
+  <textarea></textarea>
+  <div></div>
+  <script>
+    var data = atob(window.location.hash.substr(1))
+    document.querySelector("textarea").value = data
+    document.querySelector("div").innerHTML = Viz(data, "svg")
+    document.querySelector("textarea").onchange = (e) => {
+      document.querySelector("div").innerHTML = Viz(e.target.value, "svg")
+    }
+  </script>
+  <script>
+      (function (i, s, o, g, r, a, m) {
+        i['GoogleAnalyticsObject'] = r; i[r] = i[r] || function () {
+          (i[r].q = i[r].q || []).push(arguments)
+        }, i[r].l = 1 * new Date(); a = s.createElement(o),
+          m = s.getElementsByTagName(o)[0]; a.async = 1; a.src = g; m.parentNode.insertBefore(a, m)
+      })(window, document, 'script', 'https://www.google-analytics.com/analytics.js', 'ga');
+
+    ga('create', 'UA-3854592-17', 'auto');
+    ga('send', 'pageview');
+  </script>
+</body>
+
+</html>
