@@ -74,11 +74,20 @@ export class TreeCollector implements RxCollector {
       this.schedule(record.subject, record.method, undefined, undefined)
     }
 
+    // Record next/error/complete/dispose events
     if (callRecordType(record) === "event" && isObserver(this.Rx, record.subject)) {
       let event = Event.fromRecord(record, this.getTiming())
       if (event) {
         let observer = this.tag("observer", record.subject)
         this.addEvent(observer, event, record.arguments[0])
+      }
+    }
+    // Record subscribe-event
+    if (callRecordType(record) === "subscribe" && isObservable(this.Rx, record.subject) && isObserver(this.Rx, record.arguments[0])) {
+      let event = Event.fromRecord(record, this.getTiming())
+      if (event) {
+        let observer = this.tag("observer", record.arguments[0], record)
+        this.addEvent(observer, event)
       }
     }
     return this
