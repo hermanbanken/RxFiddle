@@ -39,7 +39,7 @@ module.exports = {
     lodash: '_',
   },
   devServer: {
-    contentBase: path.join(__dirname, "static"),
+    contentBase: path.join(__dirname),
     compress: true,
     port: 9000
   }
