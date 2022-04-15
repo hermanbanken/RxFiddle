@@ -12,14 +12,13 @@
   "typings": "dist",
   "scripts": {
     "compile": "tsc -p .",
-    "start-app": "electron .",
     "test": "tsc -p . && mocha --require source-map-support/register dist/test/index",
     "test:cover": "nyc --reporter=lcov --reporter=html npm test",
     "dev-test-watch": "mocha-typescript-watch",
     "prepublish": "tsc -p .",
     "distlibs": "sh scripts/distlibs.sh",
     "pages": "sh scripts/deploy.sh",
-    "start": "webpack --watch",
+    "start": "webpack-dev-server --watch",
     "build": "webpack -p"
   },
   "dependencies": {

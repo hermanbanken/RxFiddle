@@ -27,7 +27,7 @@ Existing collectors:
 Every help is welcome improving RxFiddle, either by improving the visualiser or
 creating custom collectors for your favorite Rx-library. 
 
-You can find samples of the expected output in the dist folder after running the tests (`npm run test`).
+See [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## Footnote
 RxFiddle is part of my [Masters thesis](doc).
